@@ -1841,9 +1841,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
 
   // karma: gains shrink near heaven and grow near hell; losses are flat and larger, so climbing is harder than sliding
-  function gainMul() { return 1 - 0.72 * alt; }
+  // the fall into the dark is quick and the way back to the light slow: losses count 1.5×, gains 0.7×
+  const LOSS_MUL = 1.5, GAIN_MUL = 0.7;
+  function gainMul() { return (1 - 0.72 * alt) * GAIN_MUL; }
   function karmaGain(x) { pending += x * gainMul(); }
-  function karmaLoss(x) { pending -= x; }
+  function karmaLoss(x) { pending -= x * LOSS_MUL; }
 
   const ndc = new THREE.Vector3(), rayDir = new THREE.Vector3(), target = new THREE.Vector3(), muzzle = new THREE.Vector3(), camInv = new THREE.Matrix4();
   function aimGun(g) {
@@ -2046,7 +2048,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // karma integration
     const k = 1 - Math.exp(-1.4 * dt), dA = pending * k;
     pending -= dA;
-    const drift = 0.008 + 0.011 * (alt + 1);
+    const drift = (0.008 + 0.011 * (alt + 1)) * 1.25; // and the idle slide downward is a quarter faster
     const prevAlt = alt;
     alt = clamp(alt + dA - drift * dt, -1, 1);
     altVel += ((alt - prevAlt) / dt - altVel) * (1 - Math.exp(-dt / 0.6));

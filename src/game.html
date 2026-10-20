@@ -609,6 +609,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const WHITE = new THREE.Color(0xffffff), accelRings = [];
   const blueGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x6fd6ff, transparent: true, opacity: 0.55, depthWrite: false });
+  // a mirage is a crystal's reflection: it shimmers, spins the other way, and pays nothing
+  const mirageMat = crystalMat.clone(); mirageMat.transparent = true; mirageMat.opacity = 0.6; mirageMat.depthWrite = false;
+  const mirageGlow = blueGlow.clone(); mirageGlow.opacity = 0.32;
   const redGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a10, transparent: true, opacity: 0.6, depthWrite: false });
   const glassWallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, transparent: true, opacity: 0.3, roughness: 0.08, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide });
   const prismMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.72, roughness: 0.1, metalness: 0.25, flatShading: true });
@@ -756,14 +759,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const ceilGeo = new THREE.PlaneGeometry(2 * W, SL + 0.02); ceilGeo.rotateX(Math.PI / 2);
   const I = {
     ceil: inst(ceilGeo, surfMat, 140),
-    sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 280),
-    rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 280),
-    wall: inst(new THREE.BoxGeometry(0.24, H, SL + 0.03), wallMat, 280),
-    post: inst(new THREE.BoxGeometry(0.36, H, 0.36), frameMat, 90),
-    beam: inst(new THREE.BoxGeometry(2 * W + 0.36, 0.36, 0.36), frameMat, 45),
+    sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 560),
+    rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 560),
+    wall: inst(new THREE.BoxGeometry(0.24, H, SL + 0.03), wallMat, 420),
+    post: inst(new THREE.BoxGeometry(0.36, H, 0.36), frameMat, 180),
+    beam: inst(new THREE.BoxGeometry(2 * W + 0.36, 0.36, 0.36), frameMat, 90),
     cap: inst(new THREE.BoxGeometry(2 * W + 0.6, H, 0.3), wallMat, 2), // the dead end of the branch not taken
     nose: inst(new THREE.BoxGeometry(1.4, H, 1.4), frameMat, 2), // the pillar where the two tunnels' inner walls meet
-    sill: inst(new THREE.BoxGeometry(2 * W, 0.05, 0.36), frameMat, 45),
+    sill: inst(new THREE.BoxGeometry(2 * W, 0.05, 0.36), frameMat, 90),
     pyrL: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(-Math.PI / 2), spikeMat, 90), // pyramid out of the left wall, pointing +u
     pyrR: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(Math.PI / 2), spikeMat, 90),
     gwall: inst(new THREE.BoxGeometry(0.08, H, SL + 0.03), glassWallMat, 280),
@@ -786,12 +789,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.down = down; scene.add(m);
     return m;
   }
-  function fillStrip(strip, s0, s1, frame, v) {
+  function fillStrip(strip, s0, s1, frame, v, uo = 0) {
     const g = strip.geometry, pos = g.attributes.position.array, nor = g.attributes.normal.array, uv = g.attributes.uv.array;
     const maxSeg = pos.length / 6 - 1, seg = Math.max(0, Math.min(maxSeg, Math.floor((s1 - s0) / DS))), sg = strip.down ? -1 : 1;
     for (let i = 0; i <= seg; i++) {
       const s = s0 + i * DS; frame(s);
-      _C.copy(_P).addScaledVector(_U, v);
+      _C.copy(_P).addScaledVector(_U, v).addScaledVector(_R, uo);
       const k = i * 6, q = i * 4;
       pos[k] = _C.x - _R.x * W; pos[k + 1] = _C.y - _R.y * W; pos[k + 2] = _C.z - _R.z * W;
       pos[k + 3] = _C.x + _R.x * W; pos[k + 4] = _C.y + _R.y * W; pos[k + 5] = _C.z + _R.z * W;
@@ -805,6 +808,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const STRIP_N = AHEAD + 20;
   const floorStrip = makeStrip(STRIP_N, surfMat, false), vaultStrip = makeStrip(STRIP_N, surfMat, true);
   const gFloorStrip = makeStrip(GHOST_N, surfMat, false), gVaultStrip = makeStrip(GHOST_N, surfMat, true);
+  const MIRROR_O = 2 * (W + 0.12); // a mirror wall reflects the corridor to this offset on its side
+  const mirStrips = [-1, 1].map(k => ({ o: k * MIRROR_O, floor: makeStrip(STRIP_N, surfMat, false), vault: makeStrip(STRIP_N, surfMat, true) }));
   const decor = new Map();
   function getDecor(k) {
     let d = decor.get(k);
@@ -823,7 +828,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         else d.pyr = { side, v };
       }
     }
-    const nb = (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
+    const nb = STYLE.mirror ? 0 : (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
     for (let i = 0; i < nb; i++) {
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
       const side = h1 < 0.5 ? -1 : 1, tall = z < 0.4 && h3 < 0.35 && STYLE.blocks === "cube";
@@ -865,6 +870,22 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0);
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H); else vaultStrip.visible = false;
+    // Speculum: the glass walls are mirrors, and beyond each one the corridor repeats: floor, vault, rails,
+    // sleepers and arches, closed by a dark wall where the reflection's own mirror would be
+    for (const m of mirStrips) {
+      m.floor.visible = m.vault.visible = !!STYLE.mirror;
+      if (!STYLE.mirror) continue;
+      fillStrip(m.floor, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, m.o);
+      fillStrip(m.vault, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, m.o);
+      const far = m.o + Math.sign(m.o) * (W + 0.12);
+      for (let k = k0; k <= k1; k++) {
+        const dec = getDecor(k), s = k * SL + SL / 2;
+        put("sleeper", s - 0.5, m.o, 0.06); put("sleeper", s + 0.5, m.o, 0.06);
+        put("rail", s, m.o - 0.72, 0.19); put("rail", s, m.o + 0.72, 0.19);
+        put("wall", s, far, H / 2);
+        if (dec.arch) { put("post", s, m.o - W + 0.1, H / 2); put("post", s, m.o + W - 0.1, H / 2); put("beam", s, m.o, H - 0.18); put("sill", s, m.o, 0.025); }
+      }
+    }
     // the other branch of a fork that is near: rails, floor, walls and vault along its own path, closed at the far end
     ghost = forks.find(f => f.s - sC < AHEAD - 10 && sC < f.s + 40 && f.s > sBase + 1) || null;
     gFloorStrip.visible = gVaultStrip.visible = !!ghost; // kept until the opening is well behind
@@ -1117,6 +1138,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     scene.add(g);
     crystals.push({ s, u, v, val, decoy: !!decoyKind, group: g, mesh: m, alive: true, spin: 0.8 + Math.random(), wp: new THREE.Vector3() });
   }
+  function addMirage(s, u, v, val) {
+    addCrystal(s, u, v, val);
+    const c = crystals[crystals.length - 1];
+    c.mirage = true; c.spin = -c.spin; c.mesh.material = mirageMat; c.group.children[1].material = mirageGlow;
+  }
   function addImp(s, u, v) {
     const g = new THREE.Group(); g.matrixAutoUpdate = false;
     const core = new THREE.Mesh(impGeo, impMat), cage = new THREE.LineSegments(impEdge, impEdgeMat), glow = new THREE.Sprite(redGlow);
@@ -1168,6 +1194,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (let i = 0; i < 4; i++) { const k = i % 2 ? 1 : -1; addPane({ s: s - i * 3.5, u: k * rand(2.4, 3.2), v: rand(1.6, 4.8), w: rand(1.1, 1.6), h: rand(1.1, 1.6) }); }
         break;
       case "slider": { const w = 2.6; addPane({ s, u: 0, v: CAM_V + 0.2, w, h: 2.9, move: { axis: "u", amp: W - w / 2 - 0.2, freq: rand(1, 1.6) * (1 + 0.3 * d), phase: rand(0, TAU) } }); break; }
+      case "twins": { // two panes mirrored about the track that close and part like doors
+        const freq = rand(0.9, 1.3) * (1 + 0.3 * d), phase = rand(0, TAU);
+        [-1, 1].forEach(k => addPane({ s, u: k * 2.0, v: CAM_V + 0.2, w: 2.2, h: 2.9, move: { axis: "u", amp: k * 1.0, freq, phase } }));
+        break;
+      }
       case "lift": addPane({ s, u: 0, v: 3.1, w: 3.4, h: 2.2, move: { axis: "v", amp: 1.6, freq: rand(1.1, 1.7), phase: rand(0, TAU) } }); break;
       case "double":
         addPane({ s, u: rand(-0.5, 0.5), v: glassV, w: 2.6, h: 2.6 });
@@ -1198,7 +1229,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (cm > 1 && Math.random() < (cm - 1) * 0.5) addCrystal(cs + 4, rand(-2.8, 2.8), rand(1.1, 4.6), d < 0.3 ? 5 : d < 0.65 ? 3 : 6);
     if (Math.random() < Math.min(0.95, lerp(0.85, 0.3, d) * cm)) {
       const val = d < 0.3 ? 5 : d < 0.65 ? 3 : 6;
-      addCrystal(cs, rand(-2.8, 2.8), rand(1.1, 4.6), val);
+      // in the mirror halls a crystal may hang beside its reflection, the two mirrored about the track
+      const twin = LEVEL.mirages && Math.random() < LEVEL.mirages, cu = twin ? (Math.random() < 0.5 ? -1 : 1) * rand(1.2, 2.8) : rand(-2.8, 2.8), cv = rand(1.1, 4.6);
+      addCrystal(cs, cu, cv, val);
+      if (twin) addMirage(cs, -cu, cv, val);
       if (d < 0.3 && Math.random() < 0.35) addCrystal(cs - 3, rand(-2.8, 2.8), rand(1.1, 4.6), val);
     }
     if (d > 0.55 && Math.random() < (d - 0.55) * 1.4) addCrystal(cs + 2, rand(-1.2, 1.2), rand(1.4, 3), 0, true);
@@ -1449,6 +1483,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (Math.random() < 0.35) addDrop(s + 5, rand(-2.8, 2.8), "gem");
       return rand(8, 10);
     }
+    if (f === "reflexio") { spawnPair(s); return rand(9, 11); }
     if (f === "pluvia") {
       for (let i = 0; i < 2; i++) addDrop(s + i * 2.5, rand(-3, 3), Math.random() < 0.25 ? "decoy" : "gem");
       return rand(4.5, 6);
@@ -1555,7 +1590,26 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (superWave % 4 === 2) addSigil(s + 4, rand(-2.4, 2.4), rand(1.2, 4.2));
     if (superWave % 3 === 0) { const w = 2.6; addPane({ s: s + 5, u: 0, v: CAM_V + 0.2, w, h: 2.9, move: { axis: "u", amp: W - w / 2 - 0.2, freq: rand(1.6, 2.2), phase: rand(0, TAU) } }); }
   }
+  // Reflexio: a sigil and its reflection fly mirrored about the track; the pair pays a bonus only when both fall
+  let pairsDone = 0;
+  function spawnPair(s) {
+    superWave++;
+    const u = rand(1.4, 2.5), v = rand(1.4, 4.0);
+    addSigil(s, u, v); addSigil(s, -u, v);
+    const a = sigils[sigils.length - 2], b = sigils[sigils.length - 1];
+    a.pair = b; b.pair = a; b.phase = a.phase; a.mir = 1; b.mir = -1;
+    if (superWave % 3 === 0) [-1, 1].forEach(k => addPane({ s: s + 6, u: k * 2.0, v: CAM_V + 0.2, w: 2.2, h: 2.9, move: { axis: "u", amp: k * 1.0, freq: 1.1, phase: rand(0, TAU) } }));
+  }
+  function hitPairSigil(g, b) {
+    g.alive = false; g.hit = true; scene.remove(g.group);
+    const both = g.pair.hit;
+    stats.crystals++; addScore(both ? 120 : 40); karmaGain(0.03);
+    if (both) { pairsDone++; bestCombo = Math.max(bestCombo, pairsDone); updateCombo(); }
+    Sound.crystal(both ? 6 : 4); chips(g.wp, crystalMat, 10, b.v);
+    award(b, g.wp, 0.85, h => { const gain = h + (both ? 4 : 0); balls += gain; superGain += gain; updateCount(); updateCombo(); pop(both ? `+${gain} · пара` : "+" + gain, "gain"); });
+  }
   function hitSigil(g, b) {
+    if (g.pair) return hitPairSigil(g, b);
     g.alive = false; scene.remove(g.group);
     const per = combo;
     stats.crystals++; addScore(40 * per); karmaGain(0.03);
@@ -1566,6 +1620,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function missSigil(g) {
     g.alive = false; scene.remove(g.group);
+    if (g.pair) return; // a pair's target that slips past only loses the pair's bonus
     combo = 1; updateCombo();
     balls = Math.max(0, balls - 2); updateCount();
     pop("−2 · ×1", "loss"); Sound.decoy();
@@ -1588,7 +1643,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function zoneName(a) { for (const [t, n] of ZONES) if (a >= t) return n; return "Тьма"; }
   function updateCombo() {
     const f = LEVEL.finale;
-    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : "+" + superGain;
+    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : f === "reflexio" ? "пары " + pairsDone : "+" + superGain;
   }
   function showOverlay(id, html, ms) {
     const el = $(id); el.innerHTML = html; el.hidden = false;
@@ -1621,6 +1676,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     iudicium: { name: "IUDICIUM", ru: "Суд", note: "Попадания по печатям подряд умножают награду до ×6. Пропуск сбрасывает множитель и стоит 2 шара. Стекло бьёт вдвое сильнее." },
     ruina: { name: "RUINA", ru: "Обвал", note: "С потолка падают глыбы. Сбивайте их в воздухе или на рельсах: +2 шара, каждые 4 подряд ещё +4. Глыба на пути стоит 8 шаров." },
     portae: { name: "PORTAE", ru: "Врата", note: "Впереди стеклянные врата. Перед каждыми горит голубой ключ-кристалл: попадите в него, и врата разлетятся, а ключ даст шары. Каждые трое врат подряд — ещё +3. Не попали — вагонетка пробьёт стекло: −4 шара." },
+    reflexio: { name: "REFLEXIO", ru: "Отражение", note: "Мишени летят парами: предмет и его отражение. Сбейте обе мишени пары — +5 шаров, только одну — +1. Пропущенная мишень ничего не стоит." },
     pluvia: { name: "PLUVIA", ru: "Дождь", note: "С неба падают кристаллы: голубой +2 шара, красный −3. Собирайте, сколько успеете." },
   };
 
@@ -1642,6 +1698,25 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { sky: "#bff0e0", hor: "#e8f8f2", gnd: "#cdeee0", surf: "#ffffff", wall: "#dcf4ea", line: "#4fd8a8", lineI: 0.4, frame: "#8fd4ba", frameE: "#b8ffe8", frameEI: 0.5,
       rail: "#c4e8da", sleeper: "#e2f6ee", glass: "#9ff0d4", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 104, hemiS: "#ffffff", hemiG: "#bfe8d8", hemiI: 1.1, sunI: 0.8,
       dust: "#90f0cc", block: "#ecfaf4", cart: "#4f8a78", accent: "#3fd8a4" },
+  ];
+
+  // Speculum: pearl and silver in the light, graphite steel in between, black chrome with an icy glow in the dark
+  const PAL_SPECULUM = [
+    { sky: "#060a14", hor: "#020409", gnd: "#1c2c4a", surf: "#080c16", wall: "#0a1020", line: "#a8c8ff", lineI: 0.8, frame: "#05080f", frameE: "#8fb4ff", frameEI: 0.8,
+      rail: "#2a3650", sleeper: "#0c1220", glass: "#b8d0ff", glassO: 0.45, edge: "#e8f0ff", fogN: 4, fogF: 54, hemiS: "#a8c0ff", hemiG: "#060c1c", hemiI: 0.55, sunI: 0.3,
+      dust: "#c8dcff", block: "#0e1424", cart: "#121a2c", accent: "#a8c8ff" },
+    { sky: "#2a2e36", hor: "#16191e", gnd: "#0e1014", surf: "#30343c", wall: "#262a32", line: "#a0a8b8", lineI: 0.22, frame: "#16181d", frameE: "#000000", frameEI: 0,
+      rail: "#5a6070", sleeper: "#22252c", glass: "#c0c8d8", glassO: 0.42, edge: "#e6eaf2", fogN: 8, fogF: 68, hemiS: "#c4c8d4", hemiG: "#16181d", hemiI: 0.75, sunI: 0.5,
+      dust: "#b0b6c4", block: "#2a2e36", cart: "#2a2e36", accent: "#c8d0e0" },
+    { sky: "#a6acb8", hor: "#9298a4", gnd: "#747a86", surf: "#c4c8d0", wall: "#a8aeba", line: "#ffffff", lineI: 0.05, frame: "#4a505c", frameE: "#000000", frameEI: 0,
+      rail: "#868c98", sleeper: "#686e7a", glass: "#dce4f0", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 82, hemiS: "#ffffff", hemiG: "#868c98", hemiI: 0.95, sunI: 0.7,
+      dust: "#ffffff", block: "#9ca2ae", cart: "#454b56", accent: "#ffffff" },
+    { sky: "#f2f4f8", hor: "#e4e8ee", gnd: "#c4cad4", surf: "#fbfcfd", wall: "#e2e6ee", line: "#b8c4d8", lineI: 0.15, frame: "#8890a0", frameE: "#000000", frameEI: 0,
+      rail: "#a8aebc", sleeper: "#c8ccd6", glass: "#e2eaf8", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 96, hemiS: "#ffffff", hemiG: "#cdd2dc", hemiI: 1.0, sunI: 0.75,
+      dust: "#ffffff", block: "#e6e9f0", cart: "#5c6474", accent: "#a8bce0" },
+    { sky: "#d8e2f4", hor: "#f2f5fb", gnd: "#e0e6f2", surf: "#ffffff", wall: "#eef1f8", line: "#a0b8e8", lineI: 0.35, frame: "#b8c4dc", frameE: "#dce6ff", frameEI: 0.45,
+      rail: "#d2d8e6", sleeper: "#e8ecf4", glass: "#d4e2ff", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 108, hemiS: "#ffffff", hemiG: "#cdd6e8", hemiI: 1.1, sunI: 0.8,
+      dust: "#c8d8ff", block: "#f4f6fb", cart: "#6a7488", accent: "#8fb0f0" },
   ];
 
   // Thesaurus: warm gold in the light, bronze and ember in the dark
@@ -1706,10 +1781,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       mood: { sky: "#dcf2e8", hor: "#c8e8da", surf: "#f2faf6", wall: "#d8efe4", frame: "#2f7a62", rail: "#6fa892", glass: "#d0f4e6", accent: "#3fcf9a" },
       desc: "Тупик с висячими садами. Кристаллы растут на ветвях, но ветви хлещут по вагонетке.",
       feats: ["Кристаллы на ветвях", "Говорят, тут прячут вторую пушку для Gemini подешевле"], req: { after: "labyrinthus", fare: 12 }, map: { x: 500, y: 80, label: "r" } },
-    { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: false,
-      mood: { sky: "#e8eaee", hor: "#d6dae0", surf: "#f6f7f9", wall: "#e2e6ec", frame: "#7a8494", rail: "#a4acb8", glass: "#e4ecf8", accent: "#9aa8c4" },
-      desc: "Зеркальные залы. Отражения стёкол путаются с самими стёклами.",
-      feats: ["Зеркальные стены и ложные цели", "Пересадка на ветку к Lux"], req: { after: "labyrinthus", transfer: { from: "vitrum", cost: 60 } }, map: { x: 590, y: 190, label: "t" } },
+    { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
+      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,
+      pats: { twins: [1.5, 2, 2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
+      turns: [[100, 50, 40], [210, 60, -55], [330, 50, 45], [450, 70, -70], [590, 50, 50], [700, 60, -45], [820, 50, 40],
+        [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],
+      desc: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар.",
+      feats: ["Зеркальные стены: коридор уходит в отражения", "Ложные кристаллы: отражение мерцает и вращается в обратную сторону", "Финал Reflexio: мишени парами"],
+      req: { after: "labyrinthus", transfer: { from: "vitrum", cost: 60 } }, map: { x: 590, y: 190, label: "t" } },
     { id: "abyssus", num: "V", latin: "Abyssus", ru: "Бездна", playable: false,
       mood: { sky: "#0c1424", hor: "#060a12", surf: "#141c2c", wall: "#0c1220", frame: "#24324a", rail: "#3a4660", glass: "#5a7aa8", accent: "#4a8aff" },
       desc: "Рельсы над бездной без стен и потолка. Тьма здесь ближе всего.",
@@ -1772,7 +1851,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     clearDynamic();
     sC = 0; alt = 0.35; pending = 0; altVel = 0; pitchC = 0; pitchTs = 0;
     cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0;
-    superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0;
+    superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0;
     buildForks();
     computePath();
     if (spawn) while (nextSpawn < SPAWN_AHEAD) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15); }
@@ -1837,7 +1916,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;
       $("wSuperName").textContent = FINALES[LEVEL.finale].name;
-      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : `+${superGain}`;
+      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "reflexio" ? `пары ${pairsDone} · +${superGain}` : `+${superGain}`;
       $("wAcc").textContent = (stats.thrown ? Math.round(stats.hits / stats.thrown * 100) : 0) + "%";
       $("wBest").textContent = best.toLocaleString("ru-RU");
       const nx = nextLevel(LEVEL), nb = $("nextBtn");
@@ -2027,6 +2106,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   function hitCrystal(c, b) {
     c.alive = false; scene.remove(c.group);
+    if (c.mirage) {
+      balls = Math.max(0, balls - 1); updateCount();
+      pop("отражение · −1", "loss"); Sound.clink(); Sound.shatter(0.3);
+      chips(c.wp, mirageMat, 8, b.v);
+      return;
+    }
     if (c.decoy) {
       balls = Math.max(0, balls - 3); updateCount(); karmaLoss(0.08);
       pop("−3", "loss"); Sound.decoy(); flash();
@@ -2178,6 +2263,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     panes = panes.filter(p => p.alive);
 
+    mirageMat.opacity = 0.5 + 0.18 * Math.sin(time * 7.5);
     for (const c of crystals) {
       if (!c.alive) continue;
       setObj(c.group, c.s, c.u, c.v + Math.sin(time * 2 + c.s) * 0.12);
@@ -2230,7 +2316,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
     for (const g of sigils) {
       if (!g.alive) continue;
-      g.u = g.bu + Math.sin(time * 1.6 + g.phase) * 1.1;
+      g.u = g.bu + Math.sin(time * 1.6 + g.phase) * 1.1 * (g.mir || 1);
       setObj(g.group, g.s, g.u, g.v);
       g.wp.setFromMatrixPosition(g.group.matrix);
       g.spin.rotation.z += dt * 1.2; g.spin.rotation.y += dt * 0.8; g.gem.rotation.y += dt * 2;

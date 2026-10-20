@@ -720,6 +720,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const s = f.s + j, yaw = yawAt(s) - 2 * f.sign * forkYaw(f, s), cd = Math.max(0, Math.cos(yaw - yawAt(sm)));
       const pm = pitchAt(sm), pg = Math.atan(Math.tan(pm) * cd);
       basisFill(s, yaw, bankRateAt(s), GT, GR, GU, j, pg);
+      // and where the two floors overlap it leans across so its floor lies in the main floor's plane
+      // (R = T × U(main), U = R × T); further on, its own tunnel straightens up again
+      frameAt(sm);
+      const k = j * 3, tx = GT[k], ty = GT[k + 1], tz = GT[k + 2], w = 1 - smooth5((j - 24) / 16);
+      let rx = ty * _U.z - tz * _U.y, ry = tz * _U.x - tx * _U.z, rz = tx * _U.y - ty * _U.x;
+      let rl = Math.hypot(rx, ry, rz) || 1;
+      rx = rx / rl * w + GR[k] * (1 - w); ry = ry / rl * w + GR[k + 1] * (1 - w); rz = rz / rl * w + GR[k + 2] * (1 - w);
+      rl = Math.hypot(rx, ry, rz) || 1; rx /= rl; ry /= rl; rz /= rl;
+      GR[k] = rx; GR[k + 1] = ry; GR[k + 2] = rz;
+      GU[k] = ry * tz - rz * ty; GU[k + 1] = rz * tx - rx * tz; GU[k + 2] = rx * ty - ry * tx;
       sm += Math.cos(pg) * cd / Math.cos(pm);
     }
     frameAt(f.s); GP[0] = _P.x; GP[1] = _P.y; GP[2] = _P.z;

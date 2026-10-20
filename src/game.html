@@ -952,7 +952,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.006, 0.56), accentMat); stripe.position.set(0, 0.078, -0.5); mG.add(stripe);
     [-0.83, -0.9].forEach(z => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.1, 0.04), shellMat); b.position.z = z; mG.add(b); });
     const gbHole = cyl(0.045, 0.02, accentMat); gbHole.position.z = -0.81; mG.add(gbHole);
-    // Radius: a slender emitter with cooling fins and a glowing lens
+    // Lumen: a slender emitter with cooling fins and a glowing lens
     const mR = new THREE.Group(); mR.name = "m_radius"; barrel.add(mR);
     const tube = cyl(0.035, 0.64, shellMat); tube.position.z = -0.52; mR.add(tube);
     for (let i = 0; i < 5; i++) { const f = cyl(0.115 - i * 0.012, 0.012, darkMat, 24); f.position.z = -0.28 - i * 0.09; mR.add(f); }
@@ -1518,7 +1518,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     ballista: { name: "Ballista", ru: "Рельсотрон", cost: 1, price: 0, desc: "Один шар за выстрел. Попадание в кристалл даёт его обычную цену." },
     triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: 25, desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
     gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 40, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
-    radius: { name: "Radius", ru: "Луч", cost: 2, price: 60, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии. Выстрел стоит 2 шара, луч один, поэтому кристалл платит свою цену один раз." },
+    radius: { name: "Lumen", ru: "Луч", cost: 2, price: 60, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии. Выстрел стоит 2 шара, луч один, поэтому кристалл платит свою цену один раз." },
   };
   const ballsWord = n => n === 1 ? "шар" : n < 5 ? "шара" : "шаров";
   // The first ball of a shot takes the target; for a moment its spot keeps catching the other balls of the same
@@ -1604,7 +1604,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
       desc: "Тупиковый склад при станции Vitrum. Здесь за кристаллы ставят на вагонетку новые пушки.",
-      feats: ["Triplex, Gemini и Radius", "Купленная пушка остаётся навсегда, её можно сменить в меню"],
+      feats: ["Triplex, Gemini и Lumen", "Купленная пушка остаётся навсегда, её можно сменить в меню"],
       req: { after: "vitrum", toll: 10 }, map: { x: 360, y: 470, label: "b" } },
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "stillness_at_altitude", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true },
@@ -1831,7 +1831,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (progress.weapon === "radius") Sound.laser(); else Sound.fire();
   }
 
-  // Radius: an instant beam along the aim ray. It breaks every pane and target on the line
+  // Lumen: an instant beam along the aim ray. It breaks every pane and target on the line
   // and stops only at a pane it fails to break or at a monolith.
   const LASER_LEN = 140;
   function rayBox(o, d, inv, hx, hy, hz) {

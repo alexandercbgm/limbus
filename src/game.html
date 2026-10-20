@@ -118,7 +118,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .combo .tbar { width: 120px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--ink) 18%, transparent); overflow: hidden; }
 .combo .tbar i { display: block; height: 100%; width: 100%; background: var(--gain); }
 .banner { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; text-align: center; padding: 0 16px; }
-.banner > div { animation: banner 3.6s ease-out forwards; color: var(--ink); }
+.banner > div { animation: banner 6.5s ease-out forwards; color: var(--ink); }
 .banner .bn-name { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 9vw, 64px); letter-spacing: 0.18em; }
 .banner .bn-sub { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 8px; }
 .banner .bn-note { font-size: 14px; margin-top: 10px; max-width: 34ch; margin-inline: auto; line-height: 1.45; }
@@ -321,7 +321,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 (() => {
   // ---------- constants ----------
   const TAU = Math.PI * 2, W = 4.2, H = 6.6, CAM_V = 1.8;
-  const DS = 1, BACK = 14, AHEAD = 150, NS = BACK + AHEAD + 1, SL = 2;
+  const DS = 1, BACK = 44, AHEAD = 150, NS = BACK + AHEAD + 1, SL = 2;
   const START_BALLS = 30, R_BALL = 0.18, G = 11, MAX_SHARDS = 520;
   const SPAWN_AHEAD = 118, LAMBDA = 14, BASE_SPEED = 12.5;
   // along s a level is: the main run, then the Iudicium finale, then the arrival station; the cart stops at END_S
@@ -803,18 +803,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       }
     }
     // the other branch of a fork that is near: rails, floor, walls and vault along its own path, closed at the far end
-    ghost = forks.find(f => f.s - sC < AHEAD - 10 && sC < f.s + 30 && f.s > sBase + 1) || null;
+    ghost = forks.find(f => f.s - sC < AHEAD - 10 && sC < f.s + 40 && f.s > sBase + 1) || null; // kept until the opening is well behind
     if (ghost) {
       computeGhost(ghost);
       const pg = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeG(M, s, u, v)); };
       const skip = ghost.sign > 0 ? -1 : 1; // its wall toward the main branch stays open near the fork
       for (let s = ghost.s + SL / 2; s < ghost.s + GHOST_N - 2; s += SL) {
         const near = s < ghost.s + FORK_OPEN, kk = Math.round(s / SL);
-        pg("floor", s, 0, 0); pg("sleeper", s - 0.5, 0, 0.06); pg("sleeper", s + 0.5, 0, 0.06);
-        pg("rail", s, -0.72, 0.19); pg("rail", s, 0.72, 0.19);
+        // where the branches still overlap, the main track's floor, sleepers and rails serve both
+        const d = s - ghost.s;
+        if (d > 6) pg("floor", s, 0, -0.015);
+        // the outer rail runs from the switch; the inner one would cross the main track's rail, so it begins
+        // only once the branches have parted, like the frog of a real turnout
+        if (d > 2) pg("rail", s, -skip * 0.72, 0.19); // outer rail
+        if (d > 18) pg("rail", s, skip * 0.72, 0.19); // inner rail, toward the main track
+        if (d > 14) { pg("sleeper", s - 0.5, 0, 0.06); pg("sleeper", s + 0.5, 0, 0.06); }
         if (!(near && skip === -1)) pg(wallKey, s, -W - 0.12, H / 2);
         if (!(near && skip === 1)) pg(wallKey, s, W + 0.12, H / 2);
-        pg("ceil", s, 0, H);
+        pg("ceil", s, 0, H + 0.015);
         if (!near && kk % 4 === 0) { pg("post", s, -W + 0.1, H / 2); pg("post", s, W - 0.1, H / 2); pg("beam", s, 0, H - 0.18); }
       }
       pg("cap", ghost.s + GHOST_N - 2, 0, H / 2);
@@ -1403,7 +1409,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       // the arrow points along the branch taken: the plaque is mirrored for a left turn
       f.disc.scale.x += ((f.sign > 0 ? -1 : 1) - f.disc.scale.x) * Math.min(1, dt * 14);
       for (const sg of f.signs) {
-        const onMain = sg.side === f.sign, ss = f.s + 12;
+        const onMain = sg.side === f.sign, ss = f.s + 28; // where the tunnels have parted, each sign hangs in its own
         sg.mesh.visible = ss - sC < AHEAD - 6 && ss > sC - 4 && (onMain || ghost === f);
         if (sg.mesh.visible) { if (onMain) placeM(sg.mesh.matrix, ss, 0, 5.0); else placeG(sg.mesh.matrix, ss, 0, 5.0); sg.mesh.matrixWorldNeedsUpdate = true; }
       }
@@ -1994,16 +2000,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const fl = forks.find(f => nextSpawn > f.s - 36 && nextSpawn < f.s + 46);
       if (fl) { nextSpawn = fl.s + 46; continue; }
       const br = branchAt(nextSpawn);
-      if (nextSpawn < MAIN_LEN - 75) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15) * (br === "rich" ? 0.8 : br === "calm" ? 1.7 : 1); }
+      if (nextSpawn < MAIN_LEN - 105) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15) * (br === "rich" ? 0.8 : br === "calm" ? 1.7 : 1); }
       else if (nextSpawn < MAIN_LEN + 14) nextSpawn = MAIN_LEN + 14;
       else if (nextSpawn < SUPER_END - 12) nextSpawn += spawnFinale(nextSpawn);
       else break;
     }
     // the finale is announced on an empty stretch; its targets only arrive after the banner is gone
     const fin = FINALES[LEVEL.finale];
-    if (!finaleShown && sC >= MAIN_LEN - 62) {
+    if (!finaleShown && sC >= MAIN_LEN - 92) {
       finaleShown = true;
-      showOverlay("banner", `<div><div class="bn-name">${fin.name}</div><div class="bn-sub">${fin.ru} · 20 секунд</div><div class="bn-note">${fin.note}</div></div>`, 3600);
+      showOverlay("banner", `<div><div class="bn-name">${fin.name}</div><div class="bn-sub">${fin.ru} · 20 секунд</div><div class="bn-note">${fin.note}</div></div>`, 6500);
       Sound.crystal(5);
     }
     if (!superOn && sC >= MAIN_LEN && sC < SUPER_END) {

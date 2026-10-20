@@ -1863,7 +1863,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [830, 70, 80], [960, 50, -55], [1060, 60, 60], [1180, 45, -45], [1260, 45, 45], [1380, 70, -70]],
       desc: "Призматические галереи над пустотой. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть.",
       feats: ["Монолиты на цепях и маятники поперёк пути", "Шестигранные своды и стеклянные стены", "Финал Ruina: обвал глыб"],
-      req: { after: "initium" }, map: { x: 270, y: 330, label: "tl" } },
+      req: { after: "initium" }, map: { x: 270, y: 330, label: "tl", dx: 12, dy: -12 } },
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
       desc: "Тупиковый склад при станции Vitrum. Здесь за кристаллы ставят на вагонетку новые пушки.",
@@ -2674,6 +2674,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? LINE_MAIN : MUTED); // a main-line station wears the line's colour
       const glyph = st === "done" ? "#ffffff" : lit ? INK : MUTED;
       const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 30, p.y - 10, "start"], l: [p.x - 30, p.y - 30, "end"] }[p.label];
+      L[0] += p.dx || 0; L[1] += p.dy || 0; // a station may nudge its label
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS_RU[st]}">`;
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
       if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;

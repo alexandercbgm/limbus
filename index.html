@@ -1527,14 +1527,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     ballista: { name: "Ballista", ru: "Рельсотрон", cost: 1, price: 0, desc: "Один шар за выстрел. Попадание в кристалл даёт его обычную цену." },
     triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: 25, desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
     gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 40, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
-    radius: { name: "Radius", ru: "Луч", cost: 2, price: 60, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии. Выстрел стоит 2 шара, и попадание засчитывается как два." },
+    radius: { name: "Radius", ru: "Луч", cost: 2, price: 60, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии. Выстрел стоит 2 шара, луч один, поэтому кристалл платит свою цену один раз." },
   };
   const ballsWord = n => n === 1 ? "шар" : n < 5 ? "шара" : "шаров";
   // The first ball of a shot takes the target; for a moment its spot keeps catching the other balls of the same
   // shot (Gemini's pair, Triplex's three), then the target pays its value times the balls that hit it.
   let pendingHits = [];
   function award(b, pos, r, pay) {
-    if (b.laser) { pay(2); return; } // a beam is worth the two balls it costs
+    if (b.laser) { pay(1); return; } // one beam, one hit: a crystal pays its value once
     pendingHits.push({ pos: pos.clone(), r, vol: b.vol, got: new Set([b]), hits: 1, t: 0.22, pay });
   }
 

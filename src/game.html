@@ -347,7 +347,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   let TURNS = [];
   const toTurns = list => list.map(([s0, len, deg]) => ({ s0, len, a: deg * Math.PI / 180 }));
   // forks (Labyrinthus): the track turns left (sign +1) or right (−1) at f.s, whichever the switch points to
-  const FORK_LEN = 40, FORK_ANG = 0.6, GHOST_N = 100, FORK_OPEN = 26; // the two tunnels part after ~26 m
+  const FORK_LEN = 40, FORK_ANG = 0.6, GHOST_N = 100, FORK_OPEN = 24, FORK_NOSE = 25.3; // the inner walls of the two tunnels meet 25.3 m past the fork
   let forks = [];
   const smooth5 = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (x * 6 - 15) + 10);
   const forkYaw = (f, s) => FORK_ANG * smooth5((s - f.s) / FORK_LEN);
@@ -736,6 +736,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     post: inst(new THREE.BoxGeometry(0.36, H, 0.36), frameMat, 90),
     beam: inst(new THREE.BoxGeometry(2 * W + 0.36, 0.36, 0.36), frameMat, 45),
     cap: inst(new THREE.BoxGeometry(2 * W + 0.6, H, 0.3), wallMat, 2), // the dead end of the branch not taken
+    nose: inst(new THREE.BoxGeometry(1.4, H, 1.4), frameMat, 2), // the pillar where the two tunnels' inner walls meet
     sill: inst(new THREE.BoxGeometry(2 * W, 0.05, 0.36), frameMat, 45),
     pyrL: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(-Math.PI / 2), spikeMat, 90), // pyramid out of the left wall, pointing +u
     pyrR: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(Math.PI / 2), spikeMat, 90),
@@ -827,6 +828,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (!near && kk % 4 === 0) { pg("post", s, -W + 0.1, H / 2); pg("post", s, W - 0.1, H / 2); pg("beam", s, 0, H - 0.18); }
       }
       pg("cap", ghost.s + GHOST_N - 2, 0, H / 2);
+      put("nose", ghost.s + FORK_NOSE, -skip * W, H / 2); // on the main track's open side
     }
     for (const key in I) { I[key].count = n[key]; I[key].instanceMatrix.needsUpdate = true; }
     for (const k of decor.keys()) if (k < k0 - 2) decor.delete(k);
@@ -1399,7 +1401,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const rim = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.05, 8, 40), accentMat); sw.add(rim);
       scene.add(sw);
       const rich = Math.random() < 0.5 ? 1 : -1, kinds = { [rich]: "rich", [-rich]: "calm" };
-      const signs = [1, -1].map(side => { const m = new THREE.Mesh(signGeo, new THREE.MeshBasicMaterial({ map: signTex[kinds[side]], side: THREE.DoubleSide })); m.matrixAutoUpdate = false; scene.add(m); return { side, mesh: m }; });
+      const signs = [1, -1].map(side => { const m = new THREE.Mesh(signGeo, new THREE.MeshBasicMaterial({ map: signTex[kinds[side]] })); /* front side only: never read mirrored */ m.matrixAutoUpdate = false; scene.add(m); return { side, mesh: m }; });
       return { s: fs, sign: Math.random() < 0.5 ? 1 : -1, kinds, locked: false, sw, disc, signs, cd: 0, wp: new THREE.Vector3() };
     });
   }

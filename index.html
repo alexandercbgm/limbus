@@ -1293,12 +1293,25 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // glass dust; a ball that hits the slab knocks it sideways, so a well-timed swing also lets the cart through;
   // enough hits break the slab itself. In curves a slab hangs on one chain only.
   let hangers = [], lastHangerS = -1e9;
-  const linkGeo = new THREE.TorusGeometry(0.17, 0.045, 8, 14), LINK = 0.26, HANG_TOP = H - 0.06; // chains hang from the ceiling
+  // a chain link is an elongated oval: two straight sides joined by half-rings, of even wire thickness;
+  // its ends reach just through its neighbours (b + a = LINK / 2 + wire), so the links interlock
+  const linkGeo = (() => {
+    const a = 0.08, b = 0.09, wire = 0.04, side = 2 * b, arc = Math.PI * a, per = 2 * side + 2 * arc;
+    const path = new THREE.Curve();
+    path.getPoint = (t, out = new THREE.Vector3()) => {
+      let d = t * per;
+      if (d < side) return out.set(a, -b + d, 0);
+      d -= side; if (d < arc) { const q = d / a; return out.set(a * Math.cos(q), b + a * Math.sin(q), 0); }
+      d -= arc; if (d < side) return out.set(-a, b - d, 0);
+      d -= side; const q = d / a; return out.set(-a * Math.cos(q), -b - a * Math.sin(q), 0);
+    };
+    return new THREE.TubeGeometry(path, 40, wire, 8, true);
+  })(), LINK = 0.26, HANG_TOP = H - 0.06; // chains hang from the ceiling
   const fineGeo = new THREE.TetrahedronGeometry(0.07), mountGeo = new THREE.BoxGeometry(0.55, 0.1, 0.55);
   const chunkGeo = new THREE.BoxGeometry(0.16, 0.16, 0.12); // tempered-glass chunks, like a car window
   function makeChain(len) {
     const g = new THREE.Group(), n = Math.ceil(len / LINK);
-    for (let i = 0; i < n; i++) { const l = new THREE.Mesh(linkGeo, chainMat); l.position.y = -i * LINK - LINK / 2; l.rotation.y = i % 2 ? Math.PI / 4 : -Math.PI / 4; l.scale.y = 1.3; g.add(l); }
+    for (let i = 0; i < n; i++) { const l = new THREE.Mesh(linkGeo, chainMat); l.position.y = -i * LINK - LINK / 2; l.rotation.y = i % 2 ? Math.PI / 4 : -Math.PI / 4; g.add(l); }
     return g;
   }
   function inCurve(s) { return [-30, -15, 0, 15].some(o => Math.abs(yawRateAt(s + o)) > 0.002); }

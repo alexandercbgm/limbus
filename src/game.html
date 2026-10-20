@@ -881,10 +881,19 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         // rail about 15 m on, broken there like a frog
         if (d > 8) pg("rail", s, -skip * 0.72, 0.185); // outer rail
         if (d > 8 && Math.abs(d - 15) > 1.5) pg("rail", s, skip * 0.72, 0.185); // inner rail
-        if (d > 14) { pg("sleeper", s - 0.5, 0, 0.06); pg("sleeper", s + 0.5, 0, 0.06); }
+        if (d > 16) { pg("sleeper", s - 0.5, 0, 0.06); pg("sleeper", s + 0.5, 0, 0.06); }
         if (!(near && skip === -1)) pg(wallKey, s, -W - 0.12, H / 2);
         if (!(near && skip === 1)) pg(wallKey, s, W + 0.12, H / 2);
         if (!near && kk % 4 === 0) { pg("post", s, -W + 0.1, H / 2); pg("post", s, W - 0.1, H / 2); pg("beam", s, 0, H - 0.18); }
+      }
+      // over the switch the main track's sleepers grow long enough to carry the other branch's rails too,
+      // like the long timbers of a real turnout, until that branch has sleepers of its own
+      for (let s = Math.ceil(ghost.s - 0.5) + 0.5; s < ghost.s + 16.5; s += 1) {
+        frameAtG(s); SV.copy(_P); frameAt(s);
+        const off = SV.sub(_P).dot(_R), len = Math.abs(off);
+        if (len < 0.05) continue;
+        placeM(M, s, Math.sign(off) * (1.05 + len / 2), 0.06).scale(SV.set(len / 2.1, 1, 1));
+        I.sleeper.setMatrixAt(n.sleeper++, M);
       }
       pg("cap", ghost.s + GHOST_N - 2, 0, H / 2);
       // the other branch's floor sits a hair below the main one, so where they overlap the main floor wins

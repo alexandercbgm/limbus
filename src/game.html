@@ -774,7 +774,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     gwall: inst(new THREE.BoxGeometry(0.08, H, SL + 0.03), glassWallMat, 280),
     hex: inst(new THREE.TorusGeometry(4.9, 0.17, 4, 6), frameMat, 30), // hexagonal vault with a flat edge on the floor
     prism: inst(new THREE.OctahedronGeometry(0.75, 0), prismMat, 260),
-    ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus
+    ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus and Hortus, squeezed to fit (RING_SX, RING_SY)
     coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),
     block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 260),
     bush: inst(new THREE.IcosahedronGeometry(0.75, 0), bushMat, 260), // clumps of foliage floating in Hortus
@@ -845,6 +845,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     return d;
   }
   const M = new THREE.Matrix4(), M2 = new THREE.Matrix4(), EU = new THREE.Euler(), SV = new THREE.Vector3();
+  const RING_SX = (W - 0.2) / 4.92, RING_SY = (H / 2 - 0.05) / 4.92; // the ring's outer edge just inside the walls and the vault
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
@@ -860,7 +861,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (dec.ceil && !STYLE.closed) put("ceil", s, 0, H); // a closed maze has a continuous vault instead
       if (dec.arch && !open) {
         if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
-        else if (STYLE.arch === "ring") put("ring", s, 0, 4.2);
+        else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H / 2).scale(SV.set(RING_SX, RING_SY, 1))); // an oval that stays inside the walls
         else { put("post", s, -W + 0.1, H / 2); put("post", s, W - 0.1, H / 2); put("beam", s, 0, H - 0.18); put("sill", s, 0, 0.025); }
       }
       if (dec.pyr && dec.pyr.side !== open) put(dec.pyr.side < 0 ? "pyrL" : "pyrR", s, dec.pyr.side * (W - 0.25), dec.pyr.v);
@@ -1911,7 +1912,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { kind: "transfer", to: "lux", pts: [[590, 190], [770, 190], [910, 330]] },
     { kind: "branch", to: "thesaurus", pts: [[90, 330], [90, 360], [190, 460]] },
     { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 380], [360, 470]] },
-    { kind: "branch", to: "hortus", pts: [[410, 190], [410, 155], [485, 80]] },
+    { kind: "branch", to: "hortus", pts: [[410, 190], [410, 155], [485, 80]], tag: 0.36 }, // its price sits low, clear of the station names
     { kind: "branch", to: "carcer", pts: [[730, 330], [730, 350], [830, 450]] },
   ];
   const byId = id => LEVELS.find(l => l.id === id);
@@ -2610,7 +2611,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     vitrum: "M0 -7L6.5 5H-6.5ZM0 -7V5M-3 -1L3 5",                       // a prism
     armamentarium: "M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5", // crossed barrels
     labyrinthus: "M-7 -7H7V7H-4V-4H4V4H-1",                             // a square maze
-    hortus: "M0 7V-1M0 -1C-7 -1 -6 -7.5 0 -7.5C6 -7.5 7 -1 0 -1",        // a leaf on a stem
+    hortus: "M0 7.5V-1.5M0 2C-4.5 2 -7 -1 -6.5 -5.5C-2.5 -5.5 0 -2.5 0 2M0 -1.5C4 -1.5 6.5 -4.5 6 -8C2.5 -8 0 -5.5 0 -1.5M-4 7.5H4", // a sprout with two leaves
     speculum: "M-1.5 -7L-7.5 0L-1.5 7ZM1.5 -7L7.5 0L1.5 7Z",            // two mirrored triangles
     abyssus: "M-7 -4A7 7 0 0 0 7 -4M-4.5 0A4.5 4.5 0 0 0 4.5 0M-2 4A2 2 0 0 0 2 4", // arcs sinking down
     carcer: "M-6 -7V7M-2 -7V7M2 -7V7M6 -7V7M-7.5 -7H7.5M-7.5 7H7.5",    // bars
@@ -2658,7 +2659,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       let best = 0, mx = 0, my = 0;
       for (let i = 0; i < ln.pts.length - 1; i++) {
         const [x0, y0] = ln.pts[i], [x1, y1] = ln.pts[i + 1], l = Math.hypot(x1 - x0, y1 - y0);
-        if (l > best) { best = l; mx = (x0 + x1) / 2; my = (y0 + y1) / 2; }
+        const f = ln.tag || 0.5; // where along the segment the price tag sits
+        if (l > best) { best = l; mx = x0 + (x1 - x0) * f; my = y0 + (y1 - y0) * f; }
       }
       const txt = `◆ ${cost}${to.req.fare ? " / заезд" : ""}`, bw = 22 + txt.length * 7.2;
       out += `<g transform="translate(${mx} ${my})"><rect x="${-bw / 2}" y="-12" width="${bw}" height="24" rx="12" fill="#fffaf0" stroke="${color}" stroke-width="2"/>` +
@@ -2668,9 +2670,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const p = lv.map, st = stationStatus(lv);
       const hub = MAP_LINES.some(l => l.kind === "transfer" && (l.to === lv.id || byId(l.to).req.transfer.from === lv.id));
       const lit = st === "done" || st === "open";
-      const fill = st === "done" ? INK : lit ? "#ffffff" : "#e6ecee";
+      const fill = lit ? INK : "#e6ecee"; // every station you can ride to is dark, like the done ones
       const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? INK : MUTED);
-      const glyph = st === "done" ? "#ffffff" : lit ? INK : MUTED;
+      const glyph = lit ? "#ffffff" : MUTED;
       const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 30, p.y - 10, "start"] }[p.label];
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS_RU[st]}">`;
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;

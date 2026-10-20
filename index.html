@@ -851,10 +851,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const near = s < ghost.s + FORK_OPEN, kk = Math.round(s / SL);
         // where the branches still overlap, the main track's floor, sleepers and rails serve both
         const d = s - ghost.s;
-        // the outer rail runs from the switch; the inner one would cross the main track's rail, so it begins
-        // only once the branches have parted, like the frog of a real turnout
-        if (d > 2) pg("rail", s, -skip * 0.72, 0.19); // outer rail
-        if (d > 18) pg("rail", s, skip * 0.72, 0.19); // inner rail, toward the main track
+        // a real turnout: both rails leave the switch alongside the main ones (a hair lower, so the main rails'
+        // tops win); the inner one crosses the main track's rail about 15 m on, broken there like a frog
+        if (d > 2) pg("rail", s, -skip * 0.72, 0.185); // outer rail
+        if (d > 2 && Math.abs(d - 15) > 1.5) pg("rail", s, skip * 0.72, 0.185); // inner rail
         if (d > 14) { pg("sleeper", s - 0.5, 0, 0.06); pg("sleeper", s + 0.5, 0, 0.06); }
         if (!(near && skip === -1)) pg(wallKey, s, -W - 0.12, H / 2);
         if (!(near && skip === 1)) pg(wallKey, s, W + 0.12, H / 2);

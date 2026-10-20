@@ -710,10 +710,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     frameAt(f.s); GP[0] = _P.x; GP[1] = _P.y; GP[2] = _P.z;
     for (let j = 1; j < GHOST_N; j++) { const a = (j - 1) * 3, b = j * 3; for (let c = 0; c < 3; c++) GP[b + c] = GP[a + c] + (GT[a + c] + GT[b + c]) * 0.5; }
   }
-  function placeG(m, s, u, v) {
+  function frameAtG(s) {
     const f = clamp(s - ghost.s, 0, GHOST_N - 1.0001), i = f | 0, t = f - i, a = i * 3, b = a + 3;
     const L = (A, c) => A[a + c] + (A[b + c] - A[a + c]) * t;
     _P.set(L(GP, 0), L(GP, 1), L(GP, 2)); _R.set(L(GR, 0), L(GR, 1), L(GR, 2)).normalize(); _U.set(L(GU, 0), L(GU, 1), L(GU, 2)).normalize(); _T.set(L(GT, 0), L(GT, 1), L(GT, 2)).normalize();
+  }
+  function placeG(m, s, u, v) {
+    frameAtG(s);
     _C.copy(_P).addScaledVector(_R, u).addScaledVector(_U, v); _nT.copy(_T).negate();
     m.makeBasis(_R, _U, _nT); m.setPosition(_C); return m;
   }
@@ -725,10 +728,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // ---------- corridor (instanced, laid out every frame) ----------
   function inst(geo, mat, max) { const m = new THREE.InstancedMesh(geo, mat, max); m.frustumCulled = false; m.count = 0; scene.add(m); return m; }
-  const floorGeo = new THREE.PlaneGeometry(2 * W, SL + 0.02); floorGeo.rotateX(-Math.PI / 2);
   const ceilGeo = new THREE.PlaneGeometry(2 * W, SL + 0.02); ceilGeo.rotateX(Math.PI / 2);
   const I = {
-    floor: inst(floorGeo, surfMat, 140),
     ceil: inst(ceilGeo, surfMat, 140),
     sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 280),
     rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 280),
@@ -747,6 +748,38 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),
     block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 260),
   };
+  // Floor, and the vault of a closed maze, are one continuous strip that follows the rails sample by sample.
+  // Flat 2 m tiles left wedge-shaped gaps on every curve, and at a fork the other branch showed through them.
+  floorTex.map.wrapT = floorTex.emi.wrapT = THREE.RepeatWrapping;
+  function makeStrip(maxSeg, mat, down) {
+    const g = new THREE.BufferGeometry(), nv = (maxSeg + 1) * 2, idx = [];
+    for (let i = 0; i < maxSeg; i++) { const a = i * 2, b = a + 1, c = a + 2, d = a + 3; if (down) idx.push(a, c, b, b, c, d); else idx.push(a, b, c, b, d, c); }
+    g.setIndex(idx);
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(nv * 3), 3));
+    g.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(nv * 3), 3));
+    g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(nv * 2), 2));
+    const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.down = down; scene.add(m);
+    return m;
+  }
+  function fillStrip(strip, s0, s1, frame, v) {
+    const g = strip.geometry, pos = g.attributes.position.array, nor = g.attributes.normal.array, uv = g.attributes.uv.array;
+    const maxSeg = pos.length / 6 - 1, seg = Math.max(0, Math.min(maxSeg, Math.floor((s1 - s0) / DS))), sg = strip.down ? -1 : 1;
+    for (let i = 0; i <= seg; i++) {
+      const s = s0 + i * DS; frame(s);
+      _C.copy(_P).addScaledVector(_U, v);
+      const k = i * 6, q = i * 4;
+      pos[k] = _C.x - _R.x * W; pos[k + 1] = _C.y - _R.y * W; pos[k + 2] = _C.z - _R.z * W;
+      pos[k + 3] = _C.x + _R.x * W; pos[k + 4] = _C.y + _R.y * W; pos[k + 5] = _C.z + _R.z * W;
+      for (let c = 0; c < 6; c += 3) { nor[k + c] = _U.x * sg; nor[k + c + 1] = _U.y * sg; nor[k + c + 2] = _U.z * sg; }
+      uv[q] = 0; uv[q + 1] = s / SL; uv[q + 2] = 1; uv[q + 3] = s / SL;
+    }
+    g.setDrawRange(0, seg * 6);
+    g.attributes.position.needsUpdate = g.attributes.normal.needsUpdate = g.attributes.uv.needsUpdate = true;
+    strip.visible = seg > 0;
+  }
+  const STRIP_N = AHEAD + 20;
+  const floorStrip = makeStrip(STRIP_N, surfMat, false), vaultStrip = makeStrip(STRIP_N, surfMat, true);
+  const gFloorStrip = makeStrip(GHOST_N, surfMat, false), gVaultStrip = makeStrip(GHOST_N, surfMat, true);
   const decor = new Map();
   function getDecor(k) {
     let d = decor.get(k);
@@ -786,13 +819,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const k0 = Math.floor((sC - 10) / SL), k1 = Math.floor((sC + AHEAD - 4) / SL);
     for (let k = k0; k <= k1; k++) {
       const dec = getDecor(k), s = k * SL + SL / 2;
-      put("floor", s, 0, 0);
       put("sleeper", s - 0.5, 0, 0.06); put("sleeper", s + 0.5, 0, 0.06);
       put("rail", s, -0.72, 0.19); put("rail", s, 0.72, 0.19);
       const open = forkOpenSide(s);
       if (dec.wl && open !== -1) put(wallKey, s, -W - 0.12, H / 2);
       if (dec.wr && open !== 1) put(wallKey, s, W + 0.12, H / 2);
-      if (dec.ceil) put("ceil", s, 0, H);
+      if (dec.ceil && !STYLE.closed) put("ceil", s, 0, H); // a closed maze has a continuous vault instead
       if (dec.arch && !open) {
         if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
         else if (STYLE.arch === "ring") put("ring", s, 0, 4.2);
@@ -806,8 +838,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         I[blockKey].setMatrixAt(n[blockKey]++, M);
       }
     }
+    fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0);
+    if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H); else vaultStrip.visible = false;
     // the other branch of a fork that is near: rails, floor, walls and vault along its own path, closed at the far end
-    ghost = forks.find(f => f.s - sC < AHEAD - 10 && sC < f.s + 40 && f.s > sBase + 1) || null; // kept until the opening is well behind
+    ghost = forks.find(f => f.s - sC < AHEAD - 10 && sC < f.s + 40 && f.s > sBase + 1) || null;
+    gFloorStrip.visible = gVaultStrip.visible = !!ghost; // kept until the opening is well behind
     if (ghost) {
       computeGhost(ghost);
       const pg = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeG(M, s, u, v)); };
@@ -816,7 +851,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const near = s < ghost.s + FORK_OPEN, kk = Math.round(s / SL);
         // where the branches still overlap, the main track's floor, sleepers and rails serve both
         const d = s - ghost.s;
-        if (d > 6) pg("floor", s, 0, -0.015);
         // the outer rail runs from the switch; the inner one would cross the main track's rail, so it begins
         // only once the branches have parted, like the frog of a real turnout
         if (d > 2) pg("rail", s, -skip * 0.72, 0.19); // outer rail
@@ -824,10 +858,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (d > 14) { pg("sleeper", s - 0.5, 0, 0.06); pg("sleeper", s + 0.5, 0, 0.06); }
         if (!(near && skip === -1)) pg(wallKey, s, -W - 0.12, H / 2);
         if (!(near && skip === 1)) pg(wallKey, s, W + 0.12, H / 2);
-        pg("ceil", s, 0, H + 0.015);
         if (!near && kk % 4 === 0) { pg("post", s, -W + 0.1, H / 2); pg("post", s, W - 0.1, H / 2); pg("beam", s, 0, H - 0.18); }
       }
       pg("cap", ghost.s + GHOST_N - 2, 0, H / 2);
+      // the other branch's floor sits a hair below the main one, so where they overlap the main floor wins
+      fillStrip(gFloorStrip, ghost.s + 2, ghost.s + GHOST_N - 2, frameAtG, -0.015);
+      fillStrip(gVaultStrip, ghost.s + 2, ghost.s + GHOST_N - 2, frameAtG, H + 0.015);
       put("nose", ghost.s + FORK_NOSE, -skip * W, H / 2); // on the main track's open side
     }
     for (const key in I) { I[key].count = n[key]; I[key].instanceMatrix.needsUpdate = true; }

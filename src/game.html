@@ -591,6 +591,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const surfMat = new THREE.MeshStandardMaterial({ map: floorTex.map, emissiveMap: floorTex.emi, roughness: 0.85 });
   const wallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, roughness: 0.9 });
   const blockMat = new THREE.MeshStandardMaterial({ map: blockTex.map, emissiveMap: blockTex.emi, roughness: 0.85 });
+  const bushMat = new THREE.MeshStandardMaterial({ roughness: 0.75, flatShading: true }); // foliage: decor clumps and the leaves on boughs
   const frameMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.25 });
   const railMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.7 });
   const sleeperMat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
@@ -628,6 +629,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     surfMat.color.copy(cur.surf); surfMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     wallMat.color.copy(cur.wall); wallMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     blockMat.color.copy(cur.block); blockMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.8);
+    bushMat.color.copy(cur.block); bushMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.35);
     frameMat.color.copy(cur.frame); frameMat.emissive.copy(cur.frameE).multiplyScalar(cur.frameEI);
     railMat.color.copy(cur.rail); railMat.emissive.copy(cur.frameE).multiplyScalar(cur.frameEI * 0.35);
     sleeperMat.color.copy(cur.sleeper);
@@ -775,6 +777,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus
     coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),
     block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 260),
+    bush: inst(new THREE.IcosahedronGeometry(0.75, 0), bushMat, 260), // clumps of foliage floating in Hortus
   };
   // Floor, and the vault of a closed maze, are one continuous strip that follows the rails sample by sample.
   // Flat 2 m tiles left wedge-shaped gaps on every curve, and at a fork the other branch showed through them.
@@ -845,7 +848,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
-    const wallKey = STYLE.glassWalls ? "gwall" : "wall", blockKey = STYLE.blocks === "prism" ? "prism" : STYLE.blocks === "coin" ? "coin" : "block";
+    const wallKey = STYLE.glassWalls ? "gwall" : "wall", blockKey = STYLE.blocks === "prism" ? "prism" : STYLE.blocks === "coin" ? "coin" : STYLE.blocks === "bush" ? "bush" : "block";
     const k0 = Math.floor((sC - 10) / SL), k1 = Math.floor((sC + AHEAD - 4) / SL);
     for (let k = k0; k <= k1; k++) {
       const dec = getDecor(k), s = k * SL + SL / 2;
@@ -1158,6 +1161,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     sigils.forEach(c => scene.remove(c.group)); sigils = [];
     hangers.forEach(h => { scene.remove(h.root); scene.remove(h.body); }); hangers = []; lastHangerS = -1e9;
     drops.forEach(d => scene.remove(d.group)); drops = [];
+    boughs.forEach(b => scene.remove(b.root)); boughs = [];
     pendingHits = [];
     beamMat.opacity = 0;
     ballsArr.forEach(b => scene.remove(b.mesh)); ballsArr = [];
@@ -1194,6 +1198,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (let i = 0; i < 4; i++) { const k = i % 2 ? 1 : -1; addPane({ s: s - i * 3.5, u: k * rand(2.4, 3.2), v: rand(1.6, 4.8), w: rand(1.1, 1.6), h: rand(1.1, 1.6) }); }
         break;
       case "slider": { const w = 2.6; addPane({ s, u: 0, v: CAM_V + 0.2, w, h: 2.9, move: { axis: "u", amp: W - w / 2 - 0.2, freq: rand(1, 1.6) * (1 + 0.3 * d), phase: rand(0, TAU) } }); break; }
+      case "bough": {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        addBough(s, side);
+        if (d > 0.45 && Math.random() < d) addBough(s - 9, -side); // deeper in the dark the boughs come in pairs
+        break;
+      }
       case "twins": { // two panes mirrored about the track that close and part like doors
         const freq = rand(0.9, 1.3) * (1 + 0.3 * d), phase = rand(0, TAU);
         [-1, 1].forEach(k => addPane({ s, u: k * 2.0, v: CAM_V + 0.2, w: 2.2, h: 2.9, move: { axis: "u", amp: k * 1.0, freq, phase } }));
@@ -1484,6 +1494,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       return rand(8, 10);
     }
     if (f === "reflexio") { spawnPair(s); return rand(9, 11); }
+    if (f === "vindemia") { addBough(s, Math.random() < 0.5 ? -1 : 1, { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 }); return rand(10, 12); }
     if (f === "pluvia") {
       for (let i = 0; i < 2; i++) addDrop(s + i * 2.5, rand(-3, 3), Math.random() < 0.25 ? "decoy" : "gem");
       return rand(4.5, 6);
@@ -1549,6 +1560,71 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function branchAt(s) {
     for (const f of forks) if (f.locked && s > f.s && s < f.s + 260) return f.kinds[f.sign];
     return null;
+  }
+
+  // ---------- Hortus: lashing boughs ----------
+  // A bough hangs from high on a wall and lashes across the track and back. Crystals grow on it and ride along.
+  // A ball anywhere on the wood snaps it off: safe, but the crystals still on it fall with it.
+  // A bough that sweeps through the cart costs 3 balls.
+  let boughs = [], harvested = 0;
+  const BOUGH_L = 5.6, BOUGH_HIT = 0.3;
+  const boughGeo = new THREE.CylinderGeometry(0.07, 0.17, BOUGH_L, 7).translate(0, -BOUGH_L / 2, 0);
+  const twigGeo = new THREE.CylinderGeometry(0.03, 0.06, 1.1, 5).translate(0, -0.55, 0), leafGeo = new THREE.IcosahedronGeometry(0.4, 0);
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x5a3e28, roughness: 0.9 });
+  function addBough(s, side, o = {}) {
+    const root = new THREE.Group(); root.matrixAutoUpdate = false;
+    const arm = new THREE.Group(); root.add(arm);
+    arm.add(new THREE.Mesh(boughGeo, woodMat));
+    for (const f of [0.3, 0.55, 0.8, 1]) {
+      const tw = new THREE.Mesh(twigGeo, woodMat); tw.position.y = -f * BOUGH_L; tw.rotation.z = side * rand(0.6, 1.1); tw.rotation.y = f * 4; arm.add(tw);
+      const lf = new THREE.Mesh(leafGeo, bushMat); lf.position.set(-side * rand(0.1, 0.4), -f * BOUGH_L - 0.25, rand(-0.3, 0.3)); lf.scale.set(1, 0.7, 1.2); arm.add(lf);
+    }
+    scene.add(root);
+    const b = { s, side, pu: side * (W - 0.15), pv: H - 0.9, phi: 0, freq: rand(0.5, 0.75), phase: rand(0, TAU), root, arm, alive: true, broken: false, fall: 0,
+      hitCart: false, harvest: !!o.harvest, A: new THREE.Vector3(), B: new THREE.Vector3(), fruit: [], picked: 0 };
+    for (const f of o.fruit || [0.62, 0.92]) if (o.fruit || Math.random() < 0.8) {
+      addCrystal(s, 0, 0, o.val || 3); const c = crystals[crystals.length - 1]; c.bough = b; c.bf = f; b.fruit.push(c);
+    }
+    boughs.push(b);
+  }
+  function breakBough(b, at) {
+    b.broken = true; stats.broken++; addScore(15);
+    chips(at || b.B, bushMat, 12, tmpV2.set(0, -2, 0)); Sound.clink(); Sound.tone(160, 0.12, 0.12, "square", 0, 60);
+    const lost = b.fruit.filter(c => c.alive).length;
+    for (const c of b.fruit) if (c.alive) { c.alive = false; scene.remove(c.group); }
+    pop(lost ? `ветка сломана · −${lost} ◆ упало` : "ветка сломана", "info");
+  }
+  function lashCart(b) {
+    b.hitCart = true;
+    balls = Math.max(0, balls - 3); updateCount(); karmaLoss(0.1);
+    chips(b.B, bushMat, 14, tmpV2.set(0, 0, 0)); Sound.crash(); flash(); pop("−3 · ветка", "loss");
+    if (!reduceMotion) shakeT = 0.3;
+  }
+  // the bough's crystals that were all picked: in the Vindemia finale a whole bough pays a bonus
+  function pickFruit(c) {
+    const b = c.bough; b.picked++;
+    if (b.harvest && b.picked === b.fruit.length) { harvested++; bestCombo = Math.max(bestCombo, harvested); balls += 3; superGain += 3; updateCount(); updateCombo(); pop("+3 · вся ветка", "gain"); }
+  }
+  function updateBoughs(dt) {
+    for (const b of boughs) {
+      if (!b.alive) continue;
+      if (b.broken) { b.fall += dt; b.pv -= dt * (1.5 + b.fall * 10); b.phi += dt * 1.2; if (b.fall > 1.3) { b.alive = false; scene.remove(b.root); continue; } }
+      else b.phi = 0.06 + 0.52 * (1 - Math.cos(time * b.freq * TAU + b.phase)); // from against the wall to across the track
+      setObj(b.root, b.s, b.pu, b.pv);
+      b.arm.rotation.z = -b.side * b.phi;
+      const sn = Math.sin(b.phi), cs = Math.cos(b.phi), tu = b.pu - b.side * BOUGH_L * sn, tv = b.pv - BOUGH_L * cs;
+      frameAt(b.s);
+      b.A.copy(_P).addScaledVector(_R, b.pu).addScaledVector(_U, b.pv);
+      b.B.copy(_P).addScaledVector(_R, tu).addScaledVector(_U, tv);
+      for (const c of b.fruit) if (c.alive) { c.u = b.pu - b.side * BOUGH_L * c.bf * sn; c.v = b.pv - BOUGH_L * c.bf * cs - 0.4; }
+      // the cart's body is about (u 0, v 1): a bough sweeping within reach of it as the cart passes lashes it
+      if (!b.broken && !b.hitCart && state === "play" && Math.abs(b.s - sC) < 0.9) {
+        const du = tu - b.pu, dv = tv - b.pv, k = clamp(((0 - b.pu) * du + (1 - b.pv) * dv) / (du * du + dv * dv), 0, 1);
+        if (Math.hypot(b.pu + du * k, b.pv + dv * k - 1) < 0.95) lashCart(b);
+      }
+      if (b.s < sC - 6 && !b.broken) { b.alive = false; scene.remove(b.root); }
+    }
+    boughs = boughs.filter(b => b.alive);
   }
 
   // ---------- Portae: the Labyrinthus finale ----------
@@ -1643,7 +1719,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function zoneName(a) { for (const [t, n] of ZONES) if (a >= t) return n; return "Тьма"; }
   function updateCombo() {
     const f = LEVEL.finale;
-    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : f === "reflexio" ? "пары " + pairsDone : "+" + superGain;
+    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : f === "reflexio" ? "пары " + pairsDone : f === "vindemia" ? "ветви " + harvested : "+" + superGain;
   }
   function showOverlay(id, html, ms) {
     const el = $(id); el.innerHTML = html; el.hidden = false;
@@ -1662,6 +1738,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 40, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
     radius: { name: "Lumen", ru: "Луч", cost: 2, price: 60, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии. Выстрел стоит 2 шара, луч один, поэтому кристалл платит свою цену один раз." },
   };
+  // a ride through Hortus finds the gardeners' spare cannon: Gemini then costs half at the depot
+  const priceOf = id => id === "gemini" && progress.done.hortus ? WEAPONS.gemini.price / 2 : WEAPONS[id].price;
   const ballsWord = n => n === 1 ? "шар" : n < 5 ? "шара" : "шаров";
   // The first ball of a shot takes the target; for a moment its spot keeps catching the other balls of the same
   // shot (Gemini's pair, Triplex's three), then the target pays its value times the balls that hit it.
@@ -1676,6 +1754,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     iudicium: { name: "IUDICIUM", ru: "Суд", note: "Попадания по печатям подряд умножают награду до ×6. Пропуск сбрасывает множитель и стоит 2 шара. Стекло бьёт вдвое сильнее." },
     ruina: { name: "RUINA", ru: "Обвал", note: "С потолка падают глыбы. Сбивайте их в воздухе или на рельсах: +2 шара, каждые 4 подряд ещё +4. Глыба на пути стоит 8 шаров." },
     portae: { name: "PORTAE", ru: "Врата", note: "Впереди стеклянные врата. Перед каждыми горит голубой ключ-кристалл: попадите в него, и врата разлетятся, а ключ даст шары. Каждые трое врат подряд — ещё +3. Не попали — вагонетка пробьёт стекло: −4 шара." },
+    vindemia: { name: "VINDEMIA", ru: "Сбор урожая", note: "Ветви тяжелы от кристаллов: каждый даёт 2 шара, а собранная целиком ветка ещё +3. Сломать ветку безопасно, но её кристаллы упадут. Хлёст по вагонетке стоит 3 шара." },
     reflexio: { name: "REFLEXIO", ru: "Отражение", note: "Мишени летят парами: предмет и его отражение. Сбейте обе мишени пары — +5 шаров, только одну — +1. Пропущенная мишень ничего не стоит." },
     pluvia: { name: "PLUVIA", ru: "Дождь", note: "С неба падают кристаллы: голубой +2 шара, красный −3. Собирайте, сколько успеете." },
   };
@@ -1698,6 +1777,26 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { sky: "#bff0e0", hor: "#e8f8f2", gnd: "#cdeee0", surf: "#ffffff", wall: "#dcf4ea", line: "#4fd8a8", lineI: 0.4, frame: "#8fd4ba", frameE: "#b8ffe8", frameEI: 0.5,
       rail: "#c4e8da", sleeper: "#e2f6ee", glass: "#9ff0d4", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 104, hemiS: "#ffffff", hemiG: "#bfe8d8", hemiI: 1.1, sunI: 0.8,
       dust: "#90f0cc", block: "#ecfaf4", cart: "#4f8a78", accent: "#3fd8a4" },
+  ];
+
+  // Hortus: a hanging garden: cream and young leaf with blossom pink in the light, moss in between,
+  // a night garden of deep pine with amber fireflies in the dark
+  const PAL_HORTI = [
+    { sky: "#0a0c06", hor: "#040502", gnd: "#2a2a08", surf: "#0c0f07", wall: "#10140a", line: "#ffb84a", lineI: 0.75, frame: "#080a05", frameE: "#f0a030", frameEI: 0.75,
+      rail: "#3a3018", sleeper: "#141208", glass: "#ffcf70", glassO: 0.45, edge: "#fff0c8", fogN: 4, fogF: 54, hemiS: "#ffc070", hemiG: "#0c1004", hemiI: 0.55, sunI: 0.3,
+      dust: "#ffc85a", block: "#142a12", cart: "#1a1a0e", accent: "#ffb84a" },
+    { sky: "#26301e", hor: "#141a10", gnd: "#0e120a", surf: "#2e3826", wall: "#24301c", line: "#9cb880", lineI: 0.22, frame: "#141a10", frameE: "#000000", frameEI: 0,
+      rail: "#5a6448", sleeper: "#20261a", glass: "#c4d8a8", glassO: 0.42, edge: "#e6f0d6", fogN: 8, fogF: 68, hemiS: "#c4d0b0", hemiG: "#141a10", hemiI: 0.75, sunI: 0.5,
+      dust: "#c0d0a0", block: "#2a4a22", cart: "#283020", accent: "#c8dca8" },
+    { sky: "#b4c4a0", hor: "#a0b28c", gnd: "#7a8c66", surf: "#d0d8be", wall: "#b0c098", line: "#ffffff", lineI: 0.05, frame: "#5a6a44", frameE: "#000000", frameEI: 0,
+      rail: "#8a967a", sleeper: "#6a7658", glass: "#e0ecc8", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 82, hemiS: "#ffffff", hemiG: "#8a9a74", hemiI: 0.95, sunI: 0.7,
+      dust: "#fff4f6", block: "#5f8a4a", cart: "#4a5638", accent: "#ffffff" },
+    { sky: "#fbf4ea", hor: "#f2ecdc", gnd: "#d6dcc0", surf: "#fffdf8", wall: "#eef0e0", line: "#f4b0c0", lineI: 0.2, frame: "#9aae7e", frameE: "#000000", frameEI: 0,
+      rail: "#b4bc9c", sleeper: "#d2d6bc", glass: "#f8e0e8", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 96, hemiS: "#ffffff", hemiG: "#d4dcc0", hemiI: 1.0, sunI: 0.75,
+      dust: "#ffd6e0", block: "#86b866", cart: "#647450", accent: "#f08aa8" },
+    { sky: "#ffe6ee", hor: "#fff6f2", gnd: "#eef0dc", surf: "#ffffff", wall: "#f8f6ec", line: "#f8a0b8", lineI: 0.4, frame: "#c4d8a8", frameE: "#ffd8e4", frameEI: 0.45,
+      rail: "#dcdec8", sleeper: "#eef0e2", glass: "#ffd4e2", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 108, hemiS: "#ffffff", hemiG: "#e0e8cc", hemiI: 1.1, sunI: 0.8,
+      dust: "#ffc0d4", block: "#a0d080", cart: "#728a64", accent: "#f890b0" },
   ];
 
   // Speculum: pearl and silver in the light, graphite steel in between, black chrome with an icy glow in the dark
@@ -1777,10 +1876,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       desc: "Замкнутые изумрудные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Одна ветка богатая, другая тихая, а невыбранная заканчивается тупиком.",
       feats: ["Три развилки: стрелку переводят выстрелом", "Вращающиеся стеклянные крестовины", "Финал Portae: стеклянные врата с ключами"],
       req: { after: "vitrum" }, map: { x: 410, y: 190, label: "tl" } },
-    { id: "hortus", num: "III·a", latin: "Hortus", ru: "Сад", line: "branch", playable: false,
-      mood: { sky: "#dcf2e8", hor: "#c8e8da", surf: "#f2faf6", wall: "#d8efe4", frame: "#2f7a62", rail: "#6fa892", glass: "#d0f4e6", accent: "#3fcf9a" },
-      desc: "Тупик с висячими садами. Кристаллы растут на ветвях, но ветви хлещут по вагонетке.",
-      feats: ["Кристаллы на ветвях", "Говорят, тут прячут вторую пушку для Gemini подешевле"], req: { after: "labyrinthus", fare: 12 }, map: { x: 500, y: 80, label: "r" } },
+    { id: "hortus", num: "III·a", latin: "Hortus", ru: "Сад", line: "branch", playable: true, music: "glass_horizon", len: 900, pal: PAL_HORTI, finale: "vindemia",
+      style: { arch: "ring", blocks: "bush", glassWalls: false }, crystalMul: 1.3,
+      pats: { bough: [2.5, 3, 3.5], center: [1.5, 1.5, 1], sides: [2, 1, 0.3], bonus: [2, 0.6, 0], double: [0, 0.6, 1], slider: [0.5, 1, 1], reinf: [0, 0.3, 1] },
+      turns: [[90, 50, 45], [200, 60, -60], [320, 50, 40], [430, 60, -55], [560, 50, 50], [660, 50, -45], [760, 50, 35]],
+      desc: "Тупик с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
+      feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
+      req: { after: "labyrinthus", fare: 12 }, map: { x: 500, y: 80, label: "r" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,
       pats: { twins: [1.5, 2, 2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
@@ -1851,7 +1953,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     clearDynamic();
     sC = 0; alt = 0.35; pending = 0; altVel = 0; pitchC = 0; pitchTs = 0;
     cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0;
-    superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0;
+    superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0;
     buildForks();
     computePath();
     if (spawn) while (nextSpawn < SPAWN_AHEAD) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15); }
@@ -1916,7 +2018,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;
       $("wSuperName").textContent = FINALES[LEVEL.finale].name;
-      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "reflexio" ? `пары ${pairsDone} · +${superGain}` : `+${superGain}`;
+      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "reflexio" ? `пары ${pairsDone} · +${superGain}` : LEVEL.finale === "vindemia" ? `ветви ${harvested} · +${superGain}` : `+${superGain}`;
       $("wAcc").textContent = (stats.thrown ? Math.round(stats.hits / stats.thrown * 100) : 0) + "%";
       $("wBest").textContent = best.toLocaleString("ru-RU");
       const nx = nextLevel(LEVEL), nb = $("nextBtn");
@@ -2043,6 +2145,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     sphere(crystals, 0.62, "crystal"); sphere(imps, 0.9, "imp"); sphere(thorns, 0.6, "thorn", t => t.headOn);
     sphere(sigils, 0.75, "sigil"); sphere(drops, 0.95, "drop");
     for (const f of forks) if (f.sw.visible && !f.locked) { tmpV.copy(f.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.8) hits.push({ d, kind: "switch", x: f }); }
+    for (const bo of boughs) {
+      if (bo.broken) continue;
+      const r = raySeg(o, dir, bo.A, bo.B);
+      if (r.dist < BOUGH_HIT + 0.05 && r.d > 0 && r.d < LASER_LEN) hits.push({ d: r.d, kind: "bough", x: bo });
+    }
     for (const hg of hangers) {
       if (!hg.alive || hg.falling) continue;
       for (const c of hg.chains) {
@@ -2067,6 +2174,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       else if (h.kind === "sigil" && h.x.alive) hitSigil(h.x, fake);
       else if (h.kind === "drop" && h.x.alive) hitDrop(h.x, fake);
       else if (h.kind === "switch") { flipFork(h.x); end = h.d; break; }
+      else if (h.kind === "bough" && !h.x.broken) breakBough(h.x, tmpV.copy(o).addScaledVector(dir, h.d).clone());
       else if (h.kind === "chain" && h.c.alive && !h.x.falling) breakChain(h.x, h.c, tmpV.copy(o).addScaledVector(dir, h.d));
       else if (h.kind === "body" && h.x.alive && !h.x.falling) { hitBody(h.x, tmpV.copy(o).addScaledVector(dir, h.d), vel); end = h.d; break; }
     }
@@ -2121,6 +2229,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     stats.crystals++; addScore(25); karmaGain(0.045); Sound.crystal(c.val);
     chips(c.wp, crystalMat, 10, b.v);
     if (c.gate) openGate(c.gate, b.v);
+    if (c.bough) pickFruit(c);
     award(b, c.wp, 0.75, h => { const gain = c.val * h; balls += gain; if (superOn) superGain += gain; updateCount(); pop(h > 1 ? `+${gain} · ${h} ${ballsWord(h)}` : "+" + gain, "gain"); });
   }
   function shatterThorn(t, vel) { // the whole thorn, head and rod, comes apart
@@ -2263,10 +2372,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     panes = panes.filter(p => p.alive);
 
+    updateBoughs(dt);
     mirageMat.opacity = 0.5 + 0.18 * Math.sin(time * 7.5);
     for (const c of crystals) {
       if (!c.alive) continue;
-      setObj(c.group, c.s, c.u, c.v + Math.sin(time * 2 + c.s) * 0.12);
+      setObj(c.group, c.s, c.u, c.bough ? c.v : c.v + Math.sin(time * 2 + c.s) * 0.12);
       c.wp.setFromMatrixPosition(c.group.matrix);
       c.mesh.rotation.y += c.spin * dt; c.mesh.rotation.x += c.spin * 0.4 * dt;
       if (c.s < sC - 3) { c.alive = false; scene.remove(c.group); }
@@ -2425,6 +2535,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (const g of sigils) if (g.alive && pathDist(g.wp) < 0.62 + R_BALL) { mark(); hitSigil(g, b); }
         for (const d of drops) if (d.alive && pathDist(d.wp) < (d.kind === "block" ? 0.85 : 0.57) + R_BALL) { mark(); hitDrop(d, b); }
         for (const f of forks) if (f.sw.visible && !f.locked && f.cd === 0 && pathDist(f.wp) < 0.85 + R_BALL) { mark(); flipFork(f); dead = true; }
+        if (!dead) for (const bo of boughs) {
+          if (bo.broken || Math.abs(bo.s - sC) > 130) continue;
+          const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.12));
+          for (let k = 1; k <= steps; k++) { const q = SWEEP.copy(b.p0).lerp(pos, k / steps); if (segDist(q, bo.A, bo.B) < BOUGH_HIT + R_BALL) { mark(); breakBough(bo, q.clone()); dead = true; break; } }
+          if (dead) break;
+        }
       }
       b.mesh.rotation.x -= 0.4;
       b.life += dt;
@@ -2606,7 +2722,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           const w = WEAPONS[id], card = document.createElement("div"); card.className = "wcard";
           card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${ballsWord(w.cost)} за выстрел</small></h3><p>${esc(w.desc)}</p>`;
           if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? "Стоит на вагонетке" : "Поставить", () => { progress.weapon = id; saveProgress(); openSheet(lv); }, progress.weapon === id);
-          else button(card, "cta", `Купить: ◆ ${w.price}`, () => { progress.bank -= w.price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv); renderMap(); }, bank < w.price);
+          else { const price = priceOf(id); button(card, "cta", price < w.price ? `Купить: ◆ ${price} (скидка из Сада)` : `Купить: ◆ ${price}`, () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv); renderMap(); }, bank < price); }
           extra.appendChild(card);
         }
       } else if (reached && bank >= req.toll) button(btns, "cta", `Открыть склад: −${req.toll} ◆`, () => { progress.bank -= req.toll; progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); });
@@ -2640,7 +2756,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       g.fillStyle = P.block || P.wall; g.globalAlpha = 0.55;
       [[60, 70, 26], [540, 90, 34], [110, 250, 20], [585, 230, 18], [500, 40, 14]].forEach(([x, y, r]) => {
         g.beginPath();
-        if (lv.style && lv.style.blocks === "coin") g.ellipse(x, y, r * 0.6, r * 0.6, 0, 0, Math.PI * 2);
+        if (lv.style && (lv.style.blocks === "coin" || lv.style.blocks === "bush")) g.ellipse(x, y, r * 0.6, r * 0.6, 0, 0, Math.PI * 2);
         else if (lv.style && lv.style.blocks === "prism") { g.moveTo(x, y - r); g.lineTo(x + r * 0.7, y); g.lineTo(x, y + r); g.lineTo(x - r * 0.7, y); }
         else g.rect(x - r / 2, y - r / 2, r, r);
         g.fill();
@@ -2717,7 +2833,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // test hook: lets an automated check jump the karma or the distance
   window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, setAlt(a) { alt = a; },
-    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); },
+    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },
     thornScreen() { const r = canvas.getBoundingClientRect(); return thorns.filter(t => t.headOn && t.ext > 0.3).map(t => { const v = t.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); }, state: () => ({ state, sC, alt, balls, score, combo, superOn, sigils: sigils.length, END_S, panes: panes.length, thorns: thorns.length, thornExt: thorns.map(t => t.ext.toFixed(2) + (t.headOn ? '' : 'x')).join(), pitchC }) };
 

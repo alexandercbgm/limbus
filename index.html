@@ -1295,8 +1295,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   let hangers = [], lastHangerS = -1e9;
   // a chain link is an elongated oval: two straight sides joined by half-rings, of even wire thickness;
   // its ends reach just through its neighbours (b + a = LINK / 2 + wire), so the links interlock
+  const LINK = 0.36; // spacing of the links: open enough to see through the chain
   const linkGeo = (() => {
-    const a = 0.08, b = 0.09, wire = 0.04, side = 2 * b, arc = Math.PI * a, per = 2 * side + 2 * arc;
+    const a = 0.085, wire = 0.032, b = LINK / 2 + wire - a, side = 2 * b, arc = Math.PI * a, per = 2 * side + 2 * arc;
     const path = new THREE.Curve();
     path.getPoint = (t, out = new THREE.Vector3()) => {
       let d = t * per;
@@ -1306,7 +1307,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       d -= side; const q = d / a; return out.set(-a * Math.cos(q), -b - a * Math.sin(q), 0);
     };
     return new THREE.TubeGeometry(path, 40, wire, 8, true);
-  })(), LINK = 0.26, HANG_TOP = H - 0.06; // chains hang from the ceiling
+  })(), HANG_TOP = H - 0.06; // chains hang from the ceiling
   const fineGeo = new THREE.TetrahedronGeometry(0.07), mountGeo = new THREE.BoxGeometry(0.55, 0.1, 0.55);
   const chunkGeo = new THREE.BoxGeometry(0.16, 0.16, 0.12); // tempered-glass chunks, like a car window
   function makeChain(len) {

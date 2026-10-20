@@ -1766,7 +1766,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function karmaLoss(x) { pending -= x; }
 
   const ndc = new THREE.Vector3(), rayDir = new THREE.Vector3(), target = new THREE.Vector3(), muzzle = new THREE.Vector3(), camInv = new THREE.Matrix4();
-  const UPV = new THREE.Vector3();
   function aimGun(g) {
     aimLocal.copy(target).applyMatrix4(camInv).sub(g.c.position).normalize();
     g.yaw.rotation.y = clamp(Math.atan2(-aimLocal.x, -aimLocal.z), -1.2, 1.2);
@@ -1781,7 +1780,23 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // same speed and arc as always (44 plus the cart's own speed, a small lift), but the cart's speed is
     // added along the aim, so the ball no longer drifts toward the rails on targets off to the side
     const v = dir.clone().multiplyScalar(44 + speedNow * Math.max(0, dir.dot(_T))); v.y += 1.6;
-    ballsArr.push({ mesh: m, v, p0: from.clone(), life: 0, hit: false });
+    const b = { mesh: m, v, p0: from.clone(), life: 0, hit: false };
+    ballsArr.push(b);
+    return b;
+  }
+  // Triplex: three balls leave the three barrels as a triangle and spiral around a shared flight line,
+  // turning the way the barrel cluster spins (counterclockwise as seen from the cart), opening to ~0.6 m
+  const TRI_SPIN = 7, TRI_R = 0.6;
+  function launchTriplex(g, from, dir) {
+    const e1 = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion), e2 = new THREE.Vector3();
+    e1.addScaledVector(dir, -e1.dot(dir)).normalize(); e2.crossVectors(e1, dir).normalize();
+    const rot = g.models.triplex.rotation.z, r0 = 0.072 * g.c.scale.x;
+    for (let i = 0; i < 3; i++) {
+      const b = launch(from, dir), c = from.clone();
+      b.sp = { c, phase: rot + i * TAU / 3, e1, e2, r0 };
+      b.mesh.position.copy(c).addScaledVector(e1, Math.cos(b.sp.phase) * r0).addScaledVector(e2, Math.sin(b.sp.phase) * r0);
+      b.p0.copy(b.mesh.position);
+    }
   }
   function throwBall(clientX, clientY) {
     const w = WEAPONS[progress.weapon];
@@ -1799,10 +1814,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const from = aimGun(g);
       if (progress.weapon === "radius") { fireLaser(from, rayDir.clone()); continue; }
       const dir = target.clone().sub(from).normalize();
-      if (progress.weapon === "triplex") {
-        UPV.set(0, 1, 0).applyQuaternion(camera.quaternion);
-        [-0.05, 0, 0.05].forEach(a => launch(from, dir.clone().applyAxisAngle(UPV, a)));
-      } else launch(from, dir);
+      if (progress.weapon === "triplex") launchTriplex(g, from, dir);
+      else launch(from, dir);
     }
     recoil = 1; flashSprite.material.opacity = 1;
     if (progress.weapon === "radius") Sound.laser(); else Sound.fire();
@@ -2193,7 +2206,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const b = ballsArr[i], pos = b.mesh.position;
       b.p0.copy(pos);
       b.v.y -= G * dt;
-      pos.addScaledVector(b.v, dt);
+      if (b.sp) { // spiralling triplex ball: its center flies like any ball, it circles around that center
+        const sp = b.sp, t = b.life + dt, r = sp.r0 + (TRI_R - sp.r0) * (1 - Math.exp(-t * 5)), a = sp.phase + TRI_SPIN * t;
+        sp.c.addScaledVector(b.v, dt);
+        pos.copy(sp.c).addScaledVector(sp.e1, Math.cos(a) * r).addScaledVector(sp.e2, Math.sin(a) * r);
+      } else pos.addScaledVector(b.v, dt);
       let dead = false;
       const mark = () => { if (!b.hit) { b.hit = true; stats.hits++; } };
       for (const p of panes) {

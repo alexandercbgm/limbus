@@ -1624,23 +1624,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     pluvia: { name: "PLUVIA", ru: "Дождь", note: "С неба падают кристаллы: голубой +2 шара, красный −3. Собирайте, сколько успеете." },
   };
 
-  // Labyrinthus: mint and hedge green in the light, sage in between, black with venom-green glow in the dark
+  // Labyrinthus: emerald throughout, soft on the eyes: pale jade and celadon in the light, deep bottle-green
+  // in between, near-black emerald with a calm jade glow in the dark
   const PAL_HORTUS = [
-    { sky: "#081206", hor: "#030803", gnd: "#1f4a08", surf: "#0b1408", wall: "#0d1a09", line: "#8aff3a", lineI: 0.85, frame: "#071006", frameE: "#6ee02a", frameEI: 0.85,
-      rail: "#24381a", sleeper: "#0e180a", glass: "#9aff5a", glassO: 0.45, edge: "#d8ffb0", fogN: 4, fogF: 52, hemiS: "#a0ff70", hemiG: "#0a2004", hemiI: 0.55, sunI: 0.3,
-      dust: "#9aff40", block: "#10200a", cart: "#14220e", accent: "#8aff3a" },
-    { sky: "#2c3628", hor: "#182014", gnd: "#10160c", surf: "#2e3a2a", wall: "#26321f", line: "#98b088", lineI: 0.22, frame: "#161e12", frameE: "#000000", frameEI: 0,
-      rail: "#56644c", sleeper: "#222a1c", glass: "#b8ccaa", glassO: 0.42, edge: "#e0ecd4", fogN: 8, fogF: 66, hemiS: "#c0ccb4", hemiG: "#161e12", hemiI: 0.75, sunI: 0.5,
-      dust: "#a8b89a", block: "#2a3424", cart: "#28301f", accent: "#bcd4a4" },
-    { sky: "#a8b4a0", hor: "#94a08c", gnd: "#76826c", surf: "#c0cab6", wall: "#9eae90", line: "#ffffff", lineI: 0.05, frame: "#4a5a40", frameE: "#000000", frameEI: 0,
-      rail: "#86927a", sleeper: "#66705a", glass: "#d0e4c4", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 78, hemiS: "#ffffff", hemiG: "#86927c", hemiI: 0.95, sunI: 0.7,
-      dust: "#f4fff0", block: "#9aaa8c", cart: "#46523c", accent: "#ffffff" },
-    { sky: "#f2f7ee", hor: "#e4ecde", gnd: "#c4d2b8", surf: "#fafcf8", wall: "#dbe8d0", line: "#a8d890", lineI: 0.18, frame: "#8aa47a", frameE: "#000000", frameEI: 0,
-      rail: "#a8b89c", sleeper: "#c4d0b8", glass: "#d4f0c4", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 92, hemiS: "#ffffff", hemiG: "#ccd8c0", hemiI: 1.0, sunI: 0.75,
-      dust: "#ffffff", block: "#e2ecd8", cart: "#5e7050", accent: "#8fd06a" },
-    { sky: "#c4ecff", hor: "#eef8ec", gnd: "#dcf0dc", surf: "#ffffff", wall: "#e8f6e8", line: "#7fe0c0", lineI: 0.4, frame: "#a8d8c4", frameE: "#c8fff0", frameEI: 0.5,
-      rail: "#d4ecdf", sleeper: "#eaf6ee", glass: "#b0f0e0", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 104, hemiS: "#ffffff", hemiG: "#c4e8d8", hemiI: 1.1, sunI: 0.8,
-      dust: "#a0f0d0", block: "#f0faf2", cart: "#6a8a7c", accent: "#6fe0b8" },
+    { sky: "#03120e", hor: "#010806", gnd: "#06402e", surf: "#04140f", wall: "#051a13", line: "#2fe0a4", lineI: 0.75, frame: "#03100b", frameE: "#1fc890", frameEI: 0.75,
+      rail: "#123a2c", sleeper: "#071a13", glass: "#4ff0b8", glassO: 0.45, edge: "#b8ffe4", fogN: 4, fogF: 52, hemiS: "#5ce8b8", hemiG: "#02201a", hemiI: 0.55, sunI: 0.3,
+      dust: "#3ff0b0", block: "#06201a", cart: "#0a2219", accent: "#2fe0a4" },
+    { sky: "#0f2c24", hor: "#08180f", gnd: "#06120d", surf: "#15382d", wall: "#113026", line: "#5fb89a", lineI: 0.22, frame: "#0a1e17", frameE: "#000000", frameEI: 0,
+      rail: "#2f6050", sleeper: "#12271f", glass: "#8fd8bc", glassO: 0.42, edge: "#d0f4e6", fogN: 8, fogF: 66, hemiS: "#9cd8c0", hemiG: "#0a1e17", hemiI: 0.75, sunI: 0.5,
+      dust: "#88ccb4", block: "#15342a", cart: "#143026", accent: "#7fe0bc" },
+    { sky: "#6fa894", hor: "#5a9480", gnd: "#3e7a66", surf: "#9cccba", wall: "#7ab4a0", line: "#ffffff", lineI: 0.05, frame: "#1f5a48", frameE: "#000000", frameEI: 0,
+      rail: "#4f8a76", sleeper: "#3a6e5c", glass: "#c0ecdc", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 78, hemiS: "#ffffff", hemiG: "#4f8a76", hemiI: 0.95, sunI: 0.7,
+      dust: "#eafff6", block: "#6aa892", cart: "#23584a", accent: "#e6fff6" },
+    { sky: "#e2f4ec", hor: "#cfe9de", gnd: "#9fd0bc", surf: "#f4fbf8", wall: "#c6e6d8", line: "#6fcfaa", lineI: 0.18, frame: "#4f9a80", frameE: "#000000", frameEI: 0,
+      rail: "#7fb8a2", sleeper: "#a8d4c2", glass: "#c4f0de", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 92, hemiS: "#ffffff", hemiG: "#b0dccb", hemiI: 1.0, sunI: 0.75,
+      dust: "#ffffff", block: "#d4ede2", cart: "#3e7a66", accent: "#3fcf9a" },
+    { sky: "#bff0e0", hor: "#e8f8f2", gnd: "#cdeee0", surf: "#ffffff", wall: "#dcf4ea", line: "#4fd8a8", lineI: 0.4, frame: "#8fd4ba", frameE: "#b8ffe8", frameEI: 0.5,
+      rail: "#c4e8da", sleeper: "#e2f6ee", glass: "#9ff0d4", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 104, hemiS: "#ffffff", hemiG: "#bfe8d8", hemiI: 1.1, sunI: 0.8,
+      dust: "#90f0cc", block: "#ecfaf4", cart: "#4f8a78", accent: "#3fd8a4" },
   ];
 
   // Thesaurus: warm gold in the light, bronze and ember in the dark
@@ -1698,11 +1699,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       forks: [330, 720, 1110],
       pats: { rotor: [1.2, 1.8, 2], shutter: [0, 1.5, 2.5], slider: [1, 2, 2], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], sides: [1, 0.6, 0], bonus: [1, 0.3, 0], triple: [0.6, 1, 0.8] },
       turns: [[120, 50, 40], [220, 50, -40], [480, 60, 60], [600, 50, -50], [880, 60, -60], [980, 50, 50], [1250, 60, 45], [1360, 50, -45]],
-      desc: "Замкнутые зелёные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Одна ветка богатая, другая тихая, а невыбранная заканчивается тупиком.",
+      desc: "Замкнутые изумрудные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Одна ветка богатая, другая тихая, а невыбранная заканчивается тупиком.",
       feats: ["Три развилки: стрелку переводят выстрелом", "Вращающиеся стеклянные крестовины", "Финал Portae: стеклянные врата с ключами"],
       req: { after: "vitrum" }, map: { x: 410, y: 190, label: "tl" } },
     { id: "hortus", num: "III·a", latin: "Hortus", ru: "Сад", line: "branch", playable: false,
-      mood: { sky: "#e4f0dc", hor: "#d4e6cc", surf: "#f4f8f0", wall: "#e6f0de", frame: "#4a7a44", rail: "#8aa080", glass: "#e0f4d4", accent: "#8fd06a" },
+      mood: { sky: "#dcf2e8", hor: "#c8e8da", surf: "#f2faf6", wall: "#d8efe4", frame: "#2f7a62", rail: "#6fa892", glass: "#d0f4e6", accent: "#3fcf9a" },
       desc: "Тупик с висячими садами. Кристаллы растут на ветвях, но ветви хлещут по вагонетке.",
       feats: ["Кристаллы на ветвях", "Говорят, тут прячут вторую пушку для Gemini подешевле"], req: { after: "labyrinthus", fare: 12 }, map: { x: 500, y: 80, label: "r" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: false,

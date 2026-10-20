@@ -245,7 +245,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       <p>Собранные кристаллы уходят в запас и переносятся дальше. Ими платят за пересадки, за проезд по тупиковым веткам (в Thesaurus кристаллов вдвое больше, чем обычно) и за новые пушки на складе Armamentarium.</p>
       <ul class="rules">
         <li><b>−1</b>шар за выстрел</li>
-        <li><b>+3…6</b>за голубой кристалл (зависит от пушки)</li>
+        <li><b>+3…6</b>за голубой кристалл, за каждый попавший шар</li>
         <li><b>−6</b>за удар о стекло или шип</li>
         <li><b>−3</b>красный кристалл и бесы</li>
       </ul>
@@ -972,7 +972,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     GUNS.forEach(g => g.c.scale.setScalar(twin ? 0.68 : 0.82));
     GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id; });
     const w = WEAPONS[id];
-    $("wpn").textContent = w.name + (w.cost > 1 ? ` · −${w.cost}` : "") + (w.mul !== 1 ? ` · ×${w.mul}` : "");
+    $("wpn").textContent = `${w.name} · −${w.cost}`;
   }
   const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 1, 8, 1, true).rotateX(Math.PI / 2), beamMat);
   beam.frustumCulled = false; scene.add(beam);
@@ -1056,6 +1056,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     sigils.forEach(c => scene.remove(c.group)); sigils = [];
     hangers.forEach(h => { scene.remove(h.root); scene.remove(h.body); }); hangers = []; lastHangerS = -1e9;
     drops.forEach(d => scene.remove(d.group)); drops = [];
+    pendingHits = [];
     nodes.forEach(n => scene.remove(n.group)); nodes = [];
     beamMat.opacity = 0;
     ballsArr.forEach(b => scene.remove(b.mesh)); ballsArr = [];
@@ -1333,14 +1334,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function hitDrop(d, b) {
     d.alive = false; scene.remove(d.group);
     if (d.kind === "decoy") { balls = Math.max(0, balls - 3); updateCount(); karmaLoss(0.06); pop("−3", "loss"); Sound.decoy(); chips(d.wp, decoyMat, 10, b.v); return; }
-    let gain = reward(2);
+    let per = 2;
     if (d.kind === "block") {
       streak++;
-      if (streak % 4 === 0) gain += reward(4);
+      if (streak % 4 === 0) per += 4;
       chips(d.wp, monoMat, 14, b.v); Sound.shatter(0.9); addScore(30);
     } else { stats.crystals++; chips(d.wp, crystalMat, 8, b.v); Sound.crystal(3); addScore(20); }
-    balls += gain; superGain += gain; updateCount(); karmaGain(0.025); updateCombo();
-    pop("+" + gain, "gain");
+    karmaGain(0.025); updateCombo();
+    award(b, d.wp, d.kind === "block" ? 1.05 : 0.75, h => { const gain = per * h; balls += gain; superGain += gain; updateCount(); updateCombo(); pop("+" + gain, "gain"); });
   }
   function blockCrash(d) {
     d.alive = false; scene.remove(d.group);
@@ -1442,10 +1443,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function hitNode(n, b) {
     n.alive = false; scene.remove(n.group);
     filumChain++; bestCombo = Math.max(bestCombo, filumChain);
-    const gain = reward(1 + Math.floor(filumChain / 3));
-    balls += gain; superGain += gain; stats.crystals++; updateCount(); updateCombo();
+    const per = 1 + Math.floor(filumChain / 3), chain = filumChain;
+    stats.crystals++; updateCombo();
     addScore(20 + 5 * filumChain); karmaGain(0.02);
-    pop(`+${gain} · нить ${filumChain}`, "gain"); Sound.crystal(3 + Math.min(4, filumChain / 3)); chips(n.wp, crystalMat, 6, b.v);
+    Sound.crystal(3 + Math.min(4, filumChain / 3)); chips(n.wp, crystalMat, 6, b.v);
+    award(b, n.wp, 0.7, h => { const gain = per * h; balls += gain; superGain += gain; updateCount(); pop(`+${gain} · нить ${chain}`, "gain"); });
   }
   function breakThread(n) {
     n.alive = false; scene.remove(n.group);
@@ -1477,12 +1479,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function hitSigil(g, b) {
     g.alive = false; scene.remove(g.group);
-    const gain = reward(combo);
-    balls += gain; superGain += gain; stats.crystals++; updateCount();
-    addScore(40 * gain); karmaGain(0.03);
+    const per = combo;
+    stats.crystals++; addScore(40 * per); karmaGain(0.03);
     bestCombo = Math.max(bestCombo, combo);
     combo = Math.min(6, combo + 1); updateCombo();
-    pop(`+${gain} · ×${combo}`, "gain"); Sound.crystal(5); chips(g.wp, crystalMat, 10, b.v);
+    Sound.crystal(5); chips(g.wp, crystalMat, 10, b.v);
+    award(b, g.wp, 0.85, h => { const gain = per * h; balls += gain; superGain += gain; updateCount(); pop(`+${gain} · ×${combo}`, "gain"); });
   }
   function missSigil(g) {
     g.alive = false; scene.remove(g.group);
@@ -1520,13 +1522,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // ---------- weapons: bought for crystals at Armamentarium ----------
   // cost: balls per shot; mul: how many balls a blue crystal (or finale reward) gives compared with the plain cannon
+  // cost: balls per shot. A crystal (or a finale target) pays its value once for every ball of the shot that hits it.
   const WEAPONS = {
-    ballista: { name: "Ballista", ru: "Рельсотрон", cost: 1, mul: 1, price: 0, desc: "Один шар за выстрел, обычная награда." },
-    triplex: { name: "Triplex", ru: "Тройник", cost: 1, mul: 0.5, price: 25, desc: "Веер из трёх шаров по цене одного. Попасть легко, но кристаллы дают вдвое меньше." },
-    gemini: { name: "Gemini", ru: "Близнецы", cost: 2, mul: 2, price: 40, desc: "Вторая пушка на вагонетке: дуплет стоит 2 шара, зато кристаллы дают вдвое больше. Окупается точностью." },
-    radius: { name: "Radius", ru: "Луч", cost: 2, mul: 1, price: 60, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии. 2 шара за выстрел." },
+    ballista: { name: "Ballista", ru: "Рельсотрон", cost: 1, price: 0, desc: "Один шар за выстрел. Попадание в кристалл даёт его обычную цену." },
+    triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: 25, desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
+    gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 40, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
+    radius: { name: "Radius", ru: "Луч", cost: 2, price: 60, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии. Выстрел стоит 2 шара, и попадание засчитывается как два." },
   };
-  const reward = v => Math.max(1, Math.round(v * WEAPONS[progress.weapon].mul));
+  const ballsWord = n => n === 1 ? "шар" : n < 5 ? "шара" : "шаров";
+  // The first ball of a shot takes the target; for a moment its spot keeps catching the other balls of the same
+  // shot (Gemini's pair, Triplex's three), then the target pays its value times the balls that hit it.
+  let pendingHits = [];
+  function award(b, pos, r, pay) {
+    if (b.laser) { pay(2); return; } // a beam is worth the two balls it costs
+    pendingHits.push({ pos: pos.clone(), r, vol: b.vol, got: new Set([b]), hits: 1, t: 0.22, pay });
+  }
 
   // ---------- finales: a different 20-second game at the end of each level ----------
   const FINALES = {
@@ -1779,26 +1789,26 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     g.c.updateMatrixWorld(true);
     return g.barrel.localToWorld(new THREE.Vector3(0, 0, -0.8));
   }
-  function launch(from, dir) {
+  function launch(from, dir, vol) {
     const m = new THREE.Mesh(ballGeo, ballMat);
     m.position.copy(from); scene.add(m);
     frameAt(sC);
     // same speed and arc as always (44 plus the cart's own speed, a small lift), but the cart's speed is
     // added along the aim, so the ball no longer drifts toward the rails on targets off to the side
     const v = dir.clone().multiplyScalar(44 + speedNow * Math.max(0, dir.dot(_T))); v.y += 1.6;
-    const b = { mesh: m, v, p0: from.clone(), life: 0, hit: false };
+    const b = { mesh: m, v, p0: from.clone(), life: 0, hit: false, vol };
     ballsArr.push(b);
     return b;
   }
   // Triplex: three balls leave the three barrels as a triangle and spiral around a shared flight line,
   // turning the way the barrel cluster spins (counterclockwise as seen from the cart), opening to ~0.6 m
   const TRI_SPIN = 7, TRI_R = 0.6;
-  function launchTriplex(g, from, dir) {
+  function launchTriplex(g, from, dir, vol) {
     const e1 = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion), e2 = new THREE.Vector3();
     e1.addScaledVector(dir, -e1.dot(dir)).normalize(); e2.crossVectors(e1, dir).normalize();
     const rot = g.models.triplex.rotation.z, r0 = 0.072 * g.c.scale.x;
     for (let i = 0; i < 3; i++) {
-      const b = launch(from, dir), c = from.clone();
+      const b = launch(from, dir, vol), c = from.clone();
       b.sp = { c, phase: rot + i * TAU / 3, e1, e2, r0 };
       b.mesh.position.copy(c).addScaledVector(e1, Math.cos(b.sp.phase) * r0).addScaledVector(e2, Math.sin(b.sp.phase) * r0);
       b.p0.copy(b.mesh.position);
@@ -1815,13 +1825,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     rayDir.copy(ndc).unproject(camera).sub(camera.position).normalize();
     target.copy(camera.position).addScaledVector(rayDir, 32);
     camInv.copy(camera.matrixWorld).invert();
-    const guns = progress.weapon === "gemini" ? GUNS : [GUNS[0]];
+    const guns = progress.weapon === "gemini" ? GUNS : [GUNS[0]], vol = {};
     for (const g of guns) {
       const from = aimGun(g);
-      if (progress.weapon === "radius") { fireLaser(from, rayDir.clone()); continue; }
+      if (progress.weapon === "radius") { // the beam leaves the muzzle and goes to what the cursor is on
+        const first = rayHits(camera.position, rayDir)[0], aim = camera.position.clone().addScaledVector(rayDir, first ? first.d : 60);
+        fireLaser(from, aim.sub(from).normalize()); continue;
+      }
       const dir = target.clone().sub(from).normalize();
-      if (progress.weapon === "triplex") launchTriplex(g, from, dir);
-      else launch(from, dir);
+      if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
+      else launch(from, dir, vol);
     }
     recoil = 1; flashSprite.material.opacity = 1;
     if (progress.weapon === "radius") Sound.laser(); else Sound.fire();
@@ -1885,7 +1898,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function fireLaser(o, dir) {
     const hits = rayHits(o, dir), vel = dir.clone().multiplyScalar(30);
     let end = LASER_LEN;
-    const fake = { v: vel, hit: true };
+    const fake = { v: vel, hit: true, laser: true };
     for (const h of hits) {
       if (h.kind === "pane") { if (!damagePane(h.x, h.ix, h.iy, vel)) { end = h.d; break; } }
       else if (h.kind === "crystal" && h.x.alive) hitCrystal(h.x, fake);
@@ -1939,10 +1952,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       chips(c.wp, decoyMat, 12, b.v);
       return;
     }
-    const gain = reward(c.val);
-    balls += gain; stats.crystals++; updateCount(); addScore(25); karmaGain(0.045);
-    pop("+" + gain, "gain"); Sound.crystal(c.val);
+    stats.crystals++; addScore(25); karmaGain(0.045); Sound.crystal(c.val);
     chips(c.wp, crystalMat, 10, b.v);
+    award(b, c.wp, 0.75, h => { const gain = c.val * h; balls += gain; updateCount(); pop(h > 1 ? `+${gain} · ${h} ${ballsWord(h)}` : "+" + gain, "gain"); });
   }
   function shatterThorn(t, vel) { // the whole thorn, head and rod, comes apart
     t.headOn = false; t.alive = false;
@@ -2204,6 +2216,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     nodes = nodes.filter(n => n.alive);
     nodeOnMat.color.copy(cur.accent).lerp(WHITE, 0.4); nodeGlowMat.color.copy(cur.accent);
     layoutForks(dt);
+    for (const ph of pendingHits) { ph.t -= dt; if (ph.t <= 0) ph.pay(ph.hits); }
+    pendingHits = pendingHits.filter(ph => ph.t > 0);
     beamMat.opacity = Math.max(0, beamMat.opacity - dt * 7);
     beam.visible = beamMat.opacity > 0.01;
 
@@ -2219,6 +2233,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       } else pos.addScaledVector(b.v, dt);
       let dead = false;
       const mark = () => { if (!b.hit) { b.hit = true; stats.hits++; } };
+      const pathDist = c => segDist(c, b.p0, pos); // closest approach along this frame's path, so fast balls cannot skip a target
       for (const p of panes) {
         if (!p.alive || p.s < sC - 2 || p.s > sC + 130) continue;
         const a = toLocal(p, b.p0), az = a.z, ax = a.x, ay = a.y;
@@ -2231,6 +2246,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           else { dead = true; break; }
         }
       }
+      if (!dead) for (const ph of pendingHits) if (ph.vol === b.vol && !ph.got.has(b) && pathDist(ph.pos) < ph.r) { ph.got.add(b); ph.hits++; mark(); dead = true; break; }
       if (!dead) {
         for (const hg of hangers) {
           if (!hg.alive || hg.falling || Math.abs(hg.s - sC) > 130) continue;
@@ -2247,13 +2263,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         }
       }
       if (!dead) {
-        for (const c of crystals) if (c.alive && c.wp.distanceTo(pos) < 0.42 + R_BALL + 0.15) { mark(); hitCrystal(c, b); }
-        for (const m of imps) if (m.alive && m.wp.distanceTo(pos) < 0.7 + R_BALL) { mark(); killImp(m, b); }
-        for (const t of thorns) if (t.alive && t.headOn && t.wp.distanceTo(pos) < 0.5 + R_BALL) { mark(); breakThorn(t, b); }
-        for (const g of sigils) if (g.alive && g.wp.distanceTo(pos) < 0.62 + R_BALL) { mark(); hitSigil(g, b); }
-        for (const d of drops) if (d.alive && d.wp.distanceTo(pos) < (d.kind === "block" ? 0.85 : 0.57) + R_BALL) { mark(); hitDrop(d, b); }
-        for (const n of nodes) if (n.alive && n.lit && n.wp.distanceTo(pos) < 0.5 + R_BALL) { mark(); hitNode(n, b); }
-        for (const f of forks) if (f.sw.visible && !f.locked && f.cd === 0 && f.wp.distanceTo(pos) < 0.85 + R_BALL) { mark(); flipFork(f); dead = true; }
+        for (const c of crystals) if (c.alive && pathDist(c.wp) < 0.42 + R_BALL + 0.15) { mark(); hitCrystal(c, b); }
+        for (const m of imps) if (m.alive && pathDist(m.wp) < 0.7 + R_BALL) { mark(); killImp(m, b); }
+        for (const t of thorns) if (t.alive && t.headOn && pathDist(t.wp) < 0.5 + R_BALL) { mark(); breakThorn(t, b); }
+        for (const g of sigils) if (g.alive && pathDist(g.wp) < 0.62 + R_BALL) { mark(); hitSigil(g, b); }
+        for (const d of drops) if (d.alive && pathDist(d.wp) < (d.kind === "block" ? 0.85 : 0.57) + R_BALL) { mark(); hitDrop(d, b); }
+        for (const n of nodes) if (n.alive && n.lit && pathDist(n.wp) < 0.5 + R_BALL) { mark(); hitNode(n, b); }
+        for (const f of forks) if (f.sw.visible && !f.locked && f.cd === 0 && pathDist(f.wp) < 0.85 + R_BALL) { mark(); flipFork(f); dead = true; }
       }
       b.mesh.rotation.x -= 0.4;
       b.life += dt;
@@ -2343,7 +2359,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (!progress.weapons[id]) continue;
       const w = WEAPONS[id], b = document.createElement("button");
       b.type = "button"; b.className = "arm"; b.setAttribute("aria-pressed", String(progress.weapon === id));
-      b.innerHTML = `${esc(w.name)} <b>${w.cost > 1 ? "−" + w.cost : "−1"}${w.mul !== 1 ? " ×" + w.mul : ""}</b>`;
+      b.innerHTML = `${esc(w.name)} <b>−${w.cost}</b>`;
       b.title = w.desc;
       b.addEventListener("click", () => { progress.weapon = id; saveProgress(); renderArms(); });
       el.appendChild(b);
@@ -2433,7 +2449,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (progress.open[lv.id]) {
         for (const id in WEAPONS) {
           const w = WEAPONS[id], card = document.createElement("div"); card.className = "wcard";
-          card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${w.cost > 1 ? "шара" : "шар"} за выстрел · кристаллы ×${w.mul}</small></h3><p>${esc(w.desc)}</p>`;
+          card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${ballsWord(w.cost)} за выстрел</small></h3><p>${esc(w.desc)}</p>`;
           if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? "Стоит на вагонетке" : "Поставить", () => { progress.weapon = id; saveProgress(); openSheet(lv); }, progress.weapon === id);
           else button(card, "cta", `Купить: ◆ ${w.price}`, () => { progress.bank -= w.price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv); renderMap(); }, bank < w.price);
           extra.appendChild(card);
@@ -2546,7 +2562,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // test hook: lets an automated check jump the karma or the distance
   window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, setAlt(a) { alt = a; },
-    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, nodes: () => nodes.map(n => n.lit ? 'L' : '.').join(''), knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); },
+    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, nodes: () => nodes.map(n => n.lit ? 'L' : '.').join(''), crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },
     thornScreen() { const r = canvas.getBoundingClientRect(); return thorns.filter(t => t.headOn && t.ext > 0.3).map(t => { const v = t.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); }, state: () => ({ state, sC, alt, balls, score, combo, superOn, sigils: sigils.length, END_S, panes: panes.length, thorns: thorns.length, thornExt: thorns.map(t => t.ext.toFixed(2) + (t.headOn ? '' : 'x')).join(), pitchC }) };
 

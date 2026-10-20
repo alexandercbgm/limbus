@@ -2679,7 +2679,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
       if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${LINE_TR}" stroke-width="4"/>`;
       if (lv.line === "branch") out += `<rect class="ring" x="${p.x - 16}" y="${p.y - 16}" width="32" height="32" rx="7" fill="${fill}" stroke="${stroke}" stroke-width="4.5"/>`;
-      else out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 15.5 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
+      else out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
       out += `<path d="${GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
       out += `<text x="${L[0]}" y="${L[1]}" text-anchor="${L[2]}" font-family="Unbounded, 'Arial Black', sans-serif" font-weight="700" font-size="12.5" letter-spacing="0.6" fill="${INK}">${esc(lv.latin.toUpperCase())}</text>`;
       out += `<text x="${L[0]}" y="${L[1] + 17}" text-anchor="${L[2]}" font-family="Manrope, system-ui, sans-serif" font-size="12.5" fill="#4c6470">${lv.num} · ${esc(lv.ru)}</text>`;

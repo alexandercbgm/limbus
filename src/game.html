@@ -1882,7 +1882,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 45], [200, 60, -60], [320, 50, 40], [430, 60, -55], [560, 50, 50], [660, 50, -45], [760, 50, 35]],
       desc: "Тупик с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
-      req: { after: "labyrinthus", fare: 12 }, map: { x: 500, y: 80, label: "r" } },
+      req: { after: "labyrinthus", fare: 12 }, map: { x: 485, y: 80, label: "r" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,
       pats: { twins: [1.5, 2, 2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
@@ -1911,7 +1911,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { kind: "transfer", to: "lux", pts: [[590, 190], [770, 190], [910, 330]] },
     { kind: "branch", to: "thesaurus", pts: [[90, 330], [90, 360], [190, 460]] },
     { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 380], [360, 470]] },
-    { kind: "branch", to: "hortus", pts: [[410, 190], [410, 170], [500, 80]] },
+    { kind: "branch", to: "hortus", pts: [[410, 190], [410, 155], [485, 80]] },
     { kind: "branch", to: "carcer", pts: [[730, 330], [730, 350], [830, 450]] },
   ];
   const byId = id => LEVELS.find(l => l.id === id);

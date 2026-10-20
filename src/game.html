@@ -2671,7 +2671,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const hub = MAP_LINES.some(l => l.kind === "transfer" && (l.to === lv.id || byId(l.to).req.transfer.from === lv.id));
       const lit = st === "done" || st === "open";
       const fill = st === "done" ? INK : lit ? "#ffffff" : "#e6ecee"; // done stations are dark, open ones white
-      const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? INK : MUTED);
+      const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? LINE_MAIN : MUTED); // a main-line station wears the line's colour
       const glyph = st === "done" ? "#ffffff" : lit ? INK : MUTED;
       const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 30, p.y - 10, "start"], l: [p.x - 30, p.y - 30, "end"] }[p.label];
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS_RU[st]}">`;

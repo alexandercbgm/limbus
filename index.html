@@ -2569,7 +2569,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 45], [200, 60, -60], [320, 50, 40], [430, 60, -55], [560, 50, 50], [660, 50, -45], [760, 50, 35]],
       desc: "Тупик с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
-      req: { after: "labyrinthus", fare: 12 }, map: { x: 480, y: 105, label: "t" } }, // the label on top, clear of the legend
+      req: { after: "labyrinthus", fare: 12 }, map: { x: 465, y: 95, label: "t", dy: 6 } }, // the label on top, clear of the legend
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,
       pats: { twins: [1.5, 2, 2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
@@ -2610,7 +2610,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { kind: "transfer", to: "lux", pts: [[590, 190], [770, 190], [910, 330]] },
     { kind: "branch", to: "thesaurus", pts: [[90, 330], [90, 380], [170, 460]] },
     { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 380], [360, 470]] },
-    { kind: "branch", to: "hortus", pts: [[410, 190], [410, 175], [480, 105]], tag: 0.45 }, // its price sits low, clear of the station names
+    { kind: "branch", to: "hortus", pts: [[410, 190], [410, 150], [465, 95]], tagSeg: 1, tag: 0.42 }, // its price sits low, clear of the station names
     { kind: "branch", to: "carcer", pts: [[730, 330], [730, 380], [800, 450]] },
   ];
   const byId = id => LEVELS.find(l => l.id === id);
@@ -3429,7 +3429,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (let i = 0; i < ln.pts.length - 1; i++) {
         const [x0, y0] = ln.pts[i], [x1, y1] = ln.pts[i + 1], l = Math.hypot(x1 - x0, y1 - y0);
         const f = ln.tag || 0.5; // where along the segment the price tag sits
-        if (l > best) { best = l; mx = x0 + (x1 - x0) * f; my = y0 + (y1 - y0) * f; }
+        if (ln.tagSeg !== undefined ? i === ln.tagSeg : l > best) { best = ln.tagSeg !== undefined ? Infinity : l; mx = x0 + (x1 - x0) * f; my = y0 + (y1 - y0) * f; }
       }
       const txt = `◆ ${cost}${to.req.fare ? " / заезд" : ""}`, bw = 22 + txt.length * 7.2;
       out += `<g transform="translate(${mx} ${my})"><rect x="${-bw / 2}" y="-12" width="${bw}" height="24" rx="12" fill="#fffaf0" stroke="${color}" stroke-width="2"/>` +

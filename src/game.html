@@ -3156,11 +3156,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const MAP_LINES = [
     { kind: "line", to: "rubinus", pts: [[270, 330], [500, 330], [730, 330]] }, // a second line: Vitrum, Rubinus, Abyssus
     { kind: "tao", to: "tao", pts: [[590, 190], [770, 190], [910, 330]] }, // Linea Tao: Speculum, Tao, Lux
-    // a dead-end branch: a short drop, a long gentle slope, a short level run into its station (the two stubs alike)
-    { kind: "branch", to: "hortus", pts: [[90, 330], [90, 363], [152, 397], [185, 397]] },
-    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 363], [352, 397], [385, 397]] },
-    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 363], [582, 397], [615, 397]] },
-    { kind: "branch", to: "carcer", pts: [[730, 330], [730, 363], [792, 397], [825, 397]] },
+    // a dead-end branch: a short drop, a gentle slope, a short level run into its station (the two stubs alike, 24 past the stations' edges)
+    { kind: "branch", to: "hortus", pts: [[90, 330], [90, 375], [140, 397], [185, 397]] },
+    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 375], [340, 397], [385, 397]] },
+    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 375], [570, 397], [615, 397]] },
+    { kind: "branch", to: "carcer", pts: [[730, 330], [730, 375], [780, 397], [825, 397]] },
   ];
   const byId = id => LEVELS.find(l => l.id === id);
   const STORE = "limbus-progress-v1";

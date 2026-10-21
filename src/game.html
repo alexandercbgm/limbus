@@ -168,8 +168,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .map-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .map-scroll #map { min-width: 920px; }
 .wpn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; align-self: flex-end; margin-bottom: 4px; }
-.extra:empty { display: none; }
+.extra:empty, .feats:empty, .reqs:empty { display: none; }
 .extra { display: grid; gap: 10px; margin: 16px 0 0; }
+.tabs { position: sticky; top: 0; z-index: 1; display: flex; gap: 4px; padding: 4px; border-radius: 6px; background: rgba(226, 233, 236, 0.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.tab { flex: 1; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 4px; background: transparent; color: #4c6470; cursor: pointer;
+  font: 700 13px var(--display); letter-spacing: 0.06em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+.tab small { font: 600 11px var(--body); letter-spacing: 0; opacity: 0.85; }
+.tab[aria-selected="true"] { background: #10242e; color: #f4fbfc; }
+.tab:focus-visible { outline: 3px solid #1287b5; outline-offset: 2px; }
 .wcard { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; padding: 12px; border: 1px solid rgba(16,36,46,0.18); border-radius: 4px; background: rgba(255,255,255,0.6); }
 .wcard h3 { margin: 0; font-family: var(--display); font-size: 14px; letter-spacing: 0.06em; }
 .wcard h3 small { font-family: var(--body); font-weight: 600; font-size: 12px; color: #4c6470; letter-spacing: 0; margin-left: 6px; }
@@ -4176,13 +4182,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     });
   }
 
+  let depotTab = "arma"; // the depot tab last shown
   function openSheet(lv, keep) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was
     const scroll = keep ? $("sheet").scrollTop : 0;
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
     $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${STATUS(st)}`;
     $("shName").innerHTML = `${esc(lv.latin)}<small>${esc(lv.ru)}</small>`;
     $("shDesc").textContent = lv.desc;
-    $("shFeats").innerHTML = lv.feats.map(f => `<li>${esc(f)}</li>`).join("");
+    $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead
     const reqs = [];
     if (!req.after) reqs.push([true, T("Открыта с самого начала", "Open from the start")]);
     else if (lv.line === "branch") reqs.push([!!progress.done[req.after], T(`Ветка от станции ${byId(req.after).latin}: сначала пройти её`, `A branch off ${byId(req.after).latin}: finish that station first`)]);
@@ -4194,6 +4201,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (req.fare) reqs.push([bank >= req.fare, T(`Проезд: ◆ ${req.fare} за каждый заезд (в запасе ${bank})`, `Fare: ◆ ${req.fare} a ride (${bank} in the bank)`)]);
     if (req.toll) reqs.push([!!progress.open[lv.id] || bank >= req.toll, progress.open[lv.id] ? T("Склад открыт", "The depot is open") : T(`Вход на склад: ◆ ${req.toll} один раз (в запасе ${bank})`, `Depot entry: ◆ ${req.toll} once (${bank} in the bank)`)]);
     if (progress.best[lv.id]) reqs.push([true, T("Лучший результат: ", "Best: ") + progress.best[lv.id].toLocaleString(T("ru-RU", "en-US"))]);
+    if (lv.depot && progress.open[lv.id]) reqs.length = 0; // an open depot needs no conditions listed: more room for its wares
     $("shReqs").innerHTML = reqs.map(([ok, t]) => `<li><span class="${ok ? "ok" : "no"}">${ok ? "✓" : "✕"}</span><span>${esc(t)}</span></li>`).join("");
     const btns = $("shBtns"), extra = $("shExtra"); btns.innerHTML = ""; extra.innerHTML = "";
     const button = (parent, cls, text, fn, disabled) => {
@@ -4203,7 +4211,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const reached = !req.after || !!progress.done[req.after];
     if (lv.depot) {
       if (progress.open[lv.id]) {
-        for (const id in WEAPONS) {
+        // two tabs: Arma, the cannons, and Ingenia, the upgrades; on a phone they stick to the top while the cards scroll
+        const tabs = document.createElement("div"); tabs.className = "tabs"; tabs.setAttribute("role", "tablist");
+        const owned = Object.keys(WEAPONS).filter(id => progress.weapons[id]).length, bought = Object.keys(UPGRADES).reduce((t, id) => t + upLevel(id), 0);
+        for (const [id, name, sub, n] of [["arma", "Arma", T("пушки", "cannons"), `${owned}/${Object.keys(WEAPONS).length}`], ["ingenia", "Ingenia", T("улучшения", "upgrades"), `${bought}/${3 * Object.keys(UPGRADES).length}`]]) {
+          const t = document.createElement("button"); t.type = "button"; t.className = "tab"; t.setAttribute("role", "tab"); t.setAttribute("aria-selected", String(depotTab === id));
+          t.innerHTML = `${name}<small>${esc(sub)} · ${n}</small>`;
+          t.addEventListener("click", () => { if (depotTab !== id) { depotTab = id; openSheet(lv, true); } });
+          tabs.appendChild(t);
+        }
+        extra.appendChild(tabs);
+        if (depotTab === "arma") for (const id in WEAPONS) {
           const w = WEAPONS[id], card = document.createElement("div"); card.className = "wcard";
           card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${ballsWord(w.cost)} ${T("за выстрел", "a shot")}</small></h3><p>${esc(w.desc)}</p>`;
           if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? T("Стоит на вагонетке", "On the cart") : T("Поставить", "Mount"), () => { progress.weapon = id; saveProgress(); openSheet(lv, true); }, progress.weapon === id);
@@ -4211,7 +4229,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           else { const price = priceOf(id); button(card, "cta", price < w.price ? T(`Купить: ◆ ${price} (скидка из Сада)`, `Buy: ◆ ${price} (Garden discount)`) : T(`Купить: ◆ ${price}`, `Buy: ◆ ${price}`), () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
           extra.appendChild(card);
         }
-        for (const id in UPGRADES) {
+        else for (const id in UPGRADES) {
           const u = UPGRADES[id], lvl = upLevel(id), card = document.createElement("div"); card.className = "wcard";
           card.innerHTML = `<h3>${esc(u.name)}<small>${esc(T(u.ru, u.en))} · ${T("уровень", "level")} ${lvl}/3${lvl ? " · " + esc(u.now(lvl)) : ""}</small></h3><p>${esc(T(...u.desc))}</p>`;
           if (lvl >= 3) button(card, "ghost", T("Всё куплено", "Maxed out"), null, true);

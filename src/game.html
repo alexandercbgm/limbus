@@ -2988,7 +2988,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 40], [200, 60, -60], [320, 50, 50], [430, 70, -80], [560, 50, 45], [660, 50, -45], [760, 50, 30]],
       desc: "Тупиковая ветка от Rubinus. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
       feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
-      req: { after: "rubinus", fare: 8 }, map: { x: 595, y: 388, label: "b" } },
+      req: { after: "rubinus", fare: 8 }, map: { x: 615, y: 388, label: "b" } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "perfect_alignment", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "prism", glassWalls: true },
       pats: { center: [1.5, 1.5, 1], wall: [0.5, 0.5, 0.5], triple: [0.6, 1, 0.6], double: [0, 0.4, 0.8], sides: [2, 0.6, 0], gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1] },
@@ -3001,7 +3001,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
       desc: "Тупиковый склад при станции Vitrum. Здесь за кристаллы ставят на вагонетку новые пушки.",
       feats: ["Triplex, Gemini и Lumen", "Купленная пушка остаётся навсегда, её можно сменить в меню"],
-      req: { after: "vitrum", toll: 10 }, map: { x: 365, y: 388, label: "b" } },
+      req: { after: "vitrum", toll: 10 }, map: { x: 385, y: 388, label: "b" } },
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true },
       forks: [330, 720, 1110],
@@ -3150,8 +3150,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { kind: "line", to: "rubinus", pts: [[270, 330], [500, 330], [730, 330]] }, // a second line: Vitrum, Rubinus, Abyssus
     { kind: "tao", to: "tao", pts: [[590, 190], [770, 190], [910, 330]] }, // Linea Tao: Speculum, Tao, Lux
     { kind: "branch", to: "hortus", pts: [[90, 330], [90, 388], [185, 388]] },
-    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 388], [365, 388]] },
-    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 388], [595, 388]] },
+    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 388], [385, 388]] },
+    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 388], [615, 388]] },
     { kind: "branch", to: "carcer", pts: [[730, 330], [730, 388], [825, 388]] },
   ];
   const byId = id => LEVELS.find(l => l.id === id);

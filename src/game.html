@@ -456,7 +456,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         this.music = src;
       } catch (e) {
         // no WebAudio decoding: play the track through a plain audio element instead (no karma filter then)
-        const a = this.elements[id] || (this.elements[id] = new Audio(URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }))));
+        const type = document.getElementById("music-" + id).dataset.type || "audio/mpeg"; // the media type build.py embedded
+        const a = this.elements[id] || (this.elements[id] = new Audio(URL.createObjectURL(new Blob([bytes], { type }))));
         a.loop = true; a.volume = this.muted ? 0 : 0.45; a.currentTime = 0; a.play().catch(() => {});
         this.fallback = a;
       }
@@ -1747,6 +1748,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     lastGateS = s;
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
     const leaves = [];
+    // the lintel: an up-down gate's frame is tall enough for its top leaf to slide up under it
+    const top = kind === "v" ? GATE_H * 1.5 + 0.8 : GATE_H + 0.4;
     if (kind === "iris") {
       const ring = new THREE.Mesh(irisRingGeo, frameMat); ring.position.y = IRIS_V; root.add(ring);
       for (let i = 0; i < IRIS_N; i++) { const m = new THREE.Mesh(irisGeo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(irisGeo), edgeMat)); root.add(m); leaves.push({ m, a: i / IRIS_N * TAU }); }
@@ -1754,13 +1757,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const sd of [-1, 1]) {
         const geo = kind === "h" ? hDoorGeo : vDoorGeo, m = new THREE.Mesh(geo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat)); root.add(m); leaves.push({ m, sd, hp: 0 });
       }
-      for (const sd of [-1, 1]) { const pst = new THREE.Mesh(postGeo, frameMat); pst.position.set(sd * (BRIDGE_W + 0.2), GATE_H / 2 + 0.2, 0); root.add(pst); }
-      const lin = new THREE.Mesh(lintelGeo, frameMat); lin.position.set(0, GATE_H + 0.4, 0); root.add(lin);
+      for (const sd of [-1, 1]) { const pst = new THREE.Mesh(postGeo, frameMat); pst.scale.y = (top + 0.2) / (GATE_H + 0.4); pst.position.set(sd * (BRIDGE_W + 0.2), (top + 0.2) / 2, 0); root.add(pst); }
+      const lin = new THREE.Mesh(lintelGeo, frameMat); lin.position.set(0, top, 0); root.add(lin);
     }
     // buttons: how many, how big and whether they wander along the frame follow the difficulty
     const nb = k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = k > 0.55;
     const spots = kind === "iris" ? [[Math.PI * 0.5], [Math.PI * 0.85], [Math.PI * 0.15]].map(([a]) => ({ a }))
-      : [{ u: 0, v: GATE_H + 1.4, along: "u" }, /* in the middle; on hard gates it rides along the lintel */ { u: -(BRIDGE_W + 1.3), v: 2.7, along: "v", side: -1 }, { u: BRIDGE_W + 1.3, v: 2.7, along: "v", side: 1 }]; // one on a mast above, two lying on their side out of the posts
+      : [{ u: 0, v: top + 1.0, along: "u" }, /* in the middle; on hard gates it rides along the lintel */ { u: -(BRIDGE_W + 1.3), v: 2.7, along: "v", side: -1 }, { u: BRIDGE_W + 1.3, v: 2.7, along: "v", side: 1 }]; // one on a mast above, two lying on their side out of the posts
     const order = nb === 1 ? [0] : nb === 2 ? [1, 2] : [0, 1, 2]; // one sits on top, a pair at the sides, three both
     const g = { s, kind, k, root, leaves, buttons: [], pr: 0, opening: false, passed: false, dead: false };
     leaves.forEach(lf => { lf.hp = 2; }); // the first ball cracks a leaf, the second breaks it
@@ -2037,23 +2040,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       dust: "#90f0cc", block: "#ecfaf4", cart: "#4f8a78", accent: "#3fd8a4" },
   ];
 
-  // Lux: white gold and glass in the light, warm amber in between, an eclipse in the dark: black with a gold corona
+  // Lux: light itself. Pure white and pale glass in the light with a faint gold shimmer, pearl grey in between,
+  // and in the dark an eclipse: black with a white-hot corona
   const PAL_LUX = [
-    { sky: "#0a0602", hor: "#030201", gnd: "#3a2404", surf: "#0e0904", wall: "#120c04", line: "#ffc040", lineI: 0.85, frame: "#0a0603", frameE: "#ffb020", frameEI: 0.85,
-      rail: "#4a3612", sleeper: "#1a1206", glass: "#ffd070", glassO: 0.45, edge: "#fff0c0", fogN: 4, fogF: 54, hemiS: "#ffc860", hemiG: "#1a0e02", hemiI: 0.55, sunI: 0.3,
-      dust: "#ffc850", block: "#1e1406", cart: "#22180a", accent: "#ffc040" },
-    { sky: "#3a3020", hor: "#1e1810", gnd: "#12100a", surf: "#463a28", wall: "#3a3020", line: "#c8b080", lineI: 0.22, frame: "#1e1810", frameE: "#000000", frameEI: 0,
-      rail: "#6a5a3a", sleeper: "#2a2216", glass: "#e0d0a8", glassO: 0.42, edge: "#f4ecd8", fogN: 8, fogF: 70, hemiS: "#e0d4b8", hemiG: "#1e1810", hemiI: 0.75, sunI: 0.5,
-      dust: "#d8c8a0", block: "#3a3020", cart: "#352c1e", accent: "#e8d4a0" },
-    { sky: "#c8b48a", hor: "#b49e74", gnd: "#8a7650", surf: "#e0d4b8", wall: "#c8b896", line: "#ffffff", lineI: 0.05, frame: "#6a5630", frameE: "#000000", frameEI: 0,
-      rail: "#a08e68", sleeper: "#7e6c48", glass: "#f4e8c8", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 88, hemiS: "#ffffff", hemiG: "#a08e6a", hemiI: 0.95, sunI: 0.7,
-      dust: "#fffaf0", block: "#bca878", cart: "#5c4c30", accent: "#ffffff" },
-    { sky: "#fff4dc", hor: "#fff8ec", gnd: "#ecdcb8", surf: "#fffdf8", wall: "#fbf2de", line: "#f0c860", lineI: 0.22, frame: "#c8a868", frameE: "#000000", frameEI: 0,
-      rail: "#d4c090", sleeper: "#e6dac0", glass: "#ffecb8", glassO: 0.4, edge: "#ffffff", fogN: 16, fogF: 100, hemiS: "#ffffff", hemiG: "#ecdcb8", hemiI: 1.05, sunI: 0.8,
-      dust: "#fff0c8", block: "#fbf0d8", cart: "#8a7448", accent: "#f0b840" },
-    { sky: "#ffe8a8", hor: "#fffaf0", gnd: "#fff0d0", surf: "#ffffff", wall: "#fffaf0", line: "#ffc840", lineI: 0.45, frame: "#f0d090", frameE: "#ffe8a0", frameEI: 0.55,
-      rail: "#f0e0b8", sleeper: "#fbf4e2", glass: "#ffe4a0", glassO: 0.38, edge: "#ffffff", fogN: 18, fogF: 116, hemiS: "#ffffff", hemiG: "#f8ecc8", hemiI: 1.15, sunI: 0.85,
-      dust: "#ffd870", block: "#fffaf0", cart: "#9a8250", accent: "#ffc030" },
+    { sky: "#040406", hor: "#010102", gnd: "#1a1a22", surf: "#07070a", wall: "#0a0a0e", line: "#f4f0ff", lineI: 0.8, frame: "#050507", frameE: "#fff6dc", frameEI: 0.8,
+      rail: "#2c2c36", sleeper: "#101014", glass: "#e8e8ff", glassO: 0.45, edge: "#ffffff", fogN: 4, fogF: 56, hemiS: "#e8e8ff", hemiG: "#08080e", hemiI: 0.55, sunI: 0.3,
+      dust: "#ffffff", block: "#0e0e14", cart: "#16161c", accent: "#fff4d0" },
+    { sky: "#34363e", hor: "#1a1c22", gnd: "#101116", surf: "#3c3e48", wall: "#30323a", line: "#b8bcc8", lineI: 0.22, frame: "#1a1c22", frameE: "#000000", frameEI: 0,
+      rail: "#646874", sleeper: "#26282e", glass: "#d4d8e4", glassO: 0.42, edge: "#f0f2f8", fogN: 8, fogF: 72, hemiS: "#d8dce8", hemiG: "#1a1c22", hemiI: 0.75, sunI: 0.5,
+      dust: "#c8ccd8", block: "#34363e", cart: "#30323a", accent: "#e8ecf4" },
+    { sky: "#c4c6cc", hor: "#b0b2b8", gnd: "#8c8e96", surf: "#dcdee2", wall: "#c6c8ce", line: "#ffffff", lineI: 0.05, frame: "#6c6e76", frameE: "#000000", frameEI: 0,
+      rail: "#9c9ea6", sleeper: "#7c7e86", glass: "#eef0f6", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 90, hemiS: "#ffffff", hemiG: "#9ea0a8", hemiI: 0.95, sunI: 0.7,
+      dust: "#ffffff", block: "#b8bac2", cart: "#585a62", accent: "#ffffff" },
+    { sky: "#fbfbfd", hor: "#ffffff", gnd: "#e4e6ec", surf: "#ffffff", wall: "#f6f7fa", line: "#e8dcb4", lineI: 0.15, frame: "#c4c8d2", frameE: "#000000", frameEI: 0,
+      rail: "#d0d4dc", sleeper: "#e6e8ee", glass: "#f4f6ff", glassO: 0.38, edge: "#ffffff", fogN: 16, fogF: 104, hemiS: "#ffffff", hemiG: "#e8eaf0", hemiI: 1.1, sunI: 0.85,
+      dust: "#fffaf0", block: "#ffffff", cart: "#8a8e98", accent: "#f0dc9c" },
+    { sky: "#ffffff", hor: "#ffffff", gnd: "#f6f6fa", surf: "#ffffff", wall: "#ffffff", line: "#fff0c0", lineI: 0.5, frame: "#ecebe6", frameE: "#fffbe8", frameEI: 0.6,
+      rail: "#eceef2", sleeper: "#f8f8fa", glass: "#ffffff", glassO: 0.34, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#f4f4f8", hemiI: 1.2, sunI: 0.9,
+      dust: "#fff4d0", block: "#ffffff", cart: "#9a9ea8", accent: "#ffe8a0" },
   ];
 
   // Abyssus: a bridge high over the void: pale sky above the clouds in the light, dusk indigo in between,
@@ -2179,7 +2183,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 45], [200, 60, -60], [320, 50, 40], [430, 60, -55], [560, 50, 50], [660, 50, -45], [760, 50, 35]],
       desc: "Тупик с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
-      req: { after: "labyrinthus", fare: 12 }, map: { x: 485, y: 80, label: "t" } },
+      req: { after: "labyrinthus", fare: 12 }, map: { x: 485, y: 80, label: "r" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,
       pats: { twins: [1.5, 2, 2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
@@ -2200,7 +2204,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       mood: { sky: "#1a0a0a", hor: "#0c0404", surf: "#201010", wall: "#180808", frame: "#3a1a1a", rail: "#4a2a2a", glass: "#8a3a3a", accent: "#ff4a3a" },
       desc: "Тупик глубоко во Тьме. Говорят, там заперта пушка, которой нет на складе.",
       feats: ["Только для тех, кто не боится Тьмы", "Награда: оружие из темницы"], req: { after: "abyssus", fare: 20 }, map: { x: 830, y: 450, label: "b" } },
-    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "geometry_of_glass", len: 1600, pal: PAL_LUX, finale: "triumphus",
+    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "refraction_point", len: 1600, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "prism", glassWalls: true }, gainMul: 0.85,
       pats: { rays: [2, 2.5, 3], rotor: [1, 1.5, 2], twins: [1, 1.5, 1.5], slider: [1, 2, 2], center: [2, 2, 1.5], reinf: [0, 0.8, 2], shutter: [0, 1, 2], triple: [1, 1.5, 1], double: [0, 1, 2], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
       turns: [[110, 60, 50], [240, 60, -60], [370, 50, 45], [480, 80, -85], [640, 50, 50], [750, 60, -55], [870, 50, 45],

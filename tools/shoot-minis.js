@@ -13,7 +13,7 @@ const FEAT = {
   speculum: r => { r.jump(300); r.crystalAhead(14, 1.6, 2.6); },
   abyssus: r => { r.jump(300); r.gate(22, 'v'); },
   lux: r => { r.jump(300); r.spinner(16, 1, 1); r.lblock(24, 'h'); },
-  crystallum: r => { r.jump(240); },
+  rubinus: r => { r.jump(240); },
   carcer: r => { r.jump(240); r.bars(22); },
 };
 (async () => {

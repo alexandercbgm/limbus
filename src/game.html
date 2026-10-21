@@ -232,7 +232,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     <div class="map-card">
       <div class="map-title">
         <span><i style="background:#1d6f8f"></i>Linea Recta · прямой путь</span>
-        <span><i style="background:#b8892b"></i>Transitus · пересадка за кристаллы</span>
         <span><i style="background:#7a4fa3"></i>Rami · тупиковые ветки</span>
       </div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней"></svg></div>
@@ -389,6 +388,26 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       rail: "#d4eaf8", sleeper: "#e6f3fc", glass: "#9fe1ff", glassO: 0.4, edge: "#ffffff", fogN: 18, fogF: 112, hemiS: "#ffffff", hemiG: "#bcdff5", hemiI: 1.1, sunI: 0.8,
       dust: "#8fd2ff", block: "#eef7ff", cart: "#6f8796", accent: "#6cc6ff" },
   ];
+  // Crystallum: rock crystal and ice: frost white with prismatic glints in the light, aquamarine in between,
+  // a black glass maze with cyan and violet edges in the dark
+  const PAL_CRYSTALLUM = [
+    { sky: "#03040c", hor: "#010206", gnd: "#0a1430", surf: "#05070f", wall: "#060a16", line: "#7af0ff", lineI: 0.85, frame: "#04060c", frameE: "#9a7aff", frameEI: 0.8,
+      rail: "#1a2440", sleeper: "#080c18", glass: "#80e8ff", glassO: 0.5, edge: "#e0f8ff", fogN: 5, fogF: 62, hemiS: "#80c0ff", hemiG: "#040616", hemiI: 0.6, sunI: 0.35,
+      dust: "#a0f0ff", block: "#0c1430", cart: "#0e1424", accent: "#7af0ff" },
+    { sky: "#0e2e3a", hor: "#0a1e28", gnd: "#061218", surf: "#1a3a44", wall: "#14323c", line: "#80d8d8", lineI: 0.3, frame: "#0c2028", frameE: "#20a0b0", frameEI: 0.3,
+      rail: "#3a6a74", sleeper: "#142a30", glass: "#a0e8f0", glassO: 0.42, edge: "#e0fcff", fogN: 9, fogF: 80, hemiS: "#a8e0e8", hemiG: "#0a1c22", hemiI: 0.75, sunI: 0.5,
+      dust: "#c0f0f4", block: "#1e4a54", cart: "#1a3038", accent: "#a0f0f0" },
+    { sky: "#5aa8b8", hor: "#8ccad4", gnd: "#3a7a88", surf: "#c8e8ec", wall: "#a0d4dc", line: "#ffffff", lineI: 0.08, frame: "#2a6a78", frameE: "#000000", frameEI: 0,
+      rail: "#70a8b4", sleeper: "#4a8490", glass: "#d8f6fa", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 96, hemiS: "#ffffff", hemiG: "#5a98a4", hemiI: 0.95, sunI: 0.75,
+      dust: "#ffffff", block: "#a8dce4", cart: "#3a6a74", accent: "#ffffff" },
+    { sky: "#a8e4f0", hor: "#e0f6fa", gnd: "#b0dce4", surf: "#f8fdfe", wall: "#e0f4f8", line: "#b8e8ff", lineI: 0.22, frame: "#7ab8c8", frameE: "#000000", frameEI: 0,
+      rail: "#b0d4dc", sleeper: "#d0e8ec", glass: "#e0faff", glassO: 0.38, edge: "#ffffff", fogN: 16, fogF: 108, hemiS: "#ffffff", hemiG: "#c0e0e8", hemiI: 1.05, sunI: 0.85,
+      dust: "#ffffff", block: "#e8f8fb", cart: "#5a8a94", accent: "#80d8ff" },
+    { sky: "#d0f4ff", hor: "#f6fcff", gnd: "#e0f4fa", surf: "#ffffff", wall: "#f2fbfd", line: "#c8b8ff", lineI: 0.4, frame: "#b8e0f0", frameE: "#e8d8ff", frameEI: 0.5,
+      rail: "#d8eef4", sleeper: "#ecf8fa", glass: "#d8f8ff", glassO: 0.34, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#d8eef4", hemiI: 1.15, sunI: 0.9,
+      dust: "#e8e0ff", block: "#f6fcfe", cart: "#6a94a0", accent: "#a890ff" },
+  ];
+
   // Vitrum: the blue of a clear sky and of glass: crystal white and azure in the light, cobalt in between,
   // a deep blue night with ice-cyan glass in the dark
   const PAL_VITRUM = [
@@ -511,6 +530,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     fire() { this.hiss(0.08, 700, "bandpass", 0.16); this.tone(150, 0.1, 0.09, "sine", 0, 60); },
     crystal(v) { const b = 1318.5 * (v >= 5 ? 1.335 : 1); this.tone(b, 0.7, 0.11); this.tone(b * 1.5, 0.9, 0.07, "sine", 0.06); this.tone(b * 2, 0.6, 0.05, "triangle", 0.12); },
     decoy() { this.tone(180, 0.6, 0.18, "sawtooth", 0, 70); this.tone(191, 0.6, 0.12, "sawtooth", 0, 75); },
+    knock() { // a ball on a shut steel gate: a dull clang with a short ring
+      this.tone(180, 0.18, 0.16, "square", 0, 120); this.tone(640, 0.25, 0.05, "triangle", 0.01, 600); this.hiss(0.06, 1500, "bandpass", 0.12);
+    },
+    slam() { // the cart bursting a shut gate: a heavy metal boom, a ringing clang and grinding
+      this.tone(55, 0.7, 0.5, "sawtooth", 0, 35); this.tone(420, 0.6, 0.12, "triangle", 0.02, 380); this.tone(910, 0.4, 0.06, "triangle", 0.03, 880);
+      this.hiss(0.5, 900, "lowpass", 0.35); this.hiss(0.3, 3500, "bandpass", 0.12, 0.08);
+    },
     burn() { // the sizzle of a laser on metal: hot hiss, a crackle and a low hum
       this.hiss(0.45, 3200, "bandpass", 0.32); this.hiss(0.2, 7000, "highpass", 0.12, 0.05);
       for (let i = 0; i < 5; i++) this.hiss(0.03, 1800 + i * 600, "bandpass", 0.18, 0.04 + i * 0.07);
@@ -1011,7 +1037,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     return d;
   }
   const M = new THREE.Matrix4(), M2 = new THREE.Matrix4(), EU = new THREE.Euler(), SV = new THREE.Vector3();
-  const RING_SX = (W - 0.2) / 4.92, RING_SY = (H / 2 - 0.05) / 4.92; // the ring's outer edge just inside the walls and the vault
+  const RING_SX = (H / 2 - 0.05) * 1.15 / 4.92, RING_SY = RING_SX; // a true circle, clear of the walls
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
@@ -1432,6 +1458,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (d > 0.45 && Math.random() < d) addBough(s - 9, -side); // deeper in the dark the boughs come in pairs
         break;
       }
+      case "zigzag": { // partitions of a glass maze, left and right in turn: the way winds between them
+        const first = Math.random() < 0.5 ? -1 : 1, n = d > 0.5 ? 4 : 3;
+        for (let i = 0; i < n; i++) { const k = i % 2 ? -first : first; addPane({ s: s - i * 6, u: k * (W / 2 + 0.25), v: H / 2, w: W + 0.4, h: H - 0.3 }); }
+        break;
+      }
       case "twins": { // two panes mirrored about the track that close and part like doors
         const freq = rand(0.9, 1.3) * (1 + 0.3 * d), phase = rand(0, TAU);
         [-1, 1].forEach(k => addPane({ s, u: k * 2.0, v: CAM_V + 0.2, w: 2.2, h: 2.9, move: { axis: "u", amp: k * 1.0, freq, phase } }));
@@ -1744,6 +1775,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     if (f === "reflexio") { spawnPair(s); return rand(9, 11); }
     if (f === "rota") { addWheel(s); return rand(12, 14); }
+    if (f === "fragmenta") {
+      superWave++;
+      const wave = { n: 0, broken: 0 }, first = Math.random() < 0.5 ? -1 : 1, n = Math.min(5, 3 + Math.floor(superWave / 2));
+      for (let i = 0; i < n; i++) {
+        const k = i % 2 ? -first : first;
+        addPane({ s: s + i * 5, u: k * (W / 2 + 0.25), v: H / 2, w: W + 0.4, h: H - 0.3, wave }); wave.n++;
+        addCrystal(s + i * 5 + 1.5, k * rand(1.2, 2.8), rand(1.6, 4.2), 2);
+      }
+      return 6 + n * 5;
+    }
     if (f === "custodes") {
       superWave++;
       const n = Math.min(7, 3 + Math.floor(superWave / 2)), wave = { n, killed: 0, lost: false };
@@ -2159,7 +2200,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     return y < GATE_H / 2 - (GATE_H / 2 + 0.3) * p || y > GATE_H / 2 + (GATE_H / 2 + 0.3) * p ? lf : null;
   }
   function hitLeaf(g, lf, at, vel, gx, gy) {
-    if (g.kind === "iris") return; // the iris is steel-hard
+    if (g.kind === "iris") { Sound.knock(); chips(at, laserBaseMat, 4, vel); return; } // the iris is steel-hard
     lf.hp--; Sound.clink(); chips(at, doorMat, 5, vel);
     if (lf.hp > 0) { lf.m.scale.setScalar(0.97); crackLeaf(lf, gx - lf.m.position.x, gy - lf.m.position.y); return; }
     lf.broken = true; lf.m.visible = false; Sound.shatter(1.2); chips(at, doorMat, 26, vel); addScore(20);
@@ -2210,7 +2251,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (g.pr < (g.kind === "iris" ? 0.75 : 0.6) && (g.kind === "iris" || way.some(lf => !lf.broken))) {
           g.opening = true; g.pr = Math.max(g.pr, 0.5);
           balls = Math.max(0, balls - GATE_COST); updateCount(); karmaLoss(0.15);
-          Sound.crash(); flash(); pop("−" + GATE_COST + " · ворота", "loss"); if (!reduceMotion) shakeT = 0.45;
+          Sound.slam(); flash(); pop("−" + GATE_COST + " · ворота", "loss"); if (!reduceMotion) shakeT = 0.45;
         }
       }
       if (g.s < sC - 8) { g.dead = true; scene.remove(g.root); }
@@ -2340,7 +2381,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function zoneName(a) { for (const [t, n] of ZONES) if (a >= t) return n; return "Тьма"; }
   function updateCombo() {
     const f = LEVEL.finale;
-    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : f === "reflexio" ? "пары " + pairsDone : f === "vindemia" ? "ветви " + harvested : f === "rota" ? "колёса " + wheelsDone : f === "custodes" ? "волны " + wavesDone : "+" + superGain;
+    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : f === "reflexio" ? "пары " + pairsDone : f === "vindemia" ? "ветви " + harvested : f === "rota" ? "колёса " + wheelsDone : f === "custodes" || f === "fragmenta" ? "волны " + wavesDone : "+" + superGain;
   }
   function showOverlay(id, html, ms) {
     const el = $(id); el.innerHTML = html; el.hidden = false;
@@ -2376,6 +2417,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     iudicium: { name: "IUDICIUM", ru: "Суд", note: "Попадания по печатям подряд умножают награду до ×6. Пропуск сбрасывает множитель и стоит 2 шара. Стекло бьёт вдвое сильнее." },
     ruina: { name: "RUINA", ru: "Обвал", note: "С потолка падают глыбы. Сбивайте их в воздухе или на рельсах: +2 шара, каждые 4 подряд ещё +4. Глыба на пути стоит 8 шаров." },
     portae: { name: "PORTAE", ru: "Врата", note: "Впереди стеклянные врата. Перед каждыми горит голубой ключ-кристалл: попадите в него, и врата разлетятся, а ключ даст шары. Каждые трое врат подряд — ещё +3. Не попали — вагонетка пробьёт стекло: −4 шара." },
+    fragmenta: { name: "FRAGMENTA", ru: "Осколки", note: "Волны хрусталя: за каждой перегородкой горит кристалл. Разбейте всю волну до последнего стекла — +4 шара, кристаллы платят как обычно." },
     custodes: { name: "CUSTODES", ru: "Стражи", note: "Стражи-тени летят волнами. Каждый сбитый — +1 шар, вся волна до последнего — ещё +4. Долетевший страж отнимает 3 шара." },
     triumphus: { name: "TRIUMPHUS", ru: "Триумф", note: "Финал всей линии: по очереди печати, пары отражений, колёса, врата с ключами и дождь кристаллов. Каждое испытание идёт по своим правилам." },
     rota: { name: "ROTA", ru: "Колесо", note: "Над мостом вращаются колёса из кристаллов. Голубой — +2 шара, красный — −3. Соберите все голубые с колеса, пока оно не проехало, — ещё +5." },
@@ -2570,6 +2612,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       desc: "Тупик с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
       req: { after: "labyrinthus", fare: 12 }, map: { x: 480, y: 75, label: "t" } }, // the label on top, clear of the legend
+    { id: "crystallum", num: "II·b", latin: "Crystallum", ru: "Хрусталь", line: "branch", playable: true, music: "through_the_glass_maze", len: 900, pal: PAL_CRYSTALLUM, finale: "fragmenta",
+      style: { arch: "hex", blocks: "prism", glassWalls: true }, crystalMul: 1.4,
+      pats: { zigzag: [3, 3.5, 3.5], twins: [1, 1.5, 1.5], slider: [1, 1.5, 2], center: [1.5, 1.5, 1], rotor: [0.5, 1, 1.5], reinf: [0, 0.6, 1.5], double: [0.5, 1, 1.5], sides: [1.5, 0.6, 0], bonus: [2, 0.5, 0] },
+      turns: [[90, 50, 45], [200, 60, -60], [320, 50, 50], [430, 60, -55], [550, 50, 45], [650, 50, -50], [760, 50, 35]],
+      desc: "Тупик от Vitrum. Лабиринт из хрусталя: поперёк пути стоят стеклянные перегородки вразбивку, то слева, то справа, и проход вьётся между ними. Разбивайте перегородки, чтобы видеть дорогу дальше.",
+      feats: ["Стеклянные перегородки вразбивку", "Кристаллов больше обычного", "Финал Fragmenta: волны хрусталя"],
+      req: { after: "vitrum", fare: 10 }, map: { x: 450, y: 330, label: "b" } },
+    { id: "caelum", num: "IV·a", latin: "Caelum", ru: "Небосвод", line: "branch", playable: false,
+      mood: { sky: "#cfe4ff", hor: "#e8f2ff", surf: "#f6f9ff", wall: "#dfeaff", frame: "#6a8ac0", rail: "#9ab0d8", glass: "#d8e8ff", accent: "#6aa0ff" },
+      desc: "Тупик от Speculum, под открытым небом. Скоро.",
+      feats: ["Строится"], req: { after: "speculum", fare: 14 }, map: { x: 770, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,
       pats: { twins: [1.5, 2, 2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
@@ -2577,7 +2630,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],
       desc: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар.",
       feats: ["Зеркальные стены: коридор уходит в отражения", "Ложные кристаллы: отражение мерцает и вращается в обратную сторону", "Финал Reflexio: мишени парами"],
-      req: { after: "labyrinthus", transfer: { from: "vitrum", cost: 60 } }, map: { x: 590, y: 190, label: "t" } },
+      req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "abyssus", num: "V", latin: "Abyssus", ru: "Бездна", playable: true, music: "through_the_glass_corridor", len: 1500, pal: PAL_ABYSSUS, finale: "rota",
       style: { arch: "none", blocks: "cube", glassWalls: false, bridge: true }, driftMul: 1.5, gateKinds: ["v"],
       pats: { doors: [1.5, 2, 2], rise: [1, 2, 2.5], shades: [0, 1.2, 2.5], center: [2, 2, 1.5], slider: [1, 2, 2], double: [0, 1, 2], triple: [1, 1.5, 1], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], reinf: [0, 0.6, 2], imps: [0, 0, 0] },
@@ -2601,13 +2654,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [980, 70, -75], [1120, 50, 50], [1230, 60, -55], [1350, 50, 45], [1450, 60, -50]],
       desc: "Конечная. Белые залы со стеклянными стенами. Путь стерегут красные лазеры: вертушки в разрывах стен, парящие блоки, балки на цепях. Луч через вагонетку стоит 3 шара. Переборки с диафрагмой открываются кнопками. Подъём к Свету здесь самый тяжёлый.",
       feats: ["Красные лазеры: вертушки, блоки, балки на цепях", "Переборки с диафрагмой и кнопками", "Финал Triumphus: все испытания линии по очереди"],
-      req: { after: "abyssus", transfer: { from: "speculum", cost: 120 } }, map: { x: 910, y: 330, label: "b" } },
+      req: { after: "abyssus" }, map: { x: 910, y: 330, label: "b" } },
   ];
   const MAIN_LINE = ["initium", "vitrum", "labyrinthus", "speculum", "abyssus", "lux"];
   // drawn lines of the scheme, as waypoints; the main line is drawn station to station
   const MAP_LINES = [
-    { kind: "transfer", to: "speculum", pts: [[270, 330], [450, 330], [590, 190]] },
-    { kind: "transfer", to: "lux", pts: [[590, 190], [770, 190], [910, 330]] },
+    { kind: "branch", to: "crystallum", pts: [[270, 330], [450, 330]] },
+    { kind: "branch", to: "caelum", pts: [[590, 190], [770, 190]] },
     { kind: "branch", to: "thesaurus", pts: [[90, 330], [90, 380], [170, 460]], tagSeg: 1, tag: 0.38 },
     { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 380], [360, 470]], tagSeg: 1, tag: 0.38 },
     { kind: "branch", to: "hortus", pts: [[410, 190], [410, 145], [480, 75]], tagSeg: 1, tag: 0.38 }, // its price sits low, clear of the station names
@@ -2641,6 +2694,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     initium: { sky: { mode: 3, a: 0.85, c: "#ffffff" } },
     thesaurus: { sky: { mode: 5, a: 0.9, c: "#ffe8b0" } },
     vitrum: { sky: { mode: 3, a: 0.95, c: "#ffffff" } },
+    crystallum: { sky: { mode: 2, a: 0.85, c: "#e0faff" } },
     labyrinthus: { sky: { mode: 3, a: 0.75, c: "#d4f6e6" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },
     hortus: { sky: { mode: 3, a: 0.85, c: "#fff0f4" } },
     speculum: { sky: { mode: 2, a: 0.9, c: "#f0f4ff" }, style: { tex: "chrome", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum // open to a sky of quicksilver
@@ -2732,7 +2786,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;
       $("wSuperName").textContent = FINALES[LEVEL.finale].name;
-      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "rota" ? `колёса ${wheelsDone} · +${superGain}` : LEVEL.finale === "custodes" ? `волны ${wavesDone} · +${superGain}` : LEVEL.finale === "reflexio" ? `пары ${pairsDone} · +${superGain}` : LEVEL.finale === "vindemia" ? `ветви ${harvested} · +${superGain}` : `+${superGain}`;
+      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "rota" ? `колёса ${wheelsDone} · +${superGain}` : LEVEL.finale === "custodes" || LEVEL.finale === "fragmenta" ? `волны ${wavesDone} · +${superGain}` : LEVEL.finale === "reflexio" ? `пары ${pairsDone} · +${superGain}` : LEVEL.finale === "vindemia" ? `ветви ${harvested} · +${superGain}` : `+${superGain}`;
       $("wAcc").textContent = (stats.thrown ? Math.round(stats.hits / stats.thrown * 100) : 0) + "%";
       $("wBest").textContent = best.toLocaleString("ru-RU");
       const nx = nextLevel(LEVEL), nb = $("nextBtn");
@@ -2915,6 +2969,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   function damagePane(p, ix, iy, vel) {
     p.hp--;
+    if (p.hp <= 0 && p.wave && ++p.wave.broken === p.wave.n) { // Fragmenta: the whole wave of glass broken
+      balls += 4; superGain += 4; wavesDone++; bestCombo = Math.max(bestCombo, wavesDone); updateCount(); updateCombo(); pop("+4 · волна", "gain");
+    }
     if (p.hp <= 0) {
       shatter(p, ix, iy, { x: vel.dot(p.R), y: vel.dot(p.U), z: vel.dot(p.T) });
       stats.broken++;
@@ -3375,6 +3432,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     initium: "M-4.5 7.5V-7.5M-4.5 -7H6.5L3.5 -3.5L6.5 0H-4.5",      // a start flag: the beginning
     thesaurus: "M0 -7L6 -1.5L0 7L-6 -1.5ZM-6 -1.5H6M-2.5 -1.5L0 7L2.5 -1.5", // a cut gem
     vitrum: "M0 -7L6.5 5H-6.5ZM0 -7V5M-3 -1L3 5",                       // a prism
+    crystallum: "M-6 -6H6V6H-6ZM-6 0H0V-6M0 6V2H6",                       // a glass maze
+    caelum: "M-7 3A7 7 0 0 1 7 3M-4 3A4 4 0 0 1 4 3M-7.5 6H7.5",          // the vault of the sky
     armamentarium: "M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5", // crossed barrels
     labyrinthus: "M-7 -7H7V7H-4V-4H4V4H-1",                             // a square maze
     hortus: "M0 7.5V-1.5M0 2C-4.5 2 -7 -1 -6.5 -5.5C-2.5 -5.5 0 -2.5 0 2M0 -1.5C4 -1.5 6.5 -4.5 6 -8C2.5 -8 0 -5.5 0 -1.5M-4 7.5H4", // a sprout with two leaves
@@ -3437,7 +3496,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     for (const lv of LEVELS) {
       const p = lv.map, st = stationStatus(lv);
-      const hub = MAP_LINES.some(l => l.kind === "transfer" && (l.to === lv.id || byId(l.to).req.transfer.from === lv.id));
+      const hub = MAP_LINES.some(l => l.kind === "transfer" && (l.to === lv.id || (byId(l.to).req.transfer || {}).from === lv.id));
       const lit = st === "done" || st === "open";
       const fill = st === "done" ? INK : lit ? "#ffffff" : "#e6ecee"; // done stations are dark, open ones white
       const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? LINE_MAIN : MUTED); // a main-line station wears the line's colour

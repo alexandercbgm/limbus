@@ -136,8 +136,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .tagline { margin: 8px 0 0; color: #4c6470; font-size: 14px; }
 .bank { font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 4px; background: #10242e; color: #f4fbfc; display: flex; gap: 8px; align-items: center; }
 .bank b { font-size: 18px; color: #7fd3ff; font-variant-numeric: tabular-nums; }
-.map-card { background: var(--frost); border: 1px solid var(--edge); border-radius: 6px; box-shadow: 0 18px 50px rgba(16, 36, 46, 0.12); padding: 14px 10px; }
-.map-title { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; padding: 0 8px 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #4c6470; }
+.map-card { position: relative; background: var(--frost); border: 1px solid var(--edge); border-radius: 6px; box-shadow: 0 18px 50px rgba(16, 36, 46, 0.12); padding: 14px 10px; }
+.map-title { position: absolute; top: 16px; left: 18px; z-index: 1; pointer-events: none; display: flex; flex-direction: column; gap: 7px; padding: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #4c6470; }
 .map-title i { display: inline-block; width: 22px; height: 5px; border-radius: 3px; vertical-align: middle; margin-right: 6px; }
 #map { display: block; width: 100%; height: auto; }
 .station { cursor: pointer; outline: none; }
@@ -231,8 +231,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     </header>
     <div class="map-card">
       <div class="map-title">
-        <span><i style="background:#1d6f8f"></i>Linea Ima · нижняя ветка</span>
-        <span><i style="background:#2f9a72"></i>Linea Summa · верхняя ветка</span>
+        <span><i style="background:#1d6f8f"></i>Linea Ima · нижний путь</span>
+        <span><i style="background:#2f9a72"></i>Linea Summa · верхний путь</span>
         <span><i style="background:#d0642a"></i>Linea Tao · путь Дао</span>
         <span><i style="background:#7a4fa3"></i>Rami · тупиковые ветки</span>
       </div>
@@ -1448,6 +1448,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     drops.forEach(d => scene.remove(d.group)); drops = [];
     boughs.forEach(b => scene.remove(b.root)); boughs = [];
     gates.forEach(g => scene.remove(g.root)); gates = []; lastGateS = -1e9;
+    rams.forEach(r => scene.remove(r.root)); rams = []; hmills.forEach(m => scene.remove(m.root)); hmills = [];
     spinners.forEach(x => scene.remove(x.root)); spinners = []; lblocks.forEach(x => scene.remove(x.root)); lblocks = [];
     wheels.forEach(w => scene.remove(w.ring)); wheels = [];
     pendingHits = [];
@@ -1490,6 +1491,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (s - lastHangerS > 70) { addHanger(s, "gate", false, true); lastHangerS = s; }
         else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 });
         break;
+      case "rams": addRams(s, d > 0.3 && Math.random() < 0.4 + d * 0.5); break;
+      case "hammers": { // one, or a staggered pair turning against each other
+        const side = Math.random() < 0.5 ? -1 : 1, dir = Math.random() < 0.5 ? -1 : 1;
+        addHammerMill(s, side, dir);
+        if (d > 0.35 && Math.random() < 0.4 + d * 0.5) addHammerMill(s - 8, -side, -dir);
+        break;
+      }
       case "spinners": { // one, or a staggered pair turning against each other
         const side = Math.random() < 0.5 ? -1 : 1, dir = Math.random() < 0.5 ? -1 : 1;
         addSpinner(s, side, dir);
@@ -2146,6 +2154,87 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     lblocks = lblocks.filter(x => x.alive);
   }
 
+  // ---------- Tao: rams and hammer mills ----------
+  // A ram is a heavy cylinder along the track, slung from a beam on two chains, one near the cart and one far.
+  // Alone, or a pair from both sides swinging to meet in the middle. Shoot its near chain and it swings back to
+  // its side and hangs there; miss it and the ram crushes the cart for 4 balls. The far chain alone only tilts it.
+  let rams = [];
+  const RAM_L = 5.2, RAM_R = 0.5, RAM_LEN = 2.4, RAM_COST = 4;
+  const ramGeo = new THREE.CylinderGeometry(RAM_R, RAM_R, RAM_LEN, 24).rotateX(Math.PI / 2), ramCapGeo = new THREE.TorusGeometry(RAM_R, 0.06, 8, 24);
+  const ramMat = new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.45, metalness: 0.7 }), ramBeamGeo = new THREE.BoxGeometry(0.3, 0.3, RAM_LEN + 0.6);
+  function addRams(s, both) {
+    const sides = both ? [-1, 1] : [Math.random() < 0.5 ? -1 : 1], ph = rand(0, TAU), w = rand(1.0, 1.3);
+    for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); for (const sd of sides) dc[sd < 0 ? "wl" : "wr"] = false; dc.arch = false; dc.pyr = null; }
+    for (const side of sides) {
+      const root = new THREE.Group(); root.matrixAutoUpdate = false;
+      root.add(new THREE.Mesh(ramBeamGeo, frameMat));
+      const arm = new THREE.Group(); root.add(arm);
+      const chains = [1, -1].map(z => { const c = makeChain(RAM_L - RAM_R); c.position.z = z * (RAM_LEN / 2 - 0.2); arm.add(c); return { z: z * (RAM_LEN / 2 - 0.2), near: z > 0, alive: true, mesh: c, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
+      const body = new THREE.Mesh(ramGeo, ramMat); body.position.y = -RAM_L; arm.add(body);
+      for (const z of [-1, 1]) { const cap = new THREE.Mesh(ramCapGeo, frameMat); cap.position.set(0, -RAM_L, z * RAM_LEN / 2); arm.add(cap); }
+      scene.add(root);
+      rams.push({ s, side, root, arm, body, chains, ph, w, phi: 0, pinned: false, hit: false, tilt: 0 });
+    }
+  }
+  function breakRamChain(r, c, at) {
+    c.alive = false; c.mesh.visible = false; Sound.clink(); Sound.tone(900, 0.12, 0.08, "square", 0, 300); chips(at, chainMat, 8, tmpV2.set(0, 2, 0)); addScore(15);
+    if (c.near) { r.pinned = true; karmaGain(0.03); pop("таран отведён", "info"); } else r.tilt = 0.25;
+  }
+  // a hammer mill turns in a gap of the wall: handles out of a hub, a heavy head on each; shoot a handle to break it off
+  let hmills = [];
+  const HM_L = 3.3, hmHubGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.5, 20).rotateX(Math.PI / 2), hmHandleGeo = new THREE.CylinderGeometry(0.08, 0.1, HM_L, 10).translate(0, HM_L / 2, 0);
+  const hmHeadGeo = new THREE.BoxGeometry(1.0, 0.55, 0.7), hmCapGeo = new THREE.BoxGeometry(1.06, 0.12, 0.76);
+  function addHammerMill(s, side, dir) {
+    for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc[side < 0 ? "wl" : "wr"] = false; dc.arch = false; dc.pyr = null; }
+    const root = new THREE.Group(); root.matrixAutoUpdate = false; root.add(new THREE.Mesh(hmHubGeo, frameMat));
+    const rotor = new THREE.Group(); root.add(rotor);
+    const arms = [0, 1].map(i => {
+      const a = new THREE.Group(); a.rotation.z = i * Math.PI; rotor.add(a);
+      a.add(new THREE.Mesh(hmHandleGeo, woodMat));
+      const head = new THREE.Mesh(hmHeadGeo, ramMat); head.position.y = HM_L; a.add(head);
+      for (const y of [-0.22, 0.22]) { const cp = new THREE.Mesh(hmCapGeo, frameMat); cp.position.y = HM_L + y; a.add(cp); }
+      return { i, grp: a, alive: true, A: new THREE.Vector3(), B: new THREE.Vector3(), H: new THREE.Vector3() };
+    });
+    scene.add(root);
+    hmills.push({ s, side, hu: side * (W - 0.7), hv: 2.4, a: rand(0, TAU), spin: dir * rand(1.1, 1.5), root, rotor, arms, hit: false });
+  }
+  function breakHandle(m, arm, at) {
+    arm.alive = false; arm.grp.visible = false; Sound.shatter(0.5); Sound.tone(200, 0.15, 0.12, "square", 0, 90); chips(at, woodMat, 10, tmpV2.set(0, 1, 0)); chips(arm.H, ramMat, 12, tmpV2.set(0, -2, 0));
+    addScore(15); karmaGain(0.03); pop("молот сбит", "info");
+  }
+  function crushed(what) {
+    balls = Math.max(0, balls - RAM_COST); updateCount(); karmaLoss(0.15);
+    Sound.slam(); flash(); pop("−" + RAM_COST + " · " + what, "loss"); if (!reduceMotion) shakeT = 0.5;
+  }
+  function updateRams(dt) {
+    for (const r of rams) {
+      // swing: from low at its side up across the middle, where a pair meet
+      const target = r.pinned ? -0.28 : -0.22 + 0.4 * (1 + Math.sin(time * r.w + r.ph));
+      r.phi += (target - r.phi) * Math.min(1, dt * (r.pinned ? 2 : 12));
+      setObj(r.root, r.s, r.side * 2.2, H - 0.1);
+      r.arm.rotation.z = -r.side * r.phi; r.arm.rotation.x = r.tilt * Math.sin(time * 3) * 0.2 + r.tilt;
+      r.root.updateMatrixWorld(true);
+      for (const c of r.chains) { c.A.set(0, 0, c.z); r.arm.localToWorld(c.A); c.B.set(0, -RAM_L + RAM_R, c.z); r.arm.localToWorld(c.B); }
+      const bu = r.side * 2.2 - r.side * RAM_L * Math.sin(r.phi), bv = H - 0.1 - RAM_L * Math.cos(r.phi);
+      if (state === "play" && !r.hit && !r.pinned && Math.abs(r.s - sC) < RAM_LEN / 2 + 0.3 && Math.hypot(bu, bv - 1.3) < RAM_R + 0.95) { r.hit = true; crushed("таран"); }
+      if (r.s < sC - 8) { r.dead = true; scene.remove(r.root); }
+    }
+    rams = rams.filter(r => !r.dead);
+    for (const m of hmills) {
+      m.a += m.spin * dt; m.rotor.rotation.z = m.a;
+      setObj(m.root, m.s, m.hu, m.hv); m.root.updateMatrixWorld(true);
+      for (const arm of m.arms) {
+        arm.A.set(0, 0.3, 0); arm.grp.localToWorld(arm.A); arm.B.set(0, HM_L - 0.3, 0); arm.grp.localToWorld(arm.B); arm.H.set(0, HM_L, 0); arm.grp.localToWorld(arm.H);
+        if (arm.alive && state === "play" && !m.hit && Math.abs(m.s - sC) < 0.8) {
+          const a = m.a + arm.i * Math.PI + Math.PI / 2, hu = m.hu + Math.cos(a) * HM_L, hv = m.hv + Math.sin(a) * HM_L;
+          if (CART_PTS.some(([u, v]) => Math.hypot(u - hu, v - hv) < 0.75)) { m.hit = true; crushed("молот"); }
+        }
+      }
+      if (m.s < sC - 6) { m.dead = true; scene.remove(m.root); }
+    }
+    hmills = hmills.filter(m => !m.dead);
+  }
+
   // ---------- Abyssus: gates ----------
   // Steel gates across the bridge whose leaves slide apart: sideways, up and down, or open like an iris.
   // On the frame sit 1–3 buttons, each a little spinning vane; hit every button and the gate opens.
@@ -2170,6 +2259,18 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const domeEdgeMat = new THREE.LineBasicMaterial({ color: 0xffffff }), domeGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xffa020, transparent: true, opacity: 0.28, depthWrite: false });
   const domeFaceMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.3, roughness: 0.35, metalness: 0.2 });
   // one iris leaf: a wedge whose two edges curve the same way, a spiral arm, so the six of them meet edge to edge
+  // the yin-yang iris: two halves split along the S, each with the other's eye; they turn all the time and
+  // part sideways behind the bulkhead when the gate opens
+  const taijiGeo = (() => {
+    const R = IRIS_R, sh = new THREE.Shape(); sh.moveTo(0, R);
+    sh.absarc(0, 0, R, Math.PI / 2, -Math.PI / 2, true); // the outer half round the right
+    sh.absarc(0, -R / 2, R / 2, -Math.PI / 2, Math.PI / 2, false); // up to the middle, bulging right
+    sh.absarc(0, R / 2, R / 2, -Math.PI / 2, Math.PI / 2, true); // and on to the top, bulging left
+    const eye = new THREE.Path(); eye.absarc(0, -R / 2, R * 0.13, 0, TAU, true); sh.holes.push(eye);
+    return new THREE.ExtrudeGeometry(sh, { depth: GATE_D, bevelEnabled: false, curveSegments: 40 }).translate(0, 0, -GATE_D / 2);
+  })(), taijiEyeGeo = new THREE.CylinderGeometry(IRIS_R * 0.13, IRIS_R * 0.13, GATE_D, 24).rotateX(Math.PI / 2);
+  const yinGateMat = new THREE.MeshStandardMaterial({ color: 0xf4efe4, emissive: 0x403c34, emissiveIntensity: 0.4, roughness: 0.35, side: THREE.DoubleSide });
+  const yangGateMat = new THREE.MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.3, metalness: 0.4, side: THREE.DoubleSide });
   const IRIS_N = 6, IRIS_TWIST = 1.1, irisGeo = (() => {
     const sh = new THREE.Shape(), a = TAU / IRIS_N / 2, n = 16, at = (r, q) => new THREE.Vector2(Math.cos(q) * r, Math.sin(q) * r);
     sh.moveTo(0, 0);
@@ -2200,12 +2301,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // the lintel: an up-down gate's frame is tall enough for its top leaf to slide up under it
     const top = kind === "v" && STYLE.bridge ? GATE_H * 1.5 + 0.8 : GATE_H + 0.4;
     const weights = kind === "h" && (LEVEL.gateOpeners || ["buttons"])[Math.floor(Math.random() * (LEVEL.gateOpeners || ["buttons"]).length)] === "weights";
-    if (kind !== "iris" && !STYLE.bridge) { // in a corridor a bulkhead closes all around the doorway; the leaves slide away behind it
+    if (kind !== "iris" && kind !== "taiji" && !STYLE.bridge) { // in a corridor a bulkhead closes all around the doorway; the leaves slide away behind it
       const sh = new THREE.Shape([new THREE.Vector2(-W, 0), new THREE.Vector2(W, 0), new THREE.Vector2(W, H), new THREE.Vector2(-W, H)]);
       sh.holes.push(new THREE.Path([new THREE.Vector2(-BRIDGE_W, 0), new THREE.Vector2(-BRIDGE_W, GATE_H), new THREE.Vector2(BRIDGE_W, GATE_H), new THREE.Vector2(BRIDGE_W, 0)]));
       const bh = new THREE.Mesh(new THREE.ShapeGeometry(sh), bulkheadMat); bh.position.z = 0.07; root.add(bh);
     }
-    if (kind === "iris") {
+    const round = kind === "iris" || kind === "taiji";
+    if (round) {
       const ring = new THREE.Mesh(irisRingGeo, frameMat); ring.position.y = IRIS_V; root.add(ring);
       if (!STYLE.bridge) { // in a corridor a bulkhead closes everything around the iris
         const sh = new THREE.Shape([new THREE.Vector2(-W, 0), new THREE.Vector2(W, 0), new THREE.Vector2(W, H), new THREE.Vector2(-W, H)]);
@@ -2213,7 +2315,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const bh = new THREE.Mesh(new THREE.ShapeGeometry(sh, 48), bulkheadMat); bh.position.z = 0.07; root.add(bh); // in front: the leaves slide away behind it
       }
       const spin = new THREE.Group(); spin.position.y = IRIS_V; root.add(spin); // the whole iris turns all the time
-      for (let i = 0; i < IRIS_N; i++) { const m = new THREE.Mesh(irisGeo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(irisGeo), edgeMat)); m.rotation.z = i / IRIS_N * TAU; m.position.z = (i % 2 ? 1 : -1) * 0.004; spin.add(m); leaves.push({ m, a: i / IRIS_N * TAU + IRIS_TWIST / 2, spin }); }
+      if (kind === "taiji") for (const sd of [1, -1]) { // white half on the right, black on the left (turned half round)
+        const m = new THREE.Mesh(taijiGeo, sd > 0 ? yinGateMat : yangGateMat); m.rotation.z = sd > 0 ? 0 : Math.PI;
+        const eye = new THREE.Mesh(taijiEyeGeo, sd > 0 ? yangGateMat : yinGateMat); eye.position.y = -IRIS_R / 2; m.add(eye);
+        const holder = new THREE.Group(); holder.add(m); spin.add(holder); leaves.push({ m: holder, a: sd > 0 ? 0 : Math.PI, spin, taiji: true });
+      }
+      else for (let i = 0; i < IRIS_N; i++) { const m = new THREE.Mesh(irisGeo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(irisGeo), edgeMat)); m.rotation.z = i / IRIS_N * TAU; m.position.z = (i % 2 ? 1 : -1) * 0.004; spin.add(m); leaves.push({ m, a: i / IRIS_N * TAU + IRIS_TWIST / 2, spin }); }
     } else {
       for (const sd of [-1, 1]) {
         const geo = kind === "h" ? hDoorGeo : vDoorGeo, m = new THREE.Mesh(geo, LEVEL.doorColor ? solidDoorMat(LEVEL.doorColor) : doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat)); root.add(m); leaves.push({ m, sd, hp: 0 });
@@ -2227,13 +2334,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       }
     }
     // buttons: how many, how big and whether they wander along the frame follow the difficulty
-    const nb = weights ? 0 : k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = false; // buttons stand still
+    const nb = weights ? 0 : kind === "taiji" ? (k < 0.5 ? 1 : 2) : k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = false; // buttons stand still
     const dome = LEVEL.gateButton === "dome";
-    const spots = kind === "iris" ? [Math.PI * 0.5, Math.PI, 0].map(a => ({ a, rad: dome ? IRIS_R + 1.15 : IRIS_R + 0.12 })) // top, left, right: symmetric, clear of the walls
+    const spots = round ? [Math.PI * 0.5, Math.PI, 0].map(a => ({ a, rad: dome ? IRIS_R + 1.15 : IRIS_R + 0.12 })) // top, left, right: symmetric, clear of the walls
       : dome ? [{ u: 0, v: GATE_H + 0.9 }, { u: -(BRIDGE_W + 1.2), v: 2.4 }, { u: BRIDGE_W + 1.2, v: 2.4 }]
       : [{ u: 0, v: top + 1.0, along: "u" }, /* in the middle; on hard gates it rides along the lintel */ { u: -(BRIDGE_W + 1.3), v: 2.7, along: "v", side: -1 }, { u: BRIDGE_W + 1.3, v: 2.7, along: "v", side: 1 }]; // one on a mast above, two lying on their side out of the posts
     // one sits on top in the middle, a pair on top a little left and right of the middle, three on top and at the sides
-    if (nb === 2) spots.push(...[-1, 1].map(sd => kind === "iris" ? { a: Math.PI / 2 - sd * 0.33, rad: spots[0].rad } : { u: sd * 1.5, v: spots[0].v, along: "u" }));
+    if (nb === 2) spots.push(...[-1, 1].map(sd => round ? { a: Math.PI / 2 - sd * 0.33, rad: spots[0].rad } : { u: sd * 1.5, v: spots[0].v, along: "u" }));
     const order = nb === 0 ? [] : nb === 1 ? [0] : nb === 2 ? [3, 4] : [0, 1, 2];
     const g = { s, kind, k, root, leaves, buttons: [], pr: 0, opening: false, passed: false, dead: false, weights };
     leaves.forEach(lf => { lf.pr = 0; });
@@ -2290,7 +2397,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // the leaf still covering the point (x, y) of the gate's plane, or null
   function gateLeafAt(g, x, y) {
     const p = g.pr;
-    if (g.kind === "iris") { const d = Math.hypot(x, y - IRIS_V); return (d < IRIS_R && d > (IRIS_R + 0.15) * p) || (!STYLE.bridge && d >= IRIS_R && Math.abs(x) < W && y > 0 && y < H) ? g.leaves[0] : null; }
+    if (g.kind === "iris" || g.kind === "taiji") { const d = Math.hypot(x, y - IRIS_V); return (d < IRIS_R && d > (IRIS_R + 0.15) * p) || (!STYLE.bridge && d >= IRIS_R && Math.abs(x) < W && y > 0 && y < H) ? g.leaves[0] : null; }
     if (Math.abs(x) > BRIDGE_W + 0.1 || y < 0 || y > GATE_H + 0.1) return null;
     const lf = g.kind === "h" ? g.leaves[x < 0 ? 0 : 1] : g.leaves[y < GATE_H / 2 ? 0 : 1];
     if (lf.broken) return null;
@@ -2298,7 +2405,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     return y < GATE_H / 2 - (GATE_H / 2 + 0.3) * p || y > GATE_H / 2 + (GATE_H / 2 + 0.3) * p ? lf : null;
   }
   function hitLeaf(g, lf, at, vel, gx, gy) {
-    Sound.knock(); chips(at, g.kind === "iris" ? laserBaseMat : doorMat, 4, vel); return; // gate leaves don't break: a ball only knocks on them
+    Sound.knock(); chips(at, g.kind === "iris" || g.kind === "taiji" ? laserBaseMat : doorMat, 4, vel); return; // gate leaves don't break: a ball only knocks on them
     lf.hp--; Sound.clink(); chips(at, doorMat, 5, vel);
     if (lf.hp > 0) { lf.m.scale.setScalar(0.97); crackLeaf(lf, gx - lf.m.position.x, gy - lf.m.position.y); return; }
     lf.broken = true; lf.m.visible = false; Sound.shatter(1.2); chips(at, doorMat, 26, vel); addScore(20);
@@ -2336,12 +2443,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           w.A.set(w.x, w.yTop, 0.3).applyMatrix4(g.root.matrix); w.B.set(w.x, w.yW + 0.45, 0.3).applyMatrix4(g.root.matrix);
         }
         else if (g.kind === "v") lf.m.position.set(0, GATE_H / 2 + lf.sd * (GATE_H / 4 + (GATE_H / 2 + 0.3) * p), 0);
+        else if (lf.taiji) { const r = (IRIS_R + 0.15) * p, sc = 1 - 0.38 * p; lf.m.scale.set(sc, sc, 1); lf.m.position.set(Math.cos(lf.a) * r, Math.sin(lf.a) * r, 0); } // each half parts sideways
         else { // each arm slides out and draws in as it goes, so it hides behind the bulkhead and never past its edges
           const r = (IRIS_R + 0.15) * p, sc = 1 - 0.38 * p;
           lf.m.scale.set(sc, sc, 1); lf.m.position.set(Math.cos(lf.a) * r, Math.sin(lf.a) * r, lf.m.position.z);
         }
       }
-      if (g.kind === "iris") g.leaves[0].spin.rotation.z = time * 0.7;
+      if (g.kind === "iris" || g.kind === "taiji") g.leaves[0].spin.rotation.z = time * 0.7;
       for (const bt of g.buttons) {
         if (bt.a !== undefined) { const a = bt.a + (bt.moving ? Math.sin(time * 2.6 + bt.phase) * 0.4 : 0); bt.grp.position.set(Math.cos(a) * bt.rad, IRIS_V + Math.sin(a) * bt.rad, 0.08); }
         else bt.grp.position.set(bt.u + (bt.moving && bt.along === "u" ? Math.sin(time * 2.6 + bt.phase) * 1.3 : 0), bt.v + (bt.moving && bt.along === "v" ? Math.sin(time * 2.6 + bt.phase) * 0.6 : 0), bt.cap.userData.push ? 0.08 : 0);
@@ -2353,7 +2461,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         g.passed = true;
         // the cart needs the leaf in its way gone: the lower one of an up-down gate, either of a sideways one
         const way = g.kind === "v" ? [g.leaves[0]] : g.leaves;
-        if (g.kind === "iris" ? g.pr < 0.75 : way.some(lf => !lf.broken && lf.pr < 0.6)) {
+        if (g.kind === "iris" || g.kind === "taiji" ? g.pr < 0.75 : way.some(lf => !lf.broken && lf.pr < 0.6)) {
           g.opening = true; g.pr = Math.max(g.pr, 0.5); g.leaves.forEach(lf => { lf.pr = Math.max(lf.pr, 0.5); });
           balls = Math.max(0, balls - GATE_COST); updateCount(); karmaLoss(0.15);
           Sound.slam(); flash(); pop("−" + GATE_COST + " · ворота", "loss"); if (!reduceMotion) shakeT = 0.45;
@@ -2766,12 +2874,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       req: { after: "vitrum" }, map: { x: 500, y: 330, label: "t" } }, // midway between Vitrum and Abyssus
     { id: "tao", num: "IV·a", latin: "Tao", ru: "Дао", playable: true, music: "translucent_corridor", len: 1500, pal: PAL_TAO, finale: "taiji",
       style: { arch: "ring", blocks: "cube", glassWalls: false },
-      pats: { rotor: [1, 1.5, 1.5], twins: [1.5, 1.5, 1.5], slider: [1, 1.5, 2], lift: [1, 1.5, 1.5], shutter: [0, 1, 2], center: [2, 2, 1.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0],
-        bough: [1, 1.5, 1.5], pendulum: [0.5, 0.8, 1], double: [0, 1, 1.5], reinf: [0, 0.6, 1.5], imps: [0, 0.6, 2] },
+      gateKinds: ["taiji"], gateButton: "dome",
+      pats: { doors: [1.2, 1.5, 1.8], rams: [1.5, 2, 2.5], hammers: [1.5, 2, 2.5], rotor: [1, 1.2, 1.2], twins: [1, 1.2, 1.2], slider: [1, 1.5, 1.5], lift: [0.8, 1, 1], shutter: [0, 0.8, 1.5],
+        center: [2, 2, 1.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], bough: [0.8, 1, 1], double: [0, 1, 1.5], reinf: [0, 0.6, 1.5], imps: [0, 0.6, 2] },
       turns: [[100, 60, 45], [220, 60, -55], [340, 50, 45], [460, 70, -70], [600, 50, 50], [710, 60, -50], [830, 50, 45],
         [950, 70, -65], [1090, 50, 50], [1190, 60, -50], [1310, 50, 40], [1400, 50, -35]],
       desc: "Путь от Speculum к Lux сквозь круглые лунные врата. Тушь и рисовая бумага: в Свете белое с алой печатью, во Тьме чёрная тушь с нефритовым свечением. Над путём плывёт туман и медленно вращается знак инь-ян.",
-      feats: ["Лунные врата и туман", "Плети бамбука и маятники", "Финал Taiji: инь и ян по очереди"],
+      feats: ["Ворота инь-ян: кнопки раздвигают половины", "Тараны на цепях и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "speculum" }, map: { x: 770, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,
@@ -3066,6 +3175,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     sphere(crystals, 0.62, "crystal"); sphere(imps, 0.9, "imp"); sphere(thorns, 0.6, "thorn", t => t.headOn);
     sphere(sigils, 0.75, "sigil"); sphere(drops, 0.95, "drop");
     for (const f of forks) if (f.sw.visible && !f.locked) { tmpV.copy(f.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.8) hits.push({ d, kind: "switch", x: f }); }
+    for (const r of rams) for (const c of r.chains) if (c.alive) { const rs = raySeg(o, dir, c.A, c.B); if (rs.dist < CHAIN_HIT + 0.05 && rs.d > 0 && rs.d < LASER_LEN) hits.push({ d: rs.d, kind: "ramchain", x: r, c }); }
+    for (const m of hmills) for (const arm of m.arms) if (arm.alive) { const rs = raySeg(o, dir, arm.A, arm.B); if (rs.dist < 0.3 && rs.d > 0 && rs.d < LASER_LEN) hits.push({ d: rs.d, kind: "handle", x: m, arm }); }
     for (const sp of spinners) {
       for (const c of sp.cones) if (c.alive) { tmpV.copy(c.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.13) hits.push({ d, kind: "cone", x: sp, c }); }
       tmpV.copy(sp.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < MILL_HUB ** 2) hits.push({ d, kind: "hub", x: sp });
@@ -3108,6 +3219,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       else if (h.kind === "switch") { flipFork(h.x); end = h.d; break; }
       else if (h.kind === "button" && !h.x.pressed) pressButton(h.x);
       else if (h.kind === "weight") dropWeight(h.x, h.lf);
+      else if (h.kind === "ramchain" && h.c.alive) breakRamChain(h.x, h.c, tmpV.copy(o).addScaledVector(dir, h.d).clone());
+      else if (h.kind === "handle" && h.arm.alive) breakHandle(h.x, h.arm, tmpV.copy(o).addScaledVector(dir, h.d).clone());
       else if (h.kind === "cone" && h.c.alive) { killCone(h.x, h.c, h.c.wp.clone()); end = h.d; break; }
       else if (h.kind === "hub") { end = h.d; break; }
       else if (h.kind === "lblock" && h.x.alive) { hitLaserBlock(h.x); end = h.d; break; }
@@ -3330,7 +3443,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     panes = panes.filter(p => p.alive);
 
-    updateBoughs(dt); updateWheels(dt); updateGates(dt); updateLasers(dt); updateTessera(dt);
+    updateBoughs(dt); updateWheels(dt); updateGates(dt); updateLasers(dt); updateTessera(dt); updateRams(dt);
     mirageMat.opacity = 0.5 + 0.18 * Math.sin(time * 7.5);
     for (const c of crystals) {
       if (!c.alive) continue;
@@ -3480,6 +3593,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           else if (damagePane(p, ix, iy, b.v)) b.v.multiplyScalar(0.8);
           else { dead = true; break; }
         }
+      }
+      if (!dead) for (const r of rams) {
+        if (Math.abs(r.s - sC) > 130) continue;
+        const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.12));
+        for (let k = 1; k <= steps && !dead; k++) { const q = SWEEP.copy(b.p0).lerp(pos, k / steps); for (const c of r.chains) if (c.alive && segDist(q, c.A, c.B) < CHAIN_HIT) { mark(); breakRamChain(r, c, q.clone()); dead = true; break; } }
+        if (dead) break;
+      }
+      if (!dead) for (const m of hmills) {
+        const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.12));
+        for (let k = 1; k <= steps && !dead; k++) { const q = SWEEP.copy(b.p0).lerp(pos, k / steps); for (const arm of m.arms) if (arm.alive && segDist(q, arm.A, arm.B) < 0.22 + R_BALL) { mark(); breakHandle(m, arm, q.clone()); dead = true; break; } }
+        if (dead) break;
       }
       if (!dead) for (const sp of spinners) {
         const c = sp.cones.find(x => x.alive && pathDist(x.wp) < 0.3 + R_BALL);
@@ -3661,7 +3785,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const f = ln.tag || 0.5; // where along the segment the price tag sits
         if (ln.tagSeg !== undefined ? i === ln.tagSeg : l > best) { best = ln.tagSeg !== undefined ? Infinity : l; mx = x0 + (x1 - x0) * f; my = y0 + (y1 - y0) * f; }
       }
-      const txt = `◆ ${cost}${to.req.fare ? " / заезд" : ""}`, bw = 22 + txt.length * 7.2;
+      const txt = `◆ ${cost}`, bw = 22 + txt.length * 7.2;
       out += `<g transform="translate(${mx} ${my})"><rect x="${-bw / 2}" y="-12" width="${bw}" height="24" rx="12" fill="#fffaf0" stroke="${color}" stroke-width="2"/>` +
         `<text text-anchor="middle" dy="4.5" font-family="JetBrains Mono, monospace" font-weight="700" font-size="11.5" fill="${INK}">${esc(txt)}</text></g>`;
     }
@@ -3845,7 +3969,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // test hook: lets an automated check jump the karma or the distance
   window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, setAlt(a) { alt = a; },
-    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, halls: () => [...decor.entries()].filter(([, d]) => d.hall).map(([k]) => k * SL), bars(ahead) { addHanger(sC + ahead, 'gate', false, true); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.map(s => s.cones.filter(c => c.alive).length), lblocks: lblocks.length, hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), dropAll() { gates.forEach(g => g.weights && g.leaves.forEach(lf => dropWeight(g, lf))); return gates.map(g => g.weights); }, pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
+    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, halls: () => [...decor.entries()].filter(([, d]) => d.hall).map(([k]) => k * SL), bars(ahead) { addHanger(sC + ahead, 'gate', false, true); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.map(s => s.cones.filter(c => c.alive).length), lblocks: lblocks.length, hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), rams(ahead, both) { addRams(sC + ahead, both); }, hammer(ahead, side = 1, dir = 1) { addHammerMill(sC + ahead, side, dir); }, ramState: () => ({ rams: rams.map(r => [r.pinned, r.hit, r.chains.map(c => c.alive).join()]), hm: hmills.map(m => [m.hit, m.arms.map(a => a.alive).join()]) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), dropAll() { gates.forEach(g => g.weights && g.leaves.forEach(lf => dropWeight(g, lf))); return gates.map(g => g.weights); }, pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },
     thornScreen() { const r = canvas.getBoundingClientRect(); return thorns.filter(t => t.headOn && t.ext > 0.3).map(t => { const v = t.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); }, state: () => ({ state, sC, alt, balls, score, combo, superOn, sigils: sigils.length, END_S, panes: panes.length, thorns: thorns.length, thornExt: thorns.map(t => t.ext.toFixed(2) + (t.headOn ? '' : 'x')).join(), pitchC }) };
 

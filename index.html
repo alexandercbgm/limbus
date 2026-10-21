@@ -309,7 +309,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     <h1 id="howTitle" data-en="How to play">Как играть</h1>
     <p data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it; Space fires at the centre.">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь; пробел стреляет в центр.</p>
     <p data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and crystals pay more, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystals and red decoys, yet a blue crystal there gives three times the balls."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, кристаллы щедрее, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы и красные ловушки, зато голубой кристалл даёт втрое больше шаров.</p>
-    <p data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons at Armamentarium. Two lines lead to Abyssus, one is enough; Lux can also be reached through Tao.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки и за пушки в Armamentarium. К Abyssus ведут две линии, хватит одной; к Lux можно доехать и через Tao.</p>
+    <p data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons and upgrades at Armamentarium. Later stations hold more crystals, and tougher glass. Two lines lead to Abyssus, one is enough; Lux can also be reached through Tao.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки, пушки и улучшения в Armamentarium. Дальше по линии кристаллов больше, но и стекло прочнее. К Abyssus ведут две линии, хватит одной; к Lux можно доехать и через Tao.</p>
     <ul class="rules">
       <li><b>−1</b><span data-en="ball a shot">шар за выстрел</span></li>
       <li><b>+3…6</b><span data-en="a blue crystal, for every ball that hits">голубой кристалл, за каждый попавший шар</span></li>
@@ -356,6 +356,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       <div class="stat"><span data-en="Glass broken">Разбито стёкол</span><b id="oBroken">0</b></div>
     </div>
     <div class="btns">
+      <button class="cta" id="windBtn" type="button" hidden></button>
       <button class="cta" id="retryBtn" type="button">Ещё раз</button>
       <button class="ghost" id="overMenu" type="button" data-en="To the scheme">На схему</button>
     </div>
@@ -1604,7 +1605,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       case "slider": { const w = 2.6; addPane({ s, u: 0, v: CAM_V + 0.2, w, h: 2.9, move: { axis: "u", amp: W - w / 2 - 0.2, freq: rand(1, 1.6) * (1 + 0.3 * d), phase: rand(0, TAU) } }); break; }
       case "bars":
         if (s - lastHangerS > 70) { addHanger(s, "gate", false, true); lastHangerS = s; }
-        else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 });
+        else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 + (LEVEL.armor || 0) });
         break;
       case "rams": addRams(s, d > 0.3 && Math.random() < 0.4 + d * 0.5); break;
       case "hammers": { // one, or a staggered pair turning against each other
@@ -1660,7 +1661,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         addPane({ s, u: rand(-0.5, 0.5), v: glassV, w: 2.6, h: 2.6 });
         addPane({ s: s - 7, u: rand(-0.5, 0.5), v: glassV, w: 2.6, h: 2.6 });
         break;
-      case "reinf": addPane({ s, u: rand(-0.3, 0.3), v: glassV, w: 2.8, h: 2.8, hp: d > 0.7 ? 3 : 2 }); break;
+      case "reinf": addPane({ s, u: rand(-0.3, 0.3), v: glassV, w: 2.8, h: 2.8, hp: (d > 0.7 ? 3 : 2) + (LEVEL.armor || 0) }); break; // the late levels' armour takes a hit more
       case "shutter": {
         const freq = rand(0.9, 1.4), phase = rand(0, TAU);
         [-1, 1].forEach(k => addPane({ s, u: k * SW / 2, v: SH / 2, w: SW, h: SH - 0.3, move: { axis: "shutter", sign: k, freq, phase } }));
@@ -2819,11 +2820,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // cost: balls per shot. A crystal (or a finale target) pays its value once for every ball of the shot that hits it.
   const WEAPONS = {
     ballista: { name: "Ballista", ru: "Рельсотрон", cost: 1, price: 0, desc: "Один шар за выстрел. Попадание в кристалл даёт его обычную цену." },
-    triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: 25, desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
-    gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 40, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
+    triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: 60, desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
+    gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 90, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
     ferrum: { name: "Ferrum", ru: "Железо", cost: 2, price: null, desc: "Пушка из Темницы. Тяжёлое железное ядро за 2 шара: пробивает стекло насквозь с одного попадания и летит дальше, не теряя скорости. На складе не продаётся." },
-    radius: { name: "Lumen", ru: "Луч", cost: 2, price: 60, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии. Выстрел стоит 2 шара, луч один, поэтому кристалл платит свою цену один раз." },
+    radius: { name: "Lumen", ru: "Луч", cost: 2, price: 140, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии, а армированное прожигает вдвое быстрее. Выстрел стоит 2 шара, луч один, поэтому кристалл платит свою цену один раз." },
   };
+  // upgrades sold at the depot, three levels each: more balls at the start, a second wind once a ride, more balls a crystal
+  const UPGRADES = {
+    copia: { name: "Copia", ru: "Запас", en: "Reserve", prices: [40, 80, 140],
+      desc: ["Шаров на старте каждого заезда: +10 за уровень (30 → 40 → 50 → 60).", "Balls at the start of every ride: +10 a level (30 → 40 → 50 → 60)."] },
+    spiritus: { name: "Spiritus", ru: "Второе дыхание", en: "Second wind", prices: [30, 60, 110],
+      desc: ["Шары кончились — заезд можно один раз продолжить с того же места: +10 шаров за уровень.", "Out of balls, a ride can go on once from where it stopped: +10 balls a level."] },
+    largitas: { name: "Largitas", ru: "Щедрость", en: "Bounty", prices: [50, 100, 160],
+      desc: ["Каждый шар, попавший в голубой кристалл, приносит больше шаров: +1 за уровень.", "Every ball that hits a blue crystal brings more balls: +1 a level."] },
+  };
+  const upLevel = id => progress.up[id] || 0;
   // a ride through Hortus finds the gardeners' spare cannon: Gemini then costs half at the depot
   const priceOf = id => id === "gemini" && progress.done.hortus ? WEAPONS.gemini.price / 2 : WEAPONS[id].price;
   const ballsWord = n => T(n === 1 ? "шар" : n < 5 ? "шара" : "шаров", n === 1 ? "ball" : "balls");
@@ -3008,9 +3019,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 40], [200, 60, -60], [320, 50, 50], [430, 70, -80], [560, 50, 45], [660, 50, -45], [760, 50, 30]],
       desc: "Тупиковая ветка от Rubinus. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
       feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
-      req: { after: "rubinus", fare: 8 }, map: { x: 615, y: 440, label: "t", dy: -5 } },
+      req: { after: "rubinus", fare: 20 }, map: { x: 615, y: 440, label: "t", dy: -5 } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "perfect_alignment", len: 1560, pal: PAL_VITRUM, finale: "ruina",
-      style: { arch: "hex", blocks: "prism", glassWalls: true },
+      style: { arch: "hex", blocks: "prism", glassWalls: true }, crystalMul: 1.1,
       pats: { center: [1.5, 1.5, 1], wall: [0.5, 0.5, 0.5], triple: [0.6, 1, 0.6], double: [0, 0.4, 0.8], sides: [2, 0.6, 0], gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1] },
       turns: [[80, 50, -45], [190, 60, 70], [300, 45, -50], [380, 45, 50], [500, 80, -90], [640, 50, 40], [730, 50, -40],
         [830, 70, 80], [960, 50, -55], [1060, 60, 60], [1180, 45, -45], [1260, 45, 45], [1380, 70, -70]],
@@ -3019,11 +3030,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       req: { after: "initium" }, map: { x: 270, y: 330, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
-      desc: "Тупиковый склад при станции Vitrum. Здесь за кристаллы ставят на вагонетку новые пушки.",
-      feats: ["Triplex, Gemini и Lumen", "Купленная пушка остаётся навсегда, её можно сменить в меню"],
-      req: { after: "vitrum", toll: 10 }, map: { x: 385, y: 440, label: "t", dy: -5 } },
+      desc: "Тупиковый склад при станции Vitrum. Здесь за кристаллы ставят на вагонетку новые пушки и улучшения.",
+      feats: ["Пушки Triplex, Gemini и Lumen", "Улучшения: запас шаров, второе дыхание, щедрость кристаллов", "Купленное остаётся навсегда; пушку можно сменить в меню"],
+      req: { after: "vitrum", toll: 15 }, map: { x: 385, y: 440, label: "t", dy: -5 } },
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
-      style: { arch: "square", blocks: "cube", glassWalls: false, closed: true },
+      style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.2,
       forks: [330, 720, 1110],
       pats: { rotor: [1.2, 1.8, 2], shutter: [0, 1.5, 2.5], slider: [1, 2, 2], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], sides: [1, 0.6, 0], bonus: [1, 0.3, 0], triple: [0.6, 1, 0.8] },
       turns: [[120, 50, 40], [220, 50, -40], [480, 60, 60], [600, 50, -50], [880, 60, -60], [980, 50, 50], [1250, 60, 45], [1360, 50, -45]],
@@ -3031,14 +3042,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       feats: ["Три развилки: стрелку переводят выстрелом", "Вращающиеся стеклянные крестовины", "Финал Portae: стеклянные врата с ключами"],
       req: { after: "vitrum" }, map: { x: 410, y: 190, label: "t" } },
     { id: "hortus", num: "III·a", latin: "Hortus", ru: "Сад", line: "branch", playable: true, music: "glass_horizon", len: 900, pal: PAL_HORTI, finale: "vindemia",
-      style: { arch: "ring", blocks: "bush", glassWalls: false }, crystalMul: 1.3,
+      style: { arch: "ring", blocks: "bush", glassWalls: false }, crystalMul: 1.4,
       pats: { bough: [2.5, 3, 3.5], center: [1.5, 1.5, 1], sides: [2, 1, 0.3], bonus: [2, 0.6, 0], double: [0, 0.6, 1], slider: [0.5, 1, 1], reinf: [0, 0.3, 1] },
       turns: [[90, 50, 45], [200, 60, -60], [320, 50, 40], [430, 60, -55], [560, 50, 50], [660, 50, -45], [760, 50, 35]],
       desc: "Тупиковая ветка от Initium с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
-      req: { after: "initium", fare: 12 }, map: { x: 185, y: 440, label: "t", dy: -5 } }, // the first branch: Initium opens it
+      req: { after: "initium", fare: 15 }, map: { x: 185, y: 440, label: "t", dy: -5 } }, // the first branch: Initium opens it
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
-      style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.3, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0x5a0012,
+      style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0x5a0012,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
         shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0] },
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 45], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
@@ -3047,7 +3058,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       feats: ["Треугольный профиль, который поворачивается и меняется", "Ворота с дверцами на противовесах", "Финал Tessera: мозаика из рубинов"],
       req: { after: "vitrum" }, map: { x: 500, y: 330, label: "t" } }, // midway between Vitrum and Abyssus
     { id: "tao", num: "IV·a", latin: "Tao", ru: "Дао", playable: true, music: "translucent_corridor", len: 1500, pal: PAL_TAO, finale: "taiji",
-      style: { arch: "ring", blocks: "cube", glassWalls: false },
+      style: { arch: "ring", blocks: "cube", glassWalls: false }, crystalMul: 1.4, armor: 1,
       gateKinds: ["taiji"], gateButton: "dome",
       pats: { doors: [1.2, 1.5, 1.8], rams: [1.5, 2, 2.5], hammers: [1.5, 2, 2.5], rotor: [1, 1.2, 1.2], twins: [1, 1.2, 1.2], slider: [1, 1.5, 1.5], lift: [0.8, 1, 1], shutter: [0, 0.8, 1.5],
         center: [2, 2, 1.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], bough: [0.8, 1, 1], double: [0, 1, 1.5], reinf: [0, 0.6, 1.5], imps: [0, 0.6, 2] },
@@ -3057,7 +3068,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       feats: ["Ворота инь-ян: кнопки раздвигают половины", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "speculum" }, map: { x: 770, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
-      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,
+      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45,
       pats: { twins: [1.5, 2, 2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
       turns: [[100, 50, 40], [210, 60, -55], [330, 50, 45], [450, 70, -70], [590, 50, 50], [700, 60, -45], [820, 50, 40],
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],
@@ -3065,7 +3076,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       feats: ["Зеркальные стены: коридор уходит в отражения", "Ложные кристаллы: отражение мерцает и вращается в обратную сторону", "Финал Reflexio: мишени парами"],
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "abyssus", num: "V", latin: "Abyssus", ru: "Бездна", playable: true, music: "through_the_glass_corridor", len: 1500, pal: PAL_ABYSSUS, finale: "rota",
-      style: { arch: "none", blocks: "cube", glassWalls: false, bridge: true }, driftMul: 1.5, gateKinds: ["v"],
+      style: { arch: "none", blocks: "cube", glassWalls: false, bridge: true }, crystalMul: 1.45, armor: 1, driftMul: 1.5, gateKinds: ["v"],
       pats: { doors: [1.5, 2, 2], rise: [1, 2, 2.5], shades: [0, 1.2, 2.5], center: [2, 2, 1.5], slider: [1, 2, 2], double: [0, 1, 2], triple: [1, 1.5, 1], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], reinf: [0, 0.6, 2], imps: [0, 0, 0] },
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 40], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
@@ -3073,14 +3084,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       feats: ["Ворота из тёмного стекла: откройте их вертушками", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
       req: { after: "speculum", or: "rubinus" }, map: { x: 730, y: 330, label: "tr", dx: -14, dy: -16 } },
     { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 900, pal: PAL_CARCER, finale: "custodes",
-      style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, driftMul: 1.3, thorns: { from: 0.3, mul: 1.8 },
+      style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.6, armor: 1, driftMul: 1.3, thorns: { from: 0.3, mul: 1.8 },
       pats: { bars: [2, 2.5, 3], imps: [1, 1.5, 3], shutter: [0.5, 1.5, 2], reinf: [0.5, 1, 2], center: [2, 2, 1.5], double: [0.5, 1, 1.5], slider: [1, 1.5, 1.5], wall: [0.5, 0.5, 0.5], sides: [1, 0.5, 0], bonus: [1, 0.3, 0] },
       turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35]],
       desc: "Тупик глубоко во Тьме. Глухие коридоры из ржавого железа: поперёк пути висят решётки на цепях, из стен бьют шипы, а стражи-тени летят навстречу. Тьма здесь тянет сильнее. В конце заперта пушка, которой нет на складе.",
       feats: ["Решётки на цепях: собьёте цепи — решётка рухнет", "Шипы даже в Чистилище", "Награда: пушка Ferrum, финал Custodes"],
-      req: { after: "abyssus", fare: 20 }, map: { x: 825, y: 440, label: "t", dy: -5 } },
+      req: { after: "abyssus", fare: 30 }, map: { x: 825, y: 440, label: "t", dy: -5 } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 1600, pal: PAL_LUX, finale: "triumphus",
-      style: { arch: "square", blocks: "prism", glassWalls: true }, gainMul: 0.85,
+      style: { arch: "square", blocks: "prism", glassWalls: true }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
       gateKinds: ["iris"], gateButton: "dome",
       pats: { doors: [1.2, 1.5, 1.8], spinners: [1.5, 2, 2.5], lblock: [1.5, 2, 2.5], lhang: [1, 1.5, 2], rotor: [0.6, 1, 1.2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], reinf: [0, 0.8, 1.5], triple: [1, 1, 0.8], double: [0, 1, 1.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
       turns: [[110, 60, 50], [240, 60, -60], [370, 50, 45], [480, 80, -85], [640, 50, 50], [750, 60, -55], [870, 50, 45],
@@ -3098,8 +3109,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         feats: ["2.2 times the crystals", "A short ride, about a minute", "Finale Pluvia: a rain of crystals"] },
       vitrum: { ru: "Glass", desc: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss.",
         feats: ["Monoliths on chains and pendulums across the track", "Hexagonal vaults and glass walls", "Finale Ruina: falling boulders"] },
-      armamentarium: { ru: "Armoury", desc: "A dead-end depot by Vitrum station. Here crystals buy new cannons for the cart.",
-        feats: ["Triplex, Gemini and Lumen", "A cannon you buy stays yours; switch it in the menu"] },
+      armamentarium: { ru: "Armoury", desc: "A dead-end depot by Vitrum station. Here crystals buy new cannons and upgrades for the cart.",
+        feats: ["The Triplex, Gemini and Lumen cannons", "Upgrades: a bigger reserve, a second wind, more bounty from crystals", "What you buy stays yours; switch cannons in the menu"] },
       labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. One branch is rich, the other quiet, and the one not taken ends in a dead end.",
         feats: ["Three forks: flip the switch with a shot", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       hortus: { ru: "Garden", desc: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it.",
@@ -3122,7 +3133,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       triplex: { ru: "Triple", desc: "Three balls in a triangle a shot. A crystal pays for every ball that hits it: one to three times its value." },
       gemini: { ru: "Twins", desc: "A second cannon on the cart: a pair of balls a shot. If both hit, the crystal pays double." },
       ferrum: { ru: "Iron", desc: "The Dungeon's cannon. A heavy iron shot for 2 balls: it breaks glass through with one hit and flies on without slowing. Not sold at the depot." },
-      radius: { ru: "Beam", desc: "A laser hits at once, with no lead, and pierces every pane along its line. A shot costs 2 balls; there is one beam, so a crystal pays its value once." },
+      radius: { ru: "Beam", desc: "A laser hits at once, with no lead, and pierces every pane along its line, burning through armoured glass twice as fast. A shot costs 2 balls; there is one beam, so a crystal pays its value once." },
     },
     finales: {
       iudicium: { ru: "Judgement", note: "Hitting seals in a row multiplies the reward up to ×6. A miss resets the multiplier and costs 2 balls. Glass hits twice as hard." },
@@ -3181,8 +3192,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     try {
       const p = JSON.parse(localStorage.getItem(STORE) || "{}");
       const weapons = Object.assign({ ballista: true }, p.weapons || {});
-      return { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista" };
-    } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista" }; }
+      return { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {} };
+    } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {} }; }
   }
   function saveProgress() { try { localStorage.setItem(STORE, JSON.stringify(progress)); } catch (e) { /* storage unavailable */ } }
   let progress = loadProgress();
@@ -3270,12 +3281,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     state = "play";
   }
   function leavePause() { if (Sound.ctx) Sound.ctx.resume(); if (Sound.fallback) Sound.fallback.play().catch(() => {}); }
+  let secondWind = false; // Spiritus: one more go this ride
   const againText = () => LEVEL.req.fare ? T(`Ещё раз: −${LEVEL.req.fare} ◆`, `Again: −${LEVEL.req.fare} ◆`) : T("Ещё раз", "Again");
   function startLevel(lv) {
     setLevel(lv);
     state = "play";
     resetWorld(true);
-    zoneShown = ""; balls = START_BALLS; score = 0; shakeT = 0; throwCD = 0; runTime = 0; recoil = 0;
+    zoneShown = ""; balls = START_BALLS + 10 * upLevel("copia"); secondWind = upLevel("spiritus") > 0; score = 0; shakeT = 0; throwCD = 0; runTime = 0; recoil = 0;
     stats = { thrown: 0, hits: 0, broken: 0, crystals: 0 };
     updateCount(); updateScore(); updateCombo();
     hidePanels();
@@ -3328,6 +3340,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     } else {
       const pc = Math.floor(Math.min(1, sC / END_S) * 100);
       $("retryBtn").textContent = againText();
+      const wind = $("windBtn"), n = 10 * upLevel("spiritus");
+      wind.hidden = !secondWind; wind.textContent = T(`Второе дыхание: +${n} шаров`, `Second wind: +${n} balls`);
+      $("retryBtn").className = secondWind ? "ghost" : "cta";
       $("overTitle").textContent = T(`Пройдено ${pc}% пути до станции ${LEVEL.latin}`, `${pc}% of the way to ${LEVEL.latin}`);
       $("overNote").textContent = alt < -0.2 ? T(`Шары кончились в зоне «${zone}». Внизу будьте осторожны: красные кристаллы отнимают шары.`, `Out of balls in the ${zone}. Down there, beware: red crystals take balls.`)
         : T("Стреляйте по голубым кристаллам: они возвращают шары.", "Shoot the blue crystals: they give balls back.");
@@ -3485,7 +3500,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     let end = LASER_LEN;
     const fake = { v: vel, hit: true, laser: true };
     for (const h of hits) {
-      if (h.kind === "pane") { if (!damagePane(h.x, h.ix, h.iy, vel)) { end = h.d; break; } }
+      if (h.kind === "pane") { if (h.x.hp > 1) h.x.hp--; if (!damagePane(h.x, h.ix, h.iy, vel)) { end = h.d; break; } } // armour takes two off
       else if (h.kind === "crystal" && h.x.alive) hitCrystal(h.x, fake);
       else if (h.kind === "imp" && h.x.alive) killImp(h.x, fake);
       else if (h.kind === "thorn" && h.x.headOn) breakThorn(h.x, fake);
@@ -3570,7 +3585,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (c.gate) openGate(c.gate, b.v);
     if (c.bough) pickFruit(c);
     if (c.wheel) pickWheel(c);
-    award(b, c.wp, 0.75, h => { const gain = c.val * h; balls += gain; if (superOn) superGain += gain; updateCount(); pop(h > 1 ? `+${gain} · ${h} ${ballsWord(h)}` : "+" + gain, "gain"); });
+    award(b, c.wp, 0.75, h => { const gain = (c.val + upLevel("largitas")) * h; balls += gain; if (superOn) superGain += gain; updateCount(); pop(h > 1 ? `+${gain} · ${h} ${ballsWord(h)}` : "+" + gain, "gain"); });
   }
   function shatterThorn(t, vel) { // the whole thorn, head and rod, comes apart
     t.headOn = false; t.alive = false;
@@ -4030,6 +4045,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const ft = performance.now() - t0, np = renderer.info.programs.length; if (ft > 8) perfAcc.spikes.push([+ft.toFixed(1), +(t1 - t0).toFixed(1), np - perfAcc.np]); perfAcc.np = np;
   }
   window.__hide = keys => { for (const k of Object.keys(I)) I[k].visible = !keys.includes(k); scene.background = keys.includes('sky') ? null : skyRT.texture; panes.forEach(p => { p.group.visible = !keys.includes('panes'); }); };
+  // test hook: what one run of a level would put on the track at a fixed karma, without riding it
+  window.__census = (id, a) => {
+    setLevel(byId(id)); resetWorld(false); alt = a;
+    let ns = 60, groups = 0; const out = {};
+    while (ns < MAIN_LEN - 105) { sC = ns; spawnGroup(ns); groups++; ns += spacing(curD()) * rand(0.85, 1.15); }
+    const blue = crystals.filter(c => !c.decoy && !c.mirage);
+    Object.assign(out, { groups, crystals: blue.length, balls: blue.reduce((t, c) => t + c.val, 0), decoys: crystals.filter(c => c.decoy).length,
+      panes: panes.length, reinf: panes.filter(p => p.hp > 1).length, hangers: hangers.length, gates: gates.length, imps: imps.length });
+    clearDynamic(); sC = 0; alt = 0.35; return out;
+  };
   window.__progs = () => renderer.info.programs.map(p => p.cacheKey);
   const perfAcc = { n: 0, upd: 0, rnd: 0, max: 0, spikes: [], np: 0 };
   window.__perf = () => { const r = { dpr: renderer.getPixelRatio(), upd: +(perfAcc.upd / perfAcc.n).toFixed(2), rnd: +(perfAcc.rnd / perfAcc.n).toFixed(2), max: +perfAcc.max.toFixed(1), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, prog: renderer.info.programs.length, objs: scene.children.length, spikes: perfAcc.spikes.slice(0, 12).join(' ') }; Object.assign(perfAcc, { n: 0, upd: 0, rnd: 0, max: 0, spikes: [] }); return r; };
@@ -4182,6 +4207,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           else { const price = priceOf(id); button(card, "cta", price < w.price ? T(`Купить: ◆ ${price} (скидка из Сада)`, `Buy: ◆ ${price} (Garden discount)`) : T(`Купить: ◆ ${price}`, `Buy: ◆ ${price}`), () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv); renderMap(); }, bank < price); }
           extra.appendChild(card);
         }
+        for (const id in UPGRADES) {
+          const u = UPGRADES[id], lvl = upLevel(id), card = document.createElement("div"); card.className = "wcard";
+          card.innerHTML = `<h3>${esc(u.name)}<small>${esc(T(u.ru, u.en))} · ${T("уровень", "level")} ${lvl}/3</small></h3><p>${esc(T(...u.desc))}</p>`;
+          if (lvl >= 3) button(card, "ghost", T("Всё куплено", "Maxed out"), null, true);
+          else { const price = u.prices[lvl]; button(card, "cta", T(`Уровень ${lvl + 1}: ◆ ${price}`, `Level ${lvl + 1}: ◆ ${price}`), () => { progress.bank -= price; progress.up[id] = lvl + 1; saveProgress(); openSheet(lv); renderMap(); }, bank < price); }
+          extra.appendChild(card);
+        }
       } else if (reached && bank >= req.toll) button(btns, "cta", T(`Открыть склад: −${req.toll} ◆`, `Open the depot: −${req.toll} ◆`), () => { progress.bank -= req.toll; progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); });
       else button(btns, "cta", reached ? T("Не хватает кристаллов", "Not enough crystals") : T("Пока закрыт", "Closed for now"), null, true);
     } else if (!lv.playable) button(btns, "cta", T("Станция строится", "Under construction"), null, true);
@@ -4269,6 +4301,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
   });
   $("retryBtn").addEventListener("click", () => rideLevel(LEVEL));
+  $("windBtn").addEventListener("click", () => { // Spiritus: the ride goes on from where the balls ran out
+    if (!secondWind || state !== "over") return;
+    secondWind = false; balls = 10 * upLevel("spiritus"); updateCount();
+    $("over").hidden = true; state = "play"; pop(T("второе дыхание", "second wind"), "info");
+  });
   $("againBtn").addEventListener("click", () => rideLevel(LEVEL));
   $("nextBtn").addEventListener("click", () => { const nx = nextLevel(LEVEL); if (nx && nx.playable) rideLevel(nx); });
   ["overMenu", "winMenu"].forEach(id => $(id).addEventListener("click", showMenu));

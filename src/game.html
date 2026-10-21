@@ -1178,7 +1178,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     hangers.forEach(h => { scene.remove(h.root); scene.remove(h.body); }); hangers = []; lastHangerS = -1e9;
     drops.forEach(d => scene.remove(d.group)); drops = [];
     boughs.forEach(b => scene.remove(b.root)); boughs = [];
-    vanes.forEach(v => v.blades.forEach(bl => scene.remove(bl.root))); vanes = [];
+    gates.forEach(g => scene.remove(g.root)); gates = [];
     wheels.forEach(w => scene.remove(w.ring)); wheels = [];
     pendingHits = [];
     beamMat.opacity = 0;
@@ -1216,7 +1216,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (let i = 0; i < 4; i++) { const k = i % 2 ? 1 : -1; addPane({ s: s - i * 3.5, u: k * rand(2.4, 3.2), v: rand(1.6, 4.8), w: rand(1.1, 1.6), h: rand(1.1, 1.6) }); }
         break;
       case "slider": { const w = 2.6; addPane({ s, u: 0, v: CAM_V + 0.2, w, h: 2.9, move: { axis: "u", amp: W - w / 2 - 0.2, freq: rand(1, 1.6) * (1 + 0.3 * d), phase: rand(0, TAU) } }); break; }
-      case "vanes": addVanes(s); break;
+      case "doors": addGate(s); break;
       case "rise": { // a pane comes up out of the abyss and stops in the way just before the cart
         addPane({ s, u: rand(-0.5, 0.5), v: -8, w: rand(2.4, 3.0), h: rand(2.4, 2.9) });
         panes[panes.length - 1].rise = glassV;
@@ -1666,51 +1666,104 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     boughs = boughs.filter(b => b.alive);
   }
 
-  // ---------- Abyssus: vanes ----------
-  // Three steel vanes stand across the bridge like a closed louvre. A ball in a vane's face turns it a quarter
-  // round, edge-on to the track; the cart gets through cleanly only when all three are open. Every vane still
-  // closed when the cart arrives is knocked open at a cost of 2 balls.
-  let vanes = [];
-  const VANE_W = 1.12, VANE_H = 3.4, VANE_D = 0.12, VANE_U = [-1.17, 0, 1.17];
-  const vaneGeo = new THREE.BoxGeometry(VANE_W, VANE_H, VANE_D), vaneEdge = new THREE.EdgesGeometry(vaneGeo), axleGeo = new THREE.CylinderGeometry(0.05, 0.05, VANE_H + 0.5, 8);
-  const vaneMat = new THREE.MeshStandardMaterial({ color: 0xa4acbc, roughness: 0.3, metalness: 0.85 });
-  function addVanes(s) {
-    const set = { s, blades: [], open: 0, done: false };
-    for (const u of VANE_U) {
-      const root = new THREE.Group(); root.matrixAutoUpdate = false;
-      const m = new THREE.Mesh(vaneGeo, vaneMat); m.add(new THREE.LineSegments(vaneEdge, edgeMat)); root.add(m);
-      root.add(new THREE.Mesh(axleGeo, frameMat));
-      scene.add(root);
-      set.blades.push({ u, v: VANE_H / 2 + 0.2, ang: 0, target: 0, open: false, root, mesh: m, M: new THREE.Matrix4(), inv: new THREE.Matrix4() });
-    }
-    vanes.push(set);
+  // ---------- Abyssus: gates ----------
+  // Steel gates across the bridge whose leaves slide apart: sideways, up and down, or open like an iris.
+  // On the frame sit 1–3 buttons, each a little spinning vane; hit every button and the gate opens.
+  // A gate still shut when the cart arrives is burst open for 5 balls. How hard a gate is follows the run:
+  // it grows along the level and toward the dark, and eases when the balls run low.
+  let gates = [];
+  const GATE_H = 4.0, IRIS_R = 2.3, IRIS_V = 2.0, GATE_D = 0.14, GATE_COST = 5;
+  const doorMat = new THREE.MeshStandardMaterial({ color: 0xa4acbc, roughness: 0.3, metalness: 0.85 });
+  const buttonMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.8, roughness: 0.4 });
+  const pressedMat = new THREE.MeshStandardMaterial({ color: 0x40e890, emissive: 0x20c070, emissiveIntensity: 0.9, roughness: 0.4 });
+  const hDoorGeo = new THREE.BoxGeometry(BRIDGE_W, GATE_H, GATE_D), vDoorGeo = new THREE.BoxGeometry(2 * BRIDGE_W, GATE_H / 2, GATE_D);
+  const postGeo = new THREE.BoxGeometry(0.4, GATE_H + 0.4, 0.5), lintelGeo = new THREE.BoxGeometry(2 * BRIDGE_W + 1.2, 0.4, 0.5);
+  const irisRingGeo = new THREE.TorusGeometry(IRIS_R + 0.12, 0.16, 8, 64);
+  const IRIS_N = 8, irisGeo = (() => { // one iris leaf: a sector of the disc
+    const sh = new THREE.Shape(), a = TAU / IRIS_N * 0.55; sh.moveTo(0, 0);
+    for (let k = 0; k <= 8; k++) { const q = -a + (2 * a) * k / 8; sh.lineTo(Math.cos(q) * IRIS_R, Math.sin(q) * IRIS_R); }
+    sh.lineTo(0, 0); return new THREE.ExtrudeGeometry(sh, { depth: GATE_D, bevelEnabled: false }).translate(0, 0, -GATE_D / 2);
+  })();
+  const capGeo = new THREE.CylinderGeometry(1, 1, 0.14, 24).rotateX(Math.PI / 2), bladeGeo = new THREE.BoxGeometry(1.9, 0.3, 0.05);
+  const buttonGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xffa020, transparent: true, opacity: 0.7, depthWrite: false });
+  const pressedGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x40ff90, transparent: true, opacity: 0.6, depthWrite: false });
+  function gateLevel() {
+    let k = 0.2 + 0.35 * Math.min(1, sC / MAIN_LEN) + 0.3 * curD();
+    if (balls < 12) k -= 0.3; else if (balls < 25) k -= 0.12; else if (balls > 60) k += 0.15;
+    return clamp(k, 0, 1);
   }
-  function turnVane(set, bl, push) {
-    if (bl.open) return;
-    bl.open = true; bl.target = (push >= 0 ? 1 : -1) * Math.PI / 2; set.open++;
-    Sound.clink(); Sound.tone(300 + set.open * 120, 0.12, 0.1, "square", 0, 520); addScore(10);
-    if (set.open === set.blades.length) { balls += 2; updateCount(); karmaGain(0.04); pop("+2 · проезд открыт", "gain"); }
-  }
-  function updateVanes(dt) {
-    for (const set of vanes) {
-      for (const bl of set.blades) {
-        bl.ang += (bl.target - bl.ang) * Math.min(1, dt * 9);
-        setObj(bl.root, set.s, bl.u, bl.v);
-        bl.mesh.rotation.y = bl.ang; bl.mesh.updateMatrix();
-        bl.M.multiplyMatrices(bl.root.matrix, bl.mesh.matrix); bl.inv.copy(bl.M).invert();
+  function addGate(s, forceKind) {
+    const k = gateLevel(), kind = forceKind || ["h", "v", "iris"][Math.floor(Math.random() * 3)];
+    const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
+    const leaves = [];
+    if (kind === "iris") {
+      const ring = new THREE.Mesh(irisRingGeo, frameMat); ring.position.y = IRIS_V; root.add(ring);
+      for (let i = 0; i < IRIS_N; i++) { const m = new THREE.Mesh(irisGeo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(irisGeo), edgeMat)); root.add(m); leaves.push({ m, a: i / IRIS_N * TAU }); }
+    } else {
+      for (const sd of [-1, 1]) {
+        const geo = kind === "h" ? hDoorGeo : vDoorGeo, m = new THREE.Mesh(geo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat)); root.add(m); leaves.push({ m, sd });
       }
-      if (state === "play" && !set.done && set.s <= sC + 0.6) {
-        set.done = true;
-        const shut = set.blades.filter(bl => !bl.open);
-        if (shut.length) {
-          shut.forEach(bl => { bl.open = true; bl.target = Math.PI / 2; });
-          const dmg = 2 * shut.length; balls = Math.max(0, balls - dmg); updateCount(); karmaLoss(0.06 * shut.length);
-          Sound.crash(); flash(); pop("−" + dmg + " · лопасти", "loss"); if (!reduceMotion) shakeT = 0.35;
+      for (const sd of [-1, 1]) { const pst = new THREE.Mesh(postGeo, frameMat); pst.position.set(sd * (BRIDGE_W + 0.2), GATE_H / 2 + 0.2, 0); root.add(pst); }
+      const lin = new THREE.Mesh(lintelGeo, frameMat); lin.position.set(0, GATE_H + 0.4, 0); root.add(lin);
+    }
+    // buttons: how many, how big and whether they wander along the frame follow the difficulty
+    const nb = k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(0.6, 0.38, k), moving = k > 0.55;
+    const spots = kind === "iris" ? [[Math.PI * 0.5], [Math.PI * 0.85], [Math.PI * 0.15]].map(([a]) => ({ a }))
+      : [{ u: 0, v: GATE_H + 0.4, along: "u" }, { u: -(BRIDGE_W + 0.2), v: 2.8, along: "v" }, { u: BRIDGE_W + 0.2, v: 2.8, along: "v" }];
+    const order = nb === 1 ? [Math.random() < 0.5 ? 0 : 1 + Math.floor(Math.random() * 2)] : nb === 2 ? [1, 2] : [0, 1, 2];
+    const g = { s, kind, k, root, leaves, buttons: [], pr: 0, opening: false, passed: false, dead: false };
+    for (const o of order) {
+      const sp = spots[o], grp = new THREE.Group(); root.add(grp);
+      const cap = new THREE.Mesh(capGeo, buttonMat); cap.scale.set(r * 0.7, r * 0.7, 1); grp.add(cap);
+      const glow = new THREE.Sprite(buttonGlow); glow.scale.setScalar(r * 4); grp.add(glow);
+      const prop = new THREE.Group(); prop.position.z = -0.1; grp.add(prop);
+      for (let q = 0; q < 3; q++) { const bl = new THREE.Mesh(bladeGeo, buttonMat); bl.scale.set(r, r, 1); bl.rotation.z = q / 3 * TAU; prop.add(bl); }
+      g.buttons.push(Object.assign({ grp, cap, prop, glow, r, moving, phase: rand(0, TAU), pressed: false, alive: true, wp: new THREE.Vector3(), gate: g }, sp));
+    }
+    gates.push(g);
+  }
+  function pressButton(bt) {
+    if (bt.pressed) return;
+    bt.pressed = true; bt.alive = false; bt.cap.material = pressedMat; bt.glow.material = pressedGlow; bt.prop.children.forEach(m => { m.material = pressedMat; });
+    Sound.clink(); Sound.tone(520, 0.1, 0.1, "square", 0, 880); addScore(10);
+    const g = bt.gate;
+    if (g.buttons.every(b => b.pressed)) { g.opening = true; balls += 2; updateCount(); karmaGain(0.04); pop("+2 · ворота открыты", "gain"); Sound.tone(180, 0.5, 0.12, "sawtooth", 0, 90); }
+  }
+  // is the point (x, y) of the gate's plane still covered by a leaf?
+  function gateShut(g, x, y) {
+    const p = g.pr;
+    if (g.kind === "iris") { const d = Math.hypot(x, y - IRIS_V); return d < IRIS_R && d > IRIS_R * 1.15 * p; }
+    if (Math.abs(x) > BRIDGE_W + 0.4 || y < 0 || y > GATE_H + 0.6) return false;
+    if (g.kind === "h") return Math.abs(x) > BRIDGE_W * p;
+    return y < GATE_H / 2 - (GATE_H / 2 + 0.3) * p || y > GATE_H / 2 + (GATE_H / 2 + 0.3) * p;
+  }
+  function updateGates(dt) {
+    for (const g of gates) {
+      if (g.opening) g.pr = Math.min(1, g.pr + dt / 0.65);
+      const p = smooth5(g.pr);
+      setObj(g.root, g.s, 0, 0);
+      for (const lf of g.leaves) {
+        if (g.kind === "h") lf.m.position.set(lf.sd * (BRIDGE_W / 2 + BRIDGE_W * p), GATE_H / 2, 0);
+        else if (g.kind === "v") lf.m.position.set(0, GATE_H / 2 + lf.sd * (GATE_H / 4 + (GATE_H / 2 + 0.3) * p), 0);
+        else { const a = lf.a + 0.9 * p; lf.m.rotation.z = a; lf.m.position.set(Math.cos(a) * IRIS_R * 1.15 * p, IRIS_V + Math.sin(a) * IRIS_R * 1.15 * p, 0); } // the iris turns as it opens
+      }
+      for (const bt of g.buttons) {
+        if (bt.a !== undefined) { const a = bt.a + (bt.moving ? Math.sin(time * 1.2 + bt.phase) * 0.4 : 0); bt.grp.position.set(Math.cos(a) * (IRIS_R + 0.12), IRIS_V + Math.sin(a) * (IRIS_R + 0.12), -0.3); }
+        else bt.grp.position.set(bt.u + (bt.moving && bt.along === "u" ? Math.sin(time * 1.3 + bt.phase) * 1.3 : 0), bt.v + (bt.moving && bt.along === "v" ? Math.sin(time * 1.3 + bt.phase) * 0.9 : 0), -0.3);
+        if (!bt.pressed) bt.prop.rotation.z += dt * (4 + 6 * g.k);
+        bt.wp.copy(bt.grp.position).applyMatrix4(g.root.matrix);
+      }
+      if (state === "play" && !g.passed && g.s <= sC + 0.6) {
+        g.passed = true;
+        if (g.pr < (g.kind === "iris" ? 0.75 : 0.6)) {
+          g.opening = true; g.pr = Math.max(g.pr, 0.5);
+          balls = Math.max(0, balls - GATE_COST); updateCount(); karmaLoss(0.15);
+          Sound.crash(); flash(); pop("−" + GATE_COST + " · ворота", "loss"); if (!reduceMotion) shakeT = 0.45;
         }
       }
-      if (set.s < sC - 6) { set.dead = true; set.blades.forEach(bl => scene.remove(bl.root)); }
+      if (g.s < sC - 8) { g.dead = true; scene.remove(g.root); }
     }
-    vanes = vanes.filter(v => !v.dead);
+    gates = gates.filter(g => !g.dead);
   }
 
   // ---------- Rota: the Abyssus finale ----------
@@ -2030,11 +2083,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       req: { after: "labyrinthus", transfer: { from: "vitrum", cost: 60 } }, map: { x: 590, y: 190, label: "t" } },
     { id: "abyssus", num: "V", latin: "Abyssus", ru: "Бездна", playable: true, music: "through_the_glass_corridor", len: 1500, pal: PAL_ABYSSUS, finale: "rota",
       style: { arch: "none", blocks: "cube", glassWalls: false, bridge: true }, driftMul: 1.5,
-      pats: { vanes: [1.5, 2, 2], rise: [1, 2, 2.5], shades: [0, 1.2, 2.5], center: [2, 2, 1.5], slider: [1, 2, 2], double: [0, 1, 2], triple: [1, 1.5, 1], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], reinf: [0, 0.6, 2], imps: [0, 0, 0] },
+      pats: { doors: [1.5, 2, 2], rise: [1, 2, 2.5], shades: [0, 1.2, 2.5], center: [2, 2, 1.5], slider: [1, 2, 2], double: [0, 1, 2], triple: [1, 1.5, 1], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], reinf: [0, 0.6, 2], imps: [0, 0, 0] },
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 40], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
-      desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста стоят стальные лопасти: попадание поворачивает лопасть ребром, и проезд открыт, только когда повёрнуты все. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
-      feats: ["Лопасти: проверните все три, чтобы проехать", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
+      desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота: на раме крутятся кнопки-лопасти, попадите во все, и створки разъедутся. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
+      feats: ["Ворота с кнопками: створки в стороны, вверх-вниз или диафрагмой", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
       req: { after: "speculum" }, map: { x: 730, y: 330, label: "bl" } },
     { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: false,
       mood: { sky: "#1a0a0a", hor: "#0c0404", surf: "#201010", wall: "#180808", frame: "#3a1a1a", rail: "#4a2a2a", glass: "#8a3a3a", accent: "#ff4a3a" },
@@ -2286,9 +2339,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     sphere(crystals, 0.62, "crystal"); sphere(imps, 0.9, "imp"); sphere(thorns, 0.6, "thorn", t => t.headOn);
     sphere(sigils, 0.75, "sigil"); sphere(drops, 0.95, "drop");
     for (const f of forks) if (f.sw.visible && !f.locked) { tmpV.copy(f.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.8) hits.push({ d, kind: "switch", x: f }); }
-    for (const vs of vanes) for (const bl of vs.blades) {
-      const tt = rayBox(o, dir, bl.inv, VANE_W / 2, VANE_H / 2, VANE_D / 2);
-      if (tt >= 0) hits.push({ d: tt, kind: "vane", x: vs, bl });
+    for (const g of gates) for (const bt of g.buttons) {
+      if (bt.pressed) continue;
+      tmpV.copy(bt.wp).sub(o); const d = tmpV.dot(dir);
+      if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < (bt.r * 1.25) ** 2) hits.push({ d, kind: "button", x: bt });
     }
     for (const bo of boughs) {
       if (bo.broken) continue;
@@ -2319,7 +2373,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       else if (h.kind === "sigil" && h.x.alive) hitSigil(h.x, fake);
       else if (h.kind === "drop" && h.x.alive) hitDrop(h.x, fake);
       else if (h.kind === "switch") { flipFork(h.x); end = h.d; break; }
-      else if (h.kind === "vane") { turnVane(h.x, h.bl, 1); end = h.d; break; }
+      else if (h.kind === "button" && !h.x.pressed) pressButton(h.x);
       else if (h.kind === "bough" && !h.x.broken) breakBough(h.x, tmpV.copy(o).addScaledVector(dir, h.d).clone());
       else if (h.kind === "chain" && h.c.alive && !h.x.falling) breakChain(h.x, h.c, tmpV.copy(o).addScaledVector(dir, h.d));
       else if (h.kind === "body" && h.x.alive && !h.x.falling) { hitBody(h.x, tmpV.copy(o).addScaledVector(dir, h.d), vel); end = h.d; break; }
@@ -2520,7 +2574,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     panes = panes.filter(p => p.alive);
 
-    updateBoughs(dt); updateWheels(dt); updateVanes(dt);
+    updateBoughs(dt); updateWheels(dt); updateGates(dt);
     mirageMat.opacity = 0.5 + 0.18 * Math.sin(time * 7.5);
     for (const c of crystals) {
       if (!c.alive) continue;
@@ -2662,19 +2716,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           else { dead = true; break; }
         }
       }
-      if (!dead) for (const vs of vanes) {
-        if (Math.abs(vs.s - sC) > 130) continue;
-        const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.1));
-        for (let k = 1; k <= steps && !dead; k++) {
-          const q = SWEEP.copy(b.p0).lerp(pos, k / steps);
-          for (const bl of vs.blades) {
-            const lp = tmpV.copy(q).applyMatrix4(bl.inv);
-            if (Math.abs(lp.x) < VANE_W / 2 + R_BALL && Math.abs(lp.y) < VANE_H / 2 + R_BALL && Math.abs(lp.z) < VANE_D / 2 + R_BALL) {
-              mark(); turnVane(vs, bl, lp.x * Math.sign(lp.z || 1)); chips(q, vaneMat, 5, b.v); dead = true; break;
-            }
-          }
-        }
+      if (!dead) for (const g of gates) {
+        if (Math.abs(g.s - sC) > 130) continue;
+        for (const bt of g.buttons) if (!bt.pressed && pathDist(bt.wp) < bt.r * 1.25 + R_BALL) { mark(); pressButton(bt); chips(bt.wp, buttonMat, 5, b.v); dead = true; break; }
         if (dead) break;
+        const inv = M2.copy(g.root.matrix).invert(), a = tmpV.copy(b.p0).applyMatrix4(inv), az = a.z, ax = a.x, ay = a.y, c = tmpV2.copy(pos).applyMatrix4(inv);
+        if (az * c.z <= 0 && az !== c.z) { const f = az / (az - c.z); if (gateShut(g, ax + (c.x - ax) * f, ay + (c.y - ay) * f)) { mark(); Sound.clink(); dead = true; break; } }
       }
       if (!dead) for (const ph of pendingHits) if (ph.vol === b.vol && !ph.got.has(b) && pathDist(ph.pos) < ph.r) { ph.got.add(b); ph.hits++; mark(); dead = true; break; }
       if (!dead) {
@@ -2800,6 +2847,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       el.appendChild(b);
     }
   }
+  const measure = document.createElement("canvas").getContext("2d");
+  function textW(font, s, spacing) { measure.font = font; return measure.measureText(s).width + spacing * s.length; }
+  if (document.fonts) document.fonts.ready.then(() => { if (state === "menu") renderMap(); }); // re-measure the labels once the fonts are in
   function renderMap() {
     const svg = $("map");
     mapW = svg.parentElement.clientWidth;
@@ -2838,6 +2888,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const glyph = st === "done" ? "#ffffff" : lit ? INK : MUTED;
       const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 30, p.y - 10, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
       L[0] += p.dx || 0; L[1] += p.dy || 0; // a station may nudge its label
+      if (L[2] !== "middle") { // a label beside the station keeps its edge there, but its lines are centred on each other
+        const w = Math.max(textW("700 12.5px Unbounded, 'Arial Black', sans-serif", lv.latin.toUpperCase(), 0.6), textW("12.5px Manrope, system-ui, sans-serif", lv.ru, 0),
+          textW("700 9.5px 'JetBrains Mono', monospace", STATUS_RU[st].toUpperCase(), 1));
+        L[0] += L[2] === "end" ? -w / 2 : w / 2; L[2] = "middle";
+      }
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS_RU[st]}">`;
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
       if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
@@ -2999,7 +3054,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // test hook: lets an automated check jump the karma or the distance
   window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, setAlt(a) { alt = a; },
-    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, vanes(ahead) { addVanes(sC + ahead); }, vaneState: () => vanes.map(v => ({ s: v.s - sC, open: v.open, done: v.done })), rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
+    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },
     thornScreen() { const r = canvas.getBoundingClientRect(); return thorns.filter(t => t.headOn && t.ext > 0.3).map(t => { const v = t.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); }, state: () => ({ state, sC, alt, balls, score, combo, superOn, sigils: sigils.length, END_S, panes: panes.length, thorns: thorns.length, thornExt: thorns.map(t => t.ext.toFixed(2) + (t.headOn ? '' : 'x')).join(), pitchC }) };
 

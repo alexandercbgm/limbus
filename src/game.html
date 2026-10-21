@@ -158,11 +158,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
 .m-side { display: grid; gap: 8px; justify-items: end; }
 .arms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-/* the cannon buttons look like the bank beside them; the one on the cart is white, ringed in blue */
+/* the cannon buttons look like the bank beside them; the one on the cart is dark, its cost still turquoise */
 .arm { font: 700 12px var(--mono); padding: 8px 11px; border-radius: 4px; border: 0; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; cursor: pointer; }
 .arm:hover { background: rgba(255, 255, 255, 0.85); }
-.arm[aria-pressed="true"] { background: #ffffff; box-shadow: inset 0 0 0 2px #1287b5; }
+.arm[aria-pressed="true"] { background: #10242e; box-shadow: none; color: #f4fbfc; }
 .arm b { color: #1287b5; }
+.arm[aria-pressed="true"] b { color: #4fc8f0; }
 .menu-in > * { min-width: 0; }
 .map-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .map-scroll #map { min-width: 920px; }
@@ -3148,10 +3149,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const MAP_LINES = [
     { kind: "line", to: "rubinus", pts: [[270, 330], [500, 330], [730, 330]] }, // a second line: Vitrum, Rubinus, Abyssus
     { kind: "tao", to: "tao", pts: [[590, 190], [770, 190], [910, 330]] }, // Linea Tao: Speculum, Tao, Lux
-    { kind: "branch", to: "hortus", pts: [[90, 330], [90, 368], [147, 425], [185, 425]], tagSeg: 1, tag: 0.5 },
-    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 368], [327, 425], [365, 425]], tagSeg: 1, tag: 0.5 },
-    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 368], [557, 425], [595, 425]], tagSeg: 1, tag: 0.5 },
-    { kind: "branch", to: "carcer", pts: [[730, 330], [730, 368], [787, 425], [825, 425]], tagSeg: 1, tag: 0.5 },
+    { kind: "branch", to: "hortus", pts: [[90, 330], [90, 425], [185, 425]] },
+    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 425], [365, 425]] },
+    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 425], [595, 425]] },
+    { kind: "branch", to: "carcer", pts: [[730, 330], [730, 425], [825, 425]] },
   ];
   const byId = id => LEVELS.find(l => l.id === id);
   const STORE = "limbus-progress-v1";
@@ -4076,7 +4077,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const pl = `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
       out += (built ? casing(pl, 5) : "") + pl;
       const cost = ln.kind === "transfer" ? to.req.transfer.cost : to.req.fare || to.req.toll;
-      if (!cost) continue; // a line without a price has no tag
+      if (!cost || ln.kind === "branch") continue; // a dead end's fare is on its sheet, not on the line
       let best = 0, mx = 0, my = 0;
       for (let i = 0; i < ln.pts.length - 1; i++) {
         const [x0, y0] = ln.pts[i], [x1, y1] = ln.pts[i + 1], l = Math.hypot(x1 - x0, y1 - y0);

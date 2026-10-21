@@ -392,21 +392,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // Rubinus: inside a cut ruby: rose quartz and blush light in the light, deep garnet in between,
   // black glass with blood-red facets burning in the dark
   const PAL_RUBINUS = [
-    { sky: "#0c0104", hor: "#050002", gnd: "#3a0410", surf: "#0e0206", wall: "#140308", line: "#ff2a50", lineI: 0.9, frame: "#0a0104", frameE: "#ff1a40", frameEI: 0.9,
-      rail: "#3a0c18", sleeper: "#140408", glass: "#ff3a60", glassO: 0.5, edge: "#ffb0c0", fogN: 5, fogF: 62, hemiS: "#ff6080", hemiG: "#200208", hemiI: 0.6, sunI: 0.35,
-      dust: "#ff5070", block: "#2a040e", cart: "#20060c", accent: "#ff2a50" },
-    { sky: "#3a0818", hor: "#24050e", gnd: "#14030a", surf: "#4a1424", wall: "#3a0e1c", line: "#e06080", lineI: 0.3, frame: "#24060e", frameE: "#c01a40", frameEI: 0.3,
-      rail: "#7a3444", sleeper: "#2a0e16", glass: "#f080a0", glassO: 0.42, edge: "#ffd8e0", fogN: 9, fogF: 80, hemiS: "#f0a0b0", hemiG: "#24060e", hemiI: 0.75, sunI: 0.5,
-      dust: "#f0a0b8", block: "#5a1428", cart: "#3a1420", accent: "#ff80a0" },
-    { sky: "#b04a64", hor: "#c86a80", gnd: "#7a2a40", surf: "#e8b4c0", wall: "#d48a9c", line: "#ffffff", lineI: 0.08, frame: "#7a2038", frameE: "#000000", frameEI: 0,
-      rail: "#b06a7a", sleeper: "#8a4a5a", glass: "#ffd0dc", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 96, hemiS: "#ffffff", hemiG: "#a85a6c", hemiI: 0.95, sunI: 0.75,
-      dust: "#ffffff", block: "#d0708a", cart: "#6a2a3a", accent: "#ffffff" },
-    { sky: "#f0b0c0", hor: "#fbe0e6", gnd: "#e8a8b8", surf: "#fff6f8", wall: "#f8dce4", line: "#ff90a8", lineI: 0.22, frame: "#c87088", frameE: "#000000", frameEI: 0,
-      rail: "#e0a8b4", sleeper: "#f0ccd4", glass: "#ffe0e8", glassO: 0.38, edge: "#ffffff", fogN: 16, fogF: 108, hemiS: "#ffffff", hemiG: "#f0c0cc", hemiI: 1.05, sunI: 0.85,
-      dust: "#ffffff", block: "#fbe4ea", cart: "#8a4a5a", accent: "#ff6a8a" },
-    { sky: "#ffd0dc", hor: "#fff4f6", gnd: "#ffe4ea", surf: "#ffffff", wall: "#fff2f5", line: "#ff7a98", lineI: 0.42, frame: "#f0b8c8", frameE: "#ffd8e2", frameEI: 0.5,
-      rail: "#f4d8e0", sleeper: "#fcecf0", glass: "#ffd8e4", glassO: 0.34, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#f8dce4", hemiI: 1.15, sunI: 0.9,
-      dust: "#ffd0dc", block: "#fff6f8", cart: "#9a5a6a", accent: "#ff5a80" },
+    { sky: "#0a0003", hor: "#040001", gnd: "#40000c", surf: "#0c0003", wall: "#160006", line: "#ff1030", lineI: 0.95, frame: "#0a0002", frameE: "#ff0828", frameEI: 0.95,
+      rail: "#3a0410", sleeper: "#140206", glass: "#ff1838", glassO: 0.5, edge: "#ff90a0", fogN: 5, fogF: 62, hemiS: "#ff3050", hemiG: "#200006", hemiI: 0.6, sunI: 0.35,
+      dust: "#ff2a44", block: "#2a0008", cart: "#200408", accent: "#ff1030" },
+    { sky: "#4a0010", hor: "#2a0008", gnd: "#160004", surf: "#5a0616", wall: "#480412", line: "#ff3a54", lineI: 0.35, frame: "#280006", frameE: "#e0102c", frameEI: 0.4,
+      rail: "#8a1a2c", sleeper: "#300810", glass: "#ff4a64", glassO: 0.44, edge: "#ffc0c8", fogN: 9, fogF: 80, hemiS: "#ff8090", hemiG: "#280006", hemiI: 0.75, sunI: 0.5,
+      dust: "#ff6a7c", block: "#6a0818", cart: "#40101a", accent: "#ff4a64" },
+    { sky: "#9a0a22", hor: "#b8142e", gnd: "#5a0412", surf: "#e0c4c8", wall: "#a8142c", line: "#ffffff", lineI: 0.1, frame: "#6a0418", frameE: "#ff2a44", frameEI: 0.2,
+      rail: "#b03040", sleeper: "#7a1a28", glass: "#ff8a9a", glassO: 0.44, edge: "#ffffff", fogN: 13, fogF: 96, hemiS: "#ffffff", hemiG: "#901828", hemiI: 0.95, sunI: 0.75,
+      dust: "#ffd0d6", block: "#c01a34", cart: "#5a1420", accent: "#ffffff" },
+    { sky: "#d81a36", hor: "#f06070", gnd: "#a80c22", surf: "#fbeef0", wall: "#d82a42", line: "#ffd0d6", lineI: 0.25, frame: "#9a0820", frameE: "#ff4a60", frameEI: 0.3,
+      rail: "#d06070", sleeper: "#e8b0b8", glass: "#ffb0bc", glassO: 0.4, edge: "#ffffff", fogN: 16, fogF: 108, hemiS: "#ffffff", hemiG: "#e07080", hemiI: 1.05, sunI: 0.85,
+      dust: "#ffffff", block: "#e8304a", cart: "#7a1a28", accent: "#ff3a54" },
+    { sky: "#ff2a46", hor: "#ffd8dc", gnd: "#f0a0aa", surf: "#ffffff", wall: "#ff4a60", line: "#ffffff", lineI: 0.45, frame: "#c8102e", frameE: "#ff8090", frameEI: 0.55,
+      rail: "#f0a0aa", sleeper: "#fcdce0", glass: "#ffc0c8", glassO: 0.36, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#ffb0b8", hemiI: 1.15, sunI: 0.9,
+      dust: "#ffe0e4", block: "#ff5068", cart: "#8a2030", accent: "#ff2040" },
   ];
 
   // Vitrum: the blue of a clear sky and of glass: crystal white and azure in the light, cobalt in between,
@@ -626,17 +626,19 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           c = mix(c, cc, cov * amt);
           c += mix(vec3(1.0, 0.97, 0.9), fxc, 0.3) * (pow(sdot, 300.0) * 2.0 + pow(sdot, 12.0) * 0.35) * amt * (0.3 + 0.7 * lum) * (1.0 - cov * 0.7);
           if (m == 5.0) c += vec3(1.0, 0.85, 0.4) * starAt(n, 120.0, 0.96) * amt * (0.6 + 0.4 * sin(t * 3.0 + h3(floor(n * 120.0)) * 30.0));
-        } else if (m == 6.0) { // inside a cut stone: the sky is broken into facets that turn slowly, their edges burning
-          float ca = cos(t * 0.03), sa = sin(t * 0.03); vec3 q = vec3(n.x * ca - n.z * sa, n.y, n.x * sa + n.z * ca) * 4.0;
-          vec3 ip = floor(q); float d1 = 9.0, d2 = 9.0; vec3 best = vec3(0.0);
-          for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
-            vec3 cell = ip + vec3(float(x), float(y), float(z)), pt = cell + vec3(h3(cell), h3(cell + 7.1), h3(cell + 3.3));
-            float d = length(q - pt); if (d < d1) { d2 = d1; d1 = d; best = cell; } else if (d < d2) d2 = d;
+        } else if (m == 6.0) { // inside a cut stone: flat facets with straight edges, like a step cut, turning slowly
+          float ca = cos(t * 0.025), sa = sin(t * 0.025); vec3 q = vec3(n.x * ca - n.z * sa, n.y, n.x * sa + n.z * ca);
+          float b1 = -9.0, b2 = -9.0, id = 0.0;
+          for (int i = 0; i < 26; i++) { // the facet normals of a faceted stone: the step cut's tiers round about
+            float fi = float(i), ring = floor(fi / 8.0), az = (mod(fi, 8.0) + 0.5 * mod(ring, 2.0)) * 0.7854, el = (ring - 1.0) * 0.55;
+            vec3 fn = i >= 24 ? vec3(0.0, fi == 24.0 ? 1.0 : -1.0, 0.0) : vec3(cos(az) * cos(el), sin(el), sin(az) * cos(el));
+            float dd = dot(q, fn); if (dd > b1) { b2 = b1; b1 = dd; id = fi; } else if (dd > b2) b2 = dd;
           }
-          float shade = h3(best + 1.7), edge = smoothstep(0.08, 0.0, d2 - d1);
-          c = mix(c, c * (0.55 + 0.9 * shade) + fxc * 0.12 * shade, amt * 0.8);
-          c += mix(fxc, vec3(1.0), 0.4) * edge * amt * (0.35 + 0.65 * (1.0 - lum * 0.6));
-          c += vec3(1.0, 0.85, 0.9) * starAt(n, 110.0, 0.975) * amt * (0.6 + 0.4 * sin(t * 4.0 + shade * 20.0)); // glints
+          float edge = smoothstep(0.012, 0.0, b1 - b2), shade = h3(vec3(id, 3.1, 7.7));
+          float inner = pow(0.5 + 0.5 * sin((dot(q, vec3(0.3, 0.8, 0.5)) * 18.0 + id) ), 12.0); // fine refracted lines inside a facet
+          c = mix(c, c * (0.45 + 1.0 * shade) + fxc * 0.25 * shade, amt * 0.85) + fxc * inner * 0.12 * amt;
+          c += mix(fxc, vec3(1.0), 0.55) * edge * amt * (0.45 + 0.55 * (1.0 - lum * 0.6));
+          c += vec3(1.0, 0.9, 0.92) * starAt(n, 110.0, 0.978) * amt * (0.6 + 0.4 * sin(t * 4.0 + shade * 20.0)); // glints
         } else if (m == 4.0) { // radiance: a sun of pure light, its rays slowly turning
           vec3 q = normalize(n - sd * dot(n, sd) + 1e-5);
           vec3 ax = normalize(cross(sd, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sd);
@@ -2260,7 +2262,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     return y < GATE_H / 2 - (GATE_H / 2 + 0.3) * p || y > GATE_H / 2 + (GATE_H / 2 + 0.3) * p ? lf : null;
   }
   function hitLeaf(g, lf, at, vel, gx, gy) {
-    if (g.kind === "iris") { Sound.knock(); chips(at, laserBaseMat, 4, vel); return; } // the iris is steel-hard
+    Sound.knock(); chips(at, g.kind === "iris" ? laserBaseMat : doorMat, 4, vel); return; // gate leaves don't break: a ball only knocks on them
     lf.hp--; Sound.clink(); chips(at, doorMat, 5, vel);
     if (lf.hp > 0) { lf.m.scale.setScalar(0.97); crackLeaf(lf, gx - lf.m.position.x, gy - lf.m.position.y); return; }
     lf.broken = true; lf.m.visible = false; Sound.shatter(1.2); chips(at, doorMat, 26, vel); addScore(20);
@@ -2695,7 +2697,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
       req: { after: "labyrinthus", fare: 12 }, map: { x: 480, y: 75, label: "t" } }, // the label on top, clear of the legend
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
-      style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.3, gateKinds: ["h", "v"], gateButton: "dome", gateOpeners: ["buttons", "weights"],
+      style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.3, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["buttons", "weights"],
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
         shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0] },
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 45], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
@@ -2720,8 +2722,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       pats: { doors: [1.5, 2, 2], rise: [1, 2, 2.5], shades: [0, 1.2, 2.5], center: [2, 2, 1.5], slider: [1, 2, 2], double: [0, 1, 2], triple: [1, 1.5, 1], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], reinf: [0, 0.6, 2], imps: [0, 0, 0] },
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 40], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
-      desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота: над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Створку можно и разбить: от первого шара она трескается, от второго разлетается. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
-      feats: ["Ворота из тёмного стекла: откройте вертушками или разбейте створку двумя шарами", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
+      desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота: над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся.  Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
+      feats: ["Ворота из тёмного стекла: откройте их вертушками", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
       req: { after: "speculum", or: "rubinus" }, map: { x: 730, y: 330, label: "tr", dx: -14, dy: -16 } },
     { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 900, pal: PAL_CARCER, finale: "custodes",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, driftMul: 1.3, thorns: { from: 0.3, mul: 1.8 },
@@ -2779,7 +2781,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     initium: { sky: { mode: 3, a: 0.85, c: "#ffffff" } },
     thesaurus: { sky: { mode: 5, a: 0.9, c: "#ffe8b0" } },
     vitrum: { sky: { mode: 3, a: 0.95, c: "#ffffff" } },
-    rubinus: { sky: { mode: 6, a: 0.9, c: "#ff4a6a" } },
+    rubinus: { sky: { mode: 6, a: 0.95, c: "#ff2a46" } },
     labyrinthus: { sky: { mode: 3, a: 0.75, c: "#d4f6e6" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },
     hortus: { sky: { mode: 3, a: 0.85, c: "#fff0f4" } },
     speculum: { sky: { mode: 2, a: 0.9, c: "#f0f4ff" }, style: { tex: "chrome", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum // open to a sky of quicksilver
@@ -3428,7 +3430,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const inv = M2.copy(g.root.matrix).invert(), a = tmpV.copy(b.p0).applyMatrix4(inv), az = a.z, ax = a.x, ay = a.y, c = tmpV2.copy(pos).applyMatrix4(inv);
         if (az * c.z <= 0 && az !== c.z) {
           const f = az / (az - c.z), lf = gateLeafAt(g, ax + (c.x - ax) * f, ay + (c.y - ay) * f);
-          if (lf && b.iron && lf.hp > 1) lf.hp = 1; // and breaks a gate leaf at once
           if (lf) { mark(); hitLeaf(g, lf, tmpV.copy(b.p0).lerp(pos, f).clone(), b.v, ax + (c.x - ax) * f, ay + (c.y - ay) * f); dead = true; break; }
         }
       }
@@ -3532,7 +3533,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     initium: "M-4.5 7.5V-7.5M-4.5 -7H6.5L3.5 -3.5L6.5 0H-4.5",      // a start flag: the beginning
     thesaurus: "M0 -7L6 -1.5L0 7L-6 -1.5ZM-6 -1.5H6M-2.5 -1.5L0 7L2.5 -1.5", // a cut gem
     vitrum: "M0 -7L6.5 5H-6.5ZM0 -7V5M-3 -1L3 5",                       // a prism
-    rubinus: "M0 -7.5C4.5 -6 7 -1.5 4.5 3L0 7.5L-4.5 3C-7 -1.5 -4.5 -6 0 -7.5ZM-4.5 3L-1.6 -0.5L1.6 -0.5L4.5 3M-1.6 -0.5L0 -7.5L1.6 -0.5M0 7.5L-1.6 -0.5M0 7.5L1.6 -0.5", // a cut ruby pendant
+    rubinus: "M-3.5 -7.5H3.5L5.5 -5.5V5.5L3.5 7.5H-3.5L-5.5 5.5V-5.5ZM-2 -4.5H2L3 -3.5V3.5L2 4.5H-2L-3 3.5V-3.5ZM-3.5 -7.5L-2 -4.5M3.5 -7.5L2 -4.5M5.5 -5.5L3 -3.5M5.5 5.5L3 3.5M3.5 7.5L2 4.5M-3.5 7.5L-2 4.5M-5.5 5.5L-3 3.5M-5.5 -5.5L-3 -3.5", // a step-cut ruby
     caelum: "M-7 3A7 7 0 0 1 7 3M-4 3A4 4 0 0 1 4 3M-7.5 6H7.5",          // the vault of the sky
     armamentarium: "M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5", // crossed barrels
     labyrinthus: "M-7 -7H7V7H-4V-4H4V4H-1",                             // a square maze

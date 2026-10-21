@@ -652,7 +652,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // ---------- renderer & scene ----------
   const canvas = document.getElementById("game");
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, matchMedia("(pointer: coarse)").matches ? 1.5 : 2)); // a phone's 3× is more pixels than its GPU can light
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xe8ebec, 16, 100);
   const camera = new THREE.PerspectiveCamera(70, 1, 0.08, 520);
@@ -1058,7 +1058,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function inst(geo, mat, max) { const m = new THREE.InstancedMesh(geo, mat, max); m.frustumCulled = false; m.count = 0; scene.add(m); return m; }
   const ceilGeo = new THREE.PlaneGeometry(2 * W, SL + 0.02); ceilGeo.rotateX(Math.PI / 2);
   const I = {
-    ceil: inst(ceilGeo, surfMat, 140),
+    ceil: inst(ceilGeo, surfMat, 420),
     sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 560),
     rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 560),
     wall: inst(new THREE.BoxGeometry(0.24, H, SL + 0.03), wallMat, 420),
@@ -1192,6 +1192,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
   }
   const RING_SX = (H / 2 - 0.05) * 1.15 / 4.92, RING_SY = RING_SX; // a true circle, clear of the walls
+  // hexagonal frames stand taller than the walls: under them the ceiling is a roof of their shape, a flat top over
+  // the frame's top edge and a slope down to each wall's top
+  const HEX_TOP = 4.2 + 4.9 * Math.sin(Math.PI / 3) + 0.22, HEX_TOP_HW = 2.75;
+  const HEX_SLOPE = Math.atan2(HEX_TOP - H, W - HEX_TOP_HW), HEX_SLOPE_L = Math.hypot(HEX_TOP - H, W - HEX_TOP_HW);
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
@@ -1210,7 +1214,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const open = forkOpenSide(s);
       if (dec.wl && open !== -1) put(wallKey, s, -W - 0.12, H / 2);
       if (dec.wr && open !== 1) put(wallKey, s, W + 0.12, H / 2);
-      if (dec.ceil && !STYLE.closed) put("ceil", s, 0, H); // a closed maze has a continuous vault instead
+      if (dec.ceil && !STYLE.closed) { // a closed maze has a continuous vault instead
+        if (STYLE.arch !== "hex") put("ceil", s, 0, H);
+        else {
+          I.ceil.setMatrixAt(n.ceil++, placeM(M, s, 0, HEX_TOP).scale(SV.set(HEX_TOP_HW / W, 1, 1)));
+          for (const k of [-1, 1]) I.ceil.setMatrixAt(n.ceil++, placeM(M, s, k * (W + HEX_TOP_HW) / 2, (H + HEX_TOP) / 2).multiply(M2.makeRotationZ(-k * HEX_SLOPE)).scale(SV.set(HEX_SLOPE_L / (2 * W), 1, 1)));
+        }
+      }
       if (dec.arch && !open) {
         if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
         else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY).scale(SV.set(RING_SX, RING_SY, 1))); // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
@@ -1783,7 +1793,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       d -= side; const q = d / a; return out.set(-a * Math.cos(q), -b - a * Math.sin(q), 0);
     };
     return new THREE.TubeGeometry(path, 40, wire, 8, true);
-  })(), HANG_TOP = H - 0.06; // chains hang from the ceiling
+  })();
+  let HANG_TOP = H - 0.06; // chains hang from the ceiling (set for each level)
   const fineGeo = new THREE.TetrahedronGeometry(0.07), mountGeo = new THREE.BoxGeometry(0.55, 0.1, 0.55);
   const chunkGeo = new THREE.BoxGeometry(0.16, 0.16, 0.12); // tempered-glass chunks, like a car window
   function makeChain(len) {
@@ -3189,6 +3200,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   };
   function setLevel(lv) {
     LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
+    HANG_TOP = (STYLE.arch === "hex" && !STYLE.skylight ? HEX_TOP : H) - 0.06; // under hexagonal frames the ceiling is higher
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, { concrete: "asphalt", stone: "flags", chrome: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     buildStation();
@@ -3967,14 +3979,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     MATS = null;
   }
   // resolution follows the frame rate: on a slow phone it steps down until the ride is smooth (and back up if there is room)
-  const DPR_MAX = Math.min(window.devicePixelRatio || 1, matchMedia("(pointer: coarse)").matches ? 1.5 : 2), DPR_MIN = Math.min(DPR_MAX, 0.8);
+  const DPR_MAX = Math.min(window.devicePixelRatio || 1, 2), DPR_MIN = Math.min(DPR_MAX, 0.8);
   let dpr = DPR_MAX, fpsT = 0, fpsN = 0, slowRuns = 0;
   function adaptResolution(ms) {
     if (state !== "play") { fpsT = fpsN = 0; return; }
     fpsT += ms; fpsN++;
     if (fpsT < 1500) return;
     const avg = fpsT / fpsN; fpsT = fpsN = 0;
-    slowRuns = avg > 20 ? slowRuns + 1 : 0; // under ~50 fps, twice running
+    slowRuns = avg > 33.4 ? slowRuns + 1 : 0; // under 30 fps, twice running
     let next = dpr;
     if (slowRuns >= 2) { next = Math.max(DPR_MIN, dpr - 0.2); slowRuns = 0; }
     else if (avg < 12 && dpr < DPR_MAX) next = Math.min(DPR_MAX, dpr + 0.1); // a fast screen with frames to spare

@@ -626,18 +626,15 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           c = mix(c, cc, cov * amt);
           c += mix(vec3(1.0, 0.97, 0.9), fxc, 0.3) * (pow(sdot, 300.0) * 2.0 + pow(sdot, 12.0) * 0.35) * amt * (0.3 + 0.7 * lum) * (1.0 - cov * 0.7);
           if (m == 5.0) c += vec3(1.0, 0.85, 0.4) * starAt(n, 120.0, 0.96) * amt * (0.6 + 0.4 * sin(t * 3.0 + h3(floor(n * 120.0)) * 30.0));
-        } else if (m == 6.0) { // inside a cut stone: flat facets with straight edges, like a step cut, turning slowly
-          float ca = cos(t * 0.025), sa = sin(t * 0.025); vec3 q = vec3(n.x * ca - n.z * sa, n.y, n.x * sa + n.z * ca);
-          float b1 = -9.0, b2 = -9.0, id = 0.0;
-          for (int i = 0; i < 26; i++) { // the facet normals of a faceted stone: the step cut's tiers round about
-            float fi = float(i), ring = floor(fi / 8.0), az = (mod(fi, 8.0) + 0.5 * mod(ring, 2.0)) * 0.7854, el = (ring - 1.0) * 0.55;
-            vec3 fn = i >= 24 ? vec3(0.0, fi == 24.0 ? 1.0 : -1.0, 0.0) : vec3(cos(az) * cos(el), sin(el), sin(az) * cos(el));
-            float dd = dot(q, fn); if (dd > b1) { b2 = b1; b1 = dd; id = fi; } else if (dd > b2) b2 = dd;
-          }
-          float edge = smoothstep(0.012, 0.0, b1 - b2), shade = h3(vec3(id, 3.1, 7.7));
-          float inner = pow(0.5 + 0.5 * sin((dot(q, vec3(0.3, 0.8, 0.5)) * 18.0 + id) ), 12.0); // fine refracted lines inside a facet
-          c = mix(c, c * (0.45 + 1.0 * shade) + fxc * 0.25 * shade, amt * 0.85) + fxc * inner * 0.12 * amt;
-          c += mix(fxc, vec3(1.0), 0.55) * edge * amt * (0.45 + 0.55 * (1.0 - lum * 0.6));
+        } else if (m == 6.0) { // a lattice of long crystals: tall six-sided cells with pointed ends, in staggered rows, crisp edges
+          vec2 p = vec2(atan(n.z, n.x) / 6.2832 * 18.0 + t * 0.01, asin(clamp(n.y, -1.0, 1.0)) / 3.1416 * 18.0 / 4.4); // stretched tall, like long crystals
+          vec2 r = vec2(1.0, 1.7320508), hh = r * 0.5, a = mod(p, r) - hh, b = mod(p - hh, r) - hh, gv = dot(a, a) < dot(b, b) ? a : b;
+          vec2 cell = floor((p - gv) * 2.0 + 0.5);
+          vec2 ag = abs(gv); float hd = max(dot(ag, vec2(0.5, 0.8660254)), ag.x); // 0.5 on the cell's edge
+          float edge = smoothstep(0.455, 0.49, hd), shade = h3(vec3(cell, 4.3)), grad = 0.5 + 0.5 * gv.y / 0.577;
+          vec3 face = c * (0.4 + 0.9 * shade) * (0.75 + 0.5 * grad) + fxc * 0.2 * shade;
+          c = mix(c, face, amt * 0.85);
+          c = mix(c, mix(fxc, vec3(1.0), 0.6) * (0.55 + 0.6 * (1.0 - lum * 0.5)), edge * amt);
           c += vec3(1.0, 0.9, 0.92) * starAt(n, 110.0, 0.978) * amt * (0.6 + 0.4 * sin(t * 4.0 + shade * 20.0)); // glints
         } else if (m == 4.0) { // radiance: a sun of pure light, its rays slowly turning
           vec3 q = normalize(n - sd * dot(n, sd) + 1e-5);
@@ -2183,7 +2180,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (let i = 0; i < IRIS_N; i++) { const m = new THREE.Mesh(irisGeo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(irisGeo), edgeMat)); m.rotation.z = i / IRIS_N * TAU; m.position.z = (i % 2 ? 1 : -1) * 0.004; spin.add(m); leaves.push({ m, a: i / IRIS_N * TAU + IRIS_TWIST / 2, spin }); }
     } else {
       for (const sd of [-1, 1]) {
-        const geo = kind === "h" ? hDoorGeo : vDoorGeo, m = new THREE.Mesh(geo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat)); root.add(m); leaves.push({ m, sd, hp: 0 });
+        const geo = kind === "h" ? hDoorGeo : vDoorGeo, m = new THREE.Mesh(geo, LEVEL.doorColor ? solidDoorMat(LEVEL.doorColor) : doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat)); root.add(m); leaves.push({ m, sd, hp: 0 });
       }
       for (const sd of [-1, 1]) { const pst = new THREE.Mesh(postGeo, frameMat); pst.scale.y = (top + 0.2) / (GATE_H + 0.4); pst.position.set(sd * (BRIDGE_W + 0.2), (top + 0.2) / 2, 0); root.add(pst); }
       const lin = new THREE.Mesh(lintelGeo, frameMat); lin.position.set(0, top, 0); root.add(lin);
@@ -2237,6 +2234,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     gates.push(g);
   }
+  // a level may have doors of solid coloured stone instead of dark glass, so they read as doors against its walls
+  const doorMats = {};
+  const solidDoorMat = c => doorMats[c] || (doorMats[c] = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.35, roughness: 0.2, metalness: 0.4 }));
   const weightGeo = new THREE.OctahedronGeometry(0.45, 0), weightMat = new THREE.MeshStandardMaterial({ color: 0x8a0a20, emissive: 0xff1a40, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.4, flatShading: true });
   function dropWeight(g, lf) {
     const w = lf.wt; if (w.down) return;
@@ -2697,13 +2697,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
       req: { after: "labyrinthus", fare: 12 }, map: { x: 480, y: 75, label: "t" } }, // the label on top, clear of the legend
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
-      style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.3, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["buttons", "weights"],
+      style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.3, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0x5a0012,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
         shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0] },
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 45], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
-      desc: "Обходной путь от Vitrum к Abyssus сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами открываются кнопками или противовесами: собейте груз, и его дверца отъедет.",
-      feats: ["Треугольный профиль, который поворачивается и меняется", "Ворота с дверцами: кнопки или противовесы", "Финал Tessera: мозаика из рубинов"],
+      desc: "Обходной путь от Vitrum к Abyssus сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат противовесы на цепях: собейте груз, и его дверца отъедет.",
+      feats: ["Треугольный профиль, который поворачивается и меняется", "Ворота с дверцами на противовесах", "Финал Tessera: мозаика из рубинов"],
       req: { after: "vitrum" }, map: { x: 500, y: 330, label: "b" } }, // midway between Vitrum and Abyssus
     { id: "caelum", num: "IV·a", latin: "Caelum", ru: "Небосвод", line: "branch", playable: false,
       mood: { sky: "#cfe4ff", hor: "#e8f2ff", surf: "#f6f9ff", wall: "#dfeaff", frame: "#6a8ac0", rail: "#9ab0d8", glass: "#d8e8ff", accent: "#6aa0ff" },

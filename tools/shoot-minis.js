@@ -12,7 +12,8 @@ const FEAT = {
   hortus: r => { r.jump(300); r.bough(20, 1); },
   speculum: r => { r.jump(300); r.crystalAhead(14, 1.6, 2.6); },
   abyssus: r => { r.jump(300); r.gate(22, 'v'); },
-  lux: r => { r.jump(300); r.ray(18, 1); },
+  lux: r => { r.jump(300); r.spinner(16, 1, 1); r.lblock(24, 'h'); },
+  carcer: r => { r.jump(240); r.bars(22); },
 };
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader'] });

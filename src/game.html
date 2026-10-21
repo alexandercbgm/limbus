@@ -609,6 +609,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const impMat = new THREE.MeshStandardMaterial({ color: 0x0c0202, emissive: 0x9a0d04, emissiveIntensity: 0.6, roughness: 0.35, flatShading: true });
   const impEdgeMat = new THREE.LineBasicMaterial({ color: 0xff3a14 });
   const ballMat = new THREE.MeshStandardMaterial({ color: 0xdfe6ea, metalness: 0.6, roughness: 0.2 });
+  const ironBallMat = new THREE.MeshStandardMaterial({ color: 0x3a3430, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 });
   const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const WHITE = new THREE.Color(0xffffff), accelRings = [];
   const blueGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x6fd6ff, transparent: true, opacity: 0.55, depthWrite: false });
@@ -829,7 +830,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (STYLE.bridge) d.wl = d.wr = d.ceil = false; // Abyssus: a bare bridge over the void
     // In the dark single pyramids stick out of the walls, placed at random so every run differs.
     // Some of the low ones are thorns: they slide out on a piston as the cart comes near.
-    if (!station && s < MAIN_LEN && z > 0.6 && Math.random() < (z - 0.55) * 0.6) {
+    const th = LEVEL.thorns || { from: 0.6, mul: 1 }; // Carcer brings thorns up out of the dark
+    if (!station && s < MAIN_LEN && z > th.from && Math.random() < (z - th.from + 0.05) * 0.6 * th.mul) {
       const sides = [d.wl && -1, d.wr && 1].filter(Boolean);
       if (sides.length) {
         const side = sides[Math.floor(Math.random() * sides.length)], v = rand(0.8, 4.6);
@@ -1081,7 +1083,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const twin = id === "gemini";
     GUNS[0].c.position.x = twin ? -0.36 : 0; GUNS[1].c.position.x = 0.36; GUNS[1].c.visible = twin;
     GUNS.forEach(g => g.c.scale.setScalar(twin ? 0.68 : 0.82));
-    GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id; });
+    const look = id === "ferrum" ? "ballista" : id; // Ferrum fires from the railgun's own barrels
+    GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === look; });
     const w = WEAPONS[id];
     $("wpn").textContent = `${w.name} · −${w.cost}`;
   }
@@ -1218,6 +1221,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (let i = 0; i < 4; i++) { const k = i % 2 ? 1 : -1; addPane({ s: s - i * 3.5, u: k * rand(2.4, 3.2), v: rand(1.6, 4.8), w: rand(1.1, 1.6), h: rand(1.1, 1.6) }); }
         break;
       case "slider": { const w = 2.6; addPane({ s, u: 0, v: CAM_V + 0.2, w, h: 2.9, move: { axis: "u", amp: W - w / 2 - 0.2, freq: rand(1, 1.6) * (1 + 0.3 * d), phase: rand(0, TAU) } }); break; }
+      case "bars":
+        if (s - lastHangerS > 70) { addHanger(s, "gate", false, true); lastHangerS = s; }
+        else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 });
+        break;
       case "spinners": { // one, or a staggered pair turning against each other
         const side = Math.random() < 0.5 ? -1 : 1, dir = Math.random() < 0.5 ? -1 : 1;
         addSpinner(s, side, dir);
@@ -1413,14 +1420,20 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     return g;
   }
   function inCurve(s) { return [-30, -15, 0, 15].some(o => Math.abs(yawRateAt(s + o)) > 0.002); }
-  function addHanger(s, kind, laser = false) {
+  const ironMat = new THREE.MeshStandardMaterial({ color: 0x4a3a30, roughness: 0.6, metalness: 0.85 });
+  const barGeo = new THREE.CylinderGeometry(0.06, 0.06, 1, 8), hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
+  function addHanger(s, kind, laser = false, bars = false) {
     if (inCurve(s)) kind = "pendulum"; // two chains are too much to hit while the track bends
     const pend = kind === "pendulum", w = laser ? 4.2 : pend ? 2.3 : 3.0, h = laser ? 0.32 : pend ? 2.1 : 2.4, d = laser ? 0.32 : 0.55;
     // a laser beam hangs high, over the cart, and its lasers reach down to the floor
     const L = laser ? HANG_TOP - 4.4 : HANG_TOP - (CAM_V + 0.25) - h / 2, arm = pend ? L + h / 2 : L; // pivot to the slab's center (pendulum) or chain length (gate)
     const root = new THREE.Group(); root.matrixAutoUpdate = false;
-    const geo = new THREE.BoxGeometry(w, h, d), body = new THREE.Mesh(geo, laser ? laserBaseMat : monoMat);
-    body.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), laser ? laserEdgeMat : edgeMat)); root.add(body);
+    const geo = new THREE.BoxGeometry(w, h, d), body = new THREE.Mesh(geo, bars ? hitBoxMat : laser ? laserBaseMat : monoMat);
+    if (bars) { // a portcullis: iron bars in a frame; its hit box stays invisible
+      for (let x = -w / 2 + 0.15; x <= w / 2 - 0.1; x += 0.38) { const b = new THREE.Mesh(barGeo, ironMat); b.scale.y = h; b.position.x = x; body.add(b); }
+      for (const y of [-h / 2 + 0.08, 0, h / 2 - 0.08]) { const b = new THREE.Mesh(barGeo, ironMat); b.scale.set(1.4, w, 1.4); b.rotation.z = Math.PI / 2; b.position.y = y; body.add(b); }
+    } else body.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), laser ? laserEdgeMat : edgeMat));
+    root.add(body);
     const emitters = laser ? [-1, 1].map(sd => {
       const blk = laserBlock(0.75); blk.position.x = sd * (w / 2 - 0.1); body.add(blk);
       const beam = laserBeam(4.4); beam.rotation.z = Math.PI; beam.position.x = sd * (w / 2 - 0.1); body.add(beam);
@@ -1434,7 +1447,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) getDecor(k).ceil = true;
     const wn2 = G / arm, amp = pend ? rand(0.4, 0.52) : 0, ph = rand(0, TAU);
     hangers.push({ s, kind, w, h, d, L, arm, wn2, u0: pend || laser ? 0 : rand(-0.4, 0.4), theta: amp * Math.sin(ph), omega: amp * Math.sqrt(wn2) * Math.cos(ph), tilt: 0,
-      laser, emitters, lasHit: false, root, body, chains, hp: laser ? 6 : pend ? 5 : 7, falling: false, fallT: 0, fv: new THREE.Vector3(), alive: true, passed: false, inv: new THREE.Matrix4() });
+      laser, bars, emitters, lasHit: false, root, body, chains, hp: laser ? 6 : bars ? 9 : pend ? 5 : 7, falling: false, fallT: 0, fv: new THREE.Vector3(), alive: true, passed: false, inv: new THREE.Matrix4() });
   }
   const SWEEP = new THREE.Vector3(), CHAIN_HIT = 0.4; // chains look thin, so their hit zone is generous
   function segDist(pt, A, B) {
@@ -1464,7 +1477,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     frameAt(hg.s); const fp = _P.clone(), fn = _U.clone();
     const n = Math.round(hg.w * hg.h * 9);
     for (let i = 0; i < n; i++) {
-      const m = new THREE.Mesh(chunkGeo, monoMat);
+      const m = new THREE.Mesh(chunkGeo, hg.bars ? ironMat : monoMat);
       m.position.set(rand(-hg.w / 2, hg.w / 2), rand(-hg.h / 2, hg.h / 2), rand(-hg.d / 2, hg.d / 2)).applyMatrix4(hg.body.matrixWorld);
       m.rotation.set(rand(0, TAU), rand(0, TAU), rand(0, TAU)); m.scale.setScalar(rand(0.6, 1.4));
       scene.add(m);
@@ -1555,6 +1568,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     if (f === "reflexio") { spawnPair(s); return rand(9, 11); }
     if (f === "rota") { addWheel(s); return rand(12, 14); }
+    if (f === "custodes") {
+      superWave++;
+      const n = Math.min(7, 3 + Math.floor(superWave / 2)), wave = { n, killed: 0, lost: false };
+      for (let i = 0; i < n; i++) { addImp(s + i * 2.2, rand(-2.6, 2.6), rand(1.3, 4.4)); imps[imps.length - 1].wave = wave; }
+      return 13;
+    }
     if (f === "triumphus") { // the trials of the whole line, one after another
       const step = triStep++ % 5;
       if (step === 0) { spawnSuper(s); return 11; }
@@ -1949,7 +1968,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // ---------- Rota: the Abyssus finale ----------
   // Wheels of crystals turn above the bridge, a few red among the blue. Every blue one pays; take all the blue
   // off a wheel before it goes by and the wheel adds a bonus.
-  let wheels = [], wheelsDone = 0, triStep = 0;
+  let wheels = [], wheelsDone = 0, triStep = 0, wavesDone = 0;
   const WHEEL_R = 2.3, WHEEL_V = 3.1, wheelGeo = new THREE.TorusGeometry(WHEEL_R, 0.035, 6, 72);
   function addWheel(s) {
     superWave++;
@@ -2068,7 +2087,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function zoneName(a) { for (const [t, n] of ZONES) if (a >= t) return n; return "Тьма"; }
   function updateCombo() {
     const f = LEVEL.finale;
-    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : f === "reflexio" ? "пары " + pairsDone : f === "vindemia" ? "ветви " + harvested : f === "rota" ? "колёса " + wheelsDone : "+" + superGain;
+    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : f === "reflexio" ? "пары " + pairsDone : f === "vindemia" ? "ветви " + harvested : f === "rota" ? "колёса " + wheelsDone : f === "custodes" ? "волны " + wavesDone : "+" + superGain;
   }
   function showOverlay(id, html, ms) {
     const el = $(id); el.innerHTML = html; el.hidden = false;
@@ -2085,6 +2104,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     ballista: { name: "Ballista", ru: "Рельсотрон", cost: 1, price: 0, desc: "Один шар за выстрел. Попадание в кристалл даёт его обычную цену." },
     triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: 25, desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
     gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 40, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
+    ferrum: { name: "Ferrum", ru: "Железо", cost: 2, price: null, desc: "Пушка из Темницы. Тяжёлое железное ядро за 2 шара: пробивает стекло насквозь с одного попадания и летит дальше, не теряя скорости. На складе не продаётся." },
     radius: { name: "Lumen", ru: "Луч", cost: 2, price: 60, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии. Выстрел стоит 2 шара, луч один, поэтому кристалл платит свою цену один раз." },
   };
   // a ride through Hortus finds the gardeners' spare cannon: Gemini then costs half at the depot
@@ -2103,6 +2123,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     iudicium: { name: "IUDICIUM", ru: "Суд", note: "Попадания по печатям подряд умножают награду до ×6. Пропуск сбрасывает множитель и стоит 2 шара. Стекло бьёт вдвое сильнее." },
     ruina: { name: "RUINA", ru: "Обвал", note: "С потолка падают глыбы. Сбивайте их в воздухе или на рельсах: +2 шара, каждые 4 подряд ещё +4. Глыба на пути стоит 8 шаров." },
     portae: { name: "PORTAE", ru: "Врата", note: "Впереди стеклянные врата. Перед каждыми горит голубой ключ-кристалл: попадите в него, и врата разлетятся, а ключ даст шары. Каждые трое врат подряд — ещё +3. Не попали — вагонетка пробьёт стекло: −4 шара." },
+    custodes: { name: "CUSTODES", ru: "Стражи", note: "Стражи-тени летят волнами. Каждый сбитый — +1 шар, вся волна до последнего — ещё +4. Долетевший страж отнимает 3 шара." },
     triumphus: { name: "TRIUMPHUS", ru: "Триумф", note: "Финал всей линии: по очереди печати, пары отражений, колёса, врата с ключами и дождь кристаллов. Каждое испытание идёт по своим правилам." },
     rota: { name: "ROTA", ru: "Колесо", note: "Над мостом вращаются колёса из кристаллов. Голубой — +2 шара, красный — −3. Соберите все голубые с колеса, пока оно не проехало, — ещё +5." },
     vindemia: { name: "VINDEMIA", ru: "Сбор урожая", note: "Ветви тяжелы от кристаллов: каждый даёт 2 шара, а собранная целиком ветка ещё +3. Сломать ветку безопасно, но её кристаллы упадут. Хлёст по вагонетке стоит 3 шара." },
@@ -2128,6 +2149,26 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { sky: "#bff0e0", hor: "#e8f8f2", gnd: "#cdeee0", surf: "#ffffff", wall: "#dcf4ea", line: "#4fd8a8", lineI: 0.4, frame: "#8fd4ba", frameE: "#b8ffe8", frameEI: 0.5,
       rail: "#c4e8da", sleeper: "#e2f6ee", glass: "#9ff0d4", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 104, hemiS: "#ffffff", hemiG: "#bfe8d8", hemiI: 1.1, sunI: 0.8,
       dust: "#90f0cc", block: "#ecfaf4", cart: "#4f8a78", accent: "#3fd8a4" },
+  ];
+
+  // Carcer: a dungeon of rust and soot: pale stone and bleached iron in the light, rust in between,
+  // black iron with forge-red embers in the dark
+  const PAL_CARCER = [
+    { sky: "#0a0403", hor: "#030101", gnd: "#3a0e04", surf: "#0e0605", wall: "#120806", line: "#ff5a20", lineI: 0.85, frame: "#0a0504", frameE: "#ff4a10", frameEI: 0.85,
+      rail: "#3a1c12", sleeper: "#160a06", glass: "#ff7a40", glassO: 0.45, edge: "#ffc0a0", fogN: 3, fogF: 48, hemiS: "#ff8050", hemiG: "#1c0602", hemiI: 0.5, sunI: 0.28,
+      dust: "#ff6a20", block: "#1a0c08", cart: "#22120c", accent: "#ff5a20" },
+    { sky: "#2e221c", hor: "#18110d", gnd: "#100b08", surf: "#3a2c24", wall: "#2e221a", line: "#b08868", lineI: 0.22, frame: "#1a120e", frameE: "#000000", frameEI: 0,
+      rail: "#6a4a36", sleeper: "#261a12", glass: "#d0b098", glassO: 0.42, edge: "#f0e0d0", fogN: 7, fogF: 64, hemiS: "#d4bca8", hemiG: "#1a120e", hemiI: 0.72, sunI: 0.48,
+      dust: "#c89c78", block: "#3a2a20", cart: "#33261c", accent: "#d8a880" },
+    { sky: "#a89890", hor: "#948478", gnd: "#76685e", surf: "#c4b8ae", wall: "#a89a8e", line: "#ffffff", lineI: 0.05, frame: "#56463c", frameE: "#000000", frameEI: 0,
+      rail: "#8a7a6e", sleeper: "#6a5a50", glass: "#e4d8d0", glassO: 0.42, edge: "#ffffff", fogN: 11, fogF: 80, hemiS: "#ffffff", hemiG: "#8a7a70", hemiI: 0.92, sunI: 0.68,
+      dust: "#f4ece6", block: "#9a8a7e", cart: "#4e4038", accent: "#ffffff" },
+    { sky: "#ece6e0", hor: "#f4f0ec", gnd: "#d4ccc4", surf: "#faf8f6", wall: "#e6e0da", line: "#c8b4a4", lineI: 0.15, frame: "#a49284", frameE: "#000000", frameEI: 0,
+      rail: "#bcaea2", sleeper: "#d6ccc4", glass: "#f0e8e2", glassO: 0.4, edge: "#ffffff", fogN: 14, fogF: 94, hemiS: "#ffffff", hemiG: "#d8d0c8", hemiI: 1.0, sunI: 0.75,
+      dust: "#ffffff", block: "#e4dcd4", cart: "#7a6a5e", accent: "#d8a070" },
+    { sky: "#f4ece4", hor: "#fbf8f4", gnd: "#ece4dc", surf: "#ffffff", wall: "#f6f2ee", line: "#e8b890", lineI: 0.35, frame: "#ccbcae", frameE: "#ffe8d4", frameEI: 0.4,
+      rail: "#ddd2c8", sleeper: "#efe8e2", glass: "#f8eae0", glassO: 0.38, edge: "#ffffff", fogN: 16, fogF: 104, hemiS: "#ffffff", hemiG: "#e8e0d8", hemiI: 1.08, sunI: 0.8,
+      dust: "#f8d8c0", block: "#f4eee8", cart: "#86766a", accent: "#e8a070" },
   ];
 
   // Lux: light itself. Pure white and pale glass in the light with a faint gold shimmer, pearl grey in between,
@@ -2290,10 +2331,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота: над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Створку можно и разбить: от первого шара она трескается, от второго разлетается. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
       feats: ["Ворота из тёмного стекла: откройте вертушками или разбейте створку двумя шарами", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
       req: { after: "speculum" }, map: { x: 730, y: 330, label: "bl" } },
-    { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: false,
-      mood: { sky: "#1a0a0a", hor: "#0c0404", surf: "#201010", wall: "#180808", frame: "#3a1a1a", rail: "#4a2a2a", glass: "#8a3a3a", accent: "#ff4a3a" },
-      desc: "Тупик глубоко во Тьме. Говорят, там заперта пушка, которой нет на складе.",
-      feats: ["Только для тех, кто не боится Тьмы", "Награда: оружие из темницы"], req: { after: "abyssus", fare: 20 }, map: { x: 830, y: 450, label: "b" } },
+    { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "geometry_of_glass", len: 900, pal: PAL_CARCER, finale: "custodes",
+      style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, driftMul: 1.3, thorns: { from: 0.3, mul: 1.8 },
+      pats: { bars: [2, 2.5, 3], imps: [1, 1.5, 3], shutter: [0.5, 1.5, 2], reinf: [0.5, 1, 2], center: [2, 2, 1.5], double: [0.5, 1, 1.5], slider: [1, 1.5, 1.5], wall: [0.5, 0.5, 0.5], sides: [1, 0.5, 0], bonus: [1, 0.3, 0] },
+      turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35]],
+      desc: "Тупик глубоко во Тьме. Глухие коридоры из ржавого железа: поперёк пути висят решётки на цепях, из стен бьют шипы, а стражи-тени летят навстречу. Тьма здесь тянет сильнее. В конце заперта пушка, которой нет на складе.",
+      feats: ["Решётки на цепях: собьёте цепи — решётка рухнет", "Шипы даже в Чистилище", "Награда: пушка Ferrum, финал Custodes"],
+      req: { after: "abyssus", fare: 20 }, map: { x: 830, y: 450, label: "b" } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "refraction_point", len: 1600, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "prism", glassWalls: true }, gainMul: 0.85,
       gateKinds: ["iris"], gateButton: "dome",
@@ -2353,7 +2397,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     clearDynamic();
     sC = 0; alt = 0.35; pending = 0; altVel = 0; pitchC = 0; pitchTs = 0;
     cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0;
-    superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0; wheelsDone = 0; triStep = 0;
+    superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0; wheelsDone = 0; triStep = 0; wavesDone = 0;
     buildForks();
     computePath();
     if (spawn) while (nextSpawn < SPAWN_AHEAD) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15); }
@@ -2409,16 +2453,18 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const total = score + balls * 10;
       const best = Math.max(progress.best[LEVEL.id] || 0, total);
       progress.best[LEVEL.id] = best; progress.done[LEVEL.id] = true; progress.bank += stats.crystals;
+      const freed = LEVEL.id === "carcer" && !progress.weapons.ferrum; // the dungeon gives up its cannon
+      if (freed) progress.weapons.ferrum = true;
       saveProgress();
       const titles = { "Свет": "Вы въехали в Свет", "Небеса": "Вы доехали до Небес", "Чистилище": "Вы застряли в Чистилище", "Сумерки": "Вы доехали в Сумерках", "Тьма": "Рельсы привели во Тьму" };
       $("winEyebrow").textContent = `Станция ${LEVEL.latin}`;
       $("winTitle").textContent = titles[zone];
-      $("winNote").textContent = `Итог: ${total.toLocaleString("ru-RU")} (очки + 10 за каждый оставшийся шар). Кристаллы ушли в запас: теперь их ${progress.bank}.`;
+      $("winNote").textContent = `Итог: ${total.toLocaleString("ru-RU")} (очки + 10 за каждый оставшийся шар). Кристаллы ушли в запас: теперь их ${progress.bank}.` + (freed ? " Из Темницы вы вывезли пушку Ferrum: поставьте её на вагонетку на складе Armamentarium." : "");
       $("wScore").textContent = score.toLocaleString("ru-RU");
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;
       $("wSuperName").textContent = FINALES[LEVEL.finale].name;
-      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "rota" ? `колёса ${wheelsDone} · +${superGain}` : LEVEL.finale === "reflexio" ? `пары ${pairsDone} · +${superGain}` : LEVEL.finale === "vindemia" ? `ветви ${harvested} · +${superGain}` : `+${superGain}`;
+      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "rota" ? `колёса ${wheelsDone} · +${superGain}` : LEVEL.finale === "custodes" ? `волны ${wavesDone} · +${superGain}` : LEVEL.finale === "reflexio" ? `пары ${pairsDone} · +${superGain}` : LEVEL.finale === "vindemia" ? `ветви ${harvested} · +${superGain}` : `+${superGain}`;
       $("wAcc").textContent = (stats.thrown ? Math.round(stats.hits / stats.thrown * 100) : 0) + "%";
       $("wBest").textContent = best.toLocaleString("ru-RU");
       const nx = nextLevel(LEVEL), nb = $("nextBtn");
@@ -2458,7 +2504,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // same speed and arc as always (44 plus the cart's own speed, a small lift), but the cart's speed is
     // added along the aim, so the ball no longer drifts toward the rails on targets off to the side
     const v = dir.clone().multiplyScalar(44 + speedNow * Math.max(0, dir.dot(_T))); v.y += 1.6;
-    const b = { mesh: m, v, p0: from.clone(), life: 0, hit: false, vol };
+    const b = { mesh: m, v, p0: from.clone(), life: 0, hit: false, vol, iron: progress.weapon === "ferrum" };
+    if (b.iron) { m.material = ironBallMat; m.scale.setScalar(1.3); }
     ballsArr.push(b);
     return b;
   }
@@ -2660,6 +2707,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     m.alive = false; scene.remove(m.group);
     addScore(20); karmaGain(0.04); Sound.imp();
     chips(m.wp, impMat, 12, b.v);
+    const w = m.wave;
+    if (w) { // Custodes
+      w.killed++; let gain = 1;
+      if (w.killed === w.n && !w.lost) { gain += 4; wavesDone++; bestCombo = Math.max(bestCombo, wavesDone); }
+      balls += gain; superGain += gain; updateCount(); updateCombo(); pop(gain > 1 ? `+${gain} · волна` : "+1", "gain");
+    }
   }
 
   // ---------- simulation ----------
@@ -2807,7 +2860,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       m.cage.rotation.x += dt * 2.5; m.cage.rotation.y += dt * 1.7;
       m.core.scale.setScalar(1 + 0.12 * Math.sin(time * 9 + m.phase));
       if (state === "play" && m.s <= sC + 1) {
-        m.alive = false; scene.remove(m.group);
+        m.alive = false; scene.remove(m.group); if (m.wave) m.wave.lost = true;
         balls = Math.max(0, balls - 3); updateCount(); karmaLoss(0.1);
         pop("−3", "loss"); Sound.steal(); flash();
         if (!reduceMotion) shakeT = 0.3;
@@ -2929,7 +2982,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const t = az / (az - c.z), ix = ax + (c.x - ax) * t, iy = ay + (c.y - ay) * t;
         if (inPane(p, ix, iy, R_BALL * 0.5)) {
           mark();
-          if (damagePane(p, ix, iy, b.v)) b.v.multiplyScalar(0.8);
+          if (b.iron) { p.hp = 1; damagePane(p, ix, iy, b.v); } // the iron ball goes through glass at full speed
+          else if (damagePane(p, ix, iy, b.v)) b.v.multiplyScalar(0.8);
           else { dead = true; break; }
         }
       }
@@ -2942,6 +2996,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const inv = M2.copy(g.root.matrix).invert(), a = tmpV.copy(b.p0).applyMatrix4(inv), az = a.z, ax = a.x, ay = a.y, c = tmpV2.copy(pos).applyMatrix4(inv);
         if (az * c.z <= 0 && az !== c.z) {
           const f = az / (az - c.z), lf = gateLeafAt(g, ax + (c.x - ax) * f, ay + (c.y - ay) * f);
+          if (lf && b.iron && lf.hp > 1) lf.hp = 1; // and breaks a gate leaf at once
           if (lf) { mark(); hitLeaf(g, lf, tmpV.copy(b.p0).lerp(pos, f).clone(), b.v, ax + (c.x - ax) * f, ay + (c.y - ay) * f); dead = true; break; }
         }
       }
@@ -3167,6 +3222,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           const w = WEAPONS[id], card = document.createElement("div"); card.className = "wcard";
           card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${ballsWord(w.cost)} за выстрел</small></h3><p>${esc(w.desc)}</p>`;
           if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? "Стоит на вагонетке" : "Поставить", () => { progress.weapon = id; saveProgress(); openSheet(lv); }, progress.weapon === id);
+          else if (w.price === null) button(card, "ghost", "Заперта в Темнице", null, true);
           else { const price = priceOf(id); button(card, "cta", price < w.price ? `Купить: ◆ ${price} (скидка из Сада)` : `Купить: ◆ ${price}`, () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv); renderMap(); }, bank < price); }
           extra.appendChild(card);
         }
@@ -3282,7 +3338,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // test hook: lets an automated check jump the karma or the distance
   window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, setAlt(a) { alt = a; },
-    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.length, lblocks: lblocks.map(l => l.hp), hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
+    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, bars(ahead) { addHanger(sC + ahead, 'gate', false, true); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.length, lblocks: lblocks.map(l => l.hp), hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },
     thornScreen() { const r = canvas.getBoundingClientRect(); return thorns.filter(t => t.headOn && t.ext > 0.3).map(t => { const v = t.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); }, state: () => ({ state, sC, alt, balls, score, combo, superOn, sigils: sigils.length, END_S, panes: panes.length, thorns: thorns.length, thornExt: thorns.map(t => t.ext.toFixed(2) + (t.headOn ? '' : 'x')).join(), pitchC }) };
 

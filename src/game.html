@@ -1075,7 +1075,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         put("sleeper", s - 0.5, m.o, 0.06); put("sleeper", s + 0.5, m.o, 0.06);
         put("rail", s, m.o - 0.72, 0.19); put("rail", s, m.o + 0.72, 0.19);
         put("wall", s, far, H / 2);
-        if (dec.arch) { if (STYLE.arch === "hex") put("hex", s, m.o, 4.2); else { put("post", s, m.o - W + 0.1, H / 2); put("post", s, m.o + W - 0.1, H / 2); put("beam", s, m.o, H - 0.18); put("sill", s, m.o, 0.025); } }
+        if (dec.arch && STYLE.arch !== "hex") { { put("post", s, m.o - W + 0.1, H / 2); put("post", s, m.o + W - 0.1, H / 2); put("beam", s, m.o, H - 0.18); put("sill", s, m.o, 0.025); } }
       }
     }
     // the other branch of a fork that is near: rails, floor, walls and vault along its own path, closed at the far end
@@ -2569,7 +2569,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 45], [200, 60, -60], [320, 50, 40], [430, 60, -55], [560, 50, 50], [660, 50, -45], [760, 50, 35]],
       desc: "Тупик с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
-      req: { after: "labyrinthus", fare: 12 }, map: { x: 465, y: 95, label: "t", dy: 6 } }, // the label on top, clear of the legend
+      req: { after: "labyrinthus", fare: 12 }, map: { x: 480, y: 75, label: "t" } }, // the label on top, clear of the legend
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,
       pats: { twins: [1.5, 2, 2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
@@ -2610,7 +2610,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { kind: "transfer", to: "lux", pts: [[590, 190], [770, 190], [910, 330]] },
     { kind: "branch", to: "thesaurus", pts: [[90, 330], [90, 380], [170, 460]] },
     { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 380], [360, 470]] },
-    { kind: "branch", to: "hortus", pts: [[410, 190], [410, 150], [465, 95]], tagSeg: 1, tag: 0.42 }, // its price sits low, clear of the station names
+    { kind: "branch", to: "hortus", pts: [[410, 190], [410, 145], [480, 75]], tagSeg: 1, tag: 0.5 }, // its price sits low, clear of the station names
     { kind: "branch", to: "carcer", pts: [[730, 330], [730, 380], [800, 450]] },
   ];
   const byId = id => LEVELS.find(l => l.id === id);
@@ -3411,7 +3411,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     mapW = svg.parentElement.clientWidth;
     $("bank").textContent = progress.bank;
     renderArms();
-    svg.setAttribute("viewBox", "0 0 1000 560");
+    svg.setAttribute("viewBox", "0 0 1000 595"); // the scheme sits 35 lower, clear of the legend
     const pt = id => byId(id).map;
     const poly = pts => pts.map(([x, y]) => `${x},${y}`).join(" ");
     let out = "";
@@ -3461,7 +3461,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "open" ? LINE_MAIN : "#7a8d95"}">${STATUS_RU[st].toUpperCase()}</text>`;
       out += `</g>`;
     }
-    svg.innerHTML = out;
+    svg.innerHTML = `<g transform="translate(0 35)">${out}</g>`;
     svg.querySelectorAll(".station").forEach(g => {
       const open = () => openSheet(byId(g.dataset.id));
       g.addEventListener("click", open);

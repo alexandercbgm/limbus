@@ -407,7 +407,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       rail: "#d8eafa", sleeper: "#ebf4fd", glass: "#a8e8ff", glassO: 0.38, edge: "#ffffff", fogN: 18, fogF: 112, hemiS: "#ffffff", hemiG: "#c8e2f8", hemiI: 1.1, sunI: 0.8,
       dust: "#a0e4ff", block: "#f0f6ff", cart: "#7088a0", accent: "#7fdcff" },
   ];
-  const buildPal = raw => raw.map(o => { const r = {}; for (const k in o) r[k] = typeof o[k] === "string" ? new THREE.Color(o[k]) : o[k]; return r; });
+  // stars and band: the starfield and the Milky Way on the sky dome (Abyssus); every other palette has none
+  const buildPal = raw => raw.map(o => { const r = {}; for (const k in Object.assign({ stars: 0, band: "#000000" }, o)) { const v = k in o ? o[k] : k === "stars" ? 0 : "#000000"; r[k] = typeof v === "string" ? new THREE.Color(v) : v; } return r; });
   let PAL = buildPal(PAL_INITIUM);
   const cur = {}; for (const k in PAL[2]) cur[k] = typeof PAL[2][k] === "number" ? PAL[2][k] : PAL[2][k].clone();
   function samplePalette(a) {
@@ -546,11 +547,31 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   resize();
 
   // sky dome: gradient that tracks the karma palette; the horizon color equals the fog color so the void reads as one space
-  const skyUni = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, bot: { value: new THREE.Color() } };
+  const skyUni = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, stars: { value: 0 }, band: { value: new THREE.Color() } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(480, 32, 16), new THREE.ShaderMaterial({
     uniforms: skyUni, side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: "varying vec3 vP; void main(){ vP = (modelMatrix*vec4(position,1.0)).xyz - cameraPosition; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
-    fragmentShader: "uniform vec3 top; uniform vec3 hor; uniform vec3 bot; varying vec3 vP; void main(){ float h = normalize(vP).y; vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, bot, pow(-h, 0.5)); gl_FragColor = vec4(c, 1.0); }",
+    // with stars > 0 the dome becomes deep space: a field of stars, denser along a tilted Milky Way band of
+    // glowing gas with dark dust lanes through its middle
+    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; varying vec3 vP;
+      float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+      float vn(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z); }
+      float starAt(vec3 n, float cells, float thr) { vec3 p = n * cells, i = floor(p); float r = h3(i); if (r < thr) return 0.0;
+        vec3 c = i + 0.5 + (vec3(h3(i + 1.3), h3(i + 2.7), h3(i + 4.1)) - 0.5) * 0.6; return smoothstep(0.32, 0.0, length(p - c)) * (0.5 + 0.5 * h3(i + 9.0)); }
+      void main(){ vec3 n = normalize(vP); float h = n.y;
+        vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, bot, pow(-h, 0.5));
+        if (stars > 0.001) {
+          float d = dot(n, normalize(vec3(0.42, 0.55, 0.72)));
+          float cl = vn(n * 6.0) * 0.6 + vn(n * 14.0) * 0.4, b = exp(-d * d * 22.0) * (0.45 + 0.75 * cl);
+          float lane = exp(-pow(d + 0.03 * (vn(n * 9.0) - 0.5), 2.0) * 420.0) * smoothstep(0.35, 0.75, vn(n * 11.0 + 3.0));
+          c += band * b * stars * (1.0 - 0.8 * lane);
+          c += vec3(0.55, 0.35, 0.8) * stars * 0.25 * exp(-d * d * 4.0) * vn(n * 3.0); // a wide violet haze
+          float s = starAt(n, 90.0, 0.93 - 0.06 * b) + starAt(n, 210.0, 0.95 - 0.06 * b) * 0.7 + starAt(n, 40.0, 0.985) * 1.6;
+          c += mix(vec3(0.75, 0.85, 1.0), vec3(1.0, 0.9, 0.8), h3(floor(n * 90.0))) * s * stars;
+        }
+        gl_FragColor = vec4(c, 1.0); }`,
   }));
   sky.renderOrder = -10; sky.frustumCulled = false;
   scene.add(sky);
@@ -632,7 +653,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
 
   function applyPalette() {
-    skyUni.top.value.copy(cur.sky); skyUni.hor.value.copy(cur.hor); skyUni.bot.value.copy(cur.gnd);
+    skyUni.top.value.copy(cur.sky); skyUni.hor.value.copy(cur.hor); skyUni.bot.value.copy(cur.gnd); skyUni.stars.value = cur.stars; skyUni.band.value.copy(cur.band);
     scene.fog.color.copy(cur.hor); scene.fog.near = cur.fogN; scene.fog.far = cur.fogF;
     surfMat.color.copy(cur.surf); surfMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     wallMat.color.copy(cur.wall); wallMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
@@ -2277,24 +2298,25 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       dust: "#fff4d0", block: "#ffffff", cart: "#9a9ea8", accent: "#ffe8a0" },
   ];
 
-  // Abyssus: a bridge high over the void: pale sky above the clouds in the light, dusk indigo in between,
-  // near-black depths with a cold cobalt glow in the dark
+  // Abyssus: a bridge through deep space. The Milky Way arches over it and the stars go on below the deck too.
+  // In the light a pale blue dawn of stars, in between ultramarine night, in the dark the black of the void
+  // with a cold blue galaxy; the steel catches starlight
   const PAL_ABYSSUS = [
-    { sky: "#03060f", hor: "#010205", gnd: "#0c1a3a", surf: "#060a16", wall: "#08101e", line: "#4a8aff", lineI: 0.85, frame: "#040810", frameE: "#3a78ff", frameEI: 0.85,
-      rail: "#1e2c4c", sleeper: "#0a1020", glass: "#6aa0ff", glassO: 0.45, edge: "#c8dcff", fogN: 4, fogF: 50, hemiS: "#6a90ff", hemiG: "#040a1c", hemiI: 0.55, sunI: 0.3,
-      dust: "#5a90ff", block: "#0a1222", cart: "#101a2e", accent: "#4a8aff" },
-    { sky: "#1c2240", hor: "#0e1226", gnd: "#080a16", surf: "#262c48", wall: "#1c2238", line: "#8a96c8", lineI: 0.22, frame: "#12162a", frameE: "#000000", frameEI: 0,
-      rail: "#4a5478", sleeper: "#1a1e30", glass: "#a8b4e0", glassO: 0.42, edge: "#dce2f8", fogN: 8, fogF: 66, hemiS: "#b0b8dc", hemiG: "#10142a", hemiI: 0.75, sunI: 0.5,
-      dust: "#9aa4d0", block: "#20263e", cart: "#232a44", accent: "#a8b8f0" },
-    { sky: "#8a9ac0", hor: "#7484ac", gnd: "#56628a", surf: "#b4bed6", wall: "#96a2c2", line: "#ffffff", lineI: 0.05, frame: "#3e4a6c", frameE: "#000000", frameEI: 0,
-      rail: "#7a86a6", sleeper: "#5c6688", glass: "#d0dcf4", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 84, hemiS: "#ffffff", hemiG: "#7a86a8", hemiI: 0.95, sunI: 0.7,
-      dust: "#ffffff", block: "#8a96b8", cart: "#3c4664", accent: "#ffffff" },
-    { sky: "#dce8fa", hor: "#f0f4fc", gnd: "#c0cce4", surf: "#fafcff", wall: "#e0e8f6", line: "#9ab8f0", lineI: 0.15, frame: "#7c8cb0", frameE: "#000000", frameEI: 0,
-      rail: "#a0acc8", sleeper: "#c4cce0", glass: "#d6e4ff", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 100, hemiS: "#ffffff", hemiG: "#c4d0e8", hemiI: 1.0, sunI: 0.75,
-      dust: "#ffffff", block: "#e0e8f6", cart: "#56648a", accent: "#7aa4ff" },
-    { sky: "#b8d4ff", hor: "#f4f8ff", gnd: "#e4ecfa", surf: "#ffffff", wall: "#eef3fc", line: "#7aa8ff", lineI: 0.35, frame: "#a8bce4", frameE: "#cfe0ff", frameEI: 0.45,
-      rail: "#d0daf0", sleeper: "#e6ecf8", glass: "#bcd4ff", glassO: 0.38, edge: "#ffffff", fogN: 18, fogF: 112, hemiS: "#ffffff", hemiG: "#c8d8f4", hemiI: 1.1, sunI: 0.8,
-      dust: "#a8c8ff", block: "#f2f6fd", cart: "#62749a", accent: "#6a9cff" },
+    { sky: "#01030a", hor: "#020512", gnd: "#000208", surf: "#050a1c", wall: "#060c20", line: "#5aa0ff", lineI: 0.85, frame: "#03060f", frameE: "#4a8cff", frameEI: 0.8,
+      rail: "#1a2848", sleeper: "#080e20", glass: "#7ab0ff", glassO: 0.45, edge: "#d0e4ff", fogN: 6, fogF: 90, hemiS: "#7aa0ff", hemiG: "#02061a", hemiI: 0.55, sunI: 0.3,
+      dust: "#a8c8ff", block: "#0a1430", cart: "#0e1830", accent: "#5aa0ff", stars: 1.0, band: "#3a5ab8" },
+    { sky: "#040a26", hor: "#0a1640", gnd: "#02061a", surf: "#16224a", wall: "#121c40", line: "#7a90d8", lineI: 0.3, frame: "#0c1430", frameE: "#2a40a0", frameEI: 0.3,
+      rail: "#3a4a80", sleeper: "#141c3a", glass: "#a0b4f0", glassO: 0.42, edge: "#dce4ff", fogN: 8, fogF: 96, hemiS: "#a8b8f0", hemiG: "#0a1030", hemiI: 0.75, sunI: 0.5,
+      dust: "#c8d4ff", block: "#1a2858", cart: "#1c2650", accent: "#9ab4ff", stars: 0.95, band: "#6a70c8" },
+    { sky: "#0e1e5a", hor: "#2a3e84", gnd: "#081440", surf: "#5a6aa8", wall: "#4a5a98", line: "#c8d4ff", lineI: 0.2, frame: "#26346a", frameE: "#000000", frameEI: 0,
+      rail: "#6a78b0", sleeper: "#3a4680", glass: "#c8d4ff", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 104, hemiS: "#e0e8ff", hemiG: "#2a3a78", hemiI: 0.95, sunI: 0.7,
+      dust: "#ffffff", block: "#3a4c90", cart: "#36447a", accent: "#e0e8ff", stars: 0.75, band: "#8a90e0" },
+    { sky: "#2a50a8", hor: "#7a9ad8", gnd: "#2a4a98", surf: "#c8d6f4", wall: "#a8bce8", line: "#e8f0ff", lineI: 0.2, frame: "#5a74b8", frameE: "#000000", frameEI: 0,
+      rail: "#90a4d4", sleeper: "#7088c0", glass: "#dce6ff", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 110, hemiS: "#ffffff", hemiG: "#6a88c8", hemiI: 1.05, sunI: 0.8,
+      dust: "#ffffff", block: "#7a96d4", cart: "#5a70a8", accent: "#c8dcff", stars: 0.45, band: "#b8c4f0" },
+    { sky: "#4a7ad8", hor: "#c4d8f8", gnd: "#5a86d8", surf: "#ffffff", wall: "#e4ecfc", line: "#a8c8ff", lineI: 0.4, frame: "#a0b8e8", frameE: "#d8e6ff", frameEI: 0.5,
+      rail: "#c8d6f0", sleeper: "#e0e8f8", glass: "#c8dcff", glassO: 0.38, edge: "#ffffff", fogN: 18, fogF: 116, hemiS: "#ffffff", hemiG: "#a8c0ec", hemiI: 1.15, sunI: 0.85,
+      dust: "#d8e8ff", block: "#c0d4f8", cart: "#6a80b0", accent: "#8ab8ff", stars: 0.25, band: "#e0e8ff" },
   ];
 
   // Hortus: a hanging garden: cream and young leaf with blossom pink in the light, moss in between,

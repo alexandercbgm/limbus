@@ -1058,7 +1058,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function inst(geo, mat, max) { const m = new THREE.InstancedMesh(geo, mat, max); m.frustumCulled = false; m.count = 0; scene.add(m); return m; }
   const ceilGeo = new THREE.PlaneGeometry(2 * W, SL + 0.02); ceilGeo.rotateX(Math.PI / 2);
   const I = {
-    ceil: inst(ceilGeo, surfMat, 420),
+    ceil: inst(ceilGeo, surfMat, 140),
     sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 560),
     rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 560),
     wall: inst(new THREE.BoxGeometry(0.24, H, SL + 0.03), wallMat, 420),
@@ -1192,11 +1192,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
   }
   const RING_SX = (H / 2 - 0.05) * 1.15 / 4.92, RING_SY = RING_SX; // a true circle, clear of the walls
-  // hexagonal frames stand taller than the walls: under them the ceiling is a roof of their shape, a flat top over
-  // the frame's top edge and a slope down to each wall's top
-  // the frame is drawn narrower than a true hexagon so its side corners stand just inside the walls
-  const HEX_SX = (W - 0.05 - 0.17) / 4.9, HEX_TOP = 4.2 + 4.9 * Math.sin(Math.PI / 3) + 0.22, HEX_TOP_HW = 2.45 * HEX_SX + 0.25;
-  const HEX_SLOPE = Math.atan2(HEX_TOP - H, W - HEX_TOP_HW), HEX_SLOPE_L = Math.hypot(HEX_TOP - H, W - HEX_TOP_HW);
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
@@ -1215,27 +1210,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const open = forkOpenSide(s);
       if (dec.wl && open !== -1) put(wallKey, s, -W - 0.12, H / 2);
       if (dec.wr && open !== 1) put(wallKey, s, W + 0.12, H / 2);
-      if (dec.ceil && !STYLE.closed) { // a closed maze has a continuous vault instead
-        if (STYLE.arch !== "hex") put("ceil", s, 0, H);
-        else {
-          I.ceil.setMatrixAt(n.ceil++, placeM(M, s, 0, HEX_TOP).scale(SV.set(HEX_TOP_HW / W, 1, 1)));
-          for (const k of [-1, 1]) I.ceil.setMatrixAt(n.ceil++, placeM(M, s, k * (W + HEX_TOP_HW) / 2, (H + HEX_TOP) / 2).multiply(M2.makeRotationZ(-k * HEX_SLOPE)).scale(SV.set(HEX_SLOPE_L / (2 * W), 1, 1)));
-        }
-      }
+      if (dec.ceil && !STYLE.closed) put("ceil", s, 0, H); // a closed maze has a continuous vault instead
       if (dec.arch && !open) {
-        if (STYLE.arch === "hex") I.hex.setMatrixAt(n.hex++, placeM(M, s, 0, 4.2).scale(SV.set(HEX_SX, 1, 1)));
+        if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
         else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY).scale(SV.set(RING_SX, RING_SY, 1))); // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
-        else if (STYLE.arch === "tri") { // a triangle wide enough for the cart is wider than the tunnel: its corners are sunk in the walls
-          const tr = triAt(s), wc = W - 0.13;
-          for (let e = 0; e < 3; e++) {
-            const A = tr[e], B = tr[(e + 1) % 3], dx = B[0] - A[0];
-            let t0 = 0, t1 = 1;
-            if (Math.abs(dx) > 1e-6) { const ta = (-wc - A[0]) / dx, tb = (wc - A[0]) / dx; t0 = Math.max(0, Math.min(ta, tb)); t1 = Math.min(1, Math.max(ta, tb)); }
-            if (t1 <= t0) continue;
-            const ax = A[0] + dx * t0, ay = A[1] + (B[1] - A[1]) * t0, bx = A[0] + dx * t1, by = A[1] + (B[1] - A[1]) * t1, L = Math.hypot(bx - ax, by - ay) + (t0 > 0 || t1 < 1 ? 0.1 : 0.2);
-            I.tribar.setMatrixAt(n.tribar++, placeM(M, s, (ax + bx) / 2, (ay + by) / 2).multiply(M2.makeRotationZ(Math.atan2(by - ay, bx - ax))).scale(SV.set(L, 1, 1)));
-          }
-        }
+        else if (STYLE.arch === "tri") { const tr = triAt(s); for (let e = 0; e < 3; e++) { const A = tr[e], B = tr[(e + 1) % 3], L = Math.hypot(B[0] - A[0], B[1] - A[1]);
+          I.tribar.setMatrixAt(n.tribar++, placeM(M, s, (A[0] + B[0]) / 2, (A[1] + B[1]) / 2).multiply(M2.makeRotationZ(Math.atan2(B[1] - A[1], B[0] - A[0]))).scale(SV.set(L + 0.2, 1, 1))); } }
         else if (STYLE.arch !== "none") { put("post", s, -W + 0.1, H / 2); put("post", s, W - 0.1, H / 2); put("beam", s, 0, H - 0.18); put("sill", s, 0, 0.025); }
       }
       if (STYLE.bridge) { // kerbs along the deck, and every 8 m a pair of pylons down into the void
@@ -1803,8 +1783,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       d -= side; const q = d / a; return out.set(-a * Math.cos(q), -b - a * Math.sin(q), 0);
     };
     return new THREE.TubeGeometry(path, 40, wire, 8, true);
-  })();
-  let HANG_TOP = H - 0.06; // chains hang from the ceiling (set for each level)
+  })(), HANG_TOP = H - 0.06; // chains hang from the ceiling
   const fineGeo = new THREE.TetrahedronGeometry(0.07), mountGeo = new THREE.BoxGeometry(0.55, 0.1, 0.55);
   const chunkGeo = new THREE.BoxGeometry(0.16, 0.16, 0.12); // tempered-glass chunks, like a car window
   function makeChain(len) {
@@ -3004,7 +2983,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 40], [200, 60, -60], [320, 50, 50], [430, 70, -80], [560, 50, 45], [660, 50, -45], [760, 50, 30]],
       desc: "Тупиковая ветка от Rubinus. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
       feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
-      req: { after: "rubinus", fare: 8 }, map: { x: 558, y: 468, label: "r" } },
+      req: { after: "rubinus", fare: 8 }, map: { x: 565, y: 440, label: "r" } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "perfect_alignment", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "prism", glassWalls: true },
       pats: { center: [1.5, 1.5, 1], wall: [0.5, 0.5, 0.5], triple: [0.6, 1, 0.6], double: [0, 0.4, 0.8], sides: [2, 0.6, 0], gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1] },
@@ -3017,7 +2996,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
       desc: "Тупиковый склад при станции Vitrum. Здесь за кристаллы ставят на вагонетку новые пушки.",
       feats: ["Triplex, Gemini и Lumen", "Купленная пушка остаётся навсегда, её можно сменить в меню"],
-      req: { after: "vitrum", toll: 10 }, map: { x: 328, y: 468, label: "r" } },
+      req: { after: "vitrum", toll: 10 }, map: { x: 335, y: 440, label: "r" } },
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true },
       forks: [330, 720, 1110],
@@ -3032,7 +3011,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 45], [200, 60, -60], [320, 50, 40], [430, 60, -55], [560, 50, 50], [660, 50, -45], [760, 50, 35]],
       desc: "Тупиковая ветка от Initium с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
-      req: { after: "initium", fare: 12 }, map: { x: 148, y: 468, label: "r" } }, // the first branch: Initium opens it
+      req: { after: "initium", fare: 12 }, map: { x: 155, y: 440, label: "r" } }, // the first branch: Initium opens it
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
       style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.3, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0x5a0012,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
@@ -3074,7 +3053,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35]],
       desc: "Тупик глубоко во Тьме. Глухие коридоры из ржавого железа: поперёк пути висят решётки на цепях, из стен бьют шипы, а стражи-тени летят навстречу. Тьма здесь тянет сильнее. В конце заперта пушка, которой нет на складе.",
       feats: ["Решётки на цепях: собьёте цепи — решётка рухнет", "Шипы даже в Чистилище", "Награда: пушка Ferrum, финал Custodes"],
-      req: { after: "abyssus", fare: 20 }, map: { x: 788, y: 468, label: "r" } },
+      req: { after: "abyssus", fare: 20 }, map: { x: 795, y: 440, label: "r" } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 1600, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "prism", glassWalls: true }, gainMul: 0.85,
       gateKinds: ["iris"], gateButton: "dome",
@@ -3165,10 +3144,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const MAP_LINES = [
     { kind: "line", to: "rubinus", pts: [[270, 330], [500, 330], [730, 330]] }, // a second line: Vitrum, Rubinus, Abyssus
     { kind: "tao", to: "tao", pts: [[590, 190], [770, 190], [910, 330]] }, // Linea Tao: Speculum, Tao, Lux
-    { kind: "branch", to: "hortus", pts: [[90, 330], [90, 370], [148, 428], [148, 468]], tagSeg: 1, tag: 0.5 },
-    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 370], [328, 428], [328, 468]], tagSeg: 1, tag: 0.5 },
-    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 370], [558, 428], [558, 468]], tagSeg: 1, tag: 0.5 },
-    { kind: "branch", to: "carcer", pts: [[730, 330], [730, 370], [788, 428], [788, 468]], tagSeg: 1, tag: 0.5 },
+    { kind: "branch", to: "hortus", pts: [[90, 330], [90, 375], [155, 440]], tagSeg: 1, tag: 0.42 },
+    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 375], [335, 440]], tagSeg: 1, tag: 0.42 },
+    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 375], [565, 440]], tagSeg: 1, tag: 0.42 },
+    { kind: "branch", to: "carcer", pts: [[730, 330], [730, 375], [795, 440]], tagSeg: 1, tag: 0.42 },
   ];
   const byId = id => LEVELS.find(l => l.id === id);
   const STORE = "limbus-progress-v1";
@@ -3210,7 +3189,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   };
   function setLevel(lv) {
     LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
-    HANG_TOP = (STYLE.arch === "hex" && !STYLE.skylight ? HEX_TOP : H) - 0.06; // under hexagonal frames the ceiling is higher
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, { concrete: "asphalt", stone: "flags", chrome: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     buildStation();
@@ -4075,11 +4053,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     mapW = svg.parentElement.clientWidth;
     $("bank").textContent = progress.bank;
     renderArms();
-    svg.setAttribute("viewBox", "0 104 1000 398"); // just the stations and their names; the legend and the buttons sit in the empty corners
+    svg.setAttribute("viewBox", "0 100 1000 375"); // just the stations and their names; the legend and the buttons sit in the empty corners
     const pt = id => byId(id).map;
     const poly = pts => pts.map(([x, y]) => `${x},${y}`).join(" ");
     // a faint dot grid under the lines, like squared paper
-    let out = `<defs><pattern id="mapDots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.1" fill="${INK}" opacity="0.09"/></pattern></defs><rect x="0" y="104" width="1000" height="398" fill="url(#mapDots)"/>`;
+    let out = `<defs><pattern id="mapDots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.1" fill="${INK}" opacity="0.09"/></pattern></defs><rect x="0" y="100" width="1000" height="375" fill="url(#mapDots)"/>`;
     const casing = (shape, w) => shape.replace(/stroke="[^"]*"/, 'stroke="#ffffff"').replace(/stroke-width="([\d.]+)"/, (m, x) => `stroke-width="${+x + w}"`).replace(/ stroke-dasharray="[^"]*"| opacity="[^"]*"/g, "");
     // main line, station to station; unbuilt stretches are dotted
     for (let i = 0; i < MAIN_LINE.length - 1; i++) {
@@ -4112,7 +4090,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const fill = st === "done" ? INK : lit ? "#ffffff" : "#e6ecee"; // done stations are dark, open ones white
       const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (lv.id === "tao" ? LINE_TAO : ARC.includes(lv.id) && !["vitrum", "abyssus"].includes(lv.id) ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
       const glyph = st === "done" ? "#ffffff" : lit ? INK : MUTED;
-      const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 32, p.y - 9, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
+      const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 28, p.y - 9, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
       L[0] += p.dx || 0; L[1] += p.dy || 0; // a station may nudge its label
       if (L[2] !== "middle") { // a label beside the station keeps its edge there, but its lines are centred on each other
         const w = Math.max(textW("700 12.5px Unbounded, 'Arial Black', sans-serif", lv.latin.toUpperCase(), 0.6), textW("12.5px Manrope, system-ui, sans-serif", lv.ru, 0),
@@ -4123,7 +4101,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
       if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
       if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
-      out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
+      if (lv.line === "branch") out += `<rect class="ring" x="${p.x - 16}" y="${p.y - 16}" width="32" height="32" rx="7" fill="${fill}" stroke="${stroke}" stroke-width="4.5"/>`;
+      else out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
       out += `<path d="${GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
       out += `<text x="${L[0]}" y="${L[1]}" text-anchor="${L[2]}" font-family="Unbounded, 'Arial Black', sans-serif" font-weight="700" font-size="12.5" letter-spacing="0.6" fill="${INK}">${esc(lv.latin.toUpperCase())}</text>`;
       out += `<text x="${L[0]}" y="${L[1] + 17}" text-anchor="${L[2]}" font-family="Manrope, system-ui, sans-serif" font-size="12.5" fill="#4c6470">${esc(lv.ru)}</text>`;

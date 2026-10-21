@@ -1885,7 +1885,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const bulkheadMat = new THREE.MeshStandardMaterial({ color: 0xe8e8ee, roughness: 0.35, metalness: 0.6, side: THREE.DoubleSide });
   // Lux's buttons are round and convex, standing out of the bulkhead toward the gun
   // a push button: a cylinder standing out toward the gun in a steel collar; a hit drives it home
-  const domeGeo = new THREE.CylinderGeometry(1, 1, 0.9, 28).rotateX(Math.PI / 2).translate(0, 0, 0.45), domeRimGeo = new THREE.TorusGeometry(1.08, 0.14, 8, 32);
+  const domeGeo = new THREE.CylinderGeometry(1, 1, 0.9, 28).rotateX(Math.PI / 2).translate(0, 0, 0.45), domeRimGeo = new THREE.TorusGeometry(1.22, 0.22, 10, 36);
+  const domeEdgeGeo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 40 }, (_, i) => new THREE.Vector3(Math.cos(i / 40 * TAU) * 0.97, Math.sin(i / 40 * TAU) * 0.97, 0)));
+  const domeEdgeMat = new THREE.LineBasicMaterial({ color: 0xffffff }), domeGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xffa020, transparent: true, opacity: 0.28, depthWrite: false });
+  const domeFaceMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.3, roughness: 0.35, metalness: 0.2 });
   const IRIS_N = 6, irisGeo = (() => { // one iris leaf: a sector of the disc
     const sh = new THREE.Shape(), a = TAU / IRIS_N / 2; sh.moveTo(0, 0); // wedges meet edge to edge, never overlap
     for (let k = 0; k <= 8; k++) { const q = -a + (2 * a) * k / 8; sh.lineTo(Math.cos(q) * IRIS_R, Math.sin(q) * IRIS_R); }
@@ -1935,7 +1938,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // buttons: how many, how big and whether they wander along the frame follow the difficulty
     const nb = k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = k > 0.55;
     const dome = LEVEL.gateButton === "dome";
-    const spots = kind === "iris" ? [Math.PI * 0.5, Math.PI * 0.85, Math.PI * 0.15].map(a => ({ a, rad: dome ? IRIS_R + 0.9 : IRIS_R + 0.12 }))
+    const spots = kind === "iris" ? [Math.PI * 0.5, Math.PI * 0.85, Math.PI * 0.15].map(a => ({ a, rad: dome ? IRIS_R + 1.5 : IRIS_R + 0.12 }))
       : [{ u: 0, v: top + 1.0, along: "u" }, /* in the middle; on hard gates it rides along the lintel */ { u: -(BRIDGE_W + 1.3), v: 2.7, along: "v", side: -1 }, { u: BRIDGE_W + 1.3, v: 2.7, along: "v", side: 1 }]; // one on a mast above, two lying on their side out of the posts
     const order = nb === 1 ? [0] : nb === 2 ? [1, 2] : [0, 1, 2]; // one sits on top, a pair at the sides, three both
     const g = { s, kind, k, root, leaves, buttons: [], pr: 0, opening: false, passed: false, dead: false };
@@ -1944,9 +1947,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const sp = spots[o], grp = new THREE.Group(); root.add(grp);
       if (dome) { // a convex round button on the bulkhead
         // steel sides and a lit face, so it reads as a cylinder standing out of the wall
-        const rr = r * 0.42, cap = new THREE.Mesh(domeGeo, [frameMat, buttonMat, frameMat]); cap.scale.setScalar(rr); cap.userData.push = true; grp.add(cap);
+        const rr = r * 0.42, cap = new THREE.Mesh(domeGeo, [frameMat, domeFaceMat, frameMat]); cap.scale.setScalar(rr); cap.userData.push = true; grp.add(cap);
+        const edge = new THREE.LineLoop(domeEdgeGeo, domeEdgeMat); edge.position.z = 0.9; cap.add(edge); // a bright line round the face's edge
         const rim = new THREE.Mesh(domeRimGeo, laserBaseMat); rim.scale.setScalar(rr); grp.add(rim);
-        const glow = new THREE.Sprite(buttonGlow); glow.scale.setScalar(r * 1.6); glow.position.z = 0.6 * rr; grp.add(glow);
+        const glow = new THREE.Sprite(domeGlow); glow.scale.setScalar(r * 1.1); glow.position.z = 0.95 * rr; grp.add(glow);
         g.buttons.push(Object.assign({ grp, cap, prop: new THREE.Group(), glow, r: rr * 1.2, moving, phase: rand(0, TAU), pressed: false, alive: true, wp: new THREE.Vector3(), gate: g }, sp));
         continue;
       }
@@ -1967,7 +1971,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function pressButton(bt) {
     if (bt.pressed) return;
-    bt.pressed = true; bt.alive = false; bt.cap.material = Array.isArray(bt.cap.material) ? [frameMat, pressedMat, frameMat] : pressedMat; bt.glow.material = pressedGlow; bt.spin = 14; bt.prop.traverse(m => { if (m.isMesh) m.material = pressedMat; });
+    bt.pressed = true; bt.alive = false; bt.cap.material = Array.isArray(bt.cap.material) ? [frameMat, pressedMat, frameMat] : pressedMat; if (bt.glow.material === domeGlow) bt.glow.visible = false; bt.glow.material = pressedGlow; bt.spin = 14; bt.prop.traverse(m => { if (m.isMesh) m.material = pressedMat; });
     Sound.clink(); Sound.tone(520, 0.1, 0.1, "square", 0, 880); addScore(10);
     const g = bt.gate;
     if (g.buttons.every(b => b.pressed)) { g.opening = true; balls += 2; updateCount(); karmaGain(0.04); pop("+2 · ворота открыты", "gain"); Sound.tone(180, 0.5, 0.12, "sawtooth", 0, 90); }
@@ -2017,8 +2021,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         else { const r = (IRIS_R + 0.15) * p; lf.m.position.set(Math.cos(lf.a) * r, IRIS_V + Math.sin(lf.a) * r, lf.m.position.z); } // each wedge slides straight out, behind the bulkhead
       }
       for (const bt of g.buttons) {
-        if (bt.a !== undefined) { const a = bt.a + (bt.moving ? Math.sin(time * 1.2 + bt.phase) * 0.4 : 0); bt.grp.position.set(Math.cos(a) * bt.rad, IRIS_V + Math.sin(a) * bt.rad, 0.08); }
-        else bt.grp.position.set(bt.u + (bt.moving && bt.along === "u" ? Math.sin(time * 1.3 + bt.phase) * 1.3 : 0), bt.v + (bt.moving && bt.along === "v" ? Math.sin(time * 1.3 + bt.phase) * 0.6 : 0), 0);
+        if (bt.a !== undefined) { const a = bt.a + (bt.moving ? Math.sin(time * 2.6 + bt.phase) * 0.4 : 0); bt.grp.position.set(Math.cos(a) * bt.rad, IRIS_V + Math.sin(a) * bt.rad, 0.08); }
+        else bt.grp.position.set(bt.u + (bt.moving && bt.along === "u" ? Math.sin(time * 2.6 + bt.phase) * 1.3 : 0), bt.v + (bt.moving && bt.along === "v" ? Math.sin(time * 2.6 + bt.phase) * 0.6 : 0), 0);
         if (bt.cap.userData.push) bt.cap.position.z += ((bt.pressed ? -0.7 : 0) * bt.cap.scale.x - bt.cap.position.z) * Math.min(1, dt * 14); // pressed in
         if (bt.pressed) { bt.spin *= Math.exp(-dt * 1.2); bt.prop.rotation.y += dt * bt.spin; } else bt.prop.rotation.y += dt * (1.5 + 2.5 * g.k);
         bt.wp.copy(bt.grp.position).applyMatrix4(g.root.matrix);

@@ -660,7 +660,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // ---------- renderer & scene ----------
   const canvas = document.getElementById("game");
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xe8ebec, 16, 100);
   const camera = new THREE.PerspectiveCamera(70, 1, 0.08, 520);
@@ -3981,18 +3981,20 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     scene.add(g); renderer.compile(scene, camera); scene.remove(g); box.dispose();
     MATS = null;
   }
-  // resolution follows the frame rate: on a slow phone it steps down until the ride is smooth (and back up if there is room)
-  const DPR_MAX = Math.min(window.devicePixelRatio || 1, 2), DPR_MIN = Math.min(DPR_MAX, 0.8);
-  let dpr = DPR_MAX, fpsT = 0, fpsN = 0, slowRuns = 0;
+  // resolution follows the frame rate: up to 3× pixels; under 45 fps it drops to 2×, under 30 fps to 1×
+  // (each after two slow stretches running), and climbs back a step on a fast screen with frames to spare
+  const DPR_MAX = Math.min(window.devicePixelRatio || 1, 3);
+  let dpr = DPR_MAX, fpsT = 0, fpsN = 0, slow45 = 0, slow30 = 0;
   function adaptResolution(ms) {
     if (state !== "play") { fpsT = fpsN = 0; return; }
     fpsT += ms; fpsN++;
     if (fpsT < 1500) return;
     const avg = fpsT / fpsN; fpsT = fpsN = 0;
-    slowRuns = avg > 33.4 ? slowRuns + 1 : 0; // under 30 fps, twice running
+    slow30 = avg > 1000 / 30 ? slow30 + 1 : 0; slow45 = avg > 1000 / 45 ? slow45 + 1 : 0;
     let next = dpr;
-    if (slowRuns >= 2) { next = Math.max(DPR_MIN, dpr - 0.2); slowRuns = 0; }
-    else if (avg < 12 && dpr < DPR_MAX) next = Math.min(DPR_MAX, dpr + 0.1); // a fast screen with frames to spare
+    if (slow30 >= 2) { next = Math.min(dpr, 1); slow30 = slow45 = 0; }
+    else if (slow45 >= 2) { next = Math.min(dpr, 2); slow45 = 0; }
+    else if (avg < 12 && dpr < DPR_MAX) next = Math.min(DPR_MAX, Math.floor(dpr) + 1);
     if (next !== dpr) { dpr = next; renderer.setPixelRatio(dpr); }
   }
   let last = performance.now();
@@ -4015,7 +4017,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   window.__progs = () => renderer.info.programs.map(p => p.cacheKey);
   const perfAcc = { n: 0, upd: 0, rnd: 0, max: 0, spikes: [], np: 0 };
-  window.__perf = () => { const r = { fps: 0, upd: +(perfAcc.upd / perfAcc.n).toFixed(2), rnd: +(perfAcc.rnd / perfAcc.n).toFixed(2), max: +perfAcc.max.toFixed(1), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, prog: renderer.info.programs.length, objs: scene.children.length, spikes: perfAcc.spikes.slice(0, 12).join(' ') }; Object.assign(perfAcc, { n: 0, upd: 0, rnd: 0, max: 0, spikes: [] }); return r; };
+  window.__perf = () => { const r = { dpr: renderer.getPixelRatio(), upd: +(perfAcc.upd / perfAcc.n).toFixed(2), rnd: +(perfAcc.rnd / perfAcc.n).toFixed(2), max: +perfAcc.max.toFixed(1), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, prog: renderer.info.programs.length, objs: scene.children.length, spikes: perfAcc.spikes.slice(0, 12).join(' ') }; Object.assign(perfAcc, { n: 0, upd: 0, rnd: 0, max: 0, spikes: [] }); return r; };
 
   // ---------- menu: metro scheme, station sheet, miniature ----------
   // two lines from Vitrum to Abyssus: Linea Ima, low through Rubinus, and Linea Summa, the upper arc

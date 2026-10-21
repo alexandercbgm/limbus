@@ -4069,7 +4069,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // transfers and dead-end branches, each with its price on the longest segment
     for (const ln of MAP_LINES) {
       const to = byId(ln.to), color = ln.kind === "transfer" ? LINE_TR : ln.kind === "line" ? LINE_MAIN : ln.kind === "tao" ? LINE_TAO : LINE_BR, built = to.playable || to.depot;
-      const pl = `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="${ln.kind === "line" || ln.kind === "tao" ? 8 : 6}" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
+      const pl = `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
       out += (built ? casing(pl, 5) : "") + pl;
       const cost = ln.kind === "transfer" ? to.req.transfer.cost : to.req.fare || to.req.toll;
       if (!cost) continue; // a line without a price has no tag
@@ -4176,7 +4176,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     else halves.forEach((P, side) => {
       g.save();
       g.beginPath();
-      if (lv.pal) { if (side === 0) { g.moveTo(0, 0); g.lineTo(Wc * 0.62, 0); g.lineTo(Wc * 0.38, Hc); g.lineTo(0, Hc); } else { g.moveTo(Wc * 0.62, 0); g.lineTo(Wc, 0); g.lineTo(Wc, Hc); g.lineTo(Wc * 0.38, Hc); } }
+      if (lv.pal) { if (side === 0) g.rect(0, 0, Wc / 2, Hc); else g.rect(Wc / 2, 0, Wc / 2, Hc); } // light on the left half, dark on the right
       else g.rect(0, 0, Wc, Hc);
       g.closePath(); g.clip();
       const sky = g.createLinearGradient(0, 0, 0, Hc); sky.addColorStop(0, P.sky); sky.addColorStop(0.5, P.hor); sky.addColorStop(1, P.hor);

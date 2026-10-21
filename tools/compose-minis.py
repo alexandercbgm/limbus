@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Join each level's light and dark shots into minis/<id>.jpg: the light on the left, the dark on the right,
-split along the same diagonal as the hand-drawn miniatures. Usage: python3 tools/compose-minis.py <shots dir>"""
+split down the middle, as the hand-drawn miniatures are. Usage: python3 tools/compose-minis.py <shots dir>"""
 import pathlib
 import sys
 from PIL import Image, ImageDraw
@@ -19,7 +19,7 @@ def fit(im):
 
 
 mask = Image.new("L", (W, H), 0)
-ImageDraw.Draw(mask).polygon([(0, 0), (W * 0.62, 0), (W * 0.38, H), (0, H)], fill=255)
+ImageDraw.Draw(mask).rectangle([0, 0, W // 2 - 1, H], fill=255)
 for light in sorted(shots.glob("*_L.png")):
     lid = light.stem[:-2]
     dark = shots / f"{lid}_D.png"

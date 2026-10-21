@@ -5,12 +5,14 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"; root="$here/.."; out="$here/out"
 BT="$ANDROID_HOME/build-tools/35.0.0"; JAR="$ANDROID_HOME/platforms/android-34/android.jar"
 rm -rf "$out"; mkdir -p "$out/assets" "$out/classes" "$out/res"
-python3 "$root/build.py" >/dev/null
+python3 "$root/build.py" --no-music >/dev/null
 # the page loads three.js from the bundled copy instead of the CDN
 sed 's#https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js#three.min.js#' "$root/index.html" > "$out/assets/index.html"
 cp "$here/three.min.js" "$out/assets/"
+# the tracks as they are (192 kbps), not squeezed to fit an artifact; stored uncompressed so they stream from the APK
+mkdir -p "$out/assets/music" && cp "$root"/music/*.mp3 "$out/assets/music/"
 "$BT/aapt2" compile --dir "$here/res" -o "$out/res.zip"
-"$BT/aapt2" link -o "$out/base.apk" -I "$JAR" --manifest "$here/AndroidManifest.xml" -A "$out/assets" "$out/res.zip" --java "$out/gen" --auto-add-overlay
+"$BT/aapt2" link -o "$out/base.apk" -I "$JAR" --manifest "$here/AndroidManifest.xml" -A "$out/assets" "$out/res.zip" --java "$out/gen" --auto-add-overlay -0 mp3
 javac -g -source 8 -target 8 -nowarn -bootclasspath "$JAR" -classpath "$JAR" -d "$out/classes" $(find "$here/src" "$out/gen" -name '*.java') 2>&1 | grep -v "warning" || true
 "$BT/d8" --min-api 24 --lib "$JAR" --output "$out" $(find "$out/classes" -name '*.class')
 (cd "$out" && cp base.apk unsigned.apk && zip -q -u unsigned.apk classes.dex)

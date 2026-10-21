@@ -7,11 +7,15 @@ A track is addressed in the code by its file stem, e.g. music/seer_vahl.mp3 -> m
 To keep the page under the 16 MB artifact limit, tracks are re-encoded to MP3 at 56 kbps with ffmpeg before
 embedding (cached in .build/, the originals in music/ stay untouched). MP3 rather than AAC or Opus because every
 browser decodes it. Without ffmpeg the MP3s go in as they are.
+
+With --no-music the tracks are left out: the page then loads music/<stem>.mp3 next to it at full quality
+(the Android app ships them as files).
 """
 import base64
 import pathlib
 import shutil
 import subprocess
+import sys
 
 BITRATE = "56k"
 root = pathlib.Path(__file__).resolve().parent
@@ -32,7 +36,7 @@ def embedded(track):
 
 
 page = (root / "src" / "game.html").read_text(encoding="utf-8").rstrip("\n") + "\n"
-for track in sorted((root / "music").glob("*.mp3")):
+for track in [] if "--no-music" in sys.argv else sorted((root / "music").glob("*.mp3")):
     raw, kind = embedded(track)
     data = base64.b64encode(raw).decode("ascii")
     page += f'<script type="application/octet-stream" id="music-{track.stem}" data-type="{kind}">{data}</script>\n'

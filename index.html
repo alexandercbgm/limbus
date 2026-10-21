@@ -144,10 +144,18 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .station { cursor: pointer; outline: none; }
 .station .hit { fill: transparent; }
 .station:hover .ring, .station:focus-visible .ring { stroke-width: 7; }
-.howto { background: var(--frost); border: 1px solid var(--edge); border-radius: 6px; padding: 14px 18px; }
-.howto summary { cursor: pointer; font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; }
-.howto .rules { margin: 14px 0 6px; }
-.howto p { margin: 10px 0 0; color: #4c6470; line-height: 1.5; font-size: 14px; max-width: 70ch; }
+.map-tools { position: absolute; top: 12px; right: 14px; z-index: 1; display: flex; gap: 8px; }
+.map-tools .ibtn { border: 1px solid rgba(16, 36, 46, 0.22); border-radius: 4px; background: rgba(255, 255, 255, 0.75); cursor: pointer; }
+.map-tools .ibtn:hover { background: #ffffff; }
+.map-tools .ibtn:focus-visible { outline: 3px solid #1287b5; outline-offset: 2px; }
+.map-tools .lang { width: auto; padding: 0 10px 0 8px; display: flex; gap: 6px; font: 600 12px var(--mono); color: #7a8d95; }
+.map-tools .lang b { font-weight: 700; }
+.map-tools .globe { fill: none; }
+.map-tools .lang b.on { color: #10242e; }
+.how { z-index: 5; background: rgba(16, 36, 46, 0.28); }
+.how .panel { width: min(640px, 100%); }
+.how .panel p { font-size: 14px; margin-top: 8px; }
+.how .rules { margin: 16px 0 18px; }
 
 .m-side { display: grid; gap: 8px; justify-items: end; }
 .arms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
@@ -167,7 +175,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .wcard button { grid-column: 2; grid-row: 1 / span 2; width: auto; padding: 10px 14px; font-size: 12px; }
 @media (max-width: 480px) { .wcard { grid-template-columns: 1fr; } .wcard button { grid-column: 1; grid-row: auto; } .m-side { justify-items: start; } .arms { justify-content: flex-start; } }
 .sheet { z-index: 5; background: rgba(16, 36, 46, 0.28); }
-.sheet .panel { width: min(520px, 100%); }
+.sheet .panel { width: min(520px, 100%); padding: 22px 22px 20px; }
 .mini { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 4px; margin: 0 0 16px; background: #dfe7ea; }
 .sheet h1 small { display: block; font-family: var(--body); font-weight: 600; font-size: 15px; letter-spacing: 0; color: #4c6470; margin-top: 4px; }
 .feats { margin: 12px 0 0; padding-left: 18px; color: #4c6470; line-height: 1.5; font-size: 14px; }
@@ -187,18 +195,32 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   .bank { padding: 7px 10px; font-size: 12px; } .bank b { font-size: 15px; }
   .map-card { padding: 8px 6px; }
   .map-title { top: 10px; left: 12px; gap: 4px; font-size: 9.5px; }
-  .map-scroll #map { min-width: 0; height: calc(100dvh - 78px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); width: 100%; min-height: 430px; } /* a little taller than the screen: the menu scrolls, the labels stay readable */
+  .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); width: 100%; } /* the whole scheme on one screen */
   .overlay { padding-block: 8px; }
   .panel { padding: 16px 18px; }
   .panel h1 { font-size: 22px; margin-bottom: 6px; }
-  .sheet .panel { width: min(900px, 100%); display: grid; grid-template-columns: minmax(0, 42%) minmax(0, 1fr); column-gap: 18px; align-items: start; }
-  .sheet .panel > * { grid-column: 2; }
-  .sheet .mini { grid-column: 1; grid-row: 1 / span 9; margin: 0; }
+  .how .panel { width: min(760px, 100%); } .how .panel h1 { margin-bottom: 4px; } .how .panel p { font-size: 12.5px; line-height: 1.42; }
+  .how .rules { margin: 10px 0 12px; } .how .cta { padding-block: 10px; }
+  .map-tools { top: 7px; right: 8px; gap: 5px; } .map-tools .ibtn { width: 30px; height: 30px; } .map-tools .lang { width: auto; padding: 0 7px 0 5px; gap: 4px; font-size: 11px; }
+  .map-tools .ibtn svg { width: 19px; height: 19px; }
   .feats, .reqs li, .panel p { font-size: 13px; }
   .reqs { margin: 10px 0 12px; }
   .stats { margin: 10px 0; }
   .banner .bn-name { font-size: 34px; } .banner .bn-note { font-size: 13px; }
   .tc-name { font-size: 44px; }
+}
+/* landscape screens too low for the one-column station sheet: the shot on the left, the text on the right */
+@media (orientation: landscape) and (max-height: 860px) {
+  .sheet .panel { width: min(900px, 100%); display: grid; grid-template-columns: minmax(0, 42%) minmax(0, 1fr); column-gap: 18px; align-items: start; padding: 13px 16px; }
+  .sheet .panel > * { grid-column: 2; }
+  .sheet .mini { grid-column: 1; grid-row: 1 / span 9; margin: 0; align-self: center; } /* the shot sits midway down the sheet */
+  .sheet .eyebrow { margin-bottom: 6px; }
+  .sheet .panel h1 { font-size: 20px; margin-bottom: 4px; } .sheet h1 small { font-size: 13px; margin-top: 2px; }
+  .sheet .panel p, .sheet .feats, .sheet .reqs li { font-size: 12.5px; line-height: 1.42; }
+  .sheet .feats { margin-top: 8px; } .sheet .reqs { margin: 8px 0 10px; gap: 5px; }
+  .sheet .cta, .sheet .ghost { padding-block: 10px; }
+  .sheet .btns { gap: 7px; }
+  .sheet h1 small { display: inline; margin-left: 10px; }
 }
 .titlecard { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; text-align: center; }
 .titlecard > div { animation: banner 3.4s ease-out forwards; color: var(--ink); }
@@ -207,7 +229,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .tc-ru { font-size: 15px; letter-spacing: 0.08em; }
 </style>
 
-<canvas id="game" aria-label="Игровое поле: рельсы и стеклянные преграды"></canvas>
+<canvas id="game" aria-label="Игровое поле: рельсы и стеклянные преграды" data-en-aria="The playfield: rails and glass obstacles"></canvas>
 <div id="vignette"></div>
 <div id="flash"></div>
 
@@ -219,10 +241,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   </div>
   <div class="count" id="countWrap" aria-live="polite"><span class="ball" aria-hidden="true"></span><b id="count">30</b><span class="wpn" id="wpn">Ballista</span></div>
   <div class="mute-row">
-    <button class="mute ibtn" id="pauseBtn" type="button" aria-label="Пауза" title="Пауза (Esc)">
+    <button class="mute ibtn" id="pauseBtn" type="button" aria-label="Пауза" title="Пауза (Esc)" data-en-aria="Pause" data-en-title="Pause (Esc)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
     </button>
-    <button class="mute ibtn" id="mute" type="button" aria-pressed="false" aria-label="Звук" title="Звук">
+    <button class="mute ibtn snd" id="mute" type="button" aria-pressed="false" aria-label="Звук" title="Звук" data-en-aria="Sound" data-en-title="Sound">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/>
         <path class="snd-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke-width="2" stroke-linecap="round"/>
         <path class="snd-off" d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke-width="2" stroke-linecap="round"/></svg>
@@ -231,9 +253,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 </div>
 
 <div class="meter" id="meter" aria-hidden="true" hidden>
-  <span>Свет</span>
+  <span data-en="Light">Свет</span>
   <div class="track"><i class="mark" id="mark"></i></div>
-  <span>Тьма</span>
+  <span data-en="Dark">Тьма</span>
   <span class="trend" id="trend"></span>
 </div>
 
@@ -246,35 +268,52 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     <header class="m-head">
       <div>
         <h1 class="logo">LIMB<span>U</span>S</h1>
-        <p class="tagline">Рельсы между Светом и Тьмой. Выберите станцию на схеме.</p>
+        <p class="tagline" data-en="Rails between the Light and the Dark. Pick a station on the scheme.">Рельсы между Светом и Тьмой. Выберите станцию на схеме.</p>
       </div>
       <div class="m-side">
-        <div class="bank" title="Кристаллы, собранные на пройденных уровнях. Ими платят за проезд по веткам и оружие.">◆ <b id="bank">0</b> кристаллов в запасе</div>
-        <div class="arms" id="arms" role="group" aria-label="Пушка на вагонетке"></div>
+        <div class="bank" title="Кристаллы, собранные на пройденных уровнях. Ими платят за проезд по веткам и оружие." data-en-title="Crystals gathered on finished levels. They pay branch fares and buy cannons.">◆ <b id="bank">0</b> <span data-en="crystals in the bank">кристаллов в запасе</span></div>
+        <div class="arms" id="arms" role="group" aria-label="Пушка на вагонетке" data-en-aria="The cart's cannon"></div>
       </div>
     </header>
     <div class="map-card">
       <div class="map-title">
-        <span><i style="background:#1d6f8f"></i>Linea Ima · нижний путь</span>
-        <span><i style="background:#2f9a72"></i>Linea Summa · верхний путь</span>
-        <span><i style="background:#d0642a"></i>Linea Tao · путь Дао</span>
-        <span><i style="background:#7a4fa3"></i>Rami · тупиковые ветки</span>
+        <span><i style="background:#1d6f8f"></i><span data-en="Linea Ima · the lower line">Linea Ima · нижний путь</span></span>
+        <span><i style="background:#2f9a72"></i><span data-en="Linea Summa · the upper line">Linea Summa · верхний путь</span></span>
+        <span><i style="background:#d0642a"></i><span data-en="Linea Tao · the way of Tao">Linea Tao · путь Дао</span></span>
+        <span><i style="background:#7a4fa3"></i><span data-en="Rami · dead-end branches">Rami · тупиковые ветки</span></span>
       </div>
-      <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней"></svg></div>
+      <div class="map-tools">
+        <button class="ibtn snd" id="mapMute" type="button" aria-pressed="false" aria-label="Звук" title="Звук" data-en-aria="Sound" data-en-title="Sound">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/>
+            <path class="snd-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke-width="2" stroke-linecap="round"/>
+            <path class="snd-off" d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="ibtn lang" id="langBtn" type="button" aria-label="Язык: русский" title="Язык" data-en-aria="Language: English" data-en-title="Language">
+          <svg class="globe" viewBox="0 0 24 24" aria-hidden="true" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.5 12h17M5.2 7.5h13.6M5.2 16.5h13.6"/></svg>
+          <span><b data-l="ru">Ru</b>/<b data-l="en">En</b></span>
+        </button>
+        <button class="ibtn" id="howBtn" type="button" aria-label="Как играть" title="Как играть" data-en-aria="How to play" data-en-title="How to play">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke-width="1.8"/><circle cx="12" cy="7.6" r="1.4" stroke="none"/><path d="M12 11v6.2" fill="none" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
-    <details class="howto">
-      <summary>Как играть</summary>
-      <p>Вагонетка с пушкой сама катится по рельсам. Кликайте или тапайте, чтобы стрелять стальными шарами по стеклу раньше, чем врежетесь. Пробел стреляет в центр экрана.</p>
-      <p><b>Очки тянут вверх, к Свету:</b> рельсы уходят в гору, мир светлеет. У Света подъём тяжёлый, но преград мало, а кристаллы щедрее. <b>Урон тянет вниз, во Тьму:</b> мир темнеет через серый к чёрно-красному. Из Тьмы выбраться легко, но там больше козней: из стен выдвигаются шипы, летают бесы, попадаются красные кристаллы-ловушки. Зато голубой кристалл во Тьме даёт втрое больше шаров.</p>
-      <p>В конце каждого уровня — свой финал на 20 секунд: <b>Iudicium</b> с печатями и множителем, <b>Ruina</b> с обвалом глыб, <b>Pluvia</b> с дождём кристаллов, <b>Portae</b> со стеклянными вратами. Затем станция прибытия.</p>
-      <p>Собранные кристаллы уходят в запас и переносятся дальше. Ими платят за проезд по тупиковым веткам (в Thesaurus кристаллов вдвое больше, чем обычно) и за новые пушки на складе Armamentarium. От Vitrum к Abyssus ведут две ветки: нижняя, Linea Ima, через Rubinus, и верхняя, Linea Summa, через Labyrinthus и Speculum. Хватит пройти одну. От Speculum к Lux ведёт ещё и Linea Tao через Дао.</p>
-      <ul class="rules">
-        <li><b>−1</b>шар за выстрел</li>
-        <li><b>+3…6</b>за голубой кристалл, за каждый попавший шар</li>
-        <li><b>−6</b>за удар о стекло или шип</li>
-        <li><b>−3</b>красный кристалл и бесы</li>
-      </ul>
-    </details>
+  </div>
+</section>
+
+<section class="overlay how" id="how" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="howTitle">
+    <h1 id="howTitle" data-en="How to play">Как играть</h1>
+    <p data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it; Space fires at the centre.">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь; пробел стреляет в центр.</p>
+    <p data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and crystals pay more, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystals and red decoys, yet a blue crystal there gives three times the balls."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, кристаллы щедрее, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы и красные ловушки, зато голубой кристалл даёт втрое больше шаров.</p>
+    <p data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons at Armamentarium. Two lines lead to Abyssus, one is enough; Lux can also be reached through Tao.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки и за пушки в Armamentarium. К Abyssus ведут две линии, хватит одной; к Lux можно доехать и через Tao.</p>
+    <ul class="rules">
+      <li><b>−1</b><span data-en="ball a shot">шар за выстрел</span></li>
+      <li><b>+3…6</b><span data-en="a blue crystal, for every ball that hits">голубой кристалл, за каждый попавший шар</span></li>
+      <li><b>−6</b><span data-en="crashing into glass or a spike">удар о стекло или шип</span></li>
+      <li><b>−3</b><span data-en="a red or black-red crystal">красный или чёрно-красный кристалл</span></li>
+    </ul>
+    <button class="cta" id="howClose" type="button" data-en="Got it">Понятно</button>
   </div>
 </section>
 
@@ -294,28 +333,28 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 <section class="overlay" id="pause" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
     <p class="eyebrow" id="pauseEyebrow">Станция I · Initium</p>
-    <h1 id="pauseTitle">Пауза</h1>
+    <h1 id="pauseTitle" data-en="Paused">Пауза</h1>
     <p id="pauseNote"></p>
     <div class="btns" style="margin-top: 20px">
-      <button class="cta" id="resumeBtn" type="button">Продолжить</button>
+      <button class="cta" id="resumeBtn" type="button" data-en="Continue">Продолжить</button>
       <button class="ghost" id="pauseRetry" type="button">Ещё раз</button>
-      <button class="ghost" id="pauseMenu" type="button">В меню</button>
+      <button class="ghost" id="pauseMenu" type="button" data-en="To the scheme">В меню</button>
     </div>
   </div>
 </section>
 
 <section class="overlay" id="over" hidden>
   <div class="panel">
-    <p class="eyebrow">Шары закончились</p>
+    <p class="eyebrow" data-en="Out of balls">Шары закончились</p>
     <h1 id="overTitle">Пройдено 0% пути</h1>
     <p id="overNote">Стреляйте по голубым кристаллам: они возвращают шары.</p>
     <div class="stats">
-      <div class="stat"><span>Очки</span><b id="oScore">0</b></div>
-      <div class="stat"><span>Разбито стёкол</span><b id="oBroken">0</b></div>
+      <div class="stat"><span data-en="Score">Очки</span><b id="oScore">0</b></div>
+      <div class="stat"><span data-en="Glass broken">Разбито стёкол</span><b id="oBroken">0</b></div>
     </div>
     <div class="btns">
       <button class="cta" id="retryBtn" type="button">Ещё раз</button>
-      <button class="ghost" id="overMenu" type="button">На схему</button>
+      <button class="ghost" id="overMenu" type="button" data-en="To the scheme">На схему</button>
     </div>
   </div>
 </section>
@@ -326,17 +365,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     <h1 id="winTitle">Вы доехали до Небес</h1>
     <p id="winNote"></p>
     <div class="stats">
-      <div class="stat"><span>Очки</span><b id="wScore">0</b></div>
-      <div class="stat"><span>Осталось шаров</span><b id="wBalls">0</b></div>
-      <div class="stat"><span>Кристаллов в запас</span><b id="wCrystals">0</b></div>
+      <div class="stat"><span data-en="Score">Очки</span><b id="wScore">0</b></div>
+      <div class="stat"><span data-en="Balls left">Осталось шаров</span><b id="wBalls">0</b></div>
+      <div class="stat"><span data-en="Crystals banked">Кристаллов в запас</span><b id="wCrystals">0</b></div>
       <div class="stat"><span id="wSuperName">Финал</span><b id="wSuper">×1</b></div>
-      <div class="stat"><span>Точность</span><b id="wAcc">0%</b></div>
-      <div class="stat"><span>Лучший результат</span><b id="wBest">0</b></div>
+      <div class="stat"><span data-en="Accuracy">Точность</span><b id="wAcc">0%</b></div>
+      <div class="stat"><span data-en="Best">Лучший результат</span><b id="wBest">0</b></div>
     </div>
     <div class="btns">
       <button class="cta" id="nextBtn" type="button">Дальше</button>
       <button class="ghost" id="againBtn" type="button">Ещё раз</button>
-      <button class="ghost" id="winMenu" type="button">На схему</button>
+      <button class="ghost" id="winMenu" type="button" data-en="To the scheme">На схему</button>
     </div>
   </div>
 </section>
@@ -353,15 +392,25 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // along s a level is: the main run, then the Iudicium finale, then the arrival station; the cart stops at END_S
   const SUPER_LEN = 260, STATION_LEN = 40;
   let MAIN_LEN = 1500, SUPER_END = MAIN_LEN + SUPER_LEN, END_S = SUPER_END + STATION_LEN;
-  // background tracks, embedded as base64 at the end of the file by build.py
+  // the language: Russian or English, remembered; at first whatever the device speaks
+  let LANG = (() => { try { const l = localStorage.getItem("limbus-lang"); if (l === "ru" || l === "en") return l; } catch (e) { /* storage unavailable */ }
+    return /^(ru|be|uk|kk)/i.test(navigator.language || "") ? "ru" : "en"; })();
+  const T = (ru, en) => LANG === "en" ? en : ru;
+  // background tracks: embedded as base64 at the end of the file by build.py, or (the Android app) files in music/
   const musicCache = {};
   function musicBytes(id) {
     if (musicCache[id]) return musicCache[id];
     const el = document.getElementById("music-" + id);
-    if (!el) return null;
-    const bin = atob(el.textContent.replace(/\s+/g, "")), out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return (musicCache[id] = out);
+    if (el) {
+      const bin = atob(el.textContent.replace(/\s+/g, "")), out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return (musicCache[id] = Promise.resolve(out));
+    }
+    return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3`); x.responseType = "arraybuffer";
+      x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
+      x.onerror = () => done(null); x.send();
+    }));
   }
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -485,8 +534,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // ---------- sound: synthesized effects + background track ----------
   const Sound = {
-    ctx: null, master: null, muted: false, noise: null, music: null, musicLP: null, musicGain: null, fallback: null,
-    buffers: {}, elements: {}, track: null, want: null,
+    ctx: null, master: null, muted: (() => { try { return !!localStorage.getItem("limbus-muted"); } catch (e) { return false; } })(), noise: null, music: null, musicLP: null, musicGain: null, fallback: null,
+    buffers: {}, elements: {}, track: null, want: "seer_vahl", // the menu plays the first level's track until a level is run
     init() {
       if (this.ctx) { if (this.ctx.state === "suspended") this.ctx.resume(); this.play(this.want); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -511,8 +560,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       this.track = id;
       if (this.music) { try { this.music.stop(); } catch (e) { /* already stopped */ } this.music = null; }
       if (this.fallback) { this.fallback.pause(); this.fallback = null; }
-      const bytes = musicBytes(id);
-      if (!bytes) return;
+      const bytes = await musicBytes(id);
+      if (!bytes || this.track !== id) return;
       try {
         if (!this.ctx) throw new Error("no webaudio");
         const buf = this.buffers[id] || (this.buffers[id] = await this.ctx.decodeAudioData(bytes.buffer.slice(0)));
@@ -522,7 +571,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         this.music = src;
       } catch (e) {
         // no WebAudio decoding: play the track through a plain audio element instead (no karma filter then)
-        const type = document.getElementById("music-" + id).dataset.type || "audio/mpeg"; // the media type build.py embedded
+        const el = document.getElementById("music-" + id), type = (el && el.dataset.type) || "audio/mpeg"; // the media type build.py embedded
         const a = this.elements[id] || (this.elements[id] = new Audio(URL.createObjectURL(new Blob([bytes], { type }))));
         a.loop = true; a.volume = this.muted ? 0 : 0.45; a.currentTime = 0; a.play().catch(() => {});
         this.fallback = a;
@@ -537,6 +586,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     },
     setMuted(m) {
       this.muted = m;
+      try { localStorage.setItem("limbus-muted", m ? "1" : ""); } catch (e) { /* storage unavailable */ }
       if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.8, this.ctx.currentTime, 0.05);
       if (this.fallback) this.fallback.volume = m ? 0 : 0.45;
     },
@@ -1242,7 +1292,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     g.fillStyle = "#f4fbfc"; g.textBaseline = "middle"; g.textAlign = "center";
     g.font = "700 112px Unbounded, 'Arial Black', sans-serif"; g.fillText(lv.latin.toUpperCase(), 512, 112);
     g.font = "700 30px 'JetBrains Mono', monospace"; g.fillStyle = "#9fb7c1";
-    g.fillText(`STATIO · СТАНЦИЯ «${lv.ru.toUpperCase()}»`, 512, 196);
+    g.fillText(T(`STATIO · СТАНЦИЯ «${lv.ru.toUpperCase()}»`, `STATIO · STATION “${lv.ru.toUpperCase()}”`), 512, 196);
     const t = new THREE.CanvasTexture(c); t.anisotropy = renderer.capabilities.getMaxAnisotropy();
     return t;
   }
@@ -1805,7 +1855,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     scene.attach(hg.body); scene.remove(hg.root);
     frameAt(hg.s);
     hg.fv.copy(_R).multiplyScalar(hg.omega * hg.arm).addScaledVector(_U, 0.5);
-    addScore(25); karmaGain(0.05); pop("Путь свободен", "info");
+    addScore(25); karmaGain(0.05); pop(T("Путь свободен", "The way is clear"), "info");
   }
   function hitBody(hg, at, vel) {
     // a hit knocks the slab sideways, the way the ball was flying
@@ -1928,14 +1978,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     g.strokeStyle = "#f4fbfc"; g.lineWidth = 10; g.beginPath(); g.arc(w / 2, h / 2, w / 2 - 14, 0, TAU); g.stroke();
     g.fillStyle = "#f4fbfc"; g.beginPath(); g.moveTo(70, 108); g.lineTo(150, 108); g.lineTo(150, 72); g.lineTo(200, 128); g.lineTo(150, 184); g.lineTo(150, 148); g.lineTo(70, 148); g.closePath(); g.fill();
   }, 256, 256);
-  const signTex = {
-    rich: plateTexture((g, w, h) => { g.fillStyle = "#10242e"; g.fillRect(0, 0, w, h); g.fillStyle = "#7fd3ff"; g.fillRect(0, h - 10, w, 10);
-      g.fillStyle = "#f4fbfc"; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "700 52px Unbounded, 'Arial Black', sans-serif"; g.fillText("◆◆ БОГАТАЯ", w / 2, 50);
-      g.font = "700 24px 'JetBrains Mono', monospace"; g.fillStyle = "#9fb7c1"; g.fillText("КРИСТАЛЛОВ ВДВОЕ · СТЕКЛА ГУЩЕ", w / 2, 102); }, 640, 140),
-    calm: plateTexture((g, w, h) => { g.fillStyle = "#10242e"; g.fillRect(0, 0, w, h); g.fillStyle = "#9fb7c1"; g.fillRect(0, h - 10, w, 10);
-      g.fillStyle = "#f4fbfc"; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "700 52px Unbounded, 'Arial Black', sans-serif"; g.fillText("ТИХАЯ", w / 2, 50);
-      g.font = "700 24px 'JetBrains Mono', monospace"; g.fillStyle = "#9fb7c1"; g.fillText("ПРЕПЯТСТВИЙ МАЛО · КРИСТАЛЛОВ ПОЧТИ НЕТ", w / 2, 102); }, 640, 140),
-  };
+  // the switch signs, painted once per language
+  const SIGNS = { rich: ["#7fd3ff", ["◆◆ БОГАТАЯ", "◆◆ RICH"], ["КРИСТАЛЛОВ ВДВОЕ · СТЕКЛА ГУЩЕ", "TWICE THE CRYSTALS · DENSER GLASS"]],
+    calm: ["#9fb7c1", ["ТИХАЯ", "QUIET"], ["ПРЕПЯТСТВИЙ МАЛО · КРИСТАЛЛОВ ПОЧТИ НЕТ", "FEW OBSTACLES · HARDLY ANY CRYSTALS"]] };
+  const signTexes = {};
+  function signTex(kind) {
+    const key = kind + LANG, [bar, head, sub] = SIGNS[kind];
+    return signTexes[key] || (signTexes[key] = plateTexture((g, w, h) => { g.fillStyle = "#10242e"; g.fillRect(0, 0, w, h); g.fillStyle = bar; g.fillRect(0, h - 10, w, 10);
+      g.fillStyle = "#f4fbfc"; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "700 52px Unbounded, 'Arial Black', sans-serif"; g.fillText(T(...head), w / 2, 50);
+      g.font = "700 24px 'JetBrains Mono', monospace"; g.fillStyle = "#9fb7c1"; g.fillText(T(...sub), w / 2, 102); }, 640, 140));
+  }
   const discGeo = new THREE.CircleGeometry(0.8, 40), signGeo = new THREE.PlaneGeometry(2.8, 0.62);
   function buildForks() {
     forks.forEach(f => { scene.remove(f.sw); f.signs.forEach(o => scene.remove(o.mesh)); });
@@ -1945,7 +1997,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const rim = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.05, 8, 40), accentMat); sw.add(rim);
       scene.add(sw);
       const rich = Math.random() < 0.5 ? 1 : -1, kinds = { [rich]: "rich", [-rich]: "calm" };
-      const signs = [1, -1].map(side => { const m = new THREE.Mesh(signGeo, new THREE.MeshBasicMaterial({ map: signTex[kinds[side]] })); /* front side only: never read mirrored */ m.matrixAutoUpdate = false; scene.add(m); return { side, mesh: m }; });
+      const signs = [1, -1].map(side => { const m = new THREE.Mesh(signGeo, new THREE.MeshBasicMaterial({ map: signTex(kinds[side]) })); /* front side only: never read mirrored */ m.matrixAutoUpdate = false; scene.add(m); return { side, mesh: m }; });
       return { s: fs, sign: Math.random() < 0.5 ? 1 : -1, kinds, locked: false, sw, disc, signs, cd: 0, wp: new THREE.Vector3() };
     });
   }
@@ -1968,7 +2020,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (f.locked || f.cd > 0) return;
     f.sign = -f.sign; f.cd = 0.25;
     Sound.clink(); Sound.tone(420, 0.12, 0.1, "square", 0, 620);
-    pop(f.kinds[f.sign] === "rich" ? "← богатая ветка →" : "← тихая ветка →", "info");
+    pop(f.kinds[f.sign] === "rich" ? T("← богатая ветка →", "← rich branch →") : T("← тихая ветка →", "← quiet branch →"), "info");
   }
   function branchAt(s) {
     for (const f of forks) if (f.locked && s > f.s && s < f.s + 260) return f.kinds[f.sign];
@@ -2005,18 +2057,18 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     chips(at || b.B, bushMat, 12, tmpV2.set(0, -2, 0)); Sound.clink(); Sound.tone(160, 0.12, 0.12, "square", 0, 60);
     const lost = b.fruit.filter(c => c.alive).length;
     for (const c of b.fruit) if (c.alive) { c.alive = false; scene.remove(c.group); }
-    pop(lost ? `ветка сломана · −${lost} ◆ упало` : "ветка сломана", "info");
+    pop(lost ? T(`ветка сломана · −${lost} ◆ упало`, `bough broken · −${lost} ◆ fell`) : T("ветка сломана", "bough broken"), "info");
   }
   function lashCart(b) {
     b.hitCart = true;
     balls = Math.max(0, balls - 3); updateCount(); karmaLoss(0.1);
-    chips(b.B, bushMat, 14, tmpV2.set(0, 0, 0)); Sound.crash(); flash(); pop("−3 · ветка", "loss");
+    chips(b.B, bushMat, 14, tmpV2.set(0, 0, 0)); Sound.crash(); flash(); pop(T("−3 · ветка", "−3 · bough"), "loss");
     if (!reduceMotion) shakeT = 0.3;
   }
   // the bough's crystals that were all picked: in the Vindemia finale a whole bough pays a bonus
   function pickFruit(c) {
     const b = c.bough; b.picked++;
-    if (b.harvest && b.picked === b.fruit.length) { harvested++; bestCombo = Math.max(bestCombo, harvested); balls += 3; superGain += 3; updateCount(); updateCombo(); pop("+3 · вся ветка", "gain"); }
+    if (b.harvest && b.picked === b.fruit.length) { harvested++; bestCombo = Math.max(bestCombo, harvested); balls += 3; superGain += 3; updateCount(); updateCombo(); pop(T("+3 · вся ветка", "+3 · whole bough"), "gain"); }
   }
   function updateBoughs(dt) {
     for (const b of boughs) {
@@ -2083,10 +2135,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const beamHitsCart = (ax, ay, bx, by) => CART_PTS.some(([u, v]) => segDist2(u, v, ax, ay, bx, by) < 0.22);
   function laserHit() {
     balls = Math.max(0, balls - LASER_COST); updateCount(); karmaLoss(0.1);
-    Sound.burn(); flash(); pop("−" + LASER_COST + " · ожог", "loss");
+    Sound.burn(); flash(); pop("−" + LASER_COST + T(" · ожог", " · burn"), "loss");
     if (!reduceMotion) shakeT = 0.25;
   }
-  function laserOut(at, mat = recessMat) { Sound.shatter(0.5); Sound.tone(800, 0.15, 0.1, "square", 0, 200); chips(at, mat, 10, tmpV2.set(0, 1, 0)); addScore(20); karmaGain(0.03); pop("лазер погашен", "info"); }
+  function laserOut(at, mat = recessMat) { Sound.shatter(0.5); Sound.tone(800, 0.15, 0.1, "square", 0, 200); chips(at, mat, 10, tmpV2.set(0, 1, 0)); addScore(20); karmaGain(0.03); pop(T("лазер погашен", "laser out"), "info"); }
 
   // the mill: hub along the track, cones pointing out from it, a glowing recess in each cone's end
   let spinners = [];
@@ -2207,7 +2259,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function breakRamChain(r, c, at) {
     c.alive = false; c.mesh.visible = false; Sound.clink(); Sound.tone(900, 0.12, 0.08, "square", 0, 300); chips(at, chainMat, 8, tmpV2.set(0, 2, 0)); addScore(15);
     r.hit = true; // a ram with a chain shot through is harmless from then on
-    if (r.chains.every(x => !x.alive)) { r.falling = true; karmaGain(0.04); pop("таран сбит", "info"); return; }
+    if (r.chains.every(x => !x.alive)) { r.falling = true; karmaGain(0.04); pop(T("таран сбит", "ram down"), "info"); return; }
     r.one = r.chains.find(x => x.alive); // the log swings down to hang end-on from the other chain, clear of the floor
   }
   // a hammer mill turns in a gap of the wall: handles out of a hub, a heavy head on each; shoot a handle to break it off
@@ -2232,7 +2284,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function breakHandle(m, arm, at) {
     arm.alive = false; arm.grp.visible = false; Sound.shatter(0.5); Sound.tone(200, 0.15, 0.12, "square", 0, 90); chips(at, woodMat, 10, tmpV2.set(0, 1, 0)); chips(arm.H, ramMat, 12, tmpV2.set(0, -2, 0));
-    addScore(15); karmaGain(0.03); pop("молот сбит", "info");
+    addScore(15); karmaGain(0.03); pop(T("молот сбит", "hammer down"), "info");
   }
   function crushed(what) {
     balls = Math.max(0, balls - RAM_COST); updateCount(); karmaLoss(0.15);
@@ -2265,7 +2317,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       r.root.updateMatrixWorld(true);
       for (const c of r.chains) { c.A.set(c.x, 0, 0); r.root.localToWorld(c.A); c.B.set(c.x + du * (1 - RAM_R / RAM_L), dv * (1 - RAM_R / RAM_L), 0); r.root.localToWorld(c.B); }
       const inner = r.side * RAM_U + du - r.side * RAM_LEN / 2, rv = H - 0.1 + dv; // the end nearest the rails
-      if (state === "play" && !r.hit && Math.abs(r.s - sC) < RAM_R + 0.7 && r.side * inner < 1.2 && rv - RAM_R < 2.4) { r.hit = true; crushed("таран"); }
+      if (state === "play" && !r.hit && Math.abs(r.s - sC) < RAM_R + 0.7 && r.side * inner < 1.2 && rv - RAM_R < 2.4) { r.hit = true; crushed(T("таран", "ram")); }
       if (r.s < sC - 8) { r.dead = true; scene.remove(r.root); }
     }
     rams = rams.filter(r => !r.dead);
@@ -2276,7 +2328,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         arm.A.set(0, 0.3, 0); arm.grp.localToWorld(arm.A); arm.B.set(0, HM_L - 0.8, 0); arm.grp.localToWorld(arm.B); // the handle stops short of the head arm.H.set(0, HM_L, 0); arm.grp.localToWorld(arm.H);
         if (arm.alive && state === "play" && !m.hit && Math.abs(m.s - sC) < 0.8) {
           const a = m.a + arm.ang + Math.PI / 2, hu = m.hu + Math.cos(a) * HM_L, hv = m.hv + Math.sin(a) * HM_L;
-          if (CART_PTS.some(([u, v]) => Math.hypot(u - hu, v - hv) < 0.95)) { m.hit = true; crushed("молот"); }
+          if (CART_PTS.some(([u, v]) => Math.hypot(u - hu, v - hv) < 0.95)) { m.hit = true; crushed(T("молот", "hammer")); }
         }
       }
       if (m.s < sC - 6) { m.dead = true; scene.remove(m.root); }
@@ -2434,14 +2486,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const w = lf.wt; if (w.down) return;
     w.down = true; lf.opening = true; w.ch.visible = false;
     Sound.clink(); Sound.tone(260, 0.2, 0.1, "square", 0, 120); addScore(10);
-    if (g.leaves.every(l => l.wt.down)) { balls += 2; updateCount(); karmaGain(0.04); pop("+2 · ворота открыты", "gain"); }
+    if (g.leaves.every(l => l.wt.down)) { balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); }
   }
   function pressButton(bt) {
     if (bt.pressed) return;
     bt.pressed = true; bt.alive = false; bt.cap.material = Array.isArray(bt.cap.material) ? [frameMat, pressedMat, frameMat] : pressedMat; if (bt.glow.material === domeGlow) bt.glow.visible = false; bt.glow.material = pressedGlow; bt.spin = 14; bt.prop.traverse(m => { if (m.isMesh) m.material = pressedMat; });
     Sound.clink(); Sound.tone(520, 0.1, 0.1, "square", 0, 880); addScore(10);
     const g = bt.gate;
-    if (g.buttons.every(b => b.pressed)) { g.opening = true; balls += 2; updateCount(); karmaGain(0.04); pop("+2 · ворота открыты", "gain"); Sound.tone(180, 0.5, 0.12, "sawtooth", 0, 90); }
+    if (g.buttons.every(b => b.pressed)) { g.opening = true; balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); Sound.tone(180, 0.5, 0.12, "sawtooth", 0, 90); }
   }
   // the leaf still covering the point (x, y) of the gate's plane, or null
   function gateLeafAt(g, x, y) {
@@ -2458,7 +2510,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     lf.hp--; Sound.clink(); chips(at, doorMat, 5, vel);
     if (lf.hp > 0) { lf.m.scale.setScalar(0.97); crackLeaf(lf, gx - lf.m.position.x, gy - lf.m.position.y); return; }
     lf.broken = true; lf.m.visible = false; Sound.shatter(1.2); chips(at, doorMat, 26, vel); addScore(20);
-    pop("створка разбита", "info");
+    pop(T("створка разбита", "leaf broken"), "info");
   }
   // cracks spread from where the ball struck, drawn on both faces of the leaf, like on cracked glass panes
   function crackLeaf(lf, lx, ly) {
@@ -2514,7 +2566,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (g.kind === "iris" || g.kind === "taiji" ? g.pr < 0.75 : way.some(lf => !lf.broken && lf.pr < 0.6)) {
           g.opening = true; g.pr = Math.max(g.pr, 0.5); g.leaves.forEach(lf => { lf.pr = Math.max(lf.pr, 0.5); });
           balls = Math.max(0, balls - GATE_COST); updateCount(); karmaLoss(0.15);
-          Sound.slam(); flash(); pop("−" + GATE_COST + " · ворота", "loss"); if (!reduceMotion) shakeT = 0.45;
+          Sound.slam(); flash(); pop("−" + GATE_COST + T(" · ворота", " · gate"), "loss"); if (!reduceMotion) shakeT = 0.45;
         }
       }
       if (g.s < sC - 8) { g.dead = true; scene.remove(g.root); }
@@ -2572,8 +2624,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       lastYY = c.yy; yyRow++; let gain = 2;
       if (yyRow % 4 === 0) { gain += 3; wavesDone++; bestCombo = Math.max(bestCombo, yyRow); }
       stats.crystals++; addScore(30); Sound.crystal(c.yy ? 2 : 6); chips(c.wp, c.yy ? yangMat : yinMat, 10, b.v);
-      balls += gain; superGain += gain; updateCount(); updateCombo(); pop(gain > 2 ? `+${gain} · четыре подряд` : "+2", "gain");
-    } else { lastYY = c.yy; yyRow = 0; balls = Math.max(0, balls - 1); updateCount(); updateCombo(); Sound.clink(); pop("−1 · тот же цвет", "loss"); }
+      balls += gain; superGain += gain; updateCount(); updateCombo(); pop(gain > 2 ? T(`+${gain} · четыре подряд`, `+${gain} · four in a row`) : "+2", "gain");
+    } else { lastYY = c.yy; yyRow = 0; balls = Math.max(0, balls - 1); updateCount(); updateCombo(); Sound.clink(); pop(T("−1 · тот же цвет", "−1 · same colour"), "loss"); }
   }
   function updateWheels(dt) {
     for (const w of wheels) {
@@ -2585,7 +2637,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function pickWheel(c) {
     const w = c.wheel; if (c.decoy) return;
-    if (--w.left === 0) { wheelsDone++; bestCombo = Math.max(bestCombo, wheelsDone); balls += 5; superGain += 5; updateCount(); updateCombo(); pop("+5 · колесо", "gain"); }
+    if (--w.left === 0) { wheelsDone++; bestCombo = Math.max(bestCombo, wheelsDone); balls += 5; superGain += 5; updateCount(); updateCombo(); pop(T("+5 · колесо", "+5 · wheel"), "gain"); }
   }
 
   // ---------- Portae: the Labyrinthus finale ----------
@@ -2602,7 +2654,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function openGate(gate, vel) {
     for (const p of gate) if (p.alive) shatter(p, 0, 0, { x: 0, y: 0, z: 12 });
     gatesInRow++; bestCombo = Math.max(bestCombo, gatesInRow);
-    if (gatesInRow % 3 === 0) { balls += 3; superGain += 3; updateCount(); pop("+3 · трое врат подряд", "gain"); }
+    if (gatesInRow % 3 === 0) { balls += 3; superGain += 3; updateCount(); pop(T("+3 · трое врат подряд", "+3 · three gates in a row"), "gain"); }
     updateCombo(); Sound.thickGlass();
   }
 
@@ -2643,7 +2695,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     stats.crystals++; addScore(both ? 120 : 40); karmaGain(0.03);
     if (both) { pairsDone++; bestCombo = Math.max(bestCombo, pairsDone); updateCombo(); }
     Sound.crystal(both ? 6 : 4); chips(g.wp, crystalMat, 10, b.v);
-    award(b, g.wp, 0.85, h => { const gain = h + (both ? 4 : 0); balls += gain; superGain += gain; updateCount(); updateCombo(); pop(both ? `+${gain} · пара` : "+" + gain, "gain"); });
+    award(b, g.wp, 0.85, h => { const gain = h + (both ? 4 : 0); balls += gain; superGain += gain; updateCount(); updateCombo(); pop(both ? T(`+${gain} · пара`, `+${gain} · pair`) : "+" + gain, "gain"); });
   }
   function hitSigil(g, b) {
     if (g.pair) return hitPairSigil(g, b);
@@ -2668,7 +2720,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const countEl = $("count"), countWrap = $("countWrap"), progEl = $("prog"), zoneEl = $("zone"), scoreEl = $("score"), flashEl = $("flash");
   const markEl = $("mark"), trendEl = $("trend"), vignetteEl = $("vignette");
   function updateCount() { countEl.textContent = balls; countWrap.classList.toggle("low", balls <= 6); }
-  function updateScore() { scoreEl.textContent = score.toLocaleString("ru-RU"); }
+  function updateScore() { scoreEl.textContent = score.toLocaleString(T("ru-RU", "en-US")); }
   function pop(text, kind) {
     const el = document.createElement("div");
     el.className = "pop " + kind; el.textContent = text;
@@ -2676,11 +2728,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     document.body.appendChild(el);
   }
   function flash(gain) { flashEl.classList.remove("on", "gain"); void flashEl.offsetWidth; if (gain) flashEl.classList.add("gain"); flashEl.classList.add("on"); }
-  const ZONES = [[0.7, "Свет"], [0.3, "Небеса"], [-0.2, "Чистилище"], [-0.6, "Сумерки"], [-2, "Тьма"]];
-  function zoneName(a) { for (const [t, n] of ZONES) if (a >= t) return n; return "Тьма"; }
+  const ZONES = [[0.7, "Свет", "Light"], [0.3, "Небеса", "Heaven"], [-0.2, "Чистилище", "Purgatory"], [-0.6, "Сумерки", "Twilight"], [-2, "Тьма", "Dark"]];
+  function zoneIdx(a) { const i = ZONES.findIndex(([t]) => a >= t); return i < 0 ? ZONES.length - 1 : i; }
+  function zoneName(a) { const z = ZONES[zoneIdx(a)]; return T(z[1], z[2]); }
   function updateCombo() {
     const f = LEVEL.finale;
-    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : f === "reflexio" ? "пары " + pairsDone : f === "vindemia" ? "ветви " + harvested : f === "rota" ? "колёса " + wheelsDone : f === "custodes" || f === "fragmenta" ? "волны " + wavesDone : f === "tessera" ? "подряд " + tessRow : f === "taiji" ? "подряд " + yyRow : "+" + superGain;
+    const row = T("подряд ", "in a row ");
+    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? T("серия ", "run ") + streak : f === "portae" ? row + gatesInRow : f === "reflexio" ? T("пары ", "pairs ") + pairsDone : f === "vindemia" ? T("ветви ", "boughs ") + harvested : f === "rota" ? T("колёса ", "wheels ") + wheelsDone : f === "custodes" || f === "fragmenta" ? T("волны ", "waves ") + wavesDone : f === "tessera" ? row + tessRow : f === "taiji" ? row + yyRow : "+" + superGain;
   }
   function showOverlay(id, html, ms) {
     const el = $(id); el.innerHTML = html; el.hidden = false;
@@ -2702,7 +2756,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   };
   // a ride through Hortus finds the gardeners' spare cannon: Gemini then costs half at the depot
   const priceOf = id => id === "gemini" && progress.done.hortus ? WEAPONS.gemini.price / 2 : WEAPONS[id].price;
-  const ballsWord = n => n === 1 ? "шар" : n < 5 ? "шара" : "шаров";
+  const ballsWord = n => T(n === 1 ? "шар" : n < 5 ? "шара" : "шаров", n === 1 ? "ball" : "balls");
   // The first ball of a shot takes the target; for a moment its spot keeps catching the other balls of the same
   // shot (Gemini's pair, Triplex's three), then the target pays its value times the balls that hit it.
   let pendingHits = [];
@@ -2876,7 +2930,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[105, 60, 50], [225, 70, -80], [350, 50, 40], [455, 80, -65], [585, 60, 70], [700, 50, -45], [775, 50, 45],
         [880, 90, -100], [1040, 60, 60], [1150, 50, -40], [1240, 60, 55], [1350, 55, -35]],
       desc: "Знакомство с рельсами. Белые залы с квадратными арками, первые стёкла и первый спуск во Тьму.",
-      feats: ["Квадратные арки, сплошные стены и парящие кубы", "Стекло, кристаллы, бесы и шипы во Тьме", "Финал Iudicium: печати и множитель"],
+      feats: ["Квадратные арки, сплошные стены и парящие кубы", "Стекло, голубые и чёрно-красные кристаллы, шипы во Тьме", "Финал Iudicium: печати и множитель"],
       req: {}, map: { x: 90, y: 330, label: "t" } },
     { id: "thesaurus", num: "I·a", latin: "Thesaurus", ru: "Сокровищница", line: "branch", playable: true, music: "luminous_glass", len: 900, pal: PAL_AURUM, finale: "pluvia",
       style: { arch: "ring", blocks: "coin", glassWalls: false }, crystalMul: 2.2,
@@ -2884,7 +2938,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 40], [200, 60, -60], [320, 50, 50], [430, 70, -80], [560, 50, 45], [660, 50, -45], [760, 50, 30]],
       desc: "Тупиковая ветка от Rubinus. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
       feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
-      req: { after: "rubinus", fare: 8 }, map: { x: 580, y: 460, label: "b" } },
+      req: { after: "rubinus", fare: 8 }, map: { x: 565, y: 440, label: "r" } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "perfect_alignment", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "prism", glassWalls: true },
       pats: { center: [1.5, 1.5, 1], wall: [0.5, 0.5, 0.5], triple: [0.6, 1, 0.6], double: [0, 0.4, 0.8], sides: [2, 0.6, 0], gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1] },
@@ -2892,12 +2946,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [830, 70, 80], [960, 50, -55], [1060, 60, 60], [1180, 45, -45], [1260, 45, 45], [1380, 70, -70]],
       desc: "Призматические галереи над пустотой. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть.",
       feats: ["Монолиты на цепях и маятники поперёк пути", "Шестигранные своды и стеклянные стены", "Финал Ruina: обвал глыб"],
-      req: { after: "initium" }, map: { x: 270, y: 330, label: "tl", dx: 24, dy: -22 } },
+      req: { after: "initium" }, map: { x: 270, y: 330, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
       desc: "Тупиковый склад при станции Vitrum. Здесь за кристаллы ставят на вагонетку новые пушки.",
       feats: ["Triplex, Gemini и Lumen", "Купленная пушка остаётся навсегда, её можно сменить в меню"],
-      req: { after: "vitrum", toll: 10 }, map: { x: 360, y: 470, label: "b" } },
+      req: { after: "vitrum", toll: 10 }, map: { x: 335, y: 440, label: "r" } },
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true },
       forks: [330, 720, 1110],
@@ -2905,14 +2959,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[120, 50, 40], [220, 50, -40], [480, 60, 60], [600, 50, -50], [880, 60, -60], [980, 50, 50], [1250, 60, 45], [1360, 50, -45]],
       desc: "Замкнутые изумрудные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Одна ветка богатая, другая тихая, а невыбранная заканчивается тупиком.",
       feats: ["Три развилки: стрелку переводят выстрелом", "Вращающиеся стеклянные крестовины", "Финал Portae: стеклянные врата с ключами"],
-      req: { after: "vitrum" }, map: { x: 410, y: 190, label: "l" } }, // label to the left, clear of the Hortus fare tag
+      req: { after: "vitrum" }, map: { x: 410, y: 190, label: "t" } },
     { id: "hortus", num: "III·a", latin: "Hortus", ru: "Сад", line: "branch", playable: true, music: "glass_horizon", len: 900, pal: PAL_HORTI, finale: "vindemia",
       style: { arch: "ring", blocks: "bush", glassWalls: false }, crystalMul: 1.3,
       pats: { bough: [2.5, 3, 3.5], center: [1.5, 1.5, 1], sides: [2, 1, 0.3], bonus: [2, 0.6, 0], double: [0, 0.6, 1], slider: [0.5, 1, 1], reinf: [0, 0.3, 1] },
       turns: [[90, 50, 45], [200, 60, -60], [320, 50, 40], [430, 60, -55], [560, 50, 50], [660, 50, -45], [760, 50, 35]],
-      desc: "Тупик с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
+      desc: "Тупиковая ветка от Initium с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
-      req: { after: "labyrinthus", fare: 12 }, map: { x: 480, y: 75, label: "t" } }, // the label on top, clear of the legend
+      req: { after: "initium", fare: 12 }, map: { x: 155, y: 440, label: "r" } }, // the first branch: Initium opens it
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
       style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.3, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0x5a0012,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
@@ -2945,7 +2999,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       pats: { doors: [1.5, 2, 2], rise: [1, 2, 2.5], shades: [0, 1.2, 2.5], center: [2, 2, 1.5], slider: [1, 2, 2], double: [0, 1, 2], triple: [1, 1.5, 1], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], reinf: [0, 0.6, 2], imps: [0, 0, 0] },
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 40], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
-      desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота: над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся.  Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
+      desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота, над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
       feats: ["Ворота из тёмного стекла: откройте их вертушками", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
       req: { after: "speculum", or: "rubinus" }, map: { x: 730, y: 330, label: "tr", dx: -14, dy: -16 } },
     { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 900, pal: PAL_CARCER, finale: "custodes",
@@ -2954,7 +3008,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35]],
       desc: "Тупик глубоко во Тьме. Глухие коридоры из ржавого железа: поперёк пути висят решётки на цепях, из стен бьют шипы, а стражи-тени летят навстречу. Тьма здесь тянет сильнее. В конце заперта пушка, которой нет на складе.",
       feats: ["Решётки на цепях: собьёте цепи — решётка рухнет", "Шипы даже в Чистилище", "Награда: пушка Ferrum, финал Custodes"],
-      req: { after: "abyssus", fare: 20 }, map: { x: 800, y: 450, label: "b" } },
+      req: { after: "abyssus", fare: 20 }, map: { x: 795, y: 440, label: "r" } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 1600, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "prism", glassWalls: true }, gainMul: 0.85,
       gateKinds: ["iris"], gateButton: "dome",
@@ -2963,17 +3017,92 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [980, 70, -75], [1120, 50, 50], [1230, 60, -55], [1350, 50, 45], [1450, 60, -50]],
       desc: "Конечная. Белые залы со стеклянными стенами. Путь стерегут красные лазеры: вертушки в разрывах стен, парящие блоки, балки на цепях. Луч через вагонетку стоит 3 шара. Переборки с диафрагмой открываются кнопками. Подъём к Свету здесь самый тяжёлый.",
       feats: ["Красные лазеры: вертушки, блоки, балки на цепях", "Переборки с диафрагмой и кнопками", "Финал Triumphus: все испытания линии по очереди"],
-      req: { after: "abyssus", or: "tao" }, map: { x: 910, y: 330, label: "b" } },
+      req: { after: "abyssus", or: "tao" }, map: { x: 910, y: 330, label: "t", dx: 30 } }, // above and to the right, clear of the Tao line
   ];
+  // ---------- English: the level, cannon and finale texts; Russian is what the tables above hold ----------
+  const EN = {
+    levels: {
+      initium: { ru: "Beginning", desc: "Getting to know the rails. White halls with square arches, the first panes of glass and the first descent into the Dark.",
+        feats: ["Square arches, solid walls and floating cubes", "Glass, blue and black-red crystals, spikes in the Dark", "Finale Iudicium: seals and a multiplier"] },
+      thesaurus: { ru: "Treasury", desc: "A dead-end branch off Rubinus. Golden halls with round arches and floating coins. Twice the usual crystals: the ride costs a fare, but you can come back with a profit.",
+        feats: ["2.2 times the crystals", "A short ride, about a minute", "Finale Pluvia: a rain of crystals"] },
+      vitrum: { ru: "Glass", desc: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss.",
+        feats: ["Monoliths on chains and pendulums across the track", "Hexagonal vaults and glass walls", "Finale Ruina: falling boulders"] },
+      armamentarium: { ru: "Armoury", desc: "A dead-end depot by Vitrum station. Here crystals buy new cannons for the cart.",
+        feats: ["Triplex, Gemini and Lumen", "A cannon you buy stays yours; switch it in the menu"] },
+      labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. One branch is rich, the other quiet, and the one not taken ends in a dead end.",
+        feats: ["Three forks: flip the switch with a shot", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
+      hortus: { ru: "Garden", desc: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it.",
+        feats: ["Lashing boughs with crystals", "After a ride Gemini costs half at the depot", "Finale Vindemia: the harvest"] },
+      rubinus: { ru: "Ruby", desc: "A detour from Vitrum to Abyssus through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by counterweights on chains: shoot a weight down and its door slides away.",
+        feats: ["A triangular profile that turns and changes", "Gates with doors on counterweights", "Finale Tessera: a ruby mosaic"] },
+      tao: { ru: "The Way", desc: "The way from Speculum to Lux through round moon gates. Ink and rice paper: in the Light white with a scarlet seal, in the Dark black ink with a jade glow. Mist drifts over the track and a yin-yang sign slowly turns.",
+        feats: ["Yin-yang gates: buttons part the halves", "Rams on chains beside the track and hammer mills", "Finale Taiji: yin and yang in turn"] },
+      speculum: { ru: "Mirror", desc: "Mirror halls. Behind the glass walls the corridor repeats, and beside each real crystal its reflection may hang. A reflection gives no balls, and a shot at it costs a ball.",
+        feats: ["Mirror walls: the corridor runs off into reflections", "False crystals: a reflection flickers and spins the other way", "Finale Reflexio: targets in pairs"] },
+      abyssus: { ru: "Abyss", desc: "A narrow bridge over the abyss, with no walls or ceiling. Steel gates rise across the bridge, with cup anemometers spinning over the frame: hit them all and the leaves slide apart. Glass and shades rise from the void below. The Dark pulls harder here.",
+        feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
+      carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark. Blind corridors of rusted iron: grates hang on chains across the track, spikes strike from the walls and shade guards fly at you. The Dark pulls harder here. At the end lies a cannon the depot doesn't sell.",
+        feats: ["Grates on chains: shoot the chains and the grate falls", "Spikes even in Purgatory", "Reward: the Ferrum cannon; finale Custodes"] },
+      lux: { ru: "Light", desc: "The terminus. White halls with glass walls. Red lasers guard the way: spinners in gaps in the walls, floating blocks, beams on chains. A beam across the cart costs 3 balls. Iris bulkheads open with buttons. The climb to the Light is hardest here.",
+        feats: ["Red lasers: spinners, blocks, beams on chains", "Iris bulkheads with buttons", "Finale Triumphus: every trial of the line in turn"] },
+    },
+    weapons: {
+      ballista: { ru: "Railgun", desc: "One ball a shot. A crystal you hit pays its usual value." },
+      triplex: { ru: "Triple", desc: "Three balls in a triangle a shot. A crystal pays for every ball that hits it: one to three times its value." },
+      gemini: { ru: "Twins", desc: "A second cannon on the cart: a pair of balls a shot. If both hit, the crystal pays double." },
+      ferrum: { ru: "Iron", desc: "The Dungeon's cannon. A heavy iron shot for 2 balls: it breaks glass through with one hit and flies on without slowing. Not sold at the depot." },
+      radius: { ru: "Beam", desc: "A laser hits at once, with no lead, and pierces every pane along its line. A shot costs 2 balls; there is one beam, so a crystal pays its value once." },
+    },
+    finales: {
+      iudicium: { ru: "Judgement", note: "Hitting seals in a row multiplies the reward up to ×6. A miss resets the multiplier and costs 2 balls. Glass hits twice as hard." },
+      ruina: { ru: "Collapse", note: "Boulders fall from the ceiling. Shoot them in the air or on the rails: +2 balls, every 4 in a row another +4. A boulder on the track costs 8 balls." },
+      portae: { ru: "Gates", note: "Glass gates ahead. Before each one glows a blue key crystal: hit it and the gate shatters, and the key gives balls. Every three gates in a row, another +3. Miss, and the cart breaks the glass: −4 balls." },
+      taiji: { ru: "Yin and yang", note: "A ring of white and black stones turns over the track. Hit them in turn: white, black, white… Each change is +2 balls, four in a row another +3. Two of one colour in a row break the run and cost a ball." },
+      tessera: { ru: "Mosaic", note: "A ruby mosaic rises across the track, and one stone at a time lights up. Hit the lit one: +2 balls, three in a row another +3. A dim stone costs a ball." },
+      fragmenta: { ru: "Shards", note: "Waves of crystal glass: behind every partition glows a crystal. Break a whole wave to the last pane: +4 balls; the crystals pay as usual." },
+      custodes: { ru: "Guards", note: "Shade guards fly in waves. Each one downed is +1 ball, a whole wave another +4. A guard that gets through takes 3 balls." },
+      triumphus: { ru: "Triumph", note: "The finale of the whole line: seals, mirrored pairs, wheels, gates with keys and a rain of crystals in turn. Each trial keeps its own rules." },
+      rota: { ru: "Wheel", note: "Wheels of crystals turn over the bridge. Blue is +2 balls, red −3. Take every blue off a wheel before it passes: another +5." },
+      vindemia: { ru: "Harvest", note: "The boughs are heavy with crystals: each gives 2 balls, a bough picked clean another +3. Breaking a bough is safe, but its crystals fall. A lash across the cart costs 3 balls." },
+      reflexio: { ru: "Reflection", note: "Targets fly in pairs: a thing and its reflection. Down both of a pair: +5 balls; only one: +1. A missed target costs nothing." },
+      pluvia: { ru: "Rain", note: "Crystals fall from the sky: blue +2 balls, red −3. Gather as many as you can." },
+    },
+  };
+  const RU_TEXT = {}; // the Russian originals, kept to switch back
+  function applyLang() {
+    const tables = { levels: Object.fromEntries(LEVELS.map(l => [l.id, l])), weapons: WEAPONS, finales: FINALES };
+    for (const t in EN) for (const id in EN[t]) {
+      const obj = tables[t][id], key = t + "." + id;
+      if (!RU_TEXT[key]) RU_TEXT[key] = Object.fromEntries(Object.keys(EN[t][id]).map(k => [k, obj[k]]));
+      Object.assign(obj, LANG === "en" ? EN[t][id] : RU_TEXT[key]);
+    }
+    document.documentElement.lang = LANG;
+    for (const [attr, prop] of [["en", "innerHTML"], ["enAria", "aria-label"], ["enTitle", "title"]]) {
+      document.querySelectorAll(`[data-${attr.replace(/[A-Z]/g, c => "-" + c.toLowerCase())}]`).forEach(el => {
+        const ru = "ru" + attr.slice(2);
+        if (el.dataset[ru] === undefined) el.dataset[ru] = prop === "innerHTML" ? el.innerHTML : el.getAttribute(prop) || "";
+        const v = LANG === "en" ? el.dataset[attr] : el.dataset[ru];
+        if (prop === "innerHTML") el.innerHTML = v; else el.setAttribute(prop, v);
+      });
+    }
+    document.querySelectorAll("#langBtn b").forEach(b => b.classList.toggle("on", b.dataset.l === LANG));
+    syncMute();
+  }
+  function setLang(l) {
+    LANG = l;
+    try { localStorage.setItem("limbus-lang", l); } catch (e) { /* storage unavailable */ }
+    applyLang(); renderMap();
+  }
   const MAIN_LINE = ["initium", "vitrum", "labyrinthus", "speculum", "abyssus", "lux"];
   // drawn lines of the scheme, as waypoints; the main line is drawn station to station
   const MAP_LINES = [
     { kind: "line", to: "rubinus", pts: [[270, 330], [500, 330], [730, 330]] }, // a second line: Vitrum, Rubinus, Abyssus
     { kind: "tao", to: "tao", pts: [[590, 190], [770, 190], [910, 330]] }, // Linea Tao: Speculum, Tao, Lux
-    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 380], [580, 460]], tagSeg: 1, tag: 0.38 },
-    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 380], [360, 470]], tagSeg: 1, tag: 0.38 },
-    { kind: "branch", to: "hortus", pts: [[410, 190], [410, 145], [480, 75]], tagSeg: 1, tag: 0.38 }, // its price sits low, clear of the station names
-    { kind: "branch", to: "carcer", pts: [[730, 330], [730, 380], [800, 450]], tagSeg: 1, tag: 0.38 },
+    { kind: "branch", to: "hortus", pts: [[90, 330], [90, 375], [155, 440]], tagSeg: 1, tag: 0.42 },
+    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 375], [335, 440]], tagSeg: 1, tag: 0.42 },
+    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 375], [565, 440]], tagSeg: 1, tag: 0.42 },
+    { kind: "branch", to: "carcer", pts: [[730, 330], [730, 375], [795, 440]], tagSeg: 1, tag: 0.42 },
   ];
   const byId = id => LEVELS.find(l => l.id === id);
   const STORE = "limbus-progress-v1";
@@ -3035,10 +3164,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     computePath();
     if (spawn) while (nextSpawn < SPAWN_AHEAD) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15); }
   }
-  function hidePanels() { ["menu", "sheet", "over", "win", "pause"].forEach(id => { $(id).hidden = true; }); }
+  // the app goes to the background: the sound stops at once; back on the scheme it plays on
+  window.__silence = () => { if (Sound.ctx && Sound.ctx.state === "running") Sound.ctx.suspend(); if (Sound.fallback) Sound.fallback.pause(); };
+  window.__wake = () => { if (state === "menu") leavePause(); };
+  function hidePanels() { ["menu", "sheet", "over", "win", "pause", "how"].forEach(id => { $(id).hidden = true; }); }
   // pause: the world freezes (render only), the music stops until the run continues
   // the Android app's back button: returns true if the game used it
   window.__back = () => {
+    if (!$("how").hidden) { $("how").hidden = true; return true; }
     if (!$("sheet").hidden) { $("sheet").hidden = true; return true; }
     if (state === "play") { pauseGame(); return true; }
     if (state === "paused") { $("pauseMenu").click(); return true; }
@@ -3048,9 +3181,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function pauseGame() {
     if (state !== "play") return;
     state = "paused";
-    $("pauseEyebrow").textContent = `Станция ${LEVEL.latin}`;
-    $("pauseNote").textContent = `Пройдено ${Math.floor(Math.min(1, sC / END_S) * 100)}% пути, шаров: ${balls}.`;
-    $("pauseRetry").textContent = LEVEL.req.fare ? `Ещё раз: −${LEVEL.req.fare} ◆` : "Ещё раз";
+    $("pauseEyebrow").textContent = T(`Станция ${LEVEL.latin}`, `${LEVEL.latin} station`);
+    $("pauseNote").textContent = T(`Пройдено ${Math.floor(Math.min(1, sC / END_S) * 100)}% пути, шаров: ${balls}.`, `${Math.floor(Math.min(1, sC / END_S) * 100)}% of the way done, ${balls} balls.`);
+    $("pauseRetry").textContent = againText();
     $("pause").hidden = false;
     if (Sound.ctx && Sound.ctx.state === "running") Sound.ctx.suspend();
     if (Sound.fallback) Sound.fallback.pause();
@@ -3064,6 +3197,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     state = "play";
   }
   function leavePause() { if (Sound.ctx) Sound.ctx.resume(); if (Sound.fallback) Sound.fallback.play().catch(() => {}); }
+  const againText = () => LEVEL.req.fare ? T(`Ещё раз: −${LEVEL.req.fare} ◆`, `Again: −${LEVEL.req.fare} ◆`) : T("Ещё раз", "Again");
   function startLevel(lv) {
     setLevel(lv);
     state = "play";
@@ -3079,6 +3213,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function showMenu() {
     state = "menu";
+    Sound.setKarma(0.35); if (Sound.ctx) Sound.play(Sound.want); // the menu keeps the last level's track (the first level's, at the start)
     hidePanels();
     $("hud").hidden = true; $("meter").hidden = true; $("combo").hidden = true; $("banner").hidden = true; $("titlecard").hidden = true;
     darkHud = false; document.body.classList.remove("dark"); vignetteEl.style.opacity = "0";
@@ -3097,27 +3232,33 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const freed = LEVEL.id === "carcer" && !progress.weapons.ferrum; // the dungeon gives up its cannon
       if (freed) progress.weapons.ferrum = true;
       saveProgress();
-      const titles = { "Свет": "Вы въехали в Свет", "Небеса": "Вы доехали до Небес", "Чистилище": "Вы застряли в Чистилище", "Сумерки": "Вы доехали в Сумерках", "Тьма": "Рельсы привели во Тьму" };
-      $("winEyebrow").textContent = `Станция ${LEVEL.latin}`;
-      $("winTitle").textContent = titles[zone];
-      $("winNote").textContent = `Итог: ${total.toLocaleString("ru-RU")} (очки + 10 за каждый оставшийся шар). Кристаллы ушли в запас: теперь их ${progress.bank}.` + (freed ? " Из Темницы вы вывезли пушку Ferrum: поставьте её на вагонетку на складе Armamentarium." : "");
-      $("wScore").textContent = score.toLocaleString("ru-RU");
+      const titles = T(["Вы въехали в Свет", "Вы доехали до Небес", "Вы застряли в Чистилище", "Вы доехали в Сумерках", "Рельсы привели во Тьму"],
+        ["You rode into the Light", "You reached Heaven", "You got stuck in Purgatory", "You arrived in the Twilight", "The rails led into the Dark"]);
+      $("winEyebrow").textContent = T(`Станция ${LEVEL.latin}`, `${LEVEL.latin} station`);
+      $("winTitle").textContent = titles[zoneIdx(alt)];
+      $("winNote").textContent = T(`Итог: ${total.toLocaleString("ru-RU")} (очки + 10 за каждый оставшийся шар). Кристаллы ушли в запас: теперь их ${progress.bank}.`,
+        `Total: ${total.toLocaleString("en-US")} (score + 10 for every ball left). The crystals went to the bank: ${progress.bank} now.`) +
+        (freed ? T(" Из Темницы вы вывезли пушку Ferrum: поставьте её на вагонетку на складе Armamentarium.", " You brought the Ferrum cannon out of the Dungeon: mount it on the cart at the Armamentarium depot.") : "");
+      $("wScore").textContent = score.toLocaleString(T("ru-RU", "en-US"));
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;
       $("wSuperName").textContent = FINALES[LEVEL.finale].name;
-      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "rota" ? `колёса ${wheelsDone} · +${superGain}` : LEVEL.finale === "custodes" || LEVEL.finale === "fragmenta" ? `волны ${wavesDone} · +${superGain}` : LEVEL.finale === "tessera" || LEVEL.finale === "taiji" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "reflexio" ? `пары ${pairsDone} · +${superGain}` : LEVEL.finale === "vindemia" ? `ветви ${harvested} · +${superGain}` : `+${superGain}`;
+      const fn = LEVEL.finale, row = T("подряд", "in a row");
+      $("wSuper").textContent = fn === "iudicium" ? `×${bestCombo} · +${superGain}` : fn === "portae" || fn === "tessera" || fn === "taiji" ? `${row} ${bestCombo} · +${superGain}` : fn === "rota" ? `${T("колёса", "wheels")} ${wheelsDone} · +${superGain}` : fn === "custodes" || fn === "fragmenta" ? `${T("волны", "waves")} ${wavesDone} · +${superGain}` : fn === "reflexio" ? `${T("пары", "pairs")} ${pairsDone} · +${superGain}` : fn === "vindemia" ? `${T("ветви", "boughs")} ${harvested} · +${superGain}` : `+${superGain}`;
       $("wAcc").textContent = (stats.thrown ? Math.round(stats.hits / stats.thrown * 100) : 0) + "%";
-      $("wBest").textContent = best.toLocaleString("ru-RU");
+      $("wBest").textContent = best.toLocaleString(T("ru-RU", "en-US"));
       const nx = nextLevel(LEVEL), nb = $("nextBtn");
       nb.hidden = !(nx && nx.playable);
-      if (nx) nb.textContent = `Дальше: ${nx.latin}`;
-      $("againBtn").textContent = LEVEL.req.fare ? `Ещё раз: −${LEVEL.req.fare} ◆` : "Ещё раз";
+      if (nx) nb.textContent = T(`Дальше: ${nx.latin}`, `Next: ${nx.latin}`);
+      $("againBtn").textContent = againText();
       $("win").hidden = false;
     } else {
-      $("retryBtn").textContent = LEVEL.req.fare ? `Ещё раз: −${LEVEL.req.fare} ◆` : "Ещё раз";
-      $("overTitle").textContent = `Пройдено ${Math.floor(Math.min(1, sC / END_S) * 100)}% пути до станции ${LEVEL.latin}`;
-      $("overNote").textContent = alt < -0.2 ? `Шары кончились в зоне «${zone}». Внизу будьте осторожны: красные кристаллы отнимают шары.` : "Стреляйте по голубым кристаллам: они возвращают шары.";
-      $("oScore").textContent = score.toLocaleString("ru-RU");
+      const pc = Math.floor(Math.min(1, sC / END_S) * 100);
+      $("retryBtn").textContent = againText();
+      $("overTitle").textContent = T(`Пройдено ${pc}% пути до станции ${LEVEL.latin}`, `${pc}% of the way to ${LEVEL.latin}`);
+      $("overNote").textContent = alt < -0.2 ? T(`Шары кончились в зоне «${zone}». Внизу будьте осторожны: красные кристаллы отнимают шары.`, `Out of balls in the ${zone}. Down there, beware: red crystals take balls.`)
+        : T("Стреляйте по голубым кристаллам: они возвращают шары.", "Shoot the blue crystals: they give balls back.");
+      $("oScore").textContent = score.toLocaleString(T("ru-RU", "en-US"));
       $("oBroken").textContent = stats.broken;
       $("over").hidden = false;
     }
@@ -3299,7 +3440,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function damagePane(p, ix, iy, vel) {
     p.hp--;
     if (p.hp <= 0 && p.wave && ++p.wave.broken === p.wave.n) { // Fragmenta: the whole wave of glass broken
-      balls += 4; superGain += 4; wavesDone++; bestCombo = Math.max(bestCombo, wavesDone); updateCount(); updateCombo(); pop("+4 · волна", "gain");
+      balls += 4; superGain += 4; wavesDone++; bestCombo = Math.max(bestCombo, wavesDone); updateCount(); updateCombo(); pop(T("+4 · волна", "+4 · wave"), "gain");
     }
     if (p.hp <= 0) {
       shatter(p, ix, iy, { x: vel.dot(p.R), y: vel.dot(p.U), z: vel.dot(p.T) });
@@ -3335,13 +3476,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         c.tile.lit = null; c.tile.t = 0.05; tessRow++; let gain = 2;
         if (tessRow % 3 === 0) { gain += 3; wavesDone++; bestCombo = Math.max(bestCombo, tessRow); }
         stats.crystals++; addScore(30); Sound.crystal(5); chips(c.wp, tileLitMat, 10, b.v);
-        balls += gain; superGain += gain; updateCount(); updateCombo(); pop(gain > 2 ? `+${gain} · три подряд` : "+2", "gain");
-      } else { tessRow = 0; balls = Math.max(0, balls - 1); updateCount(); updateCombo(); Sound.clink(); chips(c.wp, tileDimMat, 6, b.v); pop("−1 · тусклый", "loss"); }
+        balls += gain; superGain += gain; updateCount(); updateCombo(); pop(gain > 2 ? T(`+${gain} · три подряд`, `+${gain} · three in a row`) : "+2", "gain");
+      } else { tessRow = 0; balls = Math.max(0, balls - 1); updateCount(); updateCombo(); Sound.clink(); chips(c.wp, tileDimMat, 6, b.v); pop(T("−1 · тусклый", "−1 · dim"), "loss"); }
       return;
     }
     if (c.mirage) {
       balls = Math.max(0, balls - 1); updateCount();
-      pop("отражение · −1", "loss"); Sound.clink(); Sound.shatter(0.3);
+      pop(T("отражение · −1", "reflection · −1"), "loss"); Sound.clink(); Sound.shatter(0.3);
       chips(c.wp, mirageMat, 8, b.v);
       return;
     }
@@ -3379,7 +3520,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (w) { // Custodes
       w.killed++; let gain = 1;
       if (w.killed === w.n && !w.lost) { gain += 4; wavesDone++; bestCombo = Math.max(bestCombo, wavesDone); }
-      balls += gain; superGain += gain; updateCount(); updateCombo(); pop(gain > 1 ? `+${gain} · волна` : "+1", "gain");
+      balls += gain; superGain += gain; updateCount(); updateCombo(); pop(gain > 1 ? T(`+${gain} · волна`, `+${gain} · wave`) : "+1", "gain");
     }
   }
 
@@ -3412,7 +3553,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (sC > nextClack) { nextClack = sC + 6; Sound.clack(); }
     for (const f of forks) if (!f.locked && sC >= f.s - 30) { // the switch is passed: the branch is fixed
       f.locked = true;
-      pop(f.kinds[f.sign] === "rich" ? "Богатая ветка" : "Тихая ветка", "info");
+      pop(f.kinds[f.sign] === "rich" ? T("Богатая ветка", "Rich branch") : T("Тихая ветка", "Quiet branch"), "info");
     }
     while (nextSpawn < sC + SPAWN_AHEAD) {
       // nothing spawns around a fork until its branch is chosen; the bend itself stays clear
@@ -3431,14 +3572,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       finaleShown = true;
       // white or black text, whichever reads against the world as it is when the banner comes up; it keeps that colour
       const lum = 0.3 * cur.hor.r + 0.55 * cur.hor.g + 0.15 * cur.hor.b, ink = lum < 0.45 ? "#ffffff" : "#0a0d0f", halo = lum < 0.45 ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.6)";
-      showOverlay("banner", `<div style="color:${ink};text-shadow:0 1px 10px ${halo}"><div class="bn-name">${fin.name}</div><div class="bn-sub">${fin.ru} · 20 секунд</div><div class="bn-note">${fin.note}</div></div>`, 6500);
+      showOverlay("banner", `<div style="color:${ink};text-shadow:0 1px 10px ${halo}"><div class="bn-name">${fin.name}</div><div class="bn-sub">${fin.ru} · ${T("20 секунд", "20 seconds")}</div><div class="bn-note">${fin.note}</div></div>`, 6500);
       Sound.crystal(5);
     }
     if (!superOn && sC >= MAIN_LEN && sC < SUPER_END) {
       superOn = true; combo = 1; streak = 0; superGain = 0; $("comboName").textContent = fin.name; updateCombo(); $("combo").hidden = false;
     }
     if (superOn) $("comboT").style.width = (clamp((SUPER_END - sC) / SUPER_LEN, 0, 1) * 100).toFixed(1) + "%";
-    if (superOn && sC >= SUPER_END) { superOn = false; $("combo").hidden = true; pop(`Станция ${LEVEL.latin}`, "info"); }
+    if (superOn && sC >= SUPER_END) { superOn = false; $("combo").hidden = true; pop(T(`Станция ${LEVEL.latin}`, `${LEVEL.latin} station`), "info"); }
 
     // HUD
     progEl.style.width = (Math.min(1, sC / END_S) * 100).toFixed(1) + "%";
@@ -3811,6 +3952,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     return isOpen(lv) ? "open" : "closed";
   }
   const STATUS_RU = { done: "пройдена", open: "открыта", locked: "вход платный", closed: "закрыта", build: "строится" };
+  const STATUS_EN = { done: "done", open: "open", locked: "paid entry", closed: "closed", build: "being built" };
+  const STATUS = st => T(STATUS_RU[st], STATUS_EN[st]);
   function renderArms() {
     const el = $("arms"); el.innerHTML = "";
     for (const id in WEAPONS) {
@@ -3831,20 +3974,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     mapW = svg.parentElement.clientWidth;
     $("bank").textContent = progress.bank;
     renderArms();
-    svg.setAttribute("viewBox", "0 0 1000 595"); // the scheme sits 35 lower, clear of the legend
+    svg.setAttribute("viewBox", "0 100 1000 375"); // just the stations and their names; the legend and the buttons sit in the empty corners
     const pt = id => byId(id).map;
     const poly = pts => pts.map(([x, y]) => `${x},${y}`).join(" ");
-    let out = "";
+    // a faint dot grid under the lines, like squared paper
+    let out = `<defs><pattern id="mapDots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.1" fill="${INK}" opacity="0.09"/></pattern></defs><rect x="0" y="100" width="1000" height="375" fill="url(#mapDots)"/>`;
+    const casing = (shape, w) => shape.replace(/stroke="[^"]*"/, 'stroke="#ffffff"').replace(/stroke-width="([\d.]+)"/, (m, x) => `stroke-width="${+x + w}"`).replace(/ stroke-dasharray="[^"]*"| opacity="[^"]*"/g, "");
     // main line, station to station; unbuilt stretches are dotted
     for (let i = 0; i < MAIN_LINE.length - 1; i++) {
       const a = pt(MAIN_LINE[i]), b = pt(MAIN_LINE[i + 1]), built = byId(MAIN_LINE[i + 1]).playable;
       const onArc = ARC.includes(MAIN_LINE[i]) && ARC.includes(MAIN_LINE[i + 1]);
-      out += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${onArc ? LINE_ARC : LINE_MAIN}" stroke-width="8" stroke-linecap="round"${built ? "" : ' stroke-dasharray="1 13" opacity="0.6"'}/>`;
+      const ln = `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${onArc ? LINE_ARC : LINE_MAIN}" stroke-width="8" stroke-linecap="round"${built ? "" : ' stroke-dasharray="1 13" opacity="0.6"'}/>`;
+      out += (built ? casing(ln, 5) : "") + ln; // a white casing, as on a metro map
     }
     // transfers and dead-end branches, each with its price on the longest segment
     for (const ln of MAP_LINES) {
       const to = byId(ln.to), color = ln.kind === "transfer" ? LINE_TR : ln.kind === "line" ? LINE_MAIN : ln.kind === "tao" ? LINE_TAO : LINE_BR, built = to.playable || to.depot;
-      out += `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="${ln.kind === "line" || ln.kind === "tao" ? 8 : 6}" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
+      const pl = `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="${ln.kind === "line" || ln.kind === "tao" ? 8 : 6}" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
+      out += (built ? casing(pl, 5) : "") + pl;
       const cost = ln.kind === "transfer" ? to.req.transfer.cost : to.req.fare || to.req.toll;
       if (!cost) continue; // a line without a price has no tag
       let best = 0, mx = 0, my = 0;
@@ -3864,14 +4011,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const fill = st === "done" ? INK : lit ? "#ffffff" : "#e6ecee"; // done stations are dark, open ones white
       const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (lv.id === "tao" ? LINE_TAO : ARC.includes(lv.id) && !["vitrum", "abyssus"].includes(lv.id) ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
       const glyph = st === "done" ? "#ffffff" : lit ? INK : MUTED;
-      const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 30, p.y - 10, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
+      const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 28, p.y - 9, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
       L[0] += p.dx || 0; L[1] += p.dy || 0; // a station may nudge its label
       if (L[2] !== "middle") { // a label beside the station keeps its edge there, but its lines are centred on each other
         const w = Math.max(textW("700 12.5px Unbounded, 'Arial Black', sans-serif", lv.latin.toUpperCase(), 0.6), textW("12.5px Manrope, system-ui, sans-serif", lv.ru, 0),
-          textW("700 9.5px 'JetBrains Mono', monospace", STATUS_RU[st].toUpperCase(), 1));
+          textW("700 9.5px 'JetBrains Mono', monospace", STATUS(st).toUpperCase(), 1));
         L[0] += L[2] === "end" ? -w / 2 : w / 2; L[2] = "middle";
       }
-      out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS_RU[st]}">`;
+      out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS(st)}">`;
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
       if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
       if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
@@ -3880,10 +4027,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       out += `<path d="${GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
       out += `<text x="${L[0]}" y="${L[1]}" text-anchor="${L[2]}" font-family="Unbounded, 'Arial Black', sans-serif" font-weight="700" font-size="12.5" letter-spacing="0.6" fill="${INK}">${esc(lv.latin.toUpperCase())}</text>`;
       out += `<text x="${L[0]}" y="${L[1] + 17}" text-anchor="${L[2]}" font-family="Manrope, system-ui, sans-serif" font-size="12.5" fill="#4c6470">${esc(lv.ru)}</text>`;
-      out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "open" ? LINE_MAIN : "#7a8d95"}">${STATUS_RU[st].toUpperCase()}</text>`;
+      out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "open" ? LINE_MAIN : "#7a8d95"}">${STATUS(st).toUpperCase()}</text>`;
       out += `</g>`;
     }
-    svg.innerHTML = `<g transform="translate(0 35)">${out}</g>`;
+    svg.innerHTML = out;
     svg.querySelectorAll(".station").forEach(g => {
       const open = () => openSheet(byId(g.dataset.id));
       g.addEventListener("click", open);
@@ -3893,21 +4040,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   function openSheet(lv) {
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
-    $("shEyebrow").textContent = `${lv.line === "branch" ? "Тупик" : "Станция"} · ${STATUS_RU[st]}`;
+    $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${STATUS(st)}`;
     $("shName").innerHTML = `${esc(lv.latin)}<small>${esc(lv.ru)}</small>`;
     $("shDesc").textContent = lv.desc;
     $("shFeats").innerHTML = lv.feats.map(f => `<li>${esc(f)}</li>`).join("");
     const reqs = [];
-    if (!req.after) reqs.push([true, "Открыта с самого начала"]);
-    else if (lv.line === "branch") reqs.push([!!progress.done[req.after], `Ветка от станции ${byId(req.after).latin}: сначала пройти её`]);
-    else reqs.push([!!progress.done[req.after] || (req.or && !!progress.done[req.or]), req.or ? `Пройти станцию ${byId(req.after).latin} или ${byId(req.or).latin}` : `Прямо: пройти станцию ${byId(req.after).latin}`]);
+    if (!req.after) reqs.push([true, T("Открыта с самого начала", "Open from the start")]);
+    else if (lv.line === "branch") reqs.push([!!progress.done[req.after], T(`Ветка от станции ${byId(req.after).latin}: сначала пройти её`, `A branch off ${byId(req.after).latin}: finish that station first`)]);
+    else reqs.push([!!progress.done[req.after] || (req.or && !!progress.done[req.or]), req.or ? T(`Пройти станцию ${byId(req.after).latin} или ${byId(req.or).latin}`, `Finish ${byId(req.after).latin} or ${byId(req.or).latin}`) : T(`Прямо: пройти станцию ${byId(req.after).latin}`, `Straight on: finish ${byId(req.after).latin}`)]);
     if (req.transfer) {
       const from = byId(req.transfer.from);
-      reqs.push([!!progress.done[from.id] && bank >= req.transfer.cost, `Или пересадка с ${from.latin}: ◆ ${req.transfer.cost} кристаллов (в запасе ${bank})`]);
+      reqs.push([!!progress.done[from.id] && bank >= req.transfer.cost, T(`Или пересадка с ${from.latin}: ◆ ${req.transfer.cost} кристаллов (в запасе ${bank})`, `Or change from ${from.latin}: ◆ ${req.transfer.cost} (${bank} in the bank)`)]);
     }
-    if (req.fare) reqs.push([bank >= req.fare, `Проезд: ◆ ${req.fare} за каждый заезд (в запасе ${bank})`]);
-    if (req.toll) reqs.push([!!progress.open[lv.id] || bank >= req.toll, progress.open[lv.id] ? "Склад открыт" : `Вход на склад: ◆ ${req.toll} один раз (в запасе ${bank})`]);
-    if (progress.best[lv.id]) reqs.push([true, `Лучший результат: ${progress.best[lv.id].toLocaleString("ru-RU")}`]);
+    if (req.fare) reqs.push([bank >= req.fare, T(`Проезд: ◆ ${req.fare} за каждый заезд (в запасе ${bank})`, `Fare: ◆ ${req.fare} a ride (${bank} in the bank)`)]);
+    if (req.toll) reqs.push([!!progress.open[lv.id] || bank >= req.toll, progress.open[lv.id] ? T("Склад открыт", "The depot is open") : T(`Вход на склад: ◆ ${req.toll} один раз (в запасе ${bank})`, `Depot entry: ◆ ${req.toll} once (${bank} in the bank)`)]);
+    if (progress.best[lv.id]) reqs.push([true, T("Лучший результат: ", "Best: ") + progress.best[lv.id].toLocaleString(T("ru-RU", "en-US"))]);
     $("shReqs").innerHTML = reqs.map(([ok, t]) => `<li><span class="${ok ? "ok" : "no"}">${ok ? "✓" : "✕"}</span><span>${esc(t)}</span></li>`).join("");
     const btns = $("shBtns"), extra = $("shExtra"); btns.innerHTML = ""; extra.innerHTML = "";
     const button = (parent, cls, text, fn, disabled) => {
@@ -3919,20 +4066,20 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (progress.open[lv.id]) {
         for (const id in WEAPONS) {
           const w = WEAPONS[id], card = document.createElement("div"); card.className = "wcard";
-          card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${ballsWord(w.cost)} за выстрел</small></h3><p>${esc(w.desc)}</p>`;
-          if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? "Стоит на вагонетке" : "Поставить", () => { progress.weapon = id; saveProgress(); openSheet(lv); }, progress.weapon === id);
-          else if (w.price === null) button(card, "ghost", "Заперта в Темнице", null, true);
-          else { const price = priceOf(id); button(card, "cta", price < w.price ? `Купить: ◆ ${price} (скидка из Сада)` : `Купить: ◆ ${price}`, () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv); renderMap(); }, bank < price); }
+          card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${ballsWord(w.cost)} ${T("за выстрел", "a shot")}</small></h3><p>${esc(w.desc)}</p>`;
+          if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? T("Стоит на вагонетке", "On the cart") : T("Поставить", "Mount"), () => { progress.weapon = id; saveProgress(); openSheet(lv); }, progress.weapon === id);
+          else if (w.price === null) button(card, "ghost", T("Заперта в Темнице", "Locked in the Dungeon"), null, true);
+          else { const price = priceOf(id); button(card, "cta", price < w.price ? T(`Купить: ◆ ${price} (скидка из Сада)`, `Buy: ◆ ${price} (Garden discount)`) : T(`Купить: ◆ ${price}`, `Buy: ◆ ${price}`), () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv); renderMap(); }, bank < price); }
           extra.appendChild(card);
         }
-      } else if (reached && bank >= req.toll) button(btns, "cta", `Открыть склад: −${req.toll} ◆`, () => { progress.bank -= req.toll; progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); });
-      else button(btns, "cta", reached ? "Не хватает кристаллов" : "Пока закрыт", null, true);
-    } else if (!lv.playable) button(btns, "cta", "Станция строится", null, true);
-    else if (isOpen(lv) && req.fare) button(btns, "cta", bank >= req.fare ? `Поехали: −${req.fare} ◆` : "Не хватает кристаллов на проезд", () => rideLevel(lv), bank < req.fare);
-    else if (isOpen(lv)) button(btns, "cta", st === "done" ? "Проехать ещё раз" : "Поехали", () => startLevel(lv));
-    else if (req.transfer && progress.done[req.transfer.from] && bank >= req.transfer.cost) button(btns, "cta", `Пересадка: −${req.transfer.cost} ◆`, () => { progress.bank -= req.transfer.cost; progress.open[lv.id] = true; saveProgress(); startLevel(lv); });
-    else button(btns, "cta", "Пока закрыта", null, true);
-    button(btns, "ghost", "Назад к схеме", () => { $("sheet").hidden = true; renderMap(); });
+      } else if (reached && bank >= req.toll) button(btns, "cta", T(`Открыть склад: −${req.toll} ◆`, `Open the depot: −${req.toll} ◆`), () => { progress.bank -= req.toll; progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); });
+      else button(btns, "cta", reached ? T("Не хватает кристаллов", "Not enough crystals") : T("Пока закрыт", "Closed for now"), null, true);
+    } else if (!lv.playable) button(btns, "cta", T("Станция строится", "Under construction"), null, true);
+    else if (isOpen(lv) && req.fare) button(btns, "cta", bank >= req.fare ? T(`Поехали: −${req.fare} ◆`, `Ride: −${req.fare} ◆`) : T("Не хватает кристаллов на проезд", "Not enough crystals for the fare"), () => rideLevel(lv), bank < req.fare);
+    else if (isOpen(lv)) button(btns, "cta", st === "done" ? T("Проехать ещё раз", "Ride again") : T("Поехали", "Ride"), () => startLevel(lv));
+    else if (req.transfer && progress.done[req.transfer.from] && bank >= req.transfer.cost) button(btns, "cta", T(`Пересадка: −${req.transfer.cost} ◆`, `Change: −${req.transfer.cost} ◆`), () => { progress.bank -= req.transfer.cost; progress.open[lv.id] = true; saveProgress(); startLevel(lv); });
+    else button(btns, "cta", T("Пока закрыта", "Closed for now"), null, true);
+    button(btns, "ghost", T("Назад к схеме", "Back to the scheme"), () => { $("sheet").hidden = true; renderMap(); });
     drawMini(lv);
     $("sheet").hidden = false;
     $("sheet").querySelector("button:not(:disabled)")?.focus();
@@ -3995,8 +4142,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // labels and the station glyph
     g.fillStyle = "rgba(16, 36, 46, 0.78)"; g.fillRect(0, Hc - 40, Wc, 40);
     g.fillStyle = "#f4fbfc"; g.font = "700 15px 'JetBrains Mono', monospace"; g.textBaseline = "middle";
-    g.textAlign = "left"; g.fillText(lv.pal ? "СВЕТ" : "СТРОИТСЯ", 16, Hc - 20);
-    if (lv.pal) { g.textAlign = "right"; g.fillText("ТЬМА", Wc - 16, Hc - 20); }
+    g.textAlign = "left"; g.fillText(lv.pal ? T("СВЕТ", "LIGHT") : T("СТРОИТСЯ", "BEING BUILT"), 16, Hc - 20);
+    if (lv.pal) { g.textAlign = "right"; g.fillText(T("ТЬМА", "DARK"), Wc - 16, Hc - 20); }
     g.save(); g.translate(Wc / 2, Hc - 20); g.scale(1.3, 1.3); g.strokeStyle = "#f4fbfc"; g.lineWidth = 1.8; g.lineCap = "round"; g.lineJoin = "round";
     g.stroke(new Path2D(GLYPHS[lv.id])); g.restore();
   }
@@ -4018,22 +4165,32 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   $("resumeBtn").addEventListener("click", resumeGame);
   $("pauseRetry").addEventListener("click", () => { leavePause(); rideLevel(LEVEL); });
   $("pauseMenu").addEventListener("click", () => { leavePause(); showMenu(); });
-  document.addEventListener("visibilitychange", () => { if (document.hidden) pauseGame(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) { pauseGame(); window.__silence(); } else window.__wake(); });
+  // browsers start sound only after a tap: the first one on the scheme starts its music
+  const firstTap = () => { if (state === "menu" && !document.hidden) Sound.init(); };
+  window.addEventListener("pointerdown", firstTap, true); window.addEventListener("keydown", firstTap, true);
   $("sheet").addEventListener("click", e => { if (e.target === $("sheet")) $("sheet").hidden = true; });
   window.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
-    if (!$("sheet").hidden) $("sheet").hidden = true;
+    if (!$("how").hidden) $("how").hidden = true;
+    else if (!$("sheet").hidden) $("sheet").hidden = true;
     else if (state === "play") pauseGame();
     else if (state === "paused") resumeGame();
   });
   let mapW = 0;
   window.addEventListener("resize", () => { const w = $("map").parentElement.clientWidth; if (state === "menu" && Math.abs(w - mapW) > 40) renderMap(); });
-  const muteBtn = $("mute");
-  muteBtn.addEventListener("click", () => {
-    Sound.setMuted(!Sound.muted);
-    muteBtn.setAttribute("aria-label", Sound.muted ? "Включить звук" : "Выключить звук");
-    muteBtn.setAttribute("aria-pressed", String(Sound.muted));
-  });
+  // two sound buttons, in the HUD and on the scheme, showing the same state
+  function syncMute() {
+    document.querySelectorAll(".snd").forEach(b => {
+      b.setAttribute("aria-label", Sound.muted ? T("Включить звук", "Sound on") : T("Выключить звук", "Sound off"));
+      b.setAttribute("aria-pressed", String(Sound.muted));
+    });
+  }
+  document.querySelectorAll(".snd").forEach(b => b.addEventListener("click", () => { Sound.setMuted(!Sound.muted); syncMute(); }));
+  $("langBtn").addEventListener("click", () => setLang(LANG === "ru" ? "en" : "ru"));
+  $("howBtn").addEventListener("click", () => { $("how").hidden = false; $("howClose").focus(); });
+  $("howClose").addEventListener("click", () => { $("how").hidden = true; });
+  $("how").addEventListener("click", e => { if (e.target === $("how")) $("how").hidden = true; });
 
   // test hook: lets an automated check jump the karma or the distance
   window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, setAlt(a) { alt = a; },
@@ -4041,6 +4198,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },
     thornScreen() { const r = canvas.getBoundingClientRect(); return thorns.filter(t => t.headOn && t.ext > 0.3).map(t => { const v = t.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); }, state: () => ({ state, sC, alt, balls, score, combo, superOn, sigils: sigils.length, END_S, panes: panes.length, thorns: thorns.length, thornExt: thorns.map(t => t.ext.toFixed(2) + (t.headOn ? '' : 'x')).join(), pitchC }) };
 
+  applyLang();
   setLevel(LEVELS[0]);
   showMenu();
   requestAnimationFrame(frame);

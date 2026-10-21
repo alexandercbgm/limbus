@@ -2155,31 +2155,33 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
 
   // ---------- Tao: rams and hammer mills ----------
-  // A ram is a heavy cylinder lying across the track, slung from a beam on two chains, one at each end. It swings
-  // along the track like a bell; a pair swing toward each other and clap together over the rails. Shoot both chains
-  // and it drops and shatters; one chain gone, it hangs askew and still swings. A ram that meets the cart: −4 balls.
+  // A ram is a heavy log lying across the track at one side of the rails, slung on two chains from a beam overhead.
+  // It swings sideways like a swing seat, out to the wall and in over the rails; a pair, one each side, swing in to
+  // clap together in the middle. Shoot both chains and it drops and shatters; one chain gone, it hangs askew and still
+  // swings. A ram that catches the cart: −4 balls.
   let rams = [];
-  const RAM_L = 5.2, RAM_R = 0.5, RAM_LEN = 3.0, RAM_COST = 4, RAM_GAP = 6;
+  const RAM_L = 4.6, RAM_R = 0.45, RAM_LEN = 2.6, RAM_U = 2.4, RAM_COST = 4;
   const ramGeo = new THREE.CylinderGeometry(RAM_R, RAM_R, RAM_LEN, 24).rotateZ(Math.PI / 2), ramCapGeo = new THREE.TorusGeometry(RAM_R, 0.06, 8, 24).rotateY(Math.PI / 2);
-  const ramMat = new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.45, metalness: 0.7 }), ramBeamGeo = new THREE.BoxGeometry(2 * W, 0.3, 0.3);
+  const ramMat = new THREE.MeshStandardMaterial({ color: 0x2a2622, roughness: 0.45, metalness: 0.7 }), ramBeamGeo = new THREE.BoxGeometry(RAM_LEN + 0.6, 0.3, 0.3);
   function addRams(s, both) {
-    const ph = rand(0, TAU), w = rand(1.0, 1.3), list = both ? [[s, 1], [s + RAM_GAP, -1]] : [[s, Math.random() < 0.5 ? 1 : -1]];
-    for (let k = Math.floor(s / SL) - 2; k <= Math.floor((s + RAM_GAP) / SL) + 2; k++) { const dc = getDecor(k); dc.arch = false; }
-    for (const [rs, dir] of list) {
+    const ph = rand(0, TAU), w = rand(1.1, 1.4), sides = both ? [-1, 1] : [Math.random() < 0.5 ? -1 : 1];
+    for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) getDecor(k).arch = false;
+    for (const side of sides) {
       const root = new THREE.Group(); root.matrixAutoUpdate = false;
       root.add(new THREE.Mesh(ramBeamGeo, frameMat));
-      const arm = new THREE.Group(); root.add(arm);
-      const chains = [-1, 1].map(x => { const c = makeChain(RAM_L - RAM_R); c.position.x = x * (RAM_LEN / 2 - 0.25); arm.add(c); return { x: x * (RAM_LEN / 2 - 0.25), alive: true, mesh: c, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
-      const body = new THREE.Mesh(ramGeo, ramMat); body.position.y = -RAM_L; arm.add(body);
-      for (const x of [-1, 1]) { const cap = new THREE.Mesh(ramCapGeo, frameMat); cap.position.set(x * RAM_LEN / 2, -RAM_L, 0); arm.add(cap); }
+      const xs = [-1, 1].map(k => k * (RAM_LEN / 2 - 0.25));
+      const chains = xs.map(x => { const c = makeChain(RAM_L - RAM_R); c.position.x = x; root.add(c); return { x, alive: true, mesh: c, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
+      const body = new THREE.Group(); root.add(body);
+      body.add(new THREE.Mesh(ramGeo, ramMat));
+      for (const k of [-1, 1]) { const cap = new THREE.Mesh(ramCapGeo, frameMat); cap.position.x = k * RAM_LEN / 2; body.add(cap); }
       scene.add(root);
-      rams.push({ s: rs, dir, root, arm, body, chains, ph, w, th: 0, twist: 0, hit: false, falling: false, fallT: 0 });
+      rams.push({ s, side, root, body, chains, ph, w, th: 0, twist: 0, hit: false, falling: false, fallT: 0 });
     }
   }
   function breakRamChain(r, c, at) {
     c.alive = false; c.mesh.visible = false; Sound.clink(); Sound.tone(900, 0.12, 0.08, "square", 0, 300); chips(at, chainMat, 8, tmpV2.set(0, 2, 0)); addScore(15);
     if (r.chains.every(x => !x.alive)) { r.falling = true; karmaGain(0.04); pop("таран сбит", "info"); }
-    else r.twist = c.x < 0 ? 0.35 : -0.35; // hangs askew from the other chain
+    else r.twist = c.x < 0 ? 0.4 : -0.4; // hangs askew from the other chain
   }
   // a hammer mill turns in a gap of the wall: handles out of a hub, a heavy head on each; shoot a handle to break it off
   let hmills = [];
@@ -2209,20 +2211,22 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function updateRams(dt) {
     for (const r of rams) {
-      setObj(r.root, r.s, 0, H - 0.1);
+      setObj(r.root, r.s, r.side * RAM_U, H - 0.1);
       if (r.falling) { // a short drop, then it shatters
-        r.fallT += dt; r.arm.position.y -= dt * (2 + r.fallT * 14);
+        r.fallT += dt; r.body.position.y -= dt * (2 + r.fallT * 14);
         if (r.fallT > 0.3) { r.dead = true; r.body.updateMatrixWorld(true); chips(new THREE.Vector3().setFromMatrixPosition(r.body.matrixWorld), ramMat, 24, tmpV2.set(0, -1, 0)); Sound.shatter(1.1); scene.remove(r.root); }
         continue;
       }
-      // swings along the track: back high over the cart, forward to clap with its partner over the rails
-      r.th = r.dir * (-0.15 + 0.75 * Math.sin(time * r.w + r.ph));
-      r.arm.rotation.set(r.th, 0, r.twist);
+      // swings sideways on parallel chains: out toward its wall, in over the rails (a pair meet in the middle)
+      r.th = -0.12 + 0.3 * (1 + Math.sin(time * r.w + r.ph)); // 0 hangs straight, positive swings in
+      const du = -r.side * RAM_L * Math.sin(r.th), dv = -RAM_L * Math.cos(r.th);
+      for (const c of r.chains) if (c.mesh.visible) c.mesh.rotation.z = -r.side * r.th;
+      r.body.position.set(du, dv, 0); r.body.rotation.z = r.twist;
       r.root.updateMatrixWorld(true);
-      for (const c of r.chains) { c.A.set(c.x, 0, 0); r.arm.localToWorld(c.A); c.B.set(c.x, -RAM_L + RAM_R, 0); r.arm.localToWorld(c.B); }
-      const rs = r.s + RAM_L * Math.sin(r.th), rv = H - 0.1 - RAM_L * Math.cos(r.th);
-      if (state === "play" && !r.hit && Math.abs(rs - sC) < RAM_R + 0.7 && rv - RAM_R < 2.3) { r.hit = true; crushed("таран"); }
-      if (r.s < sC - 10) { r.dead = true; scene.remove(r.root); }
+      for (const c of r.chains) { c.A.set(c.x, 0, 0); r.root.localToWorld(c.A); c.B.set(c.x + du * (1 - RAM_R / RAM_L), dv * (1 - RAM_R / RAM_L), 0); r.root.localToWorld(c.B); }
+      const inner = r.side * RAM_U + du - r.side * RAM_LEN / 2, rv = H - 0.1 + dv; // the end nearest the rails
+      if (state === "play" && !r.hit && Math.abs(r.s - sC) < RAM_R + 0.7 && r.side * inner < 1.2 && rv - RAM_R < 2.4) { r.hit = true; crushed("таран"); }
+      if (r.s < sC - 8) { r.dead = true; scene.remove(r.root); }
     }
     rams = rams.filter(r => !r.dead);
     for (const m of hmills) {
@@ -2885,7 +2889,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[100, 60, 45], [220, 60, -55], [340, 50, 45], [460, 70, -70], [600, 50, 50], [710, 60, -50], [830, 50, 45],
         [950, 70, -65], [1090, 50, 50], [1190, 60, -50], [1310, 50, 40], [1400, 50, -35]],
       desc: "Путь от Speculum к Lux сквозь круглые лунные врата. Тушь и рисовая бумага: в Свете белое с алой печатью, во Тьме чёрная тушь с нефритовым свечением. Над путём плывёт туман и медленно вращается знак инь-ян.",
-      feats: ["Ворота инь-ян: кнопки раздвигают половины", "Тараны на цепях поперёк пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
+      feats: ["Ворота инь-ян: кнопки раздвигают половины", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "speculum" }, map: { x: 770, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,

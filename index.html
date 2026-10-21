@@ -861,8 +861,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const k0 = Math.floor((sC - 10) / SL), k1 = Math.floor((sC + AHEAD - 4) / SL);
     for (let k = k0; k <= k1; k++) {
       const dec = getDecor(k), s = k * SL + SL / 2;
-      put("sleeper", s - 0.5, 0, 0.06); put("sleeper", s + 0.5, 0, 0.06);
-      put("rail", s, -0.72, 0.19); put("rail", s, 0.72, 0.19);
+      // under an up-down gate the track is cut by a slot that takes the lower leaf: no sleeper there, the rails broken
+      const slot = gates.find(g => g.kind === "v" && Math.abs(g.s - s) < SL / 2 + 0.3);
+      for (const ss of [s - 0.5, s + 0.5]) if (!slot || Math.abs(ss - slot.s) > SLOT_W / 2 + 0.18) put("sleeper", ss, 0, 0.06);
+      if (!slot) { put("rail", s, -0.72, 0.19); put("rail", s, 0.72, 0.19); }
+      else { // the two pieces of rail either side of the slot
+        const a0 = s - SL / 2, a1 = slot.s - SLOT_W / 2, b0 = slot.s + SLOT_W / 2, b1 = s + SL / 2;
+        for (const [x0, x1] of [[a0, a1], [b0, b1]]) if (x1 - x0 > 0.05) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, (x0 + x1) / 2, u, 0.19).scale(SV.set(1, 1, (x1 - x0) / (SL + 0.04))));
+      }
       const open = forkOpenSide(s);
       if (dec.wl && open !== -1) put(wallKey, s, -W - 0.12, H / 2);
       if (dec.wr && open !== 1) put(wallKey, s, W + 0.12, H / 2);
@@ -1810,7 +1816,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   let gates = [];
   // Leaves are dark glass: enough balls shatter one, but it takes more than hitting the buttons does.
   let lastGateS = -1e9;
-  const GATE_H = 4.0, IRIS_R = 2.3, IRIS_V = 2.0, GATE_D = 0.06, GATE_COST = 5, GATE_GAP = 80;
+  const GATE_H = 4.0, IRIS_R = 2.3, IRIS_V = 2.0, GATE_D = 0.06, GATE_COST = 5, GATE_GAP = 80, SLOT_W = 0.36;
+  const slotMat = new THREE.MeshBasicMaterial({ color: 0x020306 }), slotGeo = new THREE.BoxGeometry(1, 0.03, SLOT_W), slotLipGeo = new THREE.BoxGeometry(1, 0.06, 0.06);
   const doorMat = new THREE.MeshStandardMaterial({ color: 0x0c1420, emissive: 0x0a1830, emissiveIntensity: 0.4, roughness: 0.08, metalness: 0.4, transparent: true, opacity: 0.62, depthWrite: false, side: THREE.DoubleSide });
   const buttonMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.8, roughness: 0.4, side: THREE.DoubleSide }); // a cup shows its inside too
   const pressedMat = new THREE.MeshStandardMaterial({ color: 0x40e890, emissive: 0x20c070, emissiveIntensity: 0.9, roughness: 0.4, side: THREE.DoubleSide });
@@ -1860,6 +1867,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       }
       for (const sd of [-1, 1]) { const pst = new THREE.Mesh(postGeo, frameMat); pst.scale.y = (top + 0.2) / (GATE_H + 0.4); pst.position.set(sd * (BRIDGE_W + 0.2), (top + 0.2) / 2, 0); root.add(pst); }
       const lin = new THREE.Mesh(lintelGeo, frameMat); lin.position.set(0, top, 0); root.add(lin);
+      if (kind === "v") { // the slot in the deck the lower leaf drops into, with steel lips along it
+        const hw = 2 * (STYLE.bridge ? BRIDGE_W : W);
+        const slot = new THREE.Mesh(slotGeo, slotMat); slot.scale.x = hw; slot.position.y = 0.005; root.add(slot);
+        for (const sd of [-1, 1]) { const lip = new THREE.Mesh(slotLipGeo, frameMat); lip.scale.x = hw; lip.position.set(0, 0.02, sd * (SLOT_W / 2 + 0.03)); root.add(lip); }
+      }
     }
     // buttons: how many, how big and whether they wander along the frame follow the difficulty
     const nb = k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = k > 0.55;

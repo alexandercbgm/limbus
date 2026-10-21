@@ -395,6 +395,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   // ---------- constants ----------
   const TAU = Math.PI * 2, W = 4.2, H = 6.6, CAM_V = 1.8;
+  // W and H are the room the game is played in; the shell of walls, floor and ceiling may stand further out (SW, SH),
+  // where a level's frames are bigger than the tunnel (Vitrum, Speculum, Rubinus). Set for each level in setLevel.
+  let SW = W, SH = H;
   const BRIDGE_W = 1.75, PYLON_H = 40; // Abyssus: half the bridge's width, and how far its pylons reach down
   const DS = 1, BACK = 44, AHEAD = 150, NS = BACK + AHEAD + 1, SL = 2;
   const START_BALLS = 30, R_BALL = 0.18, G = 11, MAX_SHARDS = 520;
@@ -1122,8 +1125,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const STRIP_N = AHEAD + 20;
   const floorStrip = makeStrip(STRIP_N, surfMat, false), vaultStrip = makeStrip(STRIP_N, surfMat, true);
   const gFloorStrip = makeStrip(GHOST_N, surfMat, false), gVaultStrip = makeStrip(GHOST_N, surfMat, true);
-  const MIRROR_O = 2 * (W + 0.12); // a mirror wall reflects the corridor to this offset on its side
-  const mirStrips = [-1, 1].map(k => ({ o: k * MIRROR_O, floor: makeStrip(STRIP_N, surfMat, false), vault: makeStrip(STRIP_N, surfMat, true) }));
+  // a mirror wall reflects the corridor to an offset of 2 × (SW + 0.12) on its side (set with the level)
+  const mirStrips = [-1, 1].map(k => ({ o: k * 2 * (W + 0.12), k, floor: makeStrip(STRIP_N, surfMat, false), vault: makeStrip(STRIP_N, surfMat, true) }));
   const decor = new Map();
   function getDecor(k) {
     let d = decor.get(k);
@@ -1151,7 +1154,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (STYLE.blocks === "slab") { // massive stacks of horizontal slabs far out, seen from the halls
       if (k % 3 === 0) for (const side of [-1, 1]) {
         if (hash(k * 7 + side * 3 + 11) > 0.65) continue;
-        const h0 = hash(k * 13 + side * 5), off = W + 5 + h0 * 14, n = 4 + Math.floor(hash(k * 3 + side) * 6);
+        const h0 = hash(k * 13 + side * 5), off = SW + 5 + h0 * 14, n = 4 + Math.floor(hash(k * 3 + side) * 6);
         let v = -16 + hash(k * 29 + side) * 8;
         for (let i = 0; i < n; i++) {
           const a = hash(k * 31 + i * 7 + side), b = hash(k * 17 + i * 11 + side), sy = 1.1 + a * 1.4, sx = 8 + a * 12, sz = 4 + b * 6;
@@ -1165,7 +1168,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     if (STYLE.blocks === "drop") { // drops of quicksilver hanging high above the mirror halls
       if (hash(k * 5 + 3) < 0.6) { const h1 = hash(k * 31), h2 = hash(k * 17), r = 0.5 + h2 * 1.6;
-        d.blocks.push({ u: (h1 - 0.5) * 2 * (W + 22), v: 9 + h2 * 14, sx: r, sy: r, sz: r, rx: 0, ry: 0, spin: 0, wob: h1 * TAU }); }
+        d.blocks.push({ u: (h1 - 0.5) * 2 * (SW + 22), v: 9 + h2 * 14, sx: r, sy: r, sz: r, rx: 0, ry: 0, spin: 0, wob: h1 * TAU }); }
       decor.set(k, d); return d;
     }
     const nb = STYLE.mirror ? 0 : (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
@@ -1173,7 +1176,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
       const side = h1 < 0.5 ? -1 : 1, tall = z < 0.4 && h3 < 0.35 && STYLE.blocks === "cube";
       d.blocks.push({
-        u: side * (W + 3 + h2 * 20), v: tall ? -14 + h3 * 10 : -8 + h3 * 20,
+        u: side * (SW + 3 + h2 * 20), v: tall ? -14 + h3 * 10 : -8 + h3 * 20,
         sx: 0.8 + h2 * 4, sy: tall ? 18 + h1 * 14 : 0.8 + h3 * 4, sz: 0.8 + h1 * 4,
         rx: h1 * TAU, ry: h2 * TAU, spin: tall ? 0 : (h3 - 0.5) * 0.4,
       });
@@ -1200,6 +1203,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
+    const putWall = (key, s, u) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, SH / 2).scale(SV.set(1, SH / H, 1))); }; // as tall as the shell
     const wallKey = STYLE.glassWalls ? "gwall" : "wall", blockKey = STYLE.blocks === "prism" ? "prism" : STYLE.blocks === "coin" ? "coin" : STYLE.blocks === "bush" ? "bush" : STYLE.blocks === "drop" ? "drop" : "block";
     const k0 = Math.floor((sC - 10) / SL), k1 = Math.floor((sC + AHEAD - 4) / SL);
     for (let k = k0; k <= k1; k++) {
@@ -1213,9 +1217,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (const [x0, x1] of [[a0, a1], [b0, b1]]) if (x1 - x0 > 0.05) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, (x0 + x1) / 2, u, 0.19).scale(SV.set(1, 1, (x1 - x0) / (SL + 0.04))));
       }
       const open = forkOpenSide(s);
-      if (dec.wl && open !== -1) put(wallKey, s, -W - 0.12, H / 2);
-      if (dec.wr && open !== 1) put(wallKey, s, W + 0.12, H / 2);
-      if (dec.ceil && !STYLE.closed) put("ceil", s, 0, H); // a closed maze has a continuous vault instead
+      if (dec.wl && open !== -1) putWall(wallKey, s, -SW - 0.12);
+      if (dec.wr && open !== 1) putWall(wallKey, s, SW + 0.12);
+      if (dec.ceil && !STYLE.closed) I.ceil.setMatrixAt(n.ceil++, placeM(M, s, 0, SH).scale(SV.set(SW / W, 1, 1))); // a closed maze has a continuous vault instead
       if (dec.arch && !open) {
         if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
         else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY).scale(SV.set(RING_SX, RING_SY, 1))); // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
@@ -1227,7 +1231,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         put("kerb", s, -BRIDGE_W, 0.1); put("kerb", s, BRIDGE_W, 0.1);
         if (dec.arch) { put("pylon", s, -BRIDGE_W + 0.3, -PYLON_H / 2); put("pylon", s, BRIDGE_W - 0.3, -PYLON_H / 2); put("girder", s, 0, -0.35); }
       }
-      if (dec.pyr && dec.pyr.side !== open) put(dec.pyr.side < 0 ? "pyrL" : "pyrR", s, dec.pyr.side * (W - 0.25), dec.pyr.v);
+      if (dec.pyr && dec.pyr.side !== open) put(dec.pyr.side < 0 ? "pyrL" : "pyrR", s, dec.pyr.side * (SW - 0.25), dec.pyr.v);
       if (STYLE.rebar) { // rods of rebar out of broken concrete, and caged sodium lamps every 10 m
         for (const side of [-1, 1]) if ((side < 0 ? dec.wl : dec.wr) && hash(k * 19 + side * 7) < 0.45) {
           const cnt = 2 + Math.floor(hash(k * 23 + side) * 4), v0 = 0.6 + hash(k * 29 + side) * 4.6;
@@ -1247,21 +1251,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         I[blockKey].setMatrixAt(n[blockKey]++, M);
       }
     }
-    fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, STYLE.bridge ? BRIDGE_W : W);
+    fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, STYLE.bridge ? BRIDGE_W : SW);
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H); else vaultStrip.visible = false;
     // Speculum: the glass walls are mirrors, and beyond each one the corridor repeats: floor, vault, rails,
     // sleepers and arches, closed by a dark wall where the reflection's own mirror would be
     for (const m of mirStrips) {
       m.floor.visible = !!STYLE.mirror; m.vault.visible = !!STYLE.mirror && !!STYLE.closed;
       if (!STYLE.mirror) continue;
-      fillStrip(m.floor, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, m.o);
+      fillStrip(m.floor, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, m.o, SW);
       fillStrip(m.vault, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, m.o);
-      const far = m.o + Math.sign(m.o) * (W + 0.12);
+      const far = m.o + Math.sign(m.o) * (SW + 0.12);
       for (let k = k0; k <= k1; k++) {
         const dec = getDecor(k), s = k * SL + SL / 2;
         put("sleeper", s - 0.5, m.o, 0.06); put("sleeper", s + 0.5, m.o, 0.06);
         put("rail", s, m.o - 0.72, 0.19); put("rail", s, m.o + 0.72, 0.19);
-        put("wall", s, far, H / 2);
+        putWall("wall", s, far);
         if (dec.arch && STYLE.arch !== "hex") { { put("post", s, m.o - W + 0.1, H / 2); put("post", s, m.o + W - 0.1, H / 2); put("beam", s, m.o, H - 0.18); put("sill", s, m.o, 0.025); } }
       }
     }
@@ -1491,7 +1495,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const rod = new THREE.Mesh(thornRodGeo, pistonMat); arm.add(rod);
     const head = new THREE.Mesh(thornHeadGeo, thornMat); arm.add(head);
     scene.add(g);
-    thorns.push({ s, u: side * W, v, reach: W - 0.84, ext: 0, trigger: rand(26, 40), group: g, rod, head, headOn: true, alive: true, wp: new THREE.Vector3() });
+    thorns.push({ s, u: side * SW, v, reach: SW - 0.84, ext: 0, trigger: rand(26, 40), group: g, rod, head, headOn: true, alive: true, wp: new THREE.Vector3() });
   }
 
 
@@ -1575,7 +1579,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
       case "center": addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break;
-      case "wall": addPane({ s, u: 0, v: H / 2, w: 2 * W - 0.3, h: H - 0.3 }); break;
+      case "wall": addPane({ s, u: 0, v: SH / 2, w: 2 * SW - 0.3, h: SH - 0.3 }); break;
       case "triple": [-2.75, 0, 2.75].forEach(u => addPane({ s, u, v: CAM_V + 0.2, w: 2.5, h: 3 })); break;
       case "sides":
         [-1, 1].forEach(k => addPane({ s, u: k * 2.95, v: 2.2, w: 1.8, h: 3.6 }));
@@ -1630,7 +1634,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       }
       case "zigzag": { // partitions of a glass maze, left and right in turn: the way winds between them
         const first = Math.random() < 0.5 ? -1 : 1, n = d > 0.5 ? 4 : 3;
-        for (let i = 0; i < n; i++) { const k = i % 2 ? -first : first; addPane({ s: s - i * 6, u: k * (W / 2 + 0.25), v: H / 2, w: W + 0.4, h: H - 0.3 }); }
+        for (let i = 0; i < n; i++) { const k = i % 2 ? -first : first; addPane({ s: s - i * 6, u: k * (SW / 2 + 0.25), v: SH / 2, w: SW + 0.4, h: SH - 0.3 }); }
         break;
       }
       case "twins": { // two panes mirrored about the track that close and part like doors
@@ -1646,7 +1650,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       case "reinf": addPane({ s, u: rand(-0.3, 0.3), v: glassV, w: 2.8, h: 2.8, hp: d > 0.7 ? 3 : 2 }); break;
       case "shutter": {
         const freq = rand(0.9, 1.4), phase = rand(0, TAU);
-        [-1, 1].forEach(k => addPane({ s, u: k * W / 2, v: H / 2, w: W, h: H - 0.3, move: { axis: "shutter", sign: k, freq, phase } }));
+        [-1, 1].forEach(k => addPane({ s, u: k * SW / 2, v: SH / 2, w: SW, h: SH - 0.3, move: { axis: "shutter", sign: k, freq, phase } }));
         break;
       }
       case "rotor": {
@@ -1788,7 +1792,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       d -= side; const q = d / a; return out.set(-a * Math.cos(q), -b - a * Math.sin(q), 0);
     };
     return new THREE.TubeGeometry(path, 40, wire, 8, true);
-  })(), HANG_TOP = H - 0.06; // chains hang from the ceiling
+  })();
+  let HANG_TOP = H - 0.06; // chains hang from the ceiling (set with the level)
   const fineGeo = new THREE.TetrahedronGeometry(0.07), mountGeo = new THREE.BoxGeometry(0.55, 0.1, 0.55);
   const chunkGeo = new THREE.BoxGeometry(0.16, 0.16, 0.12); // tempered-glass chunks, like a car window
   function makeChain(len) {
@@ -1822,8 +1827,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     scene.add(root);
     // a monolith always hangs under a ceiling: close the vault over it
     for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) getDecor(k).ceil = true;
-    const wn2 = G / arm, amp = pend ? rand(0.4, 0.52) : 0, ph = rand(0, TAU);
-    hangers.push({ s, kind, w, h, d, L, arm, wn2, u0: pend || laser ? 0 : rand(-0.4, 0.4), theta: amp * Math.sin(ph), omega: amp * Math.sqrt(wn2) * Math.cos(ph), tilt: 0,
+    // under a raised ceiling the chains are longer, but the swing keeps the tempo and sideways reach of a normal one
+    const arm0 = arm - (HANG_TOP - (H - 0.06)), kArm = arm0 / arm;
+    const wn2 = G / arm0, amp = pend ? rand(0.4, 0.52) * kArm : 0, ph = rand(0, TAU);
+    hangers.push({ s, kind, w, h, d, L, arm, wn2, kArm, u0: pend || laser ? 0 : rand(-0.4, 0.4), theta: amp * Math.sin(ph), omega: amp * Math.sqrt(wn2) * Math.cos(ph), tilt: 0,
       laser, bars, emitters, lasHit: false, root, body, chains, hp: laser ? 6 : bars ? 9 : pend ? 5 : 7, falling: false, fallT: 0, fv: new THREE.Vector3(), alive: true, passed: false, inv: new THREE.Matrix4() });
   }
   const SWEEP = new THREE.Vector3(), CHAIN_HIT = 0.4; // chains look thin, so their hit zone is generous
@@ -1885,7 +1892,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // a hit knocks the slab sideways, the way the ball was flying
     frameAt(hg.s);
     const vl = vel.dot(_R), side = Math.abs(vl) > 1 ? Math.sign(vl) : (Math.random() < 0.5 ? -1 : 1);
-    hg.omega += side * (hg.kind === "pendulum" ? 0.55 : 0.62); // two well-timed hits swing a gate clear of the cart
+    hg.omega += side * (hg.kind === "pendulum" ? 0.55 : 0.62) * hg.kArm; // two well-timed hits swing a gate clear of the cart
     hg.hp--; Sound.clink(); Sound.tone(220, 0.15, 0.1); chips(at, monoMat, 6, vel);
     if (hg.hp > 0) return;
     hg.alive = false; burstSlab(hg); scene.remove(hg.root);
@@ -1961,7 +1968,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const wave = { n: 0, broken: 0 }, first = Math.random() < 0.5 ? -1 : 1, n = Math.min(5, 3 + Math.floor(superWave / 2));
       for (let i = 0; i < n; i++) {
         const k = i % 2 ? -first : first;
-        addPane({ s: s + i * 5, u: k * (W / 2 + 0.25), v: H / 2, w: W + 0.4, h: H - 0.3, wave }); wave.n++;
+        addPane({ s: s + i * 5, u: k * (SW / 2 + 0.25), v: SH / 2, w: SW + 0.4, h: SH - 0.3, wave }); wave.n++;
         addCrystal(s + i * 5 + 1.5, k * rand(1.2, 2.8), rand(1.6, 4.2), 2);
       }
       return 6 + n * 5;
@@ -2149,7 +2156,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   // how far a beam from (u, v) along (du, dv) runs before it meets a wall, the floor or the vault
   function beamReach(u, v, du, dv, max) {
-    const u0 = STYLE.bridge ? -60 : -W + 0.04, u1 = -u0, v0 = 0.03, v1 = STYLE.bridge ? 60 : H - 0.04; // a beam runs on till it meets something
+    const u0 = STYLE.bridge ? -60 : -SW + 0.04, u1 = -u0, v0 = 0.03, v1 = STYLE.bridge ? 60 : SH - 0.04; // a beam runs on till it meets something
     let tm = max;
     if (du > 1e-6) tm = Math.min(tm, (u1 - u) / du); else if (du < -1e-6) tm = Math.min(tm, (u0 - u) / du);
     if (dv > 1e-6) tm = Math.min(tm, (v1 - v) / dv); else if (dv < -1e-6) tm = Math.min(tm, (v0 - v) / dv);
@@ -2450,7 +2457,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const top = kind === "v" && STYLE.bridge ? GATE_H * 1.5 + 0.8 : GATE_H + 0.4;
     const weights = kind === "h" && (LEVEL.gateOpeners || ["buttons"])[Math.floor(Math.random() * (LEVEL.gateOpeners || ["buttons"]).length)] === "weights";
     if (kind !== "iris" && kind !== "taiji" && !STYLE.bridge) { // in a corridor a bulkhead closes all around the doorway; the leaves slide away behind it
-      const sh = new THREE.Shape([new THREE.Vector2(-W, 0), new THREE.Vector2(W, 0), new THREE.Vector2(W, H), new THREE.Vector2(-W, H)]);
+      const sh = new THREE.Shape([new THREE.Vector2(-SW, 0), new THREE.Vector2(SW, 0), new THREE.Vector2(SW, SH), new THREE.Vector2(-SW, SH)]);
       sh.holes.push(new THREE.Path([new THREE.Vector2(-BRIDGE_W, 0), new THREE.Vector2(-BRIDGE_W, GATE_H), new THREE.Vector2(BRIDGE_W, GATE_H), new THREE.Vector2(BRIDGE_W, 0)]));
       const bh = new THREE.Mesh(new THREE.ShapeGeometry(sh), bulkheadMat); bh.position.z = 0.07; root.add(bh);
     }
@@ -2458,7 +2465,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (round) {
       const ring = new THREE.Mesh(irisRingGeo, frameMat); ring.position.y = IRIS_V; root.add(ring);
       if (!STYLE.bridge) { // in a corridor a bulkhead closes everything around the iris
-        const sh = new THREE.Shape([new THREE.Vector2(-W, 0), new THREE.Vector2(W, 0), new THREE.Vector2(W, H), new THREE.Vector2(-W, H)]);
+        const sh = new THREE.Shape([new THREE.Vector2(-SW, 0), new THREE.Vector2(SW, 0), new THREE.Vector2(SW, SH), new THREE.Vector2(-SW, SH)]);
         const hole = new THREE.Path(); hole.absarc(0, IRIS_V, IRIS_R + 0.1, 0, TAU, true); sh.holes.push(hole);
         const bh = new THREE.Mesh(new THREE.ShapeGeometry(sh, 48), bulkheadMat); bh.position.z = 0.07; root.add(bh); // in front: the leaves slide away behind it
       }
@@ -2476,7 +2483,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const sd of [-1, 1]) { const pst = new THREE.Mesh(postGeo, frameMat); pst.scale.y = (top + 0.2) / (GATE_H + 0.4); pst.position.set(sd * (BRIDGE_W + 0.2), (top + 0.2) / 2, 0); root.add(pst); }
       const lin = new THREE.Mesh(lintelGeo, frameMat); lin.position.set(0, top, 0); root.add(lin);
       if (kind === "v") { // the slot in the deck the lower leaf drops into, with steel lips along it
-        const hw = 2 * (STYLE.bridge ? BRIDGE_W : W);
+        const hw = 2 * (STYLE.bridge ? BRIDGE_W : SW);
         const slot = new THREE.Mesh(slotGeo, slotMat); slot.scale.x = hw; slot.position.y = 0.005; root.add(slot);
         for (const sd of [-1, 1]) { const lip = new THREE.Mesh(slotLipGeo, frameMat); lip.scale.x = hw; lip.position.set(0, 0.02, sd * (SLOT_W / 2 + 0.03)); root.add(lip); }
       }
@@ -2545,7 +2552,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // the leaf still covering the point (x, y) of the gate's plane, or null
   function gateLeafAt(g, x, y) {
     const p = g.pr;
-    if (g.kind === "iris" || g.kind === "taiji") { const d = Math.hypot(x, y - IRIS_V); return (d < IRIS_R && d > (IRIS_R + 0.15) * p) || (!STYLE.bridge && d >= IRIS_R && Math.abs(x) < W && y > 0 && y < H) ? g.leaves[0] : null; }
+    if (g.kind === "iris" || g.kind === "taiji") { const d = Math.hypot(x, y - IRIS_V); return (d < IRIS_R && d > (IRIS_R + 0.15) * p) || (!STYLE.bridge && d >= IRIS_R && Math.abs(x) < SW && y > 0 && y < SH) ? g.leaves[0] : null; }
     if (Math.abs(x) > BRIDGE_W + 0.1 || y < 0 || y > GATE_H + 0.1) return null;
     const lf = g.kind === "h" ? g.leaves[x < 0 ? 0 : 1] : g.leaves[y < GATE_H / 2 ? 0 : 1];
     if (lf.broken) return null;
@@ -2695,7 +2702,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // and the key pays; every three gates in a row add a bonus. Miss it and the cart breaks the glass for a small loss.
   let gatesInRow = 0;
   function spawnPortae(s) {
-    const halves = [-1, 1].map(k => { addPane({ s, u: k * W / 2, v: H / 2, w: W - 0.06, h: H - 0.3, cost: 4 }); return panes[panes.length - 1]; });
+    const halves = [-1, 1].map(k => { addPane({ s, u: k * SW / 2, v: SH / 2, w: SW - 0.06, h: SH - 0.3, cost: 4 }); return panes[panes.length - 1]; });
     halves[0].link = halves[1]; halves[1].link = halves[0];
     addCrystal(s - 1.5, rand(-1.8, 1.8), rand(2.0, 3.8), 3);
     crystals[crystals.length - 1].gate = halves;
@@ -3182,18 +3189,20 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const LEVEL_LOOK = {
     initium: { sky: { mode: 3, a: 0.85, c: "#ffffff" } },
     thesaurus: { sky: { mode: 5, a: 0.9, c: "#ffe8b0" } },
-    vitrum: { sky: { mode: 3, a: 0.95, c: "#ffffff" } },
+    vitrum: { sky: { mode: 3, a: 0.95, c: "#ffffff" }, shell: [5.3, 8.75] }, // walls and ceiling clear of the hexagonal frames
     tao: { sky: { mode: 7, a: 0.9, c: "#ffffff" } },
-    rubinus: { sky: { mode: 6, a: 0.95, c: "#ff2a46" } },
+    rubinus: { sky: { mode: 6, a: 0.95, c: "#ff2a46" }, shell: [8, 10.5] }, // the triangles are wide: a hall of glass
     labyrinthus: { sky: { mode: 3, a: 0.75, c: "#d4f6e6" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },
     hortus: { sky: { mode: 3, a: 0.85, c: "#fff0f4" } },
-    speculum: { sky: { mode: 2, a: 0.9, c: "#f0f4ff" }, style: { tex: "chrome", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum // open to a sky of quicksilver
+    speculum: { sky: { mode: 2, a: 0.9, c: "#f0f4ff" }, shell: [5.3, 8.75], style: { tex: "chrome", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum // open to a sky of quicksilver
     abyssus: { sky: { mode: 1 } },
     carcer: { sky: { mode: 0 }, style: { tex: "bars" } },
     lux: { sky: { mode: 4, a: 0.9, c: "#fff4d0" } },
   };
   function setLevel(lv) {
     LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
+    [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;
+    mirStrips.forEach(m => { m.o = m.k * 2 * (SW + 0.12); });
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, { concrete: "asphalt", stone: "flags", chrome: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     buildStation();

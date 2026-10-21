@@ -135,8 +135,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .logo { font-family: var(--display); font-weight: 700; font-size: clamp(40px, 11vw, 76px); letter-spacing: 0.22em; line-height: 1; margin: 0; }
 .logo span { color: #1d6f8f; }
 .tagline { margin: 8px 0 0; color: #4c6470; font-size: 14px; }
-.bank { font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 4px; background: #10242e; color: #f4fbfc; display: flex; gap: 8px; align-items: center; }
-.bank b { font-size: 18px; color: #7fd3ff; font-variant-numeric: tabular-nums; }
+/* the bank is a readout, not a button: a pale plate with dark text */
+.bank { font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 4px; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; display: flex; gap: 8px; align-items: center; }
+.bank b { font-size: 18px; color: #1287b5; font-variant-numeric: tabular-nums; }
 .map-card { position: relative; background: var(--frost); border: 1px solid var(--edge); border-radius: 6px; box-shadow: 0 18px 50px rgba(16, 36, 46, 0.12); padding: 14px 10px; }
 .map-title { position: absolute; top: 16px; left: 18px; z-index: 1; pointer-events: none; display: flex; flex-direction: column; gap: 7px; padding: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #4c6470; }
 .map-title i { display: inline-block; width: 22px; height: 5px; border-radius: 3px; vertical-align: middle; margin-right: 6px; }
@@ -220,6 +221,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   .sheet .btns { gap: 7px; }
   .sheet h1 small { display: inline; margin-left: 10px; }
 }
+.sheet .panel.nomini { display: block; } /* the depot has no shot to show */
 .titlecard { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; text-align: center; }
 .titlecard > div { animation: banner 3.4s ease-out forwards; color: var(--ink); }
 .tc-num { font-family: var(--mono); font-size: 13px; letter-spacing: 0.3em; padding-left: 0.3em; }
@@ -4158,7 +4160,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     else if (req.transfer && progress.done[req.transfer.from] && bank >= req.transfer.cost) button(btns, "cta", T(`Пересадка: −${req.transfer.cost} ◆`, `Change: −${req.transfer.cost} ◆`), () => { progress.bank -= req.transfer.cost; progress.open[lv.id] = true; saveProgress(); startLevel(lv); });
     else button(btns, "cta", T("Пока закрыта", "Closed for now"), null, true);
     button(btns, "ghost", T("Назад к схеме", "Back to the scheme"), () => { $("sheet").hidden = true; renderMap(); });
-    drawMini(lv);
+    $("mini").hidden = !!lv.depot; $("sheet").querySelector(".panel").classList.toggle("nomini", !!lv.depot);
+    if (!lv.depot) drawMini(lv);
     $("sheet").hidden = false;
     $("sheet").querySelector("button:not(:disabled)")?.focus();
   }

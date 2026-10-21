@@ -2612,13 +2612,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       desc: "Тупик с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
       req: { after: "labyrinthus", fare: 12 }, map: { x: 480, y: 75, label: "t" } }, // the label on top, clear of the legend
-    { id: "crystallum", num: "II·b", latin: "Crystallum", ru: "Хрусталь", line: "branch", playable: true, music: "through_the_glass_maze", len: 900, pal: PAL_CRYSTALLUM, finale: "fragmenta",
+    { id: "crystallum", num: "II·b", latin: "Crystallum", ru: "Хрусталь", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_CRYSTALLUM, finale: "fragmenta",
       style: { arch: "hex", blocks: "prism", glassWalls: true }, crystalMul: 1.4,
       pats: { zigzag: [3, 3.5, 3.5], twins: [1, 1.5, 1.5], slider: [1, 1.5, 2], center: [1.5, 1.5, 1], rotor: [0.5, 1, 1.5], reinf: [0, 0.6, 1.5], double: [0.5, 1, 1.5], sides: [1.5, 0.6, 0], bonus: [2, 0.5, 0] },
       turns: [[90, 50, 45], [200, 60, -60], [320, 50, 50], [430, 60, -55], [550, 50, 45], [650, 50, -50], [760, 50, 35]],
-      desc: "Тупик от Vitrum. Лабиринт из хрусталя: поперёк пути стоят стеклянные перегородки вразбивку, то слева, то справа, и проход вьётся между ними. Разбивайте перегородки, чтобы видеть дорогу дальше.",
+      desc: "Обходной путь от Vitrum к Abyssus. Лабиринт из хрусталя: поперёк пути стоят стеклянные перегородки вразбивку, то слева, то справа, и проход вьётся между ними. Разбивайте перегородки, чтобы видеть дорогу дальше.",
       feats: ["Стеклянные перегородки вразбивку", "Кристаллов больше обычного", "Финал Fragmenta: волны хрусталя"],
-      req: { after: "vitrum", fare: 10 }, map: { x: 450, y: 330, label: "b" } },
+      req: { after: "vitrum" }, map: { x: 450, y: 330, label: "b" } },
     { id: "caelum", num: "IV·a", latin: "Caelum", ru: "Небосвод", line: "branch", playable: false,
       mood: { sky: "#cfe4ff", hor: "#e8f2ff", surf: "#f6f9ff", wall: "#dfeaff", frame: "#6a8ac0", rail: "#9ab0d8", glass: "#d8e8ff", accent: "#6aa0ff" },
       desc: "Тупик от Speculum, под открытым небом. Скоро.",
@@ -2638,7 +2638,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
       desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота: над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Створку можно и разбить: от первого шара она трескается, от второго разлетается. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
       feats: ["Ворота из тёмного стекла: откройте вертушками или разбейте створку двумя шарами", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
-      req: { after: "speculum" }, map: { x: 730, y: 330, label: "bl" } },
+      req: { after: "speculum", or: "crystallum" }, map: { x: 730, y: 330, label: "tr" } },
     { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 900, pal: PAL_CARCER, finale: "custodes",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, driftMul: 1.3, thorns: { from: 0.3, mul: 1.8 },
       pats: { bars: [2, 2.5, 3], imps: [1, 1.5, 3], shutter: [0.5, 1.5, 2], reinf: [0.5, 1, 2], center: [2, 2, 1.5], double: [0.5, 1, 1.5], slider: [1, 1.5, 1.5], wall: [0.5, 0.5, 0.5], sides: [1, 0.5, 0], bonus: [1, 0.3, 0] },
@@ -2659,7 +2659,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const MAIN_LINE = ["initium", "vitrum", "labyrinthus", "speculum", "abyssus", "lux"];
   // drawn lines of the scheme, as waypoints; the main line is drawn station to station
   const MAP_LINES = [
-    { kind: "branch", to: "crystallum", pts: [[270, 330], [450, 330]] },
+    { kind: "line", to: "crystallum", pts: [[270, 330], [450, 330], [730, 330]] }, // a second line: Vitrum, Crystallum, Abyssus
     { kind: "branch", to: "caelum", pts: [[590, 190], [770, 190]] },
     { kind: "branch", to: "thesaurus", pts: [[90, 330], [90, 380], [170, 460]], tagSeg: 1, tag: 0.38 },
     { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 380], [360, 470]], tagSeg: 1, tag: 0.38 },
@@ -2678,7 +2678,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function saveProgress() { try { localStorage.setItem(STORE, JSON.stringify(progress)); } catch (e) { /* storage unavailable */ } }
   let progress = loadProgress();
   const unlockAll = location.hash === "#all"; // for testing: open every built station
-  function isOpen(lv) { return unlockAll || !lv.req.after || !!progress.done[lv.req.after] || !!progress.open[lv.id]; }
+  // a station opens once the one before it is done; with req.or there is a second way in (Abyssus: from Crystallum)
+  function isOpen(lv) { return unlockAll || !lv.req.after || !!progress.done[lv.req.after] || (lv.req.or && !!progress.done[lv.req.or]) || !!progress.open[lv.id]; }
   function nextLevel(lv) { const i = MAIN_LINE.indexOf(lv.id); return i >= 0 && i < MAIN_LINE.length - 1 ? byId(MAIN_LINE[i + 1]) : null; }
   // a ride on a branch costs its fare every time; with too few crystals the station sheet explains why
   function rideLevel(lv) {
@@ -3481,9 +3482,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     // transfers and dead-end branches, each with its price on the longest segment
     for (const ln of MAP_LINES) {
-      const to = byId(ln.to), color = ln.kind === "transfer" ? LINE_TR : LINE_BR, built = to.playable || to.depot;
-      out += `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
+      const to = byId(ln.to), color = ln.kind === "transfer" ? LINE_TR : ln.kind === "line" ? LINE_MAIN : LINE_BR, built = to.playable || to.depot;
+      out += `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="${ln.kind === "line" ? 8 : 6}" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
       const cost = ln.kind === "transfer" ? to.req.transfer.cost : to.req.fare || to.req.toll;
+      if (!cost) continue; // a line without a price has no tag
       let best = 0, mx = 0, my = 0;
       for (let i = 0; i < ln.pts.length - 1; i++) {
         const [x0, y0] = ln.pts[i], [x1, y1] = ln.pts[i + 1], l = Math.hypot(x1 - x0, y1 - y0);
@@ -3537,7 +3539,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const reqs = [];
     if (!req.after) reqs.push([true, "Открыта с самого начала"]);
     else if (lv.line === "branch") reqs.push([!!progress.done[req.after], `Ветка от станции ${byId(req.after).latin}: сначала пройти её`]);
-    else reqs.push([!!progress.done[req.after], `Прямо: пройти станцию ${byId(req.after).latin}`]);
+    else reqs.push([!!progress.done[req.after] || (req.or && !!progress.done[req.or]), req.or ? `Пройти станцию ${byId(req.after).latin} или ${byId(req.or).latin}` : `Прямо: пройти станцию ${byId(req.after).latin}`]);
     if (req.transfer) {
       const from = byId(req.transfer.from);
       reqs.push([!!progress.done[from.id] && bank >= req.transfer.cost, `Или пересадка с ${from.latin}: ◆ ${req.transfer.cost} кристаллов (в запасе ${bank})`]);

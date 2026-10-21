@@ -2828,11 +2828,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // upgrades sold at the depot, three levels each: more balls at the start, a second wind once a ride, more balls a crystal
   const UPGRADES = {
     copia: { name: "Copia", ru: "Запас", en: "Reserve", prices: [40, 80, 140],
-      desc: ["Шаров на старте каждого заезда: +10 за уровень (30 → 40 → 50 → 60).", "Balls at the start of every ride: +10 a level (30 → 40 → 50 → 60)."] },
+      desc: ["Шаров на старте каждого заезда: +10 за уровень.", "Balls at the start of every ride: +10 a level."],
+      now: n => T(`+${n * 10} шаров на старте`, `+${n * 10} balls at the start`) },
     spiritus: { name: "Spiritus", ru: "Второе дыхание", en: "Second wind", prices: [30, 60, 110],
-      desc: ["Шары кончились — заезд можно один раз продолжить с того же места: +10 шаров за уровень.", "Out of balls, a ride can go on once from where it stopped: +10 balls a level."] },
+      desc: ["Шары кончились — заезд можно один раз продолжить с того же места: +10 шаров за уровень.", "Out of balls, a ride can go on once from where it stopped: +10 balls a level."],
+      now: n => T(`продолжение с ${n * 10} шарами`, `go on with ${n * 10} balls`) },
     largitas: { name: "Largitas", ru: "Щедрость", en: "Bounty", prices: [50, 100, 160],
-      desc: ["Каждый шар, попавший в голубой кристалл, приносит больше шаров: +1 за уровень.", "Every ball that hits a blue crystal brings more balls: +1 a level."] },
+      desc: ["Каждый шар, попавший в голубой кристалл, приносит больше шаров: +1 за уровень.", "Every ball that hits a blue crystal brings more balls: +1 a level."],
+      now: n => T(`+${n} ${ballsWord(n)} с попадания`, `+${n} ${ballsWord(n)} a hit`) },
   };
   const upLevel = id => progress.up[id] || 0;
   // a ride through Hortus finds the gardeners' spare cannon: Gemini then costs half at the depot
@@ -4173,7 +4176,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     });
   }
 
-  function openSheet(lv) {
+  function openSheet(lv, keep) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was
+    const scroll = keep ? $("sheet").scrollTop : 0;
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
     $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${STATUS(st)}`;
     $("shName").innerHTML = `${esc(lv.latin)}<small>${esc(lv.ru)}</small>`;
@@ -4202,16 +4206,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (const id in WEAPONS) {
           const w = WEAPONS[id], card = document.createElement("div"); card.className = "wcard";
           card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${ballsWord(w.cost)} ${T("за выстрел", "a shot")}</small></h3><p>${esc(w.desc)}</p>`;
-          if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? T("Стоит на вагонетке", "On the cart") : T("Поставить", "Mount"), () => { progress.weapon = id; saveProgress(); openSheet(lv); }, progress.weapon === id);
+          if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? T("Стоит на вагонетке", "On the cart") : T("Поставить", "Mount"), () => { progress.weapon = id; saveProgress(); openSheet(lv, true); }, progress.weapon === id);
           else if (w.price === null) button(card, "ghost", T("Заперта в Темнице", "Locked in the Dungeon"), null, true);
-          else { const price = priceOf(id); button(card, "cta", price < w.price ? T(`Купить: ◆ ${price} (скидка из Сада)`, `Buy: ◆ ${price} (Garden discount)`) : T(`Купить: ◆ ${price}`, `Buy: ◆ ${price}`), () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv); renderMap(); }, bank < price); }
+          else { const price = priceOf(id); button(card, "cta", price < w.price ? T(`Купить: ◆ ${price} (скидка из Сада)`, `Buy: ◆ ${price} (Garden discount)`) : T(`Купить: ◆ ${price}`, `Buy: ◆ ${price}`), () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
           extra.appendChild(card);
         }
         for (const id in UPGRADES) {
           const u = UPGRADES[id], lvl = upLevel(id), card = document.createElement("div"); card.className = "wcard";
-          card.innerHTML = `<h3>${esc(u.name)}<small>${esc(T(u.ru, u.en))} · ${T("уровень", "level")} ${lvl}/3</small></h3><p>${esc(T(...u.desc))}</p>`;
+          card.innerHTML = `<h3>${esc(u.name)}<small>${esc(T(u.ru, u.en))} · ${T("уровень", "level")} ${lvl}/3${lvl ? " · " + esc(u.now(lvl)) : ""}</small></h3><p>${esc(T(...u.desc))}</p>`;
           if (lvl >= 3) button(card, "ghost", T("Всё куплено", "Maxed out"), null, true);
-          else { const price = u.prices[lvl]; button(card, "cta", T(`Уровень ${lvl + 1}: ◆ ${price}`, `Level ${lvl + 1}: ◆ ${price}`), () => { progress.bank -= price; progress.up[id] = lvl + 1; saveProgress(); openSheet(lv); renderMap(); }, bank < price); }
+          else { const price = u.prices[lvl]; button(card, "cta", T(`Уровень ${lvl + 1}: ◆ ${price}`, `Level ${lvl + 1}: ◆ ${price}`), () => { progress.bank -= price; progress.up[id] = lvl + 1; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
           extra.appendChild(card);
         }
       } else if (reached && bank >= req.toll) button(btns, "cta", T(`Открыть склад: −${req.toll} ◆`, `Open the depot: −${req.toll} ◆`), () => { progress.bank -= req.toll; progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); });
@@ -4225,7 +4229,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     $("mini").hidden = !!lv.depot; $("sheet").querySelector(".panel").classList.toggle("nomini", !!lv.depot);
     if (!lv.depot) drawMini(lv);
     $("sheet").hidden = false;
-    $("sheet").querySelector("button:not(:disabled)")?.focus();
+    if (keep) $("sheet").scrollTop = scroll;
+    else $("sheet").querySelector("button:not(:disabled)")?.focus();
   }
 
   // A small hand-drawn view down the level's corridor: the left half in its light palette, the right half in its dark one.

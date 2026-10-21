@@ -389,7 +389,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // every material made while the game sets up is noted, so all their shaders can be compiled before the first ride
   // (a phone takes a visible moment over each new one, which mid-ride is a stutter)
   let MATS = [];
-  for (const k of ["MeshStandardMaterial", "MeshBasicMaterial", "LineBasicMaterial", "PointsMaterial", "SpriteMaterial", "ShaderMaterial"]) {
+  for (const k of ["MeshStandardMaterial", "MeshLambertMaterial", "MeshBasicMaterial", "LineBasicMaterial", "PointsMaterial", "SpriteMaterial", "ShaderMaterial"]) {
     const Base = THREE[k];
     THREE[k] = class extends Base { constructor(p) { super(p); if (MATS) MATS.push(this); } };
   }
@@ -882,9 +882,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const glowTex = glowTexture();
 
   // ---------- materials (recolored every frame from the palette) ----------
-  const surfMat = new THREE.MeshStandardMaterial({ map: floorTex.map, emissiveMap: floorTex.emi, roughness: 0.85 });
-  const wallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, roughness: 0.9 });
-  const blockMat = new THREE.MeshStandardMaterial({ map: blockTex.map, emissiveMap: blockTex.emi, roughness: 0.85 });
+  // the big matte surfaces (floor, walls, the blocks floating outside) are lit the cheap way: no highlights to lose at
+  // this roughness, and they fill most of the screen, out in the open most of all
+  const surfMat = new THREE.MeshLambertMaterial({ map: floorTex.map, emissiveMap: floorTex.emi });
+  const wallMat = new THREE.MeshLambertMaterial({ map: wallTex.map, emissiveMap: wallTex.emi });
+  const blockMat = new THREE.MeshLambertMaterial({ map: blockTex.map, emissiveMap: blockTex.emi });
   const bushMat = new THREE.MeshStandardMaterial({ roughness: 0.75, flatShading: true }); // foliage: decor clumps and the leaves on boughs
   const dropMat = new THREE.MeshStandardMaterial({ color: 0xd8dce4, roughness: 0.14, metalness: 0.55, emissive: 0x30343c, emissiveIntensity: 1 });
   const rebarMat = new THREE.MeshStandardMaterial({ color: 0x5a3220, roughness: 0.8, metalness: 0.6 });
@@ -895,7 +897,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function lampFlicker() { if (time > flickT) { flickT = time + (Math.random() < 0.15 ? rand(0.04, 0.12) : rand(0.3, 2.4)); flickV = Math.random() < 0.2 ? rand(0.05, 0.4) : rand(0.9, 1.3); } return flickV * (0.95 + 0.05 * Math.sin(time * 120)); }
   const frameMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.25 });
   const railMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.7 });
-  const sleeperMat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
+  const sleeperMat = new THREE.MeshLambertMaterial();
   const spikeMat = new THREE.MeshStandardMaterial({ color: 0x2a0d0a, emissive: 0x9c1e0e, emissiveIntensity: 0.45, roughness: 0.45, metalness: 0.3, flatShading: true });
   const thornMat = new THREE.MeshStandardMaterial({ color: 0x3a1410, emissive: 0xc0301a, emissiveIntensity: 0.5, roughness: 0.4, metalness: 0.3, flatShading: true });
   const pistonMat = new THREE.MeshStandardMaterial({ color: 0x24201f, roughness: 0.35, metalness: 0.7 });
@@ -1243,7 +1245,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         }
         if (k % 5 === 0) { const side = (k / 5) % 2 ? 1 : -1; if (side < 0 ? dec.wl : dec.wr) { put("lamp", s, side * (W - 0.3), H - 1.0); put("lampCage", s, side * (W - 0.3), H - 1.0); } }
       }
-      for (const b of dec.blocks) {
+      if (STYLE.bridge || s < sC + cur.fogF + 6) for (const b of dec.blocks) { // past the fog they'd only cost (over the abyss they still show against the stars)
         placeM(M, s, b.u, b.v);
         EU.set(b.rx + time * b.spin, b.ry + time * b.spin * 0.7, 0);
         const wob = b.wob !== undefined ? 1 + 0.07 * Math.sin(time * 2.2 + b.wob) : 1; // a drop of mercury trembles
@@ -2066,7 +2068,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const BOUGH_L = 5.6, BOUGH_HIT = 0.3;
   const boughGeo = new THREE.CylinderGeometry(0.07, 0.17, BOUGH_L, 7).translate(0, -BOUGH_L / 2, 0);
   const twigGeo = new THREE.CylinderGeometry(0.03, 0.06, 1.1, 5).translate(0, -0.55, 0), leafGeo = new THREE.IcosahedronGeometry(0.4, 0);
-  const woodMat = new THREE.MeshStandardMaterial({ color: 0x5a3e28, roughness: 0.9 });
+  const woodMat = new THREE.MeshLambertMaterial({ color: 0x5a3e28 });
   function addBough(s, side, o = {}) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false;
     const arm = new THREE.Group(); root.add(arm);
@@ -4015,6 +4017,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     perfAcc.n++; perfAcc.upd += t1 - t0; perfAcc.rnd += performance.now() - t1; perfAcc.max = Math.max(perfAcc.max, performance.now() - t0);
     const ft = performance.now() - t0, np = renderer.info.programs.length; if (ft > 8) perfAcc.spikes.push([+ft.toFixed(1), +(t1 - t0).toFixed(1), np - perfAcc.np]); perfAcc.np = np;
   }
+  window.__hide = keys => { for (const k of Object.keys(I)) I[k].visible = !keys.includes(k); scene.background = keys.includes('sky') ? null : skyRT.texture; panes.forEach(p => { p.group.visible = !keys.includes('panes'); }); };
   window.__progs = () => renderer.info.programs.map(p => p.cacheKey);
   const perfAcc = { n: 0, upd: 0, rnd: 0, max: 0, spikes: [], np: 0 };
   window.__perf = () => { const r = { dpr: renderer.getPixelRatio(), upd: +(perfAcc.upd / perfAcc.n).toFixed(2), rnd: +(perfAcc.rnd / perfAcc.n).toFixed(2), max: +perfAcc.max.toFixed(1), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, prog: renderer.info.programs.length, objs: scene.children.length, spikes: perfAcc.spikes.slice(0, 12).join(' ') }; Object.assign(perfAcc, { n: 0, upd: 0, rnd: 0, max: 0, spikes: [] }); return r; };

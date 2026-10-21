@@ -8,3 +8,4 @@ A Smash Hit style rail shooter: a cart with a railgun rides between Light and Da
 
 Open `index.html` in a browser. Add `#all` to the URL to open every built station for testing.
 - `minis/<level>.jpg` are the station sheets' miniatures (shots of the level, light and dark), embedded by the build; `tools/shoot-minis.js` and `tools/compose-minis.py` remake them.
+- `android/` wraps the built page in a full-screen landscape WebView app; `ANDROID_HOME=… android/build_apk.sh` makes `android/limbus.apk` (needs `platforms;android-34`, `build-tools;35.0.0` and a JDK, no Gradle). three.js is bundled there so the app works offline.

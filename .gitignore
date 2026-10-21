@@ -1,1 +1,4 @@
 .build/
+android/out/
+android/limbus.apk
+android/limbus.keystore

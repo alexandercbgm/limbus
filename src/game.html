@@ -1,5 +1,6 @@
 <meta charset="utf-8">
 <title>Limbus</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,7 +59,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   background: var(--ink); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink) 25%, transparent); }
 .meter .trend { font-size: 14px; height: 14px; line-height: 14px; }
 
-.overlay { position: fixed; inset: 0; z-index: 3; display: grid; place-items: center;
+.overlay { position: fixed; inset: 0; z-index: 3; display: grid; place-items: safe center; /* a panel taller than the screen scrolls from its top */
   padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px));
   background: rgba(233, 236, 237, 0.2); overflow-y: auto; }
 .panel {
@@ -176,6 +177,29 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .btns { display: grid; gap: 10px; }
 .ghost { width: 100%; font: 600 13px var(--body); padding: 12px 18px; border-radius: 4px; border: 1px solid #10242e; background: transparent; color: #10242e; cursor: pointer; }
 .cta:disabled { background: #8d9ba1; cursor: not-allowed; }
+/* phones and small tablets held sideways (16:9, 18:9, 20:9…): a compact menu and two-column station sheets */
+@media (orientation: landscape) and (max-height: 560px) {
+  .menu-in { gap: 10px; padding-block: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 12px); max-width: none; }
+  .m-head { align-items: center; flex-wrap: nowrap; }
+  .logo { font-size: 30px; }
+  .tagline { display: none; }
+  .m-side { grid-auto-flow: column; align-items: center; }
+  .bank { padding: 7px 10px; font-size: 12px; } .bank b { font-size: 15px; }
+  .map-card { padding: 8px 6px; }
+  .map-title { top: 10px; left: 12px; gap: 4px; font-size: 9.5px; }
+  .map-scroll #map { min-width: 0; height: calc(100dvh - 78px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); width: 100%; min-height: 430px; } /* a little taller than the screen: the menu scrolls, the labels stay readable */
+  .overlay { padding-block: 8px; }
+  .panel { padding: 16px 18px; }
+  .panel h1 { font-size: 22px; margin-bottom: 6px; }
+  .sheet .panel { width: min(900px, 100%); display: grid; grid-template-columns: minmax(0, 42%) minmax(0, 1fr); column-gap: 18px; align-items: start; }
+  .sheet .panel > * { grid-column: 2; }
+  .sheet .mini { grid-column: 1; grid-row: 1 / span 9; margin: 0; }
+  .feats, .reqs li, .panel p { font-size: 13px; }
+  .reqs { margin: 10px 0 12px; }
+  .stats { margin: 10px 0; }
+  .banner .bn-name { font-size: 34px; } .banner .bn-note { font-size: 13px; }
+  .tc-name { font-size: 44px; }
+}
 .titlecard { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; text-align: center; }
 .titlecard > div { animation: banner 3.4s ease-out forwards; color: var(--ink); }
 .tc-num { font-family: var(--mono); font-size: 13px; letter-spacing: 0.3em; padding-left: 0.3em; }
@@ -3013,6 +3037,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function hidePanels() { ["menu", "sheet", "over", "win", "pause"].forEach(id => { $(id).hidden = true; }); }
   // pause: the world freezes (render only), the music stops until the run continues
+  // the Android app's back button: returns true if the game used it
+  window.__back = () => {
+    if (!$("sheet").hidden) { $("sheet").hidden = true; return true; }
+    if (state === "play") { pauseGame(); return true; }
+    if (state === "paused") { $("pauseMenu").click(); return true; }
+    if (!$("over").hidden || !$("win").hidden) { showMenu(); return true; }
+    return false;
+  };
   function pauseGame() {
     if (state !== "play") return;
     state = "paused";
@@ -3397,7 +3429,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const fin = FINALES[LEVEL.finale];
     if (!finaleShown && sC >= MAIN_LEN - 92) {
       finaleShown = true;
-      showOverlay("banner", `<div><div class="bn-name">${fin.name}</div><div class="bn-sub">${fin.ru} · 20 секунд</div><div class="bn-note">${fin.note}</div></div>`, 6500);
+      // white or black text, whichever reads against the world as it is when the banner comes up; it keeps that colour
+      const lum = 0.3 * cur.hor.r + 0.55 * cur.hor.g + 0.15 * cur.hor.b, ink = lum < 0.45 ? "#ffffff" : "#0a0d0f", halo = lum < 0.45 ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.6)";
+      showOverlay("banner", `<div style="color:${ink};text-shadow:0 1px 10px ${halo}"><div class="bn-name">${fin.name}</div><div class="bn-sub">${fin.ru} · 20 секунд</div><div class="bn-note">${fin.note}</div></div>`, 6500);
       Sound.crystal(5);
     }
     if (!superOn && sC >= MAIN_LEN && sC < SUPER_END) {

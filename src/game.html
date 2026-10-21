@@ -1230,6 +1230,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (let i = 0; i < n; i++) { addImp(s + i * 6, (i % 2 ? 1 : -1) * rand(0.8, 2.2), rand(1.4, 3.6)); imps[imps.length - 1].rise = true; }
         break;
       }
+      case "rays": {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        addBough(s, side, { ray: true });
+        if (d > 0.45 && Math.random() < d) addBough(s - 10, -side, { ray: true });
+        break;
+      }
       case "bough": {
         const side = Math.random() < 0.5 ? -1 : 1;
         addBough(s, side);
@@ -1535,6 +1541,15 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     if (f === "reflexio") { spawnPair(s); return rand(9, 11); }
     if (f === "rota") { addWheel(s); return rand(12, 14); }
+    if (f === "triumphus") { // the trials of the whole line, one after another
+      const step = triStep++ % 5;
+      if (step === 0) { spawnSuper(s); return 11; }
+      if (step === 1) { spawnPair(s); return 11; }
+      if (step === 2) { addWheel(s); return 13; }
+      if (step === 3) { spawnPortae(s); return 15; }
+      for (let i = 0; i < 3; i++) addDrop(s + i * 2.5, rand(-3, 3), Math.random() < 0.25 ? "decoy" : "gem");
+      return 9;
+    }
     if (f === "vindemia") { addBough(s, Math.random() < 0.5 ? -1 : 1, { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 }); return rand(10, 12); }
     if (f === "pluvia") {
       for (let i = 0; i < 2; i++) addDrop(s + i * 2.5, rand(-3, 3), Math.random() < 0.25 ? "decoy" : "gem");
@@ -1612,9 +1627,26 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const boughGeo = new THREE.CylinderGeometry(0.07, 0.17, BOUGH_L, 7).translate(0, -BOUGH_L / 2, 0);
   const twigGeo = new THREE.CylinderGeometry(0.03, 0.06, 1.1, 5).translate(0, -0.55, 0), leafGeo = new THREE.IcosahedronGeometry(0.4, 0);
   const woodMat = new THREE.MeshStandardMaterial({ color: 0x5a3e28, roughness: 0.9 });
+  // Lux: the same sweep made of light. An emitter on the wall swings a beam across the track; a beam that
+  // crosses the cart blinds it for 3 balls. Only a shot into the emitter puts it out.
+  const rayGeo = new THREE.CylinderGeometry(0.06, 0.06, BOUGH_L, 8).translate(0, -BOUGH_L / 2, 0), rayHaloGeo = new THREE.CylinderGeometry(0.22, 0.22, BOUGH_L, 12, 1, true).translate(0, -BOUGH_L / 2, 0);
+  const emitterGeo = new THREE.SphereGeometry(0.42, 20, 14), emitterRingGeo = new THREE.TorusGeometry(0.55, 0.06, 8, 32);
+  const rayMat = new THREE.MeshBasicMaterial({ color: 0xffe090, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
+  const rayHaloMat = new THREE.MeshBasicMaterial({ color: 0xffb030, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const emitterMat = new THREE.MeshStandardMaterial({ color: 0xfff0c0, emissive: 0xffb020, emissiveIntensity: 1.2, roughness: 0.2 });
+  const EMITTER_HIT = 0.6;
   function addBough(s, side, o = {}) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false;
     const arm = new THREE.Group(); root.add(arm);
+    if (o.ray) {
+      arm.add(new THREE.Mesh(rayGeo, rayMat)); arm.add(new THREE.Mesh(rayHaloGeo, rayHaloMat));
+      root.add(new THREE.Mesh(emitterGeo, emitterMat));
+      const ring = new THREE.Mesh(emitterRingGeo, frameMat); ring.rotation.y = Math.PI / 2; root.add(ring);
+      scene.add(root);
+      boughs.push({ s, side, pu: side * (W - 0.3), pv: H - 1.1, phi: 0, freq: rand(0.45, 0.7), phase: rand(0, TAU), root, arm, alive: true, broken: false, fall: 0,
+        hitCart: false, ray: true, A: new THREE.Vector3(), B: new THREE.Vector3(), fruit: [], picked: 0 });
+      return;
+    }
     arm.add(new THREE.Mesh(boughGeo, woodMat));
     for (const f of [0.3, 0.55, 0.8, 1]) {
       const tw = new THREE.Mesh(twigGeo, woodMat); tw.position.y = -f * BOUGH_L; tw.rotation.z = side * rand(0.6, 1.1); tw.rotation.y = f * 4; arm.add(tw);
@@ -1629,6 +1661,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     boughs.push(b);
   }
   function breakBough(b, at) {
+    if (b.ray) { // the emitter goes out: the beam is gone for good
+      b.broken = true; b.alive = false; scene.remove(b.root); stats.broken++; addScore(20);
+      chips(b.A, emitterMat, 14, tmpV2.set(0, 0, 0)); Sound.shatter(0.6); Sound.tone(900, 0.2, 0.1, "sine", 0, 300);
+      balls += 1; updateCount(); karmaGain(0.03); pop("+1 · луч погашен", "gain");
+      return;
+    }
     b.broken = true; stats.broken++; addScore(15);
     chips(at || b.B, bushMat, 12, tmpV2.set(0, -2, 0)); Sound.clink(); Sound.tone(160, 0.12, 0.12, "square", 0, 60);
     const lost = b.fruit.filter(c => c.alive).length;
@@ -1638,6 +1676,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function lashCart(b) {
     b.hitCart = true;
     balls = Math.max(0, balls - 3); updateCount(); karmaLoss(0.1);
+    if (b.ray) { Sound.tone(1400, 0.3, 0.12, "sawtooth", 0, 200); flash(true); pop("−3 · ослепление", "loss"); return; }
     chips(b.B, bushMat, 14, tmpV2.set(0, 0, 0)); Sound.crash(); flash(); pop("−3 · ветка", "loss");
     if (!reduceMotion) shakeT = 0.3;
   }
@@ -1649,6 +1688,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function updateBoughs(dt) {
     for (const b of boughs) {
       if (!b.alive) continue;
+      if (b.ray && !b.broken) b.arm.children[1].scale.set(1 + 0.15 * Math.sin(time * 20), 1, 1 + 0.15 * Math.sin(time * 20)); // the beam shimmers
       if (b.broken) { b.fall += dt; b.pv -= dt * (1.5 + b.fall * 10); b.phi += dt * 1.2; if (b.fall > 1.3) { b.alive = false; scene.remove(b.root); continue; } }
       else b.phi = 0.06 + 0.52 * (1 - Math.cos(time * b.freq * TAU + b.phase)); // from against the wall to across the track
       setObj(b.root, b.s, b.pu, b.pv);
@@ -1720,7 +1760,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // buttons: how many, how big and whether they wander along the frame follow the difficulty
     const nb = k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = k > 0.55;
     const spots = kind === "iris" ? [[Math.PI * 0.5], [Math.PI * 0.85], [Math.PI * 0.15]].map(([a]) => ({ a }))
-      : [{ u: 0, v: GATE_H + 1.4, along: "u" }, { u: -(BRIDGE_W + 1.3), v: 2.7, along: "v", side: -1 }, { u: BRIDGE_W + 1.3, v: 2.7, along: "v", side: 1 }]; // one on a mast above, two lying on their side out of the posts
+      : [{ u: 0, v: GATE_H + 1.4, along: "none" }, { u: -(BRIDGE_W + 1.3), v: 2.7, along: "v", side: -1 }, { u: BRIDGE_W + 1.3, v: 2.7, along: "v", side: 1 }]; // one on a mast above, two lying on their side out of the posts
     const order = nb === 1 ? [0] : nb === 2 ? [1, 2] : [0, 1, 2]; // one sits on top, a pair at the sides, three both
     const g = { s, kind, k, root, leaves, buttons: [], pr: 0, opening: false, passed: false, dead: false };
     leaves.forEach(lf => { lf.hp = nb + 3 + Math.round(2 * k); }); // breaking a leaf takes more balls than the buttons do
@@ -1800,7 +1840,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // ---------- Rota: the Abyssus finale ----------
   // Wheels of crystals turn above the bridge, a few red among the blue. Every blue one pays; take all the blue
   // off a wheel before it goes by and the wheel adds a bonus.
-  let wheels = [], wheelsDone = 0;
+  let wheels = [], wheelsDone = 0, triStep = 0;
   const WHEEL_R = 2.3, WHEEL_V = 3.1, wheelGeo = new THREE.TorusGeometry(WHEEL_R, 0.035, 6, 72);
   function addWheel(s) {
     superWave++;
@@ -1954,6 +1994,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     iudicium: { name: "IUDICIUM", ru: "Суд", note: "Попадания по печатям подряд умножают награду до ×6. Пропуск сбрасывает множитель и стоит 2 шара. Стекло бьёт вдвое сильнее." },
     ruina: { name: "RUINA", ru: "Обвал", note: "С потолка падают глыбы. Сбивайте их в воздухе или на рельсах: +2 шара, каждые 4 подряд ещё +4. Глыба на пути стоит 8 шаров." },
     portae: { name: "PORTAE", ru: "Врата", note: "Впереди стеклянные врата. Перед каждыми горит голубой ключ-кристалл: попадите в него, и врата разлетятся, а ключ даст шары. Каждые трое врат подряд — ещё +3. Не попали — вагонетка пробьёт стекло: −4 шара." },
+    triumphus: { name: "TRIUMPHUS", ru: "Триумф", note: "Финал всей линии: по очереди печати, пары отражений, колёса, врата с ключами и дождь кристаллов. Каждое испытание идёт по своим правилам." },
     rota: { name: "ROTA", ru: "Колесо", note: "Над мостом вращаются колёса из кристаллов. Голубой — +2 шара, красный — −3. Соберите все голубые с колеса, пока оно не проехало, — ещё +5." },
     vindemia: { name: "VINDEMIA", ru: "Сбор урожая", note: "Ветви тяжелы от кристаллов: каждый даёт 2 шара, а собранная целиком ветка ещё +3. Сломать ветку безопасно, но её кристаллы упадут. Хлёст по вагонетке стоит 3 шара." },
     reflexio: { name: "REFLEXIO", ru: "Отражение", note: "Мишени летят парами: предмет и его отражение. Сбейте обе мишени пары — +5 шаров, только одну — +1. Пропущенная мишень ничего не стоит." },
@@ -1978,6 +2019,25 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { sky: "#bff0e0", hor: "#e8f8f2", gnd: "#cdeee0", surf: "#ffffff", wall: "#dcf4ea", line: "#4fd8a8", lineI: 0.4, frame: "#8fd4ba", frameE: "#b8ffe8", frameEI: 0.5,
       rail: "#c4e8da", sleeper: "#e2f6ee", glass: "#9ff0d4", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 104, hemiS: "#ffffff", hemiG: "#bfe8d8", hemiI: 1.1, sunI: 0.8,
       dust: "#90f0cc", block: "#ecfaf4", cart: "#4f8a78", accent: "#3fd8a4" },
+  ];
+
+  // Lux: white gold and glass in the light, warm amber in between, an eclipse in the dark: black with a gold corona
+  const PAL_LUX = [
+    { sky: "#0a0602", hor: "#030201", gnd: "#3a2404", surf: "#0e0904", wall: "#120c04", line: "#ffc040", lineI: 0.85, frame: "#0a0603", frameE: "#ffb020", frameEI: 0.85,
+      rail: "#4a3612", sleeper: "#1a1206", glass: "#ffd070", glassO: 0.45, edge: "#fff0c0", fogN: 4, fogF: 54, hemiS: "#ffc860", hemiG: "#1a0e02", hemiI: 0.55, sunI: 0.3,
+      dust: "#ffc850", block: "#1e1406", cart: "#22180a", accent: "#ffc040" },
+    { sky: "#3a3020", hor: "#1e1810", gnd: "#12100a", surf: "#463a28", wall: "#3a3020", line: "#c8b080", lineI: 0.22, frame: "#1e1810", frameE: "#000000", frameEI: 0,
+      rail: "#6a5a3a", sleeper: "#2a2216", glass: "#e0d0a8", glassO: 0.42, edge: "#f4ecd8", fogN: 8, fogF: 70, hemiS: "#e0d4b8", hemiG: "#1e1810", hemiI: 0.75, sunI: 0.5,
+      dust: "#d8c8a0", block: "#3a3020", cart: "#352c1e", accent: "#e8d4a0" },
+    { sky: "#c8b48a", hor: "#b49e74", gnd: "#8a7650", surf: "#e0d4b8", wall: "#c8b896", line: "#ffffff", lineI: 0.05, frame: "#6a5630", frameE: "#000000", frameEI: 0,
+      rail: "#a08e68", sleeper: "#7e6c48", glass: "#f4e8c8", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 88, hemiS: "#ffffff", hemiG: "#a08e6a", hemiI: 0.95, sunI: 0.7,
+      dust: "#fffaf0", block: "#bca878", cart: "#5c4c30", accent: "#ffffff" },
+    { sky: "#fff4dc", hor: "#fff8ec", gnd: "#ecdcb8", surf: "#fffdf8", wall: "#fbf2de", line: "#f0c860", lineI: 0.22, frame: "#c8a868", frameE: "#000000", frameEI: 0,
+      rail: "#d4c090", sleeper: "#e6dac0", glass: "#ffecb8", glassO: 0.4, edge: "#ffffff", fogN: 16, fogF: 100, hemiS: "#ffffff", hemiG: "#ecdcb8", hemiI: 1.05, sunI: 0.8,
+      dust: "#fff0c8", block: "#fbf0d8", cart: "#8a7448", accent: "#f0b840" },
+    { sky: "#ffe8a8", hor: "#fffaf0", gnd: "#fff0d0", surf: "#ffffff", wall: "#fffaf0", line: "#ffc840", lineI: 0.45, frame: "#f0d090", frameE: "#ffe8a0", frameEI: 0.55,
+      rail: "#f0e0b8", sleeper: "#fbf4e2", glass: "#ffe4a0", glassO: 0.38, edge: "#ffffff", fogN: 18, fogF: 116, hemiS: "#ffffff", hemiG: "#f8ecc8", hemiI: 1.15, sunI: 0.85,
+      dust: "#ffd870", block: "#fffaf0", cart: "#9a8250", accent: "#ffc030" },
   ];
 
   // Abyssus: a bridge high over the void: pale sky above the clouds in the light, dusk indigo in between,
@@ -2124,10 +2184,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       mood: { sky: "#1a0a0a", hor: "#0c0404", surf: "#201010", wall: "#180808", frame: "#3a1a1a", rail: "#4a2a2a", glass: "#8a3a3a", accent: "#ff4a3a" },
       desc: "Тупик глубоко во Тьме. Говорят, там заперта пушка, которой нет на складе.",
       feats: ["Только для тех, кто не боится Тьмы", "Награда: оружие из темницы"], req: { after: "abyssus", fare: 20 }, map: { x: 830, y: 450, label: "b" } },
-    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: false,
-      mood: { sky: "#fff6dc", hor: "#fffaf0", surf: "#ffffff", wall: "#fff8ea", frame: "#d8b870", rail: "#e8d4a8", glass: "#ffeab0", accent: "#ffc84a" },
-      desc: "Конечная. Сюда доезжают те, кто удержался наверху.",
-      feats: ["Золотой свет и самые тяжёлые подъёмы", "Финал всей линии"], req: { after: "abyssus", transfer: { from: "speculum", cost: 120 } }, map: { x: 910, y: 330, label: "b" } },
+    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "geometry_of_glass", len: 1600, pal: PAL_LUX, finale: "triumphus",
+      style: { arch: "square", blocks: "prism", glassWalls: true }, gainMul: 0.85,
+      pats: { rays: [2, 2.5, 3], rotor: [1, 1.5, 2], twins: [1, 1.5, 1.5], slider: [1, 2, 2], center: [2, 2, 1.5], reinf: [0, 0.8, 2], shutter: [0, 1, 2], triple: [1, 1.5, 1], double: [0, 1, 2], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
+      turns: [[110, 60, 50], [240, 60, -60], [370, 50, 45], [480, 80, -85], [640, 50, 50], [750, 60, -55], [870, 50, 45],
+        [980, 70, -75], [1120, 50, 50], [1230, 60, -55], [1350, 50, 45], [1450, 60, -50]],
+      desc: "Конечная. Золотые залы со стеклянными стенами. Со стен бьют лучи света и метут поперёк пути: луч, задевший вагонетку, ослепляет и стоит 3 шара. Погасите излучатель выстрелом. Подъём к Свету здесь самый тяжёлый.",
+      feats: ["Лучи света: гасите излучатели на стенах", "Подъём к Свету тяжелее, чем где-либо", "Финал Triumphus: все испытания линии по очереди"],
+      req: { after: "abyssus", transfer: { from: "speculum", cost: 120 } }, map: { x: 910, y: 330, label: "b" } },
   ];
   const MAIN_LINE = ["initium", "vitrum", "labyrinthus", "speculum", "abyssus", "lux"];
   // drawn lines of the scheme, as waypoints; the main line is drawn station to station
@@ -2178,7 +2242,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     clearDynamic();
     sC = 0; alt = 0.35; pending = 0; altVel = 0; pitchC = 0; pitchTs = 0;
     cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0;
-    superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0; wheelsDone = 0;
+    superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0; wheelsDone = 0; triStep = 0;
     buildForks();
     computePath();
     if (spawn) while (nextSpawn < SPAWN_AHEAD) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15); }
@@ -2264,7 +2328,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // karma: gains shrink near heaven and grow near hell; losses are flat and larger, so climbing is harder than sliding
   // the fall into the dark is quick and the way back to the light slow: losses count 1.5×, gains 0.7×
   const LOSS_MUL = 1.5, GAIN_MUL = 0.7;
-  function gainMul() { return (1 - 0.72 * alt) * GAIN_MUL; }
+  function gainMul() { return (1 - 0.72 * alt) * GAIN_MUL * (LEVEL.gainMul || 1); }
   function karmaGain(x) { pending += x * gainMul(); }
   function karmaLoss(x) { pending -= x * LOSS_MUL; }
 
@@ -2377,6 +2441,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     for (const bo of boughs) {
       if (bo.broken) continue;
+      if (bo.ray) { tmpV.copy(bo.A).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < EMITTER_HIT ** 2) hits.push({ d, kind: "bough", x: bo }); continue; }
       const r = raySeg(o, dir, bo.A, bo.B);
       if (r.dist < BOUGH_HIT + 0.05 && r.d > 0 && r.d < LASER_LEN) hits.push({ d: r.d, kind: "bough", x: bo });
     }
@@ -2782,6 +2847,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (const f of forks) if (f.sw.visible && !f.locked && f.cd === 0 && pathDist(f.wp) < 0.85 + R_BALL) { mark(); flipFork(f); dead = true; }
         if (!dead) for (const bo of boughs) {
           if (bo.broken || Math.abs(bo.s - sC) > 130) continue;
+          if (bo.ray) { if (pathDist(bo.A) < EMITTER_HIT + R_BALL) { mark(); breakBough(bo); dead = true; break; } continue; } // light can't be shot, its emitter can
           const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.12));
           for (let k = 1; k <= steps; k++) { const q = SWEEP.copy(b.p0).lerp(pos, k / steps); if (segDist(q, bo.A, bo.B) < BOUGH_HIT + R_BALL) { mark(); breakBough(bo, q.clone()); dead = true; break; } }
           if (dead) break;
@@ -3088,7 +3154,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // test hook: lets an automated check jump the karma or the distance
   window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, setAlt(a) { alt = a; },
-    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3()); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
+    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3()); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, ray(ahead, side = 1) { addBough(sC + ahead, side, { ray: true }); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },
     thornScreen() { const r = canvas.getBoundingClientRect(); return thorns.filter(t => t.headOn && t.ext > 0.3).map(t => { const v = t.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); }, state: () => ({ state, sC, alt, balls, score, combo, superOn, sigils: sigils.length, END_S, panes: panes.length, thorns: thorns.length, thornExt: thorns.map(t => t.ext.toFixed(2) + (t.headOn ? '' : 'x')).join(), pitchC }) };
 

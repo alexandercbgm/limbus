@@ -1678,8 +1678,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   let lastGateS = -1e9;
   const GATE_H = 4.0, IRIS_R = 2.3, IRIS_V = 2.0, GATE_D = 0.06, GATE_COST = 5, GATE_GAP = 80;
   const doorMat = new THREE.MeshStandardMaterial({ color: 0x0c1420, emissive: 0x0a1830, emissiveIntensity: 0.4, roughness: 0.08, metalness: 0.4, transparent: true, opacity: 0.62, depthWrite: false, side: THREE.DoubleSide });
-  const buttonMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.8, roughness: 0.4 });
-  const pressedMat = new THREE.MeshStandardMaterial({ color: 0x40e890, emissive: 0x20c070, emissiveIntensity: 0.9, roughness: 0.4 });
+  const buttonMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.8, roughness: 0.4, side: THREE.DoubleSide }); // a cup shows its inside too
+  const pressedMat = new THREE.MeshStandardMaterial({ color: 0x40e890, emissive: 0x20c070, emissiveIntensity: 0.9, roughness: 0.4, side: THREE.DoubleSide });
   const hDoorGeo = new THREE.BoxGeometry(BRIDGE_W, GATE_H, GATE_D), vDoorGeo = new THREE.BoxGeometry(2 * BRIDGE_W, GATE_H / 2, GATE_D);
   const postGeo = new THREE.BoxGeometry(0.4, GATE_H + 0.4, 0.5), lintelGeo = new THREE.BoxGeometry(2 * BRIDGE_W + 1.2, 0.4, 0.5);
   const irisRingGeo = new THREE.TorusGeometry(IRIS_R + 0.12, 0.16, 8, 64);
@@ -1690,8 +1690,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   })();
   // a button is a little anemometer: three hemispherical cups on arms about a vertical axle, the cups open
   // toward the oncoming balls; a hit spins it up and lights it green
-  const hubGeo = new THREE.SphereGeometry(0.22, 16, 10), armGeo = new THREE.CylinderGeometry(0.05, 0.05, 1, 6).rotateZ(Math.PI / 2).translate(0.5, 0, 0);
-  const cupGeo = new THREE.SphereGeometry(0.42, 18, 10, 0, TAU, 0, Math.PI / 2).rotateZ(Math.PI / 2), mastGeo = new THREE.CylinderGeometry(0.06, 0.08, 0.9, 8).translate(0, -0.45, 0);
+  // each arm is welded to the back of its cup, where a small boss holds it
+  const CUP_R = 0.42, ARM_TO = new THREE.Vector3(1 - CUP_R * Math.SQRT1_2, 0, CUP_R * Math.SQRT1_2), ARM_L = ARM_TO.length();
+  const hubGeo = new THREE.SphereGeometry(0.22, 16, 10), armGeo = new THREE.CylinderGeometry(0.05, 0.05, ARM_L, 6).rotateZ(Math.PI / 2).translate(ARM_L / 2, 0, 0);
+  const bossGeo = new THREE.SphereGeometry(0.08, 10, 8), cupGeo = new THREE.SphereGeometry(CUP_R, 18, 10, 0, TAU, 0, Math.PI / 2).rotateZ(Math.PI / 2);
+  const mastGeo = new THREE.CylinderGeometry(0.06, 0.08, 0.9, 8).translate(0, -0.45, 0), sideMastGeo = new THREE.CylinderGeometry(0.06, 0.08, 0.7, 8).translate(0, -0.35, 0);
+  const bracketGeo = new THREE.BoxGeometry(1.05, 0.14, 0.14), SIDE_OUT = 1.6; // a side anemometer stands this many of its radii out from the post
   const buttonGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xffa020, transparent: true, opacity: 0.7, depthWrite: false });
   const pressedGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x40ff90, transparent: true, opacity: 0.6, depthWrite: false });
   function gateLevel() {
@@ -1717,19 +1721,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // buttons: how many, how big and whether they wander along the frame follow the difficulty
     const nb = k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = k > 0.55;
     const spots = kind === "iris" ? [[Math.PI * 0.5], [Math.PI * 0.85], [Math.PI * 0.15]].map(([a]) => ({ a }))
-      : [{ u: 0, v: GATE_H + 1.4, along: "u" }, { u: -(BRIDGE_W + 0.2), v: GATE_H + 1.4, along: "v" }, { u: BRIDGE_W + 0.2, v: GATE_H + 1.4, along: "v" }]; // on masts above the frame
-    const order = nb === 1 ? [Math.random() < 0.5 ? 0 : 1 + Math.floor(Math.random() * 2)] : nb === 2 ? [1, 2] : [0, 1, 2];
+      : [{ u: 0, v: GATE_H + 1.4, along: "u" }, { u: -(BRIDGE_W + 0.4 + SIDE_OUT * r), v: 2.7, along: "v", side: -1 }, { u: BRIDGE_W + 0.4 + SIDE_OUT * r, v: 2.7, along: "v", side: 1 }]; // one on a mast above, two on brackets at the sides
+    const order = nb === 1 ? [0] : nb === 2 ? [1, 2] : [0, 1, 2]; // one sits on top, a pair at the sides, three both
     const g = { s, kind, k, root, leaves, buttons: [], pr: 0, opening: false, passed: false, dead: false };
     leaves.forEach(lf => { lf.hp = nb + 3 + Math.round(2 * k); }); // breaking a leaf takes more balls than the buttons do
     for (const o of order) {
       const sp = spots[o], grp = new THREE.Group(); root.add(grp);
-      grp.add(new THREE.Mesh(mastGeo, frameMat));
+      if (sp.side) { // a bracket out of the post carries the mast
+        grp.add(new THREE.Mesh(sideMastGeo, frameMat));
+        const reach = SIDE_OUT * r; // from the post's face to the mast, clear of the turning cups
+        const br = new THREE.Mesh(bracketGeo, frameMat); br.scale.x = reach / 1.05; br.position.set(-sp.side * reach / 2, -0.7, 0); grp.add(br);
+      } else grp.add(new THREE.Mesh(mastGeo, frameMat));
       const cap = new THREE.Mesh(hubGeo, buttonMat); cap.scale.setScalar(r); grp.add(cap);
       const glow = new THREE.Sprite(buttonGlow); glow.scale.setScalar(r * 5); grp.add(glow);
       const prop = new THREE.Group(); prop.scale.setScalar(r); grp.add(prop);
       for (let q = 0; q < 3; q++) {
         const arm = new THREE.Group(); arm.rotation.y = q / 3 * TAU; prop.add(arm);
-        arm.add(new THREE.Mesh(armGeo, buttonMat));
+        const rod = new THREE.Mesh(armGeo, buttonMat); rod.rotation.y = -Math.atan2(ARM_TO.z, ARM_TO.x); arm.add(rod);
+        const boss = new THREE.Mesh(bossGeo, buttonMat); boss.position.copy(ARM_TO); arm.add(boss);
         const cup = new THREE.Mesh(cupGeo, buttonMat); cup.position.set(1, 0, 0); cup.rotation.y = Math.PI / 2; arm.add(cup); // the cup's mouth faces along its turn
       }
       g.buttons.push(Object.assign({ grp, cap, prop, glow, r, moving, phase: rand(0, TAU), pressed: false, alive: true, wp: new THREE.Vector3(), gate: g }, sp));

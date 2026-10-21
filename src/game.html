@@ -509,6 +509,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     fire() { this.hiss(0.08, 700, "bandpass", 0.16); this.tone(150, 0.1, 0.09, "sine", 0, 60); },
     crystal(v) { const b = 1318.5 * (v >= 5 ? 1.335 : 1); this.tone(b, 0.7, 0.11); this.tone(b * 1.5, 0.9, 0.07, "sine", 0.06); this.tone(b * 2, 0.6, 0.05, "triangle", 0.12); },
     decoy() { this.tone(180, 0.6, 0.18, "sawtooth", 0, 70); this.tone(191, 0.6, 0.12, "sawtooth", 0, 75); },
+    burn() { // the sizzle of a laser on metal: hot hiss, a crackle and a low hum
+      this.hiss(0.45, 3200, "bandpass", 0.32); this.hiss(0.2, 7000, "highpass", 0.12, 0.05);
+      for (let i = 0; i < 5; i++) this.hiss(0.03, 1800 + i * 600, "bandpass", 0.18, 0.04 + i * 0.07);
+      this.tone(110, 0.4, 0.12, "sawtooth", 0, 70);
+    },
     crash() { this.tone(65, 0.5, 0.45); this.hiss(0.45, 600, "lowpass", 0.35); },
     imp() { this.hiss(0.2, 900, "bandpass", 0.2); this.tone(520, 0.25, 0.08, "square", 0, 140); },
     steal() { this.tone(300, 0.5, 0.14, "sawtooth", 0, 90); this.hiss(0.3, 300, "lowpass", 0.25); },
@@ -1731,19 +1736,31 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // Every beam stops at the corridor's walls, floor and vault. A beam through the cart: −3 balls.
   const LASER_COST = 3, CART_PTS = [[0, 0.9], [-0.6, 1.0], [0.6, 1.0], [0, 1.6], [-0.5, 1.6], [0.5, 1.6]];
   const laserMat = new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
-  const laserHaloMat = new THREE.MeshBasicMaterial({ color: 0xff1000, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const laserHaloMat = new THREE.MeshBasicMaterial({ color: 0xff1000, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const laserBaseMat = new THREE.MeshStandardMaterial({ color: 0x2a2c34, roughness: 0.25, metalness: 0.9 });
   const laserEdgeMat = new THREE.LineBasicMaterial({ color: 0xff5a40 });
   const recessMat = new THREE.MeshStandardMaterial({ color: 0x0a0204, emissive: 0xff1a08, emissiveIntensity: 1.6, roughness: 0.4 });
   const orbMat = new THREE.MeshStandardMaterial({ color: 0xff6040, emissive: 0xff2010, emissiveIntensity: 1.8, roughness: 0.2 });
   const orbGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xff3020, transparent: true, opacity: 0.8, depthWrite: false });
-  const beamGeo = new THREE.CylinderGeometry(0.045, 0.045, 1, 8).translate(0, 0.5, 0), beamHaloGeo = new THREE.CylinderGeometry(0.17, 0.17, 1, 10, 1, true).translate(0, 0.5, 0);
-  // a beam from the origin along local +y; its length is set every frame, clipped to the corridor
-  function laserBeam() { const g = new THREE.Group(); g.add(new THREE.Mesh(beamGeo, laserMat)); g.add(new THREE.Mesh(beamHaloGeo, laserHaloMat)); return g; }
-  function setBeamLen(g, len) { g.visible = len > 0.02; g.children.forEach(m => { m.scale.y = Math.max(0.01, len); }); }
+  // a thin hot core in two soft sheaths of light, and a spot of light where it meets a surface
+  const beamGeo = new THREE.CylinderGeometry(0.016, 0.016, 1, 6).translate(0, 0.5, 0), beamHaloGeo = new THREE.CylinderGeometry(0.07, 0.07, 1, 10, 1, true).translate(0, 0.5, 0);
+  const beamGlowGeo = new THREE.CylinderGeometry(0.2, 0.2, 1, 12, 1, true).translate(0, 0.5, 0);
+  const laserGlowMat = new THREE.MeshBasicMaterial({ color: 0xff2000, transparent: true, opacity: 0.09, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  const spotMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xff4020, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
+  function laserBeam() {
+    const g = new THREE.Group();
+    for (const [geo, mat] of [[beamGeo, laserMat], [beamHaloGeo, laserHaloMat], [beamGlowGeo, laserGlowMat]]) g.add(new THREE.Mesh(geo, mat));
+    const spot = new THREE.Sprite(spotMat); spot.scale.setScalar(0.9); g.add(spot); g.userData.spot = spot;
+    return g;
+  }
+  function setBeamLen(g, len) {
+    g.visible = len > 0.02;
+    g.children.forEach(m => { if (m.isMesh) m.scale.y = Math.max(0.01, len); });
+    g.userData.spot.position.y = len; g.userData.spot.scale.setScalar(0.7 + 0.25 * Math.sin(time * 30 + len));
+  }
   // how far a beam from (u, v) along (du, dv) runs before it meets a wall, the floor or the vault
   function beamReach(u, v, du, dv, max) {
-    const u0 = -W + 0.04, u1 = W - 0.04, v0 = 0.03, v1 = (STYLE.closed || !STYLE.bridge ? H : 40) - 0.04;
+    const u0 = STYLE.bridge ? -60 : -W + 0.04, u1 = -u0, v0 = 0.03, v1 = STYLE.bridge ? 60 : H - 0.04; // a beam runs on till it meets something
     let tm = max;
     if (du > 1e-6) tm = Math.min(tm, (u1 - u) / du); else if (du < -1e-6) tm = Math.min(tm, (u0 - u) / du);
     if (dv > 1e-6) tm = Math.min(tm, (v1 - v) / dv); else if (dv < -1e-6) tm = Math.min(tm, (v0 - v) / dv);
@@ -1753,21 +1770,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const beamHitsCart = (ax, ay, bx, by) => CART_PTS.some(([u, v]) => segDist2(u, v, ax, ay, bx, by) < 0.22);
   function laserHit() {
     balls = Math.max(0, balls - LASER_COST); updateCount(); karmaLoss(0.1);
-    Sound.tone(1600, 0.25, 0.12, "sawtooth", 0, 300); flash(); pop("−" + LASER_COST + " · лазер", "loss");
+    Sound.burn(); flash(); pop("−" + LASER_COST + " · ожог", "loss");
     if (!reduceMotion) shakeT = 0.25;
   }
   function laserOut(at, mat = recessMat) { Sound.shatter(0.5); Sound.tone(800, 0.15, 0.1, "square", 0, 200); chips(at, mat, 10, tmpV2.set(0, 1, 0)); addScore(20); karmaGain(0.03); pop("лазер погашен", "info"); }
 
   // the mill: hub along the track, cones pointing out from it, a glowing recess in each cone's end
   let spinners = [];
-  const MILL_HUB = 0.42, CONE_IN = 0.36, CONE_OUT = 1.05, MILL_L = 7;
-  const hubGeo2 = new THREE.CylinderGeometry(MILL_HUB, MILL_HUB, 0.7, 24).rotateX(Math.PI / 2);
-  const coneGeo = new THREE.CylinderGeometry(0.2, 0.32, CONE_OUT - CONE_IN, 16).translate(0, (CONE_IN + CONE_OUT) / 2, 0); // narrow end outward
-  const recessGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.05, 14).translate(0, CONE_OUT - 0.02, 0), hubCapGeo = new THREE.TorusGeometry(MILL_HUB, 0.05, 6, 24);
+  const MILL_HUB = 0.22, CONE_IN = 0.18, CONE_OUT = 0.72, MILL_L = 60;
+  const hubGeo2 = new THREE.CylinderGeometry(MILL_HUB, MILL_HUB, 0.34, 20).rotateX(Math.PI / 2);
+  const coneGeo = new THREE.CylinderGeometry(0.075, 0.13, CONE_OUT - CONE_IN, 14).translate(0, (CONE_IN + CONE_OUT) / 2, 0); // narrow end outward
+  const recessGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.04, 12).translate(0, CONE_OUT - 0.015, 0), hubCapGeo = new THREE.TorusGeometry(MILL_HUB, 0.03, 6, 20);
   function addSpinner(s, side, dir) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false;
     root.add(new THREE.Mesh(hubGeo2, laserBaseMat));
-    for (const z of [-0.36, 0.36]) { const r = new THREE.Mesh(hubCapGeo, frameMat); r.position.z = z; root.add(r); }
+    for (const z of [-0.17, 0.17]) { const r = new THREE.Mesh(hubCapGeo, frameMat); r.position.z = z; root.add(r); }
     const rotor = new THREE.Group(); root.add(rotor);
     const cones = [];
     for (let i = 0; i < 4; i++) {
@@ -1778,8 +1795,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       cones.push({ i, arm, beam, alive: true, wp: new THREE.Vector3() });
     }
     scene.add(root);
-    for (let k = Math.floor(s / SL) - 1; k <= Math.floor(s / SL) + 1; k++) getDecor(k)[side < 0 ? "wl" : "wr"] = false; // it stands in a gap of the wall
-    spinners.push({ s, side, hu: side * (W - 1.1), hv: 2.6, a: rand(0, TAU), spin: dir * rand(0.9, 1.3), root, rotor, cones, alive: true, hit: false, wp: new THREE.Vector3() });
+    for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc[side < 0 ? "wl" : "wr"] = false; dc.arch = false; dc.pyr = null; } // it stands in a clear gap of the wall
+    for (const th of thorns) if (Math.abs(th.s - s) < 4) { th.alive = false; scene.remove(th.group); }
+    spinners.push({ s, side, hu: side * (W - 0.8), hv: 2.6, a: rand(0, TAU), spin: dir * rand(0.9, 1.3), root, rotor, cones, alive: true, hit: false, wp: new THREE.Vector3() });
   }
   function killCone(sp, c, at) {
     c.alive = false; c.arm.visible = false; laserOut(at, laserBaseMat);
@@ -1787,18 +1805,23 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   // orbs: one glowing sphere, one beam
   let lblocks = [];
-  const orbGeo = new THREE.SphereGeometry(0.34, 24, 16), ORB_HIT = 0.42;
+  // a nozzle: a steel barrel flaring into a bell, a red-hot throat in the bell's mouth, a ring of fins at the back
+  const nozzleBodyGeo = new THREE.CylinderGeometry(0.11, 0.13, 0.42, 16).translate(0, -0.1, 0), nozzleBellGeo = new THREE.CylinderGeometry(0.2, 0.1, 0.22, 18, 1, true).translate(0, 0.22, 0);
+  const nozzleThroatGeo = new THREE.CircleGeometry(0.1, 16).rotateX(-Math.PI / 2).translate(0, 0.14, 0), finGeo = new THREE.BoxGeometry(0.03, 0.2, 0.16).translate(0, -0.22, 0.12);
+  const nozzleMat = new THREE.MeshStandardMaterial({ color: 0xcfd2da, roughness: 0.25, metalness: 0.9, side: THREE.DoubleSide }), ORB_HIT = 0.36;
   function addLaserBlock(s, orient) {
     const side = Math.random() < 0.5 ? -1 : 1, root = new THREE.Group(); root.matrixAutoUpdate = false;
-    root.add(new THREE.Mesh(orbGeo, orbMat));
-    const glow = new THREE.Sprite(orbGlow); glow.scale.setScalar(1.8); root.add(glow);
-    const beam = laserBeam(); root.add(beam);
+    const noz = new THREE.Group(); root.add(noz);
+    noz.add(new THREE.Mesh(nozzleBodyGeo, nozzleMat)); noz.add(new THREE.Mesh(nozzleBellGeo, nozzleMat)); noz.add(new THREE.Mesh(nozzleThroatGeo, orbMat));
+    for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(finGeo, nozzleMat); f.rotation.y = i * Math.PI / 2; noz.add(f); }
+    const glow = new THREE.Sprite(orbGlow); glow.scale.setScalar(0.9); glow.position.y = 0.2; noz.add(glow);
+    const beam = laserBeam(); beam.position.y = 0.16; noz.add(beam);
     scene.add(root);
     const drift = Math.random() < 0.5; // still, or drifting side to side
     const o = orient === "h" ? { u: side * (W - 0.6), v: rand(0.9, 1.7), du: -side, dv: 0, amp: drift ? 0.5 : 0 }
       : { u: rand(-1.2, 1.2), v: H - 0.8, du: 0, dv: -1, amp: drift ? 1.6 : 0 };
-    beam.rotation.z = orient === "h" ? side * Math.PI / 2 : Math.PI;
-    lblocks.push(Object.assign({ s, orient, side, root, beam, alive: true, passed: false, phase: rand(0, TAU), wp: new THREE.Vector3(), len: 0 }, o, { bu: o.u }));
+    noz.rotation.z = orient === "h" ? side * Math.PI / 2 : Math.PI; // the nozzle and its beam point across or down
+    lblocks.push(Object.assign({ s, orient, side, root, beam, noz, alive: true, passed: false, phase: rand(0, TAU), wp: new THREE.Vector3(), len: 0 }, o, { bu: o.u }));
   }
   function hitLaserBlock(lb) { lb.alive = false; scene.remove(lb.root); laserOut(lb.wp, orbMat); }
   function updateLasers(dt) {
@@ -1824,14 +1847,19 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     spinners = spinners.filter(x => x.alive);
     for (const lb of lblocks) {
       if (!lb.alive) continue;
-      if (lb.orient === "h") lb.v = lb.v; else lb.u = clamp(lb.bu + Math.sin(time * 0.9 + lb.phase) * lb.amp, -W + 0.6, W - 0.6);
-      if (lb.orient === "h" && lb.amp) lb.u = lb.bu - lb.side * (0.5 + 0.5 * Math.sin(time * 1.1 + lb.phase)) * lb.amp;
-      lb.len = beamReach(lb.u, lb.v, lb.du, lb.dv, 2 * W + H);
-      setObj(lb.root, lb.s, lb.u, lb.v); lb.wp.setFromMatrixPosition(lb.root.matrix);
-      setBeamLen(lb.beam, lb.len - 0.3); lb.beam.position.set(lb.du * 0.3, lb.dv * 0.3, 0);
+      if (lb.amp) { // a drifting nozzle levitates: it glides side to side and bobs, swaying a little as it goes
+        const ph = time * 0.8 + lb.phase;
+        if (lb.orient === "h") { lb.u = lb.bu - lb.side * (0.5 + 0.5 * Math.sin(ph)) * lb.amp; lb.vv = Math.sin(ph * 1.7) * 0.18; }
+        else { lb.u = clamp(lb.bu + Math.sin(ph) * lb.amp, -W + 0.6, W - 0.6); lb.vv = Math.sin(ph * 2.1) * 0.15; }
+        lb.noz.rotation.x = Math.sin(ph * 1.3) * 0.08;
+      } else lb.vv = Math.sin(time * 1.6 + lb.phase) * 0.05; // a still one only hovers
+      const v = lb.v + lb.vv;
+      lb.len = beamReach(lb.u, v, lb.du, lb.dv, 60);
+      setObj(lb.root, lb.s, lb.u, v); lb.wp.setFromMatrixPosition(lb.root.matrix);
+      setBeamLen(lb.beam, Math.max(0, lb.len - 0.16));
       if (state === "play" && !lb.passed && lb.s <= sC + 0.5) {
         lb.passed = true;
-        if (beamHitsCart(lb.u, lb.v, lb.u + lb.du * lb.len, lb.v + lb.dv * lb.len)) laserHit();
+        if (beamHitsCart(lb.u, lb.v + lb.vv, lb.u + lb.du * lb.len, lb.v + lb.vv + lb.dv * lb.len)) laserHit();
       }
       if (lb.s < sC - 6) { lb.alive = false; scene.remove(lb.root); }
     }
@@ -1857,8 +1885,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const bulkheadMat = new THREE.MeshStandardMaterial({ color: 0xe8e8ee, roughness: 0.35, metalness: 0.6, side: THREE.DoubleSide });
   // Lux's buttons are round and convex, standing out of the bulkhead toward the gun
   // a push button: a cylinder standing out toward the gun in a steel collar; a hit drives it home
-  const domeGeo = new THREE.CylinderGeometry(1, 1, 0.5, 28).rotateX(Math.PI / 2).translate(0, 0, 0.25), domeRimGeo = new THREE.TorusGeometry(1.08, 0.14, 8, 32);
-  const IRIS_N = 8, irisGeo = (() => { // one iris leaf: a sector of the disc
+  const domeGeo = new THREE.CylinderGeometry(1, 1, 0.9, 28).rotateX(Math.PI / 2).translate(0, 0, 0.45), domeRimGeo = new THREE.TorusGeometry(1.08, 0.14, 8, 32);
+  const IRIS_N = 6, irisGeo = (() => { // one iris leaf: a sector of the disc
     const sh = new THREE.Shape(), a = TAU / IRIS_N / 2; sh.moveTo(0, 0); // wedges meet edge to edge, never overlap
     for (let k = 0; k <= 8; k++) { const q = -a + (2 * a) * k / 8; sh.lineTo(Math.cos(q) * IRIS_R, Math.sin(q) * IRIS_R); }
     sh.lineTo(0, 0); return new THREE.ExtrudeGeometry(sh, { depth: GATE_D, bevelEnabled: false }).translate(0, 0, -GATE_D / 2);
@@ -1915,9 +1943,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     for (const o of order) {
       const sp = spots[o], grp = new THREE.Group(); root.add(grp);
       if (dome) { // a convex round button on the bulkhead
-        const rr = r * 0.55, cap = new THREE.Mesh(domeGeo, buttonMat); cap.scale.setScalar(rr); cap.userData.push = true; grp.add(cap);
-        const rim = new THREE.Mesh(domeRimGeo, frameMat); rim.scale.setScalar(rr); grp.add(rim);
-        const glow = new THREE.Sprite(buttonGlow); glow.scale.setScalar(r * 3); grp.add(glow);
+        // steel sides and a lit face, so it reads as a cylinder standing out of the wall
+        const rr = r * 0.42, cap = new THREE.Mesh(domeGeo, [frameMat, buttonMat, frameMat]); cap.scale.setScalar(rr); cap.userData.push = true; grp.add(cap);
+        const rim = new THREE.Mesh(domeRimGeo, laserBaseMat); rim.scale.setScalar(rr); grp.add(rim);
+        const glow = new THREE.Sprite(buttonGlow); glow.scale.setScalar(r * 1.6); glow.position.z = 0.6 * rr; grp.add(glow);
         g.buttons.push(Object.assign({ grp, cap, prop: new THREE.Group(), glow, r: rr * 1.2, moving, phase: rand(0, TAU), pressed: false, alive: true, wp: new THREE.Vector3(), gate: g }, sp));
         continue;
       }
@@ -1938,7 +1967,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function pressButton(bt) {
     if (bt.pressed) return;
-    bt.pressed = true; bt.alive = false; bt.cap.material = pressedMat; bt.glow.material = pressedGlow; bt.spin = 14; bt.prop.traverse(m => { if (m.isMesh) m.material = pressedMat; });
+    bt.pressed = true; bt.alive = false; bt.cap.material = Array.isArray(bt.cap.material) ? [frameMat, pressedMat, frameMat] : pressedMat; bt.glow.material = pressedGlow; bt.spin = 14; bt.prop.traverse(m => { if (m.isMesh) m.material = pressedMat; });
     Sound.clink(); Sound.tone(520, 0.1, 0.1, "square", 0, 880); addScore(10);
     const g = bt.gate;
     if (g.buttons.every(b => b.pressed)) { g.opening = true; balls += 2; updateCount(); karmaGain(0.04); pop("+2 · ворота открыты", "gain"); Sound.tone(180, 0.5, 0.12, "sawtooth", 0, 90); }
@@ -1990,7 +2019,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const bt of g.buttons) {
         if (bt.a !== undefined) { const a = bt.a + (bt.moving ? Math.sin(time * 1.2 + bt.phase) * 0.4 : 0); bt.grp.position.set(Math.cos(a) * bt.rad, IRIS_V + Math.sin(a) * bt.rad, 0.08); }
         else bt.grp.position.set(bt.u + (bt.moving && bt.along === "u" ? Math.sin(time * 1.3 + bt.phase) * 1.3 : 0), bt.v + (bt.moving && bt.along === "v" ? Math.sin(time * 1.3 + bt.phase) * 0.6 : 0), 0);
-        if (bt.cap.userData.push) bt.cap.position.z += ((bt.pressed ? -0.22 : 0) * bt.cap.scale.x / 0.5 - bt.cap.position.z) * Math.min(1, dt * 14); // pressed in
+        if (bt.cap.userData.push) bt.cap.position.z += ((bt.pressed ? -0.7 : 0) * bt.cap.scale.x - bt.cap.position.z) * Math.min(1, dt * 14); // pressed in
         if (bt.pressed) { bt.spin *= Math.exp(-dt * 1.2); bt.prop.rotation.y += dt * bt.spin; } else bt.prop.rotation.y += dt * (1.5 + 2.5 * g.k);
         bt.wp.copy(bt.grp.position).applyMatrix4(g.root.matrix);
       }
@@ -3037,7 +3066,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         }
       }
       if (!dead) for (const sp of spinners) {
-        const c = sp.cones.find(x => x.alive && pathDist(x.wp) < 0.36 + R_BALL);
+        const c = sp.cones.find(x => x.alive && pathDist(x.wp) < 0.3 + R_BALL);
         if (c) { mark(); killCone(sp, c, c.wp.clone()); dead = true; break; }
         if (pathDist(sp.wp) < MILL_HUB + R_BALL) { mark(); Sound.clink(); chips(sp.wp, laserBaseMat, 4, b.v); dead = true; break; } // the hub takes the ball and stays
       }

@@ -3081,7 +3081,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const halves = lv.pal ? [lv.pal[3], lv.pal[0]] : [lv.mood, lv.mood];
     const hex = lv.style && lv.style.arch === "hex", glassW = lv.style && lv.style.glassWalls;
     const at = (x, y, d) => [vx + (x - vx) * d, vy + (y - vy) * d];
-    halves.forEach((P, side) => {
+    // a built station shows real shots of its level (light on the left, dark on the right), embedded by build.py
+    const shot = document.getElementById("mini-" + lv.id);
+    if (shot && !shot.complete) shot.onload = () => { if (!$("sheet").hidden) drawMini(lv); };
+    if (shot && shot.complete) g.drawImage(shot, 0, 0, Wc, Hc);
+    else halves.forEach((P, side) => {
       g.save();
       g.beginPath();
       if (lv.pal) { if (side === 0) { g.moveTo(0, 0); g.lineTo(Wc * 0.62, 0); g.lineTo(Wc * 0.38, Hc); g.lineTo(0, Hc); } else { g.moveTo(Wc * 0.62, 0); g.lineTo(Wc, 0); g.lineTo(Wc, Hc); g.lineTo(Wc * 0.38, Hc); } }

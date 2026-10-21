@@ -7,3 +7,4 @@ A Smash Hit style rail shooter: a cart with a railgun rides between Light and Da
 - `python3 build.py` writes `index.html`: the source with every track embedded as base64, so the game is one file.
 
 Open `index.html` in a browser. Add `#all` to the URL to open every built station for testing.
+- `minis/<level>.jpg` are the station sheets' miniatures (shots of the level, light and dark), embedded by the build; `tools/shoot-minis.js` and `tools/compose-minis.py` remake them.

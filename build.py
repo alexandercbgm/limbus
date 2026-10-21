@@ -33,5 +33,9 @@ page = (root / "src" / "game.html").read_text(encoding="utf-8").rstrip("\n") + "
 for track in sorted((root / "music").glob("*.mp3")):
     data = base64.b64encode(embedded(track)).decode("ascii")
     page += f'<script type="application/octet-stream" id="music-{track.stem}">{data}</script>\n'
+# shots of each level for the station sheets (minis/<level id>.jpg, light half and dark half)
+for shot in sorted((root / "minis").glob("*.jpg")):
+    data = base64.b64encode(shot.read_bytes()).decode("ascii")
+    page += f'<img hidden alt="" id="mini-{shot.stem}" src="data:image/jpeg;base64,{data}">\n'
 (root / "index.html").write_text(page, encoding="utf-8")
 print(f"index.html: {len(page) / 1e6:.1f} MB")

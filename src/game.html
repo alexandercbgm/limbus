@@ -148,10 +148,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .map-tools .ibtn { border: 1px solid rgba(16, 36, 46, 0.22); border-radius: 4px; background: rgba(255, 255, 255, 0.75); cursor: pointer; }
 .map-tools .ibtn:hover { background: #ffffff; }
 .map-tools .ibtn:focus-visible { outline: 3px solid #1287b5; outline-offset: 2px; }
-.map-tools .lang { width: auto; padding: 0 10px 0 8px; display: flex; gap: 6px; font: 600 12px var(--mono); color: #7a8d95; }
-.map-tools .lang b { font-weight: 700; }
+.map-tools .lang { width: auto; padding: 0 10px 0 8px; display: flex; gap: 6px; font: 700 12px var(--mono); color: #10242e; }
 .map-tools .globe { fill: none; }
-.map-tools .lang b.on { color: #10242e; }
 .how { z-index: 5; background: rgba(16, 36, 46, 0.28); }
 .how .panel { width: min(640px, 100%); }
 .how .panel p { font-size: 14px; margin-top: 8px; }
@@ -290,7 +288,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         </button>
         <button class="ibtn lang" id="langBtn" type="button" aria-label="Язык: русский" title="Язык" data-en-aria="Language: English" data-en-title="Language">
           <svg class="globe" viewBox="0 0 24 24" aria-hidden="true" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.5 12h17M5.2 7.5h13.6M5.2 16.5h13.6"/></svg>
-          <span><b data-l="ru">Ru</b>/<b data-l="en">En</b></span>
+          <span id="langTxt">En</span>
         </button>
         <button class="ibtn" id="howBtn" type="button" aria-label="Как играть" title="Как играть" data-en-aria="How to play" data-en-title="How to play">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke-width="1.8"/><circle cx="12" cy="7.6" r="1.4" stroke="none"/><path d="M12 11v6.2" fill="none" stroke-width="2.2" stroke-linecap="round"/></svg>
@@ -383,6 +381,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (() => {
+  // every material made while the game sets up is noted, so all their shaders can be compiled before the first ride
+  // (a phone takes a visible moment over each new one, which mid-ride is a stutter)
+  let MATS = [];
+  for (const k of ["MeshStandardMaterial", "MeshBasicMaterial", "LineBasicMaterial", "PointsMaterial", "SpriteMaterial", "ShaderMaterial"]) {
+    const Base = THREE[k];
+    THREE[k] = class extends Base { constructor(p) { super(p); if (MATS) MATS.push(this); } };
+  }
   // ---------- constants ----------
   const TAU = Math.PI * 2, W = 4.2, H = 6.6, CAM_V = 1.8;
   const BRIDGE_W = 1.75, PYLON_H = 40; // Abyssus: half the bridge's width, and how far its pylons reach down
@@ -392,9 +397,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // along s a level is: the main run, then the Iudicium finale, then the arrival station; the cart stops at END_S
   const SUPER_LEN = 260, STATION_LEN = 40;
   let MAIN_LEN = 1500, SUPER_END = MAIN_LEN + SUPER_LEN, END_S = SUPER_END + STATION_LEN;
-  // the language: Russian or English, remembered; at first whatever the device speaks
+  // the language: English or Russian, remembered; English at first
   let LANG = (() => { try { const l = localStorage.getItem("limbus-lang"); if (l === "ru" || l === "en") return l; } catch (e) { /* storage unavailable */ }
-    return /^(ru|be|uk|kk)/i.test(navigator.language || "") ? "ru" : "en"; })();
+    return "en"; })();
   const T = (ru, en) => LANG === "en" ? en : ru;
   // background tracks: embedded as base64 at the end of the file by build.py, or (the Android app) files in music/
   const musicCache = {};
@@ -647,7 +652,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // ---------- renderer & scene ----------
   const canvas = document.getElementById("game");
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, matchMedia("(pointer: coarse)").matches ? 1.5 : 2)); // a phone's 3× is more pixels than its GPU can light
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xe8ebec, 16, 100);
   const camera = new THREE.PerspectiveCamera(70, 1, 0.08, 520);
@@ -670,7 +675,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // sky dome: gradient that tracks the karma palette; the horizon color equals the fog color so the void reads as one space
   const skyUni = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, stars: { value: 0 }, band: { value: new THREE.Color() },
-    mode: { value: 0 }, amt: { value: 0 }, fxc: { value: new THREE.Color() }, t: { value: 0 } };
+    mode: { value: 0 }, amt: { value: 0 }, fxc: { value: new THREE.Color() }, t: { value: 0 }, px: { value: 0.002 } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(480, 32, 16), new THREE.ShaderMaterial({
     uniforms: skyUni, side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: "varying vec3 vP; void main(){ vP = (modelMatrix*vec4(position,1.0)).xyz - cameraPosition; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
@@ -678,15 +683,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // sheets of quicksilver light, 3 lit clouds under a sun, 4 radiance: a sun of pure light with turning rays,
     // 5 warm clouds with drifting gold dust. Whatever the mode, as the palette darkens the stars come out
     // and a faint galaxy in the level's own colour shows through
-    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; uniform float mode; uniform float amt; uniform vec3 fxc; uniform float t; varying vec3 vP;
+    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; uniform float mode; uniform float amt; uniform vec3 fxc; uniform float t; uniform float px; varying vec3 vP;
       float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
       float vn(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
         return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
                    mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z); }
       float fbm(vec3 p) { return vn(p) * 0.5 + vn(p * 2.03) * 0.27 + vn(p * 4.1) * 0.15 + vn(p * 8.3) * 0.08; }
       float starAt(vec3 n, float cells, float thr) { vec3 p = n * cells, i = floor(p); float r = h3(i); if (r < thr) return 0.0;
-        vec3 c = i + 0.5 + (vec3(h3(i + 1.3), h3(i + 2.7), h3(i + 4.1)) - 0.5) * 0.6; return smoothstep(0.32, 0.0, length(p - c)) * (0.5 + 0.5 * h3(i + 9.0)); }
+        float rr = clamp(px * cells * 1.2, 0.32, 0.5); // a star never smaller than a pixel of the sky's target, as bright in sum
+        vec3 c = i + 0.5 + (vec3(h3(i + 1.3), h3(i + 2.7), h3(i + 4.1)) - 0.5) * 0.6; return smoothstep(rr, 0.0, length(p - c)) * (0.5 + 0.5 * h3(i + 9.0)) * 0.1024 / (rr * rr); }
       vec3 galaxy(vec3 n, vec3 col, float k) { // stars, and a band of glowing gas with dark lanes
+        if (k < 0.002) return vec3(0.0);
         float d = dot(n, normalize(vec3(0.42, 0.55, 0.72)));
         float cl = vn(n * 6.0) * 0.6 + vn(n * 14.0) * 0.4, b = exp(-d * d * 22.0) * (0.45 + 0.75 * cl);
         float lane = exp(-pow(d + 0.03 * (vn(n * 9.0) - 0.5), 2.0) * 420.0) * smoothstep(0.35, 0.75, vn(n * 11.0 + 3.0));
@@ -755,8 +762,20 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         }
         gl_FragColor = vec4(c, 1.0); }`,
   }));
-  sky.renderOrder = -10; sky.frustumCulled = false;
-  scene.add(sky);
+  sky.frustumCulled = false;
+  // its noise is the costliest shading in the game, so the sky is drawn at half resolution into a target of its own,
+  // which the scene then lays behind everything as its background
+  const skyScene = new THREE.Scene(); skyScene.add(sky);
+  const skyRT = new THREE.WebGLRenderTarget(2, 2, { depthBuffer: false, stencilBuffer: false });
+  scene.background = skyRT.texture;
+  const bufSize = new THREE.Vector2();
+  function renderSky() {
+    renderer.getDrawingBufferSize(bufSize);
+    const w = Math.max(2, Math.round(bufSize.x / 2)), h = Math.max(2, Math.round(bufSize.y / 2));
+    if (skyRT.width !== w || skyRT.height !== h) skyRT.setSize(w, h);
+    skyUni.px.value = camera.fov * Math.PI / 180 / h; // the angle one of its pixels spans
+    renderer.setRenderTarget(skyRT); renderer.render(skyScene, camera); renderer.setRenderTarget(null);
+  }
 
   // ---------- textures ----------
   function texPair(cols, rows, shade) {
@@ -3086,7 +3105,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (prop === "innerHTML") el.innerHTML = v; else el.setAttribute(prop, v);
       });
     }
-    document.querySelectorAll("#langBtn b").forEach(b => b.classList.toggle("on", b.dataset.l === LANG));
+    $("langTxt").textContent = LANG === "en" ? "En" : "Ru";
     syncMute();
   }
   function setLang(l) {
@@ -3910,18 +3929,52 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     updateDust(dt);
   }
 
+  function warmShaders() {
+    const g = new THREE.Group(), box = new THREE.BoxGeometry(0.01, 0.01, 0.01);
+    for (const m of MATS) {
+      if (m.isSpriteMaterial) g.add(new THREE.Sprite(m));
+      else if (m.isPointsMaterial) g.add(new THREE.Points(box, m));
+      else if (m.isLineBasicMaterial) g.add(new THREE.LineSegments(box, m));
+      else { g.add(new THREE.Mesh(box, m)); if (!m.isShaderMaterial) g.add(new THREE.InstancedMesh(box, m, 1)); } // decor is drawn instanced
+    }
+    scene.add(g); renderer.compile(scene, camera); scene.remove(g); box.dispose();
+    MATS = null;
+  }
+  // resolution follows the frame rate: on a slow phone it steps down until the ride is smooth (and back up if there is room)
+  const DPR_MAX = Math.min(window.devicePixelRatio || 1, matchMedia("(pointer: coarse)").matches ? 1.5 : 2), DPR_MIN = Math.min(DPR_MAX, 0.8);
+  let dpr = DPR_MAX, fpsT = 0, fpsN = 0, slowRuns = 0;
+  function adaptResolution(ms) {
+    if (state !== "play") { fpsT = fpsN = 0; return; }
+    fpsT += ms; fpsN++;
+    if (fpsT < 1500) return;
+    const avg = fpsT / fpsN; fpsT = fpsN = 0;
+    slowRuns = avg > 20 ? slowRuns + 1 : 0; // under ~50 fps, twice running
+    let next = dpr;
+    if (slowRuns >= 2) { next = Math.max(DPR_MIN, dpr - 0.2); slowRuns = 0; }
+    else if (avg < 12 && dpr < DPR_MAX) next = Math.min(DPR_MAX, dpr + 0.1); // a fast screen with frames to spare
+    if (next !== dpr) { dpr = next; renderer.setPixelRatio(dpr); }
+  }
   let last = performance.now();
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = Math.min(0.05, (now - last) / 1000);
+    adaptResolution(now - last);
     last = now;
     if (state === "paused") { renderer.render(scene, camera); return; } // time stands still while paused
     time += dt;
+    const t0 = performance.now();
     if (state === "play") updatePlay(dt);
     else if (state === "menu") updateAttract(dt);
     updateWorld(dt);
+    const t1 = performance.now();
+    renderSky();
     renderer.render(scene, camera);
+    perfAcc.n++; perfAcc.upd += t1 - t0; perfAcc.rnd += performance.now() - t1; perfAcc.max = Math.max(perfAcc.max, performance.now() - t0);
+    const ft = performance.now() - t0, np = renderer.info.programs.length; if (ft > 8) perfAcc.spikes.push([+ft.toFixed(1), +(t1 - t0).toFixed(1), np - perfAcc.np]); perfAcc.np = np;
   }
+  window.__progs = () => renderer.info.programs.map(p => p.cacheKey);
+  const perfAcc = { n: 0, upd: 0, rnd: 0, max: 0, spikes: [], np: 0 };
+  window.__perf = () => { const r = { fps: 0, upd: +(perfAcc.upd / perfAcc.n).toFixed(2), rnd: +(perfAcc.rnd / perfAcc.n).toFixed(2), max: +perfAcc.max.toFixed(1), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, prog: renderer.info.programs.length, objs: scene.children.length, spikes: perfAcc.spikes.slice(0, 12).join(' ') }; Object.assign(perfAcc, { n: 0, upd: 0, rnd: 0, max: 0, spikes: [] }); return r; };
 
   // ---------- menu: metro scheme, station sheet, miniature ----------
   // two lines from Vitrum to Abyssus: Linea Ima, low through Rubinus, and Linea Summa, the upper arc
@@ -4200,6 +4253,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   applyLang();
   setLevel(LEVELS[0]);
+  warmShaders();
   showMenu();
   requestAnimationFrame(frame);
 })();

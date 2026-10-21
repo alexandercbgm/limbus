@@ -233,6 +233,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       <div class="map-title">
         <span><i style="background:#1d6f8f"></i>Linea Ima · нижняя ветка</span>
         <span><i style="background:#2f9a72"></i>Linea Summa · верхняя ветка</span>
+        <span><i style="background:#d0642a"></i>Linea Tao · путь Дао</span>
         <span><i style="background:#7a4fa3"></i>Rami · тупиковые ветки</span>
       </div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней"></svg></div>
@@ -242,7 +243,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       <p>Вагонетка с пушкой сама катится по рельсам. Кликайте или тапайте, чтобы стрелять стальными шарами по стеклу раньше, чем врежетесь. Пробел стреляет в центр экрана.</p>
       <p><b>Очки тянут вверх, к Свету:</b> рельсы уходят в гору, мир светлеет. У Света подъём тяжёлый, но преград мало, а кристаллы щедрее. <b>Урон тянет вниз, во Тьму:</b> мир темнеет через серый к чёрно-красному. Из Тьмы выбраться легко, но там больше козней: из стен выдвигаются шипы, летают бесы, попадаются красные кристаллы-ловушки. Зато голубой кристалл во Тьме даёт втрое больше шаров.</p>
       <p>В конце каждого уровня — свой финал на 20 секунд: <b>Iudicium</b> с печатями и множителем, <b>Ruina</b> с обвалом глыб, <b>Pluvia</b> с дождём кристаллов, <b>Portae</b> со стеклянными вратами. Затем станция прибытия.</p>
-      <p>Собранные кристаллы уходят в запас и переносятся дальше. Ими платят за проезд по тупиковым веткам (в Thesaurus кристаллов вдвое больше, чем обычно) и за новые пушки на складе Armamentarium. От Vitrum к Abyssus ведут две ветки: нижняя, Linea Ima, через Rubinus, и верхняя, Linea Summa, через Labyrinthus и Speculum. Хватит пройти одну.</p>
+      <p>Собранные кристаллы уходят в запас и переносятся дальше. Ими платят за проезд по тупиковым веткам (в Thesaurus кристаллов вдвое больше, чем обычно) и за новые пушки на складе Armamentarium. От Vitrum к Abyssus ведут две ветки: нижняя, Linea Ima, через Rubinus, и верхняя, Linea Summa, через Labyrinthus и Speculum. Хватит пройти одну. От Speculum к Lux ведёт ещё и Linea Tao через Дао.</p>
       <ul class="rules">
         <li><b>−1</b>шар за выстрел</li>
         <li><b>+3…6</b>за голубой кристалл, за каждый попавший шар</li>
@@ -389,6 +390,25 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       rail: "#d4eaf8", sleeper: "#e6f3fc", glass: "#9fe1ff", glassO: 0.4, edge: "#ffffff", fogN: 18, fogF: 112, hemiS: "#ffffff", hemiG: "#bcdff5", hemiI: 1.1, sunI: 0.8,
       dust: "#8fd2ff", block: "#eef7ff", cart: "#6f8796", accent: "#6cc6ff" },
   ];
+  // Tao: ink and rice paper. White paper with a red seal in the light, grey wash in between, black ink with a jade glow in the dark
+  const PAL_TAO = [
+    { sky: "#040605", hor: "#020302", gnd: "#0c1a14", surf: "#060807", wall: "#0a0d0b", line: "#40e0a8", lineI: 0.8, frame: "#050706", frameE: "#30c890", frameEI: 0.75,
+      rail: "#1e2a24", sleeper: "#0a0e0c", glass: "#70f0c0", glassO: 0.45, edge: "#d0fff0", fogN: 5, fogF: 60, hemiS: "#80e0c0", hemiG: "#040806", hemiI: 0.55, sunI: 0.3,
+      dust: "#80f0c8", block: "#0e1612", cart: "#121814", accent: "#40e0a8" },
+    { sky: "#2a2c2a", hor: "#1a1c1a", gnd: "#101210", surf: "#363836", wall: "#2c2e2c", line: "#a8b0a8", lineI: 0.2, frame: "#161816", frameE: "#000000", frameEI: 0,
+      rail: "#5a5e5a", sleeper: "#222422", glass: "#c8d0c8", glassO: 0.42, edge: "#eef2ee", fogN: 8, fogF: 72, hemiS: "#d0d4d0", hemiG: "#161816", hemiI: 0.75, sunI: 0.5,
+      dust: "#c0c4c0", block: "#3a3c3a", cart: "#2c2e2c", accent: "#d8dcd8" },
+    { sky: "#9c9a94", hor: "#b0aea8", gnd: "#6e6c66", surf: "#cfccc4", wall: "#aaa8a0", line: "#ffffff", lineI: 0.05, frame: "#3a3834", frameE: "#000000", frameEI: 0,
+      rail: "#7a7872", sleeper: "#5a5852", glass: "#e8e6e0", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 88, hemiS: "#ffffff", hemiG: "#8a8882", hemiI: 0.95, sunI: 0.72,
+      dust: "#ffffff", block: "#8c8a84", cart: "#46443e", accent: "#ffffff" },
+    { sky: "#e8e2d4", hor: "#f2ede2", gnd: "#d4ccbc", surf: "#f8f4ec", wall: "#ece6d8", line: "#d0302a", lineI: 0.12, frame: "#2a2622", frameE: "#000000", frameEI: 0,
+      rail: "#8a8478", sleeper: "#c8c0b0", glass: "#f4f0e8", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 100, hemiS: "#ffffff", hemiG: "#d8d0c0", hemiI: 1.0, sunI: 0.8,
+      dust: "#ffffff", block: "#2a2622", cart: "#4a443c", accent: "#d0302a" },
+    { sky: "#f6f2e8", hor: "#fbf8f2", gnd: "#ece6da", surf: "#ffffff", wall: "#f8f4ec", line: "#e03a30", lineI: 0.3, frame: "#1a1714", frameE: "#e03a30", frameEI: 0.2,
+      rail: "#9a948a", sleeper: "#e0d8cc", glass: "#fbf8f2", glassO: 0.36, edge: "#ffffff", fogN: 17, fogF: 112, hemiS: "#ffffff", hemiG: "#ece6da", hemiI: 1.1, sunI: 0.85,
+      dust: "#ffe8e0", block: "#1a1714", cart: "#5a544a", accent: "#e03a30" },
+  ];
+
   // Rubinus: inside a cut ruby: rose quartz and blush light in the light, deep garnet in between,
   // black glass with blood-red facets burning in the dark
   const PAL_RUBINUS = [
@@ -626,6 +646,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           c = mix(c, cc, cov * amt);
           c += mix(vec3(1.0, 0.97, 0.9), fxc, 0.3) * (pow(sdot, 300.0) * 2.0 + pow(sdot, 12.0) * 0.35) * amt * (0.3 + 0.7 * lum) * (1.0 - cov * 0.7);
           if (m == 5.0) c += vec3(1.0, 0.85, 0.4) * starAt(n, 120.0, 0.96) * amt * (0.6 + 0.4 * sin(t * 3.0 + h3(floor(n * 120.0)) * 30.0));
+        } else if (m == 7.0) { // ink wash: drifting bands of mist and a slowly turning yin-yang in place of the sun
+          float mist = smoothstep(0.45, 0.8, fbm(vec3(n.x * 2.0, n.y * 7.0, n.z * 2.0) + vec3(t * 0.012, 0.0, t * 0.008))) * smoothstep(-0.1, 0.25, h) * (1.0 - smoothstep(0.35, 0.8, h));
+          vec3 ink = mix(vec3(0.05), vec3(0.95, 0.93, 0.88), lum);
+          c = mix(c, mix(ink, hor, 0.35), mist * amt * 0.7);
+          vec3 ax = normalize(cross(sd, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sd);
+          float rr = 0.17, x = dot(n, ax) / rr, y = dot(n, ay) / rr, ca = cos(t * 0.15), sa = sin(t * 0.15);
+          vec2 q = vec2(x * ca - y * sa, x * sa + y * ca);
+          if (dot(n, sd) > 0.0 && length(q) < 1.0) {
+            float yy = q.x < 0.0 ? 1.0 : 0.0; // halves
+            if (length(q - vec2(0.0, 0.5)) < 0.5) yy = 1.0; if (length(q + vec2(0.0, 0.5)) < 0.5) yy = 0.0; // the two heads
+            if (length(q - vec2(0.0, 0.5)) < 0.13) yy = 0.0; if (length(q + vec2(0.0, 0.5)) < 0.13) yy = 1.0; // the eyes
+            vec3 light = mix(vec3(0.97, 0.95, 0.9), fxc, 0.2), dark = vec3(0.04);
+            c = mix(c, mix(light, dark, yy), amt * smoothstep(1.0, 0.96, length(q)));
+          }
+          c += mix(fxc, hor, 0.5) * 0.25 * exp(-max(acos(clamp(dot(n, sd), -1.0, 1.0)) - 0.17, 0.0) * 6.0) * amt; // a halo round it
         } else if (m == 6.0) { // a lattice of triangular facets, like a cut stone's crown, with crisp bright edges
           vec2 p = vec2(atan(n.z, n.x) / 6.2832 * 16.0 + t * 0.01, asin(clamp(n.y, -1.0, 1.0)) / 3.1416 * 16.0 / 1.6);
           vec2 sk = vec2(p.x - p.y * 0.57735, p.y * 1.1547); // skew the plane so triangles become half-squares
@@ -1803,6 +1838,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     if (f === "reflexio") { spawnPair(s); return rand(9, 11); }
     if (f === "rota") { addWheel(s); return rand(12, 14); }
+    if (f === "taiji") { addTaiji(s); return 13; }
     if (f === "tessera") {
       superWave++;
       const grid = { tiles: [], lit: null, t: 0, every: Math.max(0.35, 0.8 - superWave * 0.06) };
@@ -2359,6 +2395,28 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     wheels.push(w);
   }
+  // Taiji: a ring of white and black stones; hit them in turn
+  let yyRow = 0, lastYY = -1;
+  const yinMat = new THREE.MeshStandardMaterial({ color: 0xf4f0e8, emissive: 0xffffff, emissiveIntensity: 0.5, roughness: 0.3, flatShading: true });
+  const yangMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, emissive: 0x101010, emissiveIntensity: 0.3, roughness: 0.25, metalness: 0.5, flatShading: true });
+  function addTaiji(s) {
+    superWave++;
+    const n = 8, ring = new THREE.Mesh(wheelGeo, accentMat); ring.matrixAutoUpdate = false; scene.add(ring);
+    const w = { s, a: rand(0, TAU), spin: (superWave % 2 ? 1 : -1) * Math.min(1.5, 0.6 + 0.1 * superWave), ring, left: 1e9, dead: false };
+    for (let i = 0; i < n; i++) {
+      addCrystal(s, 0, WHEEL_V, 2); const c = crystals[crystals.length - 1];
+      c.wheel = w; c.wa = i / n * TAU; c.yy = i % 2; c.mesh.material = c.yy ? yangMat : yinMat; c.group.children[1].visible = !c.yy;
+    }
+    wheels.push(w);
+  }
+  function hitTaiji(c, b) {
+    if (c.yy !== lastYY) {
+      lastYY = c.yy; yyRow++; let gain = 2;
+      if (yyRow % 4 === 0) { gain += 3; wavesDone++; bestCombo = Math.max(bestCombo, yyRow); }
+      stats.crystals++; addScore(30); Sound.crystal(c.yy ? 2 : 6); chips(c.wp, c.yy ? yangMat : yinMat, 10, b.v);
+      balls += gain; superGain += gain; updateCount(); updateCombo(); pop(gain > 2 ? `+${gain} · четыре подряд` : "+2", "gain");
+    } else { lastYY = c.yy; yyRow = 0; balls = Math.max(0, balls - 1); updateCount(); updateCombo(); Sound.clink(); pop("−1 · тот же цвет", "loss"); }
+  }
   function updateWheels(dt) {
     for (const w of wheels) {
       w.a += w.spin * dt;
@@ -2464,7 +2522,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function zoneName(a) { for (const [t, n] of ZONES) if (a >= t) return n; return "Тьма"; }
   function updateCombo() {
     const f = LEVEL.finale;
-    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : f === "reflexio" ? "пары " + pairsDone : f === "vindemia" ? "ветви " + harvested : f === "rota" ? "колёса " + wheelsDone : f === "custodes" || f === "fragmenta" ? "волны " + wavesDone : f === "tessera" ? "подряд " + tessRow : "+" + superGain;
+    $("comboX").textContent = f === "iudicium" ? "×" + combo : f === "ruina" ? "серия " + streak : f === "portae" ? "подряд " + gatesInRow : f === "reflexio" ? "пары " + pairsDone : f === "vindemia" ? "ветви " + harvested : f === "rota" ? "колёса " + wheelsDone : f === "custodes" || f === "fragmenta" ? "волны " + wavesDone : f === "tessera" ? "подряд " + tessRow : f === "taiji" ? "подряд " + yyRow : "+" + superGain;
   }
   function showOverlay(id, html, ms) {
     const el = $(id); el.innerHTML = html; el.hidden = false;
@@ -2500,6 +2558,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     iudicium: { name: "IUDICIUM", ru: "Суд", note: "Попадания по печатям подряд умножают награду до ×6. Пропуск сбрасывает множитель и стоит 2 шара. Стекло бьёт вдвое сильнее." },
     ruina: { name: "RUINA", ru: "Обвал", note: "С потолка падают глыбы. Сбивайте их в воздухе или на рельсах: +2 шара, каждые 4 подряд ещё +4. Глыба на пути стоит 8 шаров." },
     portae: { name: "PORTAE", ru: "Врата", note: "Впереди стеклянные врата. Перед каждыми горит голубой ключ-кристалл: попадите в него, и врата разлетятся, а ключ даст шары. Каждые трое врат подряд — ещё +3. Не попали — вагонетка пробьёт стекло: −4 шара." },
+    taiji: { name: "TAIJI", ru: "Инь и ян", note: "Над путём вращается круг из белых и чёрных камней. Бейте их по очереди: белый, чёрный, белый… Каждое чередование — +2 шара, четыре подряд — ещё +3. Два одного цвета подряд сбивают серию и стоят шар." },
     tessera: { name: "TESSERA", ru: "Мозаика", note: "Поперёк пути встаёт мозаика из рубинов, и в ней по очереди вспыхивает один камень. Попали во вспыхнувший — +2 шара, три подряд — ещё +3. Тусклый камень стоит шар." },
     fragmenta: { name: "FRAGMENTA", ru: "Осколки", note: "Волны хрусталя: за каждой перегородкой горит кристалл. Разбейте всю волну до последнего стекла — +4 шара, кристаллы платят как обычно." },
     custodes: { name: "CUSTODES", ru: "Стражи", note: "Стражи-тени летят волнами. Каждый сбитый — +1 шар, вся волна до последнего — ещё +4. Долетевший страж отнимает 3 шара." },
@@ -2665,9 +2724,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       style: { arch: "ring", blocks: "coin", glassWalls: false }, crystalMul: 2.2,
       pats: { wall: [0.4, 0.4, 0.4], double: [0, 0.3, 0.6], reinf: [0, 0.3, 1.2], shutter: [0, 0.5, 1], bonus: [4, 1, 0], sides: [4, 1.5, 0.5] },
       turns: [[90, 50, 40], [200, 60, -60], [320, 50, 50], [430, 70, -80], [560, 50, 45], [660, 50, -45], [760, 50, 30]],
-      desc: "Тупиковая ветка от Initium. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
+      desc: "Тупиковая ветка от Rubinus. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
       feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
-      req: { after: "initium", fare: 8 }, map: { x: 170, y: 460, label: "b" } },
+      req: { after: "rubinus", fare: 8 }, map: { x: 580, y: 460, label: "b" } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "perfect_alignment", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "prism", glassWalls: true },
       pats: { center: [1.5, 1.5, 1], wall: [0.5, 0.5, 0.5], triple: [0.6, 1, 0.6], double: [0, 0.4, 0.8], sides: [2, 0.6, 0], gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1] },
@@ -2704,11 +2763,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
       desc: "Обходной путь от Vitrum к Abyssus сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат противовесы на цепях: собейте груз, и его дверца отъедет.",
       feats: ["Треугольный профиль, который поворачивается и меняется", "Ворота с дверцами на противовесах", "Финал Tessera: мозаика из рубинов"],
-      req: { after: "vitrum" }, map: { x: 500, y: 330, label: "b" } }, // midway between Vitrum and Abyssus
-    { id: "caelum", num: "IV·a", latin: "Caelum", ru: "Небосвод", line: "branch", playable: false,
-      mood: { sky: "#cfe4ff", hor: "#e8f2ff", surf: "#f6f9ff", wall: "#dfeaff", frame: "#6a8ac0", rail: "#9ab0d8", glass: "#d8e8ff", accent: "#6aa0ff" },
-      desc: "Тупик от Speculum, под открытым небом. Скоро.",
-      feats: ["Строится"], req: { after: "speculum", fare: 14 }, map: { x: 770, y: 190, label: "t" } },
+      req: { after: "vitrum" }, map: { x: 500, y: 330, label: "t" } }, // midway between Vitrum and Abyssus
+    { id: "tao", num: "IV·a", latin: "Tao", ru: "Дао", playable: true, music: "translucent_corridor", len: 1500, pal: PAL_TAO, finale: "taiji",
+      style: { arch: "ring", blocks: "cube", glassWalls: false },
+      pats: { rotor: [1, 1.5, 1.5], twins: [1.5, 1.5, 1.5], slider: [1, 1.5, 2], lift: [1, 1.5, 1.5], shutter: [0, 1, 2], center: [2, 2, 1.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0],
+        bough: [1, 1.5, 1.5], pendulum: [0.5, 0.8, 1], double: [0, 1, 1.5], reinf: [0, 0.6, 1.5], imps: [0, 0.6, 2] },
+      turns: [[100, 60, 45], [220, 60, -55], [340, 50, 45], [460, 70, -70], [600, 50, 50], [710, 60, -50], [830, 50, 45],
+        [950, 70, -65], [1090, 50, 50], [1190, 60, -50], [1310, 50, 40], [1400, 50, -35]],
+      desc: "Путь от Speculum к Lux сквозь круглые лунные врата. Тушь и рисовая бумага: в Свете белое с алой печатью, во Тьме чёрная тушь с нефритовым свечением. Над путём плывёт туман и медленно вращается знак инь-ян.",
+      feats: ["Лунные врата и туман", "Плети бамбука и маятники", "Финал Taiji: инь и ян по очереди"],
+      req: { after: "speculum" }, map: { x: 770, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, mirages: 0.45,
       pats: { twins: [1.5, 2, 2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
@@ -2740,14 +2804,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [980, 70, -75], [1120, 50, 50], [1230, 60, -55], [1350, 50, 45], [1450, 60, -50]],
       desc: "Конечная. Белые залы со стеклянными стенами. Путь стерегут красные лазеры: вертушки в разрывах стен, парящие блоки, балки на цепях. Луч через вагонетку стоит 3 шара. Переборки с диафрагмой открываются кнопками. Подъём к Свету здесь самый тяжёлый.",
       feats: ["Красные лазеры: вертушки, блоки, балки на цепях", "Переборки с диафрагмой и кнопками", "Финал Triumphus: все испытания линии по очереди"],
-      req: { after: "abyssus" }, map: { x: 910, y: 330, label: "b" } },
+      req: { after: "abyssus", or: "tao" }, map: { x: 910, y: 330, label: "b" } },
   ];
   const MAIN_LINE = ["initium", "vitrum", "labyrinthus", "speculum", "abyssus", "lux"];
   // drawn lines of the scheme, as waypoints; the main line is drawn station to station
   const MAP_LINES = [
     { kind: "line", to: "rubinus", pts: [[270, 330], [500, 330], [730, 330]] }, // a second line: Vitrum, Rubinus, Abyssus
-    { kind: "branch", to: "caelum", pts: [[590, 190], [770, 190]] },
-    { kind: "branch", to: "thesaurus", pts: [[90, 330], [90, 380], [170, 460]], tagSeg: 1, tag: 0.38 },
+    { kind: "tao", to: "tao", pts: [[590, 190], [770, 190], [910, 330]] }, // Linea Tao: Speculum, Tao, Lux
+    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 380], [580, 460]], tagSeg: 1, tag: 0.38 },
     { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 380], [360, 470]], tagSeg: 1, tag: 0.38 },
     { kind: "branch", to: "hortus", pts: [[410, 190], [410, 145], [480, 75]], tagSeg: 1, tag: 0.38 }, // its price sits low, clear of the station names
     { kind: "branch", to: "carcer", pts: [[730, 330], [730, 380], [800, 450]], tagSeg: 1, tag: 0.38 },
@@ -2781,6 +2845,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     initium: { sky: { mode: 3, a: 0.85, c: "#ffffff" } },
     thesaurus: { sky: { mode: 5, a: 0.9, c: "#ffe8b0" } },
     vitrum: { sky: { mode: 3, a: 0.95, c: "#ffffff" } },
+    tao: { sky: { mode: 7, a: 0.9, c: "#ffffff" } },
     rubinus: { sky: { mode: 6, a: 0.95, c: "#ff2a46" } },
     labyrinthus: { sky: { mode: 3, a: 0.75, c: "#d4f6e6" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },
     hortus: { sky: { mode: 3, a: 0.85, c: "#fff0f4" } },
@@ -2806,7 +2871,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     clearDynamic();
     sC = 0; alt = 0.35; pending = 0; altVel = 0; pitchC = 0; pitchTs = 0;
     cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0;
-    superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0; wheelsDone = 0; triStep = 0; wavesDone = 0; tessGrids = []; tessRow = 0;
+    superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0; wheelsDone = 0; triStep = 0; wavesDone = 0; tessGrids = []; tessRow = 0; yyRow = 0; lastYY = -1;
     buildForks();
     computePath();
     if (spawn) while (nextSpawn < SPAWN_AHEAD) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15); }
@@ -2873,7 +2938,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;
       $("wSuperName").textContent = FINALES[LEVEL.finale].name;
-      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "rota" ? `колёса ${wheelsDone} · +${superGain}` : LEVEL.finale === "custodes" || LEVEL.finale === "fragmenta" ? `волны ${wavesDone} · +${superGain}` : LEVEL.finale === "tessera" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "reflexio" ? `пары ${pairsDone} · +${superGain}` : LEVEL.finale === "vindemia" ? `ветви ${harvested} · +${superGain}` : `+${superGain}`;
+      $("wSuper").textContent = LEVEL.finale === "iudicium" ? `×${bestCombo} · +${superGain}` : LEVEL.finale === "portae" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "rota" ? `колёса ${wheelsDone} · +${superGain}` : LEVEL.finale === "custodes" || LEVEL.finale === "fragmenta" ? `волны ${wavesDone} · +${superGain}` : LEVEL.finale === "tessera" || LEVEL.finale === "taiji" ? `подряд ${bestCombo} · +${superGain}` : LEVEL.finale === "reflexio" ? `пары ${pairsDone} · +${superGain}` : LEVEL.finale === "vindemia" ? `ветви ${harvested} · +${superGain}` : `+${superGain}`;
       $("wAcc").textContent = (stats.thrown ? Math.round(stats.hits / stats.thrown * 100) : 0) + "%";
       $("wBest").textContent = best.toLocaleString("ru-RU");
       const nx = nextLevel(LEVEL), nb = $("nextBtn");
@@ -3089,6 +3154,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   function hitCrystal(c, b) {
     c.alive = false; scene.remove(c.group);
+    if (c.yy !== undefined) { hitTaiji(c, b); return; }
     if (c.tile) { // Tessera
       if (c.tile.lit === c) {
         c.tile.lit = null; c.tile.t = 0.05; tessRow++; let gain = 2;
@@ -3526,7 +3592,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // ---------- menu: metro scheme, station sheet, miniature ----------
   // two lines from Vitrum to Abyssus: Linea Ima, low through Rubinus, and Linea Summa, the upper arc
-  const ARC = ["vitrum", "labyrinthus", "speculum", "abyssus"], ARC_HUBS = ["vitrum", "abyssus"];
+  const ARC = ["vitrum", "labyrinthus", "speculum", "abyssus"], ARC_HUBS = ["vitrum", "abyssus", "speculum", "lux"];
+  const LINE_TAO = "#d0642a"; // Linea Tao, Speculum to Lux
+  const HUB_RING = { vitrum: "#2f9a72", abyssus: "#2f9a72", speculum: LINE_TAO, lux: LINE_TAO };
   const LINE_MAIN = "#1d6f8f", LINE_ARC = "#2f9a72", LINE_TR = "#b8892b", LINE_BR = "#7a4fa3", INK = "#10242e", MUTED = "#8a9ba3";
   // one glyph per station, drawn in a 16-unit box around the station center
   const GLYPHS = {
@@ -3534,7 +3602,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     thesaurus: "M0 -7L6 -1.5L0 7L-6 -1.5ZM-6 -1.5H6M-2.5 -1.5L0 7L2.5 -1.5", // a cut gem
     vitrum: "M0 -7L6.5 5H-6.5ZM0 -7V5M-3 -1L3 5",                       // a prism
     rubinus: "M-3.5 -7.5H3.5L5.5 -5.5V5.5L3.5 7.5H-3.5L-5.5 5.5V-5.5ZM-2 -4.5H2L3 -3.5V3.5L2 4.5H-2L-3 3.5V-3.5ZM-3.5 -7.5L-2 -4.5M3.5 -7.5L2 -4.5M5.5 -5.5L3 -3.5M5.5 5.5L3 3.5M3.5 7.5L2 4.5M-3.5 7.5L-2 4.5M-5.5 5.5L-3 3.5M-5.5 -5.5L-3 -3.5", // a step-cut ruby
-    caelum: "M-7 3A7 7 0 0 1 7 3M-4 3A4 4 0 0 1 4 3M-7.5 6H7.5",          // the vault of the sky
+    tao: "M0 -7A7 7 0 1 1 0 7A7 7 0 1 1 0 -7M0 -7A3.5 3.5 0 0 1 0 0A3.5 3.5 0 0 0 0 7M0 -3.5V-3.4M0 3.4V3.5", // yin and yang
     armamentarium: "M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5", // crossed barrels
     labyrinthus: "M-7 -7H7V7H-4V-4H4V4H-1",                             // a square maze
     hortus: "M0 7.5V-1.5M0 2C-4.5 2 -7 -1 -6.5 -5.5C-2.5 -5.5 0 -2.5 0 2M0 -1.5C4 -1.5 6.5 -4.5 6 -8C2.5 -8 0 -5.5 0 -1.5M-4 7.5H4", // a sprout with two leaves
@@ -3583,8 +3651,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     // transfers and dead-end branches, each with its price on the longest segment
     for (const ln of MAP_LINES) {
-      const to = byId(ln.to), color = ln.kind === "transfer" ? LINE_TR : ln.kind === "line" ? LINE_MAIN : LINE_BR, built = to.playable || to.depot;
-      out += `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="${ln.kind === "line" ? 8 : 6}" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
+      const to = byId(ln.to), color = ln.kind === "transfer" ? LINE_TR : ln.kind === "line" ? LINE_MAIN : ln.kind === "tao" ? LINE_TAO : LINE_BR, built = to.playable || to.depot;
+      out += `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="${ln.kind === "line" || ln.kind === "tao" ? 8 : 6}" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
       const cost = ln.kind === "transfer" ? to.req.transfer.cost : to.req.fare || to.req.toll;
       if (!cost) continue; // a line without a price has no tag
       let best = 0, mx = 0, my = 0;
@@ -3602,7 +3670,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const hub = ARC_HUBS.includes(lv.id); // where the two lines meet
       const lit = st === "done" || st === "open";
       const fill = st === "done" ? INK : lit ? "#ffffff" : "#e6ecee"; // done stations are dark, open ones white
-      const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (ARC.includes(lv.id) && !hub ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
+      const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (lv.id === "tao" ? LINE_TAO : ARC.includes(lv.id) && !["vitrum", "abyssus"].includes(lv.id) ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
       const glyph = st === "done" ? "#ffffff" : lit ? INK : MUTED;
       const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 30, p.y - 10, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
       L[0] += p.dx || 0; L[1] += p.dy || 0; // a station may nudge its label
@@ -3614,7 +3682,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS_RU[st]}">`;
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
       if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
-      if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${LINE_ARC}" stroke-width="4"/>`; // ringed in the upper line's colour
+      if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
       if (lv.line === "branch") out += `<rect class="ring" x="${p.x - 16}" y="${p.y - 16}" width="32" height="32" rx="7" fill="${fill}" stroke="${stroke}" stroke-width="4.5"/>`;
       else out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
       out += `<path d="${GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;

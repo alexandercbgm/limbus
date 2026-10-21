@@ -14,6 +14,7 @@ const FEAT = {
   abyssus: r => { r.jump(300); r.gate(22, 'v'); },
   lux: r => { r.jump(300); r.spinner(16, 1, 1); r.lblock(24, 'h'); },
   rubinus: r => { r.jump(240); },
+  tao: r => { r.jump(240); },
   carcer: r => { r.jump(240); r.bars(22); },
 };
 (async () => {

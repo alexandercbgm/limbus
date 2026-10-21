@@ -4,7 +4,7 @@
 The page then works as a single file (offline, from disk, or as a hosted artifact).
 A track is addressed in the code by its file stem, e.g. music/seer_vahl.mp3 -> musicBytes("seer_vahl").
 
-To keep the page under the 16 MB artifact limit, tracks are re-encoded to MP3 at 72 kbps with ffmpeg before
+To keep the page under the 16 MB artifact limit, tracks are re-encoded to MP3 at 56 kbps with ffmpeg before
 embedding (cached in .build/, the originals in music/ stay untouched). MP3 rather than AAC or Opus because every
 browser decodes it. Without ffmpeg the MP3s go in as they are.
 """
@@ -13,7 +13,7 @@ import pathlib
 import shutil
 import subprocess
 
-BITRATE = "72k"
+BITRATE = "56k"
 root = pathlib.Path(__file__).resolve().parent
 cache = root / ".build"
 ffmpeg = shutil.which("ffmpeg")

@@ -389,23 +389,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       rail: "#d4eaf8", sleeper: "#e6f3fc", glass: "#9fe1ff", glassO: 0.4, edge: "#ffffff", fogN: 18, fogF: 112, hemiS: "#ffffff", hemiG: "#bcdff5", hemiI: 1.1, sunI: 0.8,
       dust: "#8fd2ff", block: "#eef7ff", cart: "#6f8796", accent: "#6cc6ff" },
   ];
-  // Vitrum: lilac pearl glass in the light, smoky violet in between, obsidian with magenta glow in the dark
+  // Vitrum: the blue of a clear sky and of glass: crystal white and azure in the light, cobalt in between,
+  // a deep blue night with ice-cyan glass in the dark
   const PAL_VITRUM = [
-    { sky: "#2a0626", hor: "#120211", gnd: "#6a0a3c", surf: "#170812", wall: "#2a0a26", line: "#ff2a7a", lineI: 0.9, frame: "#14060f", frameE: "#ff2a8a", frameEI: 0.9,
-      rail: "#4a1838", sleeper: "#1e0a18", glass: "#ff3a9a", glassO: 0.5, edge: "#ffa6d8", fogN: 5, fogF: 58, hemiS: "#ff70b0", hemiG: "#30041e", hemiI: 0.6, sunI: 0.35,
-      dust: "#ff4aa0", block: "#3a0c2e", cart: "#2a0c22", accent: "#ff3a8a" },
-    { sky: "#3a3446", hor: "#201c28", gnd: "#141018", surf: "#3a3644", wall: "#4a4258", line: "#b8a4d8", lineI: 0.25, frame: "#1e1a26", frameE: "#000000", frameEI: 0,
-      rail: "#625a72", sleeper: "#2a2632", glass: "#c4b4e4", glassO: 0.42, edge: "#e8dcff", fogN: 9, fogF: 74, hemiS: "#c8c0d8", hemiG: "#1e1a26", hemiI: 0.75, sunI: 0.5,
-      dust: "#b4a8d0", block: "#4a4060", cart: "#2e2a38", accent: "#cdbcff" },
-    { sky: "#b6b0c6", hor: "#a29cb4", gnd: "#857e98", surf: "#cbc6d8", wall: "#c4bcd8", line: "#ffffff", lineI: 0.05, frame: "#5a5274", frameE: "#000000", frameEI: 0,
-      rail: "#908aa2", sleeper: "#716a84", glass: "#dcd0f4", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 88, hemiS: "#ffffff", hemiG: "#8e889e", hemiI: 0.95, sunI: 0.7,
-      dust: "#ffffff", block: "#b8aed4", cart: "#4a4458", accent: "#ffffff" },
-    { sky: "#f6f3fb", hor: "#ece8f4", gnd: "#cfc8de", surf: "#fdfcff", wall: "#f1ecfb", line: "#c8b8ff", lineI: 0.18, frame: "#a69ac8", frameE: "#000000", frameEI: 0,
-      rail: "#b2aac6", sleeper: "#cdc6dc", glass: "#d8ccff", glassO: 0.4, edge: "#ffffff", fogN: 16, fogF: 100, hemiS: "#ffffff", hemiG: "#d0c8e0", hemiI: 1.0, sunI: 0.75,
-      dust: "#ffffff", block: "#e6defa", cart: "#6a6084", accent: "#b9a2ff" },
-    { sky: "#b4e6ff", hor: "#f1ebff", gnd: "#dff0ff", surf: "#ffffff", wall: "#eef6ff", line: "#8fe0ff", lineI: 0.4, frame: "#b4d4f4", frameE: "#c8f0ff", frameEI: 0.5,
-      rail: "#d8eafa", sleeper: "#ebf4fd", glass: "#a8e8ff", glassO: 0.38, edge: "#ffffff", fogN: 18, fogF: 112, hemiS: "#ffffff", hemiG: "#c8e2f8", hemiI: 1.1, sunI: 0.8,
-      dust: "#a0e4ff", block: "#f0f6ff", cart: "#7088a0", accent: "#7fdcff" },
+    { sky: "#01081a", hor: "#020c24", gnd: "#041c48", surf: "#051028", wall: "#071634", line: "#40c8ff", lineI: 0.85, frame: "#040a1a", frameE: "#30b0ff", frameEI: 0.85,
+      rail: "#163058", sleeper: "#081428", glass: "#5ad0ff", glassO: 0.5, edge: "#c8f0ff", fogN: 5, fogF: 64, hemiS: "#60b0ff", hemiG: "#020a20", hemiI: 0.6, sunI: 0.35,
+      dust: "#80d8ff", block: "#0a1c40", cart: "#0c1a34", accent: "#40c8ff" },
+    { sky: "#0a2458", hor: "#123070", gnd: "#06143a", surf: "#1c3a78", wall: "#16306a", line: "#80b0f0", lineI: 0.3, frame: "#0c1c44", frameE: "#1a50c0", frameEI: 0.3,
+      rail: "#3a5a98", sleeper: "#142450", glass: "#90c0ff", glassO: 0.42, edge: "#dcecff", fogN: 9, fogF: 80, hemiS: "#a0c4ff", hemiG: "#0a1838", hemiI: 0.75, sunI: 0.5,
+      dust: "#b8d4ff", block: "#1e4088", cart: "#1a2c5a", accent: "#90c0ff" },
+    { sky: "#2c74d8", hor: "#7cb0ec", gnd: "#2a5aa8", surf: "#b8d4f4", wall: "#8ab4e8", line: "#ffffff", lineI: 0.08, frame: "#2a5098", frameE: "#000000", frameEI: 0,
+      rail: "#6a90c8", sleeper: "#4a70a8", glass: "#cfe6ff", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 96, hemiS: "#ffffff", hemiG: "#5a84c4", hemiI: 0.95, sunI: 0.75,
+      dust: "#ffffff", block: "#9cc4f4", cart: "#3a5a8a", accent: "#ffffff" },
+    { sky: "#3a8ef0", hor: "#bcdcff", gnd: "#8ab8f0", surf: "#f4f9ff", wall: "#d8eaff", line: "#a0d0ff", lineI: 0.2, frame: "#6a9ce0", frameE: "#000000", frameEI: 0,
+      rail: "#a8c8ec", sleeper: "#c8dcf4", glass: "#c8ecff", glassO: 0.4, edge: "#ffffff", fogN: 16, fogF: 108, hemiS: "#ffffff", hemiG: "#a8c8f0", hemiI: 1.05, sunI: 0.85,
+      dust: "#ffffff", block: "#dcecff", cart: "#5a7aa8", accent: "#60b8ff" },
+    { sky: "#4aa0ff", hor: "#e4f2ff", gnd: "#c4e0ff", surf: "#ffffff", wall: "#eef6ff", line: "#7cc8ff", lineI: 0.4, frame: "#a8d0f8", frameE: "#c8ecff", frameEI: 0.5,
+      rail: "#d0e6fa", sleeper: "#e8f2fc", glass: "#b0e4ff", glassO: 0.36, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#c8e2fa", hemiI: 1.15, sunI: 0.9,
+      dust: "#c0e8ff", block: "#f2f8ff", cart: "#6a88aa", accent: "#50b8ff" },
   ];
   // stars and band: the starfield and the Milky Way on the sky dome (Abyssus); every other palette has none
   const buildPal = raw => raw.map(o => { const r = {}; for (const k in Object.assign({ stars: 0, band: "#000000" }, o)) { const v = k in o ? o[k] : k === "stars" ? 0 : "#000000"; r[k] = typeof v === "string" ? new THREE.Color(v) : v; } return r; });
@@ -547,29 +548,53 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   resize();
 
   // sky dome: gradient that tracks the karma palette; the horizon color equals the fog color so the void reads as one space
-  const skyUni = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, stars: { value: 0 }, band: { value: new THREE.Color() } };
+  const skyUni = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, stars: { value: 0 }, band: { value: new THREE.Color() },
+    mode: { value: 0 }, amt: { value: 0 }, fxc: { value: new THREE.Color() }, t: { value: 0 } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(480, 32, 16), new THREE.ShaderMaterial({
     uniforms: skyUni, side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: "varying vec3 vP; void main(){ vP = (modelMatrix*vec4(position,1.0)).xyz - cameraPosition; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
-    // with stars > 0 the dome becomes deep space: a field of stars, denser along a tilted Milky Way band of
-    // glowing gas with dark dust lanes through its middle
-    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; varying vec3 vP;
+    // each level's sky has its own effect (mode): 1 deep space (stars and the Milky Way), 2 flowing mercury,
+    // 3 clouds and a sun, 4 radiance: a sun of pure light with turning rays, 5 golden dust over warm clouds
+    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; uniform float mode; uniform float amt; uniform vec3 fxc; uniform float t; varying vec3 vP;
       float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
       float vn(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
         return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
                    mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z); }
+      float fbm(vec3 p) { return vn(p) * 0.5 + vn(p * 2.03) * 0.27 + vn(p * 4.1) * 0.15 + vn(p * 8.3) * 0.08; }
       float starAt(vec3 n, float cells, float thr) { vec3 p = n * cells, i = floor(p); float r = h3(i); if (r < thr) return 0.0;
         vec3 c = i + 0.5 + (vec3(h3(i + 1.3), h3(i + 2.7), h3(i + 4.1)) - 0.5) * 0.6; return smoothstep(0.32, 0.0, length(p - c)) * (0.5 + 0.5 * h3(i + 9.0)); }
       void main(){ vec3 n = normalize(vP); float h = n.y;
         vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, bot, pow(-h, 0.5));
-        if (stars > 0.001) {
+        float lum = dot(top, vec3(0.3, 0.55, 0.15)), m = floor(mode + 0.5);
+        vec3 sd = normalize(vec3(0.35, 0.32, -0.88));
+        if (m == 1.0 && stars > 0.001) {
           float d = dot(n, normalize(vec3(0.42, 0.55, 0.72)));
           float cl = vn(n * 6.0) * 0.6 + vn(n * 14.0) * 0.4, b = exp(-d * d * 22.0) * (0.45 + 0.75 * cl);
           float lane = exp(-pow(d + 0.03 * (vn(n * 9.0) - 0.5), 2.0) * 420.0) * smoothstep(0.35, 0.75, vn(n * 11.0 + 3.0));
           c += band * b * stars * (1.0 - 0.8 * lane);
-          c += vec3(0.55, 0.35, 0.8) * stars * 0.25 * exp(-d * d * 4.0) * vn(n * 3.0); // a wide violet haze
+          c += vec3(0.55, 0.35, 0.8) * stars * 0.25 * exp(-d * d * 4.0) * vn(n * 3.0);
           float s = starAt(n, 90.0, 0.93 - 0.06 * b) + starAt(n, 210.0, 0.95 - 0.06 * b) * 0.7 + starAt(n, 40.0, 0.985) * 1.6;
           c += mix(vec3(0.75, 0.85, 1.0), vec3(1.0, 0.9, 0.8), h3(floor(n * 90.0))) * s * stars;
+        } else if (m == 2.0) { // liquid mercury: slow bright ripples rolling over a chrome sky
+          float f = fbm(n * 2.5 + vec3(0.0, t * 0.04, t * 0.02));
+          float r = sin((n.y * 5.0 + f * 6.0 + t * 0.15) * 3.14159);
+          float sheen = pow(abs(r), 10.0), dark = smoothstep(0.2, -0.6, r);
+          c = mix(c, c * 0.55, dark * amt * 0.6) + fxc * sheen * amt * (0.35 + 0.65 * lum);
+          c += vec3(1.0) * pow(max(dot(n, sd), 0.0), 40.0) * amt * 0.6;
+        } else if (m == 3.0 || m == 5.0) { // clouds drifting under a sun
+          float cov = smoothstep(0.42, 0.78, fbm(vec3(n.x * 2.2, n.y * 5.0, n.z * 2.2) / max(0.25, abs(n.y) + 0.25) * 0.6 + vec3(t * 0.006, 0.0, t * 0.004)));
+          cov *= smoothstep(-0.05, 0.12, h);
+          c = mix(c, fxc * (0.25 + 0.85 * lum) + hor * 0.15, cov * amt);
+          float sdot = max(dot(n, sd), 0.0);
+          c += mix(vec3(1.0, 0.97, 0.9), fxc, 0.3) * (pow(sdot, 300.0) * 2.0 + pow(sdot, 12.0) * 0.35) * amt * (0.3 + 0.7 * lum);
+          if (m == 5.0) c += vec3(1.0, 0.85, 0.4) * starAt(n, 120.0, 0.96) * amt * (0.6 + 0.4 * sin(t * 3.0 + h3(floor(n * 120.0)) * 30.0)); // drifting gold dust
+        } else if (m == 4.0) { // radiance: a sun of pure light, its rays slowly turning
+          float sdot = max(dot(n, sd), 0.0); vec3 q = normalize(n - sd * dot(n, sd) + 1e-5);
+          vec3 ax = normalize(cross(sd, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sd);
+          float ang = atan(dot(q, ay), dot(q, ax));
+          float rays = pow(0.5 + 0.5 * sin(ang * 14.0 + t * 0.2), 6.0) * 0.6 + pow(0.5 + 0.5 * sin(ang * 5.0 - t * 0.13), 4.0) * 0.4;
+          float fall = exp(-acos(clamp(dot(n, sd), -1.0, 1.0)) * 1.6);
+          c += fxc * rays * fall * amt * 0.9 + vec3(1.0) * (pow(sdot, 200.0) * 2.5 + pow(sdot, 10.0) * 0.5) * amt;
         }
         gl_FragColor = vec4(c, 1.0); }`,
   }));
@@ -593,7 +618,57 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     lines(g, "rgba(20,40,50,0.2)", "rgba(20,40,50,0.08)", 6, 3);
     lines(e, "#ffffff", "rgba(255,255,255,0.45)", 6, 3);
     const out = [a, b].map(c => { const t = new THREE.CanvasTexture(c); t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t; });
-    return { map: out[0], emi: out[1] };
+    return { map: out[0], emi: out[1], a, b, cols, rows, shade, kind: "" };
+  }
+  // repaint a texture pair for a level's surfaces: the colour comes from the palette, the map only shades it
+  function paintTex(tp, kind) {
+    if (tp.kind === kind) return;
+    tp.kind = kind;
+    const g = tp.a.getContext("2d"), e = tp.b.getContext("2d"), R = Math.random, S = 256;
+    const speck = (ctx, n, a0, a1, light, sz = 2) => { for (let i = 0; i < n; i++) { const v = light ? 255 : 0; ctx.fillStyle = `rgba(${v},${v},${v},${a0 + R() * (a1 - a0)})`; ctx.fillRect(R() * S, R() * S, R() * sz + 0.5, R() * sz + 0.5); } };
+    g.globalAlpha = 1; e.globalAlpha = 1;
+    g.fillStyle = "#ffffff"; g.fillRect(0, 0, S, S); e.fillStyle = "#000000"; e.fillRect(0, 0, S, S);
+    if (kind === "concrete") { // cast concrete: speckle, rust streaks, formwork joints and tie holes
+      speck(g, 2600, 0.03, 0.12, false); speck(g, 900, 0.05, 0.15, true);
+      for (let i = 0; i < 6; i++) { const x = R() * S, gr = g.createLinearGradient(0, 0, 0, S); gr.addColorStop(0, "rgba(110,60,30,0.22)"); gr.addColorStop(1, "rgba(110,60,30,0)"); g.fillStyle = gr; g.fillRect(x, 0, 2 + R() * 5, S * (0.3 + R() * 0.7)); }
+      g.strokeStyle = "rgba(0,0,0,0.22)"; g.lineWidth = 2; g.strokeRect(1, 1, S - 2, S - 2); g.beginPath(); g.moveTo(0, S / 2); g.lineTo(S, S / 2); g.stroke();
+      g.fillStyle = "rgba(0,0,0,0.45)"; for (const x of [S / 4, 3 * S / 4]) for (const y of [S / 4, 3 * S / 4]) { g.beginPath(); g.arc(x, y, 4, 0, TAU); g.fill(); }
+    } else if (kind === "asphalt") { // asphalt: dark grit, a few cracks and a worn painted edge
+      g.fillStyle = "#b8b8b8"; g.fillRect(0, 0, S, S); speck(g, 5000, 0.08, 0.3, false, 2.5); speck(g, 1500, 0.1, 0.35, true, 1.5);
+      g.strokeStyle = "rgba(0,0,0,0.35)"; g.lineWidth = 1.2;
+      for (let i = 0; i < 3; i++) { g.beginPath(); let x = R() * S, y = R() * S; g.moveTo(x, y); for (let k = 0; k < 6; k++) { x += (R() - 0.5) * 50; y += (R() - 0.5) * 50; g.lineTo(x, y); } g.stroke(); }
+      g.fillStyle = "rgba(255,230,140,0.55)"; for (let y = 0; y < S; y += 64) { g.fillRect(4, y + 8, 7, 40); g.fillRect(S - 11, y + 8, 7, 40); }
+      e.fillStyle = "rgba(255,200,90,0.18)"; for (let y = 0; y < S; y += 64) { e.fillRect(4, y + 8, 7, 40); e.fillRect(S - 11, y + 8, 7, 40); }
+    } else if (kind === "stone" || kind === "flags") { // dressed stone: courses of blocks, each a little different, bevelled joints
+      const rows = kind === "stone" ? 4 : 3, cols = kind === "stone" ? 2 : 3;
+      for (let r = 0; r < rows; r++) for (let c = -1; c <= cols; c++) {
+        const w = S / cols, h = S / rows, x = c * w + (r % 2 ? w / 2 : 0), y = r * h, tone = 0.88 + R() * 0.12;
+        g.fillStyle = `rgb(${255 * tone | 0},${255 * tone | 0},${255 * tone | 0})`; g.fillRect(x + 3, y + 3, w - 6, h - 6);
+        g.fillStyle = "rgba(255,255,255,0.35)"; g.fillRect(x + 3, y + 3, w - 6, 3); g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(x + 3, y + h - 6, w - 6, 3);
+        e.strokeStyle = "rgba(255,255,255,0.5)"; e.lineWidth = 2; e.strokeRect(x + 2, y + 2, w - 4, h - 4);
+      }
+      g.globalAlpha = 1; speck(g, 1800, 0.03, 0.1, false);
+      g.fillStyle = "rgba(0,0,0,0.4)"; for (let r = 0; r <= 4; r++) g.fillRect(0, r * S / (kind === "stone" ? 4 : 3) - 2, S, 4);
+    } else if (kind === "chrome") { // brushed metal panels with a polished seam and rivets
+      for (let y = 0; y < S; y++) { const v = 225 + R() * 30 | 0; g.fillStyle = `rgba(${v},${v},${v},0.5)`; g.fillRect(0, y, S, 1); }
+      const gr = g.createLinearGradient(0, 0, S, S); gr.addColorStop(0, "rgba(255,255,255,0.4)"); gr.addColorStop(0.5, "rgba(0,0,0,0.12)"); gr.addColorStop(1, "rgba(255,255,255,0.3)"); g.fillStyle = gr; g.fillRect(0, 0, S, S);
+      g.strokeStyle = "rgba(0,0,0,0.28)"; g.lineWidth = 3; g.strokeRect(1, 1, S - 2, S - 2);
+      g.fillStyle = "rgba(0,0,0,0.35)"; for (const x of [12, S - 12]) for (let y = 12; y < S; y += 58) { g.beginPath(); g.arc(x, y, 3, 0, TAU); g.fill(); }
+      e.strokeStyle = "#ffffff"; e.lineWidth = 3; e.strokeRect(1, 1, S - 2, S - 2);
+    } else { // the default: panels with joints that glow with the palette's line colour
+      const cols = tp.cols, rows = tp.rows;
+      if (tp.shade) { const gr = g.createLinearGradient(0, 0, 0, S); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(20,30,40,0.18)"); g.fillStyle = gr; g.fillRect(0, 0, S, S); }
+      const lines = (ctx, outer, inner, ow, iw) => {
+        ctx.strokeStyle = outer; ctx.lineWidth = ow; ctx.strokeRect(0, 0, S, S);
+        ctx.strokeStyle = inner; ctx.lineWidth = iw; ctx.beginPath();
+        for (let i = 1; i < cols; i++) { ctx.moveTo(S * i / cols, 0); ctx.lineTo(S * i / cols, S); }
+        for (let i = 1; i < rows; i++) { ctx.moveTo(0, S * i / rows); ctx.lineTo(S, S * i / rows); }
+        ctx.stroke();
+      };
+      lines(g, "rgba(20,40,50,0.2)", "rgba(20,40,50,0.08)", 6, 3);
+      lines(e, "#ffffff", "rgba(255,255,255,0.45)", 6, 3);
+    }
+    tp.map.needsUpdate = tp.emi.needsUpdate = true;
   }
   function glassTexture() {
     const c = document.createElement("canvas"); c.width = c.height = 256;
@@ -620,6 +695,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const wallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, roughness: 0.9 });
   const blockMat = new THREE.MeshStandardMaterial({ map: blockTex.map, emissiveMap: blockTex.emi, roughness: 0.85 });
   const bushMat = new THREE.MeshStandardMaterial({ roughness: 0.75, flatShading: true }); // foliage: decor clumps and the leaves on boughs
+  const dropMat = new THREE.MeshStandardMaterial({ color: 0xd8dce4, roughness: 0.14, metalness: 0.55, emissive: 0x30343c, emissiveIntensity: 1 });
+  const rebarMat = new THREE.MeshStandardMaterial({ color: 0x5a3220, roughness: 0.8, metalness: 0.6 });
+  const lampMat = new THREE.MeshStandardMaterial({ color: 0xffc070, emissive: 0xffa040, emissiveIntensity: 1.2 });
+  const cageMat = new THREE.MeshStandardMaterial({ color: 0x2a2826, roughness: 0.6, metalness: 0.7, wireframe: true });
+  // the sodium lamps buzz and now and then fail for a moment
+  let flickT = 0, flickV = 1;
+  function lampFlicker() { if (time > flickT) { flickT = time + (Math.random() < 0.15 ? rand(0.04, 0.12) : rand(0.3, 2.4)); flickV = Math.random() < 0.2 ? rand(0.05, 0.4) : rand(0.9, 1.3); } return flickV * (0.95 + 0.05 * Math.sin(time * 120)); }
   const frameMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.25 });
   const railMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.7 });
   const sleeperMat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
@@ -654,10 +736,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   function applyPalette() {
     skyUni.top.value.copy(cur.sky); skyUni.hor.value.copy(cur.hor); skyUni.bot.value.copy(cur.gnd); skyUni.stars.value = cur.stars; skyUni.band.value.copy(cur.band);
+    const fx = (LEVEL_LOOK[LEVEL.id] || {}).sky || { mode: 0 };
+    skyUni.mode.value = fx.mode; skyUni.amt.value = fx.a || 0; skyUni.t.value = time; if (fx.c) skyUni.fxc.value.set(fx.c);
+    if (STYLE.rebar) lampMat.emissiveIntensity = lampFlicker();
     scene.fog.color.copy(cur.hor); scene.fog.near = cur.fogN; scene.fog.far = cur.fogF;
     surfMat.color.copy(cur.surf); surfMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     wallMat.color.copy(cur.wall); wallMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     blockMat.color.copy(cur.block); blockMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.8);
+    dropMat.color.copy(cur.block).lerp(WHITE, 0.5); dropMat.emissive.copy(cur.hor).multiplyScalar(0.7);
     bushMat.color.copy(cur.block); bushMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.35);
     frameMat.color.copy(cur.frame); frameMat.emissive.copy(cur.frameE).multiplyScalar(cur.frameEI);
     railMat.color.copy(cur.rail); railMat.emissive.copy(cur.frameE).multiplyScalar(cur.frameEI * 0.35);
@@ -805,7 +891,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     prism: inst(new THREE.OctahedronGeometry(0.75, 0), prismMat, 260),
     ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus and Hortus, squeezed to fit (RING_SX, RING_SY)
     coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),
-    block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 260),
+    block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 900),
+    drop: inst(new THREE.SphereGeometry(1, 28, 18), dropMat, 120), // Speculum's mercury drops
+    rebar: inst(new THREE.CylinderGeometry(0.03, 0.03, 1, 6), rebarMat, 500), // Carcer: rebar out of broken concrete
+    lamp: inst(new THREE.BoxGeometry(0.5, 0.22, 0.9), lampMat, 60),
+    lampCage: inst(new THREE.BoxGeometry(0.6, 0.3, 1.0), cageMat, 60),
     kerb: inst(new THREE.BoxGeometry(0.14, 0.2, SL + 0.03), frameMat, 200), // Abyssus: the bridge's edge
     pylon: inst(new THREE.BoxGeometry(0.45, PYLON_H, 0.45), frameMat, 60),
     girder: inst(new THREE.BoxGeometry(2 * BRIDGE_W, 0.5, 0.4), frameMat, 30),
@@ -850,10 +940,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     let d = decor.get(k);
     if (d) return d;
     const z = curD(), seg = Math.floor(k / 5), s = k * SL + SL / 2, station = s > SUPER_END - 6;
-    const wallP = STYLE.closed ? 2 : lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = STYLE.closed ? 2 : lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z);
+    const wallP = STYLE.closed || STYLE.skylight ? 2 : lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = STYLE.closed ? 2 : STYLE.skylight ? -1 : lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z); // skylight: walls all along, open above
     d = { wl: !station && hash(seg * 3 + 1) < wallP, wr: !station && hash(seg * 3 + 2) < wallP, ceil: !station && hash(seg * 7 + 5) < ceilP,
       arch: !station && k % 4 === 0, pyr: null, blocks: [] };
     if (STYLE.bridge) d.wl = d.wr = d.ceil = false; // Abyssus: a bare bridge over the void
+    if (STYLE.open && !station) { // Labyrinthus: walled passages that now and then open into a wide hall
+      const hall = hash(seg * 13 + 7) < 0.32 && s > 70 && s < MAIN_LEN - 40 && !forks.some(f => Math.abs(s - f.s) < 80);
+      d.wl = d.wr = d.ceil = !hall; if (hall) { d.arch = false; d.hall = true; }
+    }
     // In the dark single pyramids stick out of the walls, placed at random so every run differs.
     // Some of the low ones are thorns: they slide out on a piston as the cart comes near.
     const th = LEVEL.thorns || { from: 0.6, mul: 1 }; // Carcer brings thorns up out of the dark
@@ -864,6 +958,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (state === "play" && v < 2.7 && s > sC + 40 && Math.random() < 0.55) addThornAt(s, side, v);
         else d.pyr = { side, v };
       }
+    }
+    if (STYLE.blocks === "slab") { // massive stacks of horizontal slabs far out, seen from the halls
+      if (k % 3 === 0) for (const side of [-1, 1]) {
+        if (hash(k * 7 + side * 3 + 11) > 0.65) continue;
+        const h0 = hash(k * 13 + side * 5), u = side * (W + 6 + h0 * 16), n = 4 + Math.floor(hash(k * 3 + side) * 6);
+        let v = -16 + hash(k * 29 + side) * 8;
+        for (let i = 0; i < n; i++) {
+          const a = hash(k * 31 + i * 7 + side), b = hash(k * 17 + i * 11 + side), sy = 1.1 + a * 1.4;
+          d.blocks.push({ u: u + (b - 0.5) * 3, v: v + sy / 2, sx: 8 + a * 12, sy, sz: 4 + b * 6, rx: 0, ry: (b - 0.5) * 0.35, spin: 0 });
+          v += sy + 0.2 + b * 0.6;
+        }
+      }
+      decor.set(k, d); return d;
+    }
+    if (STYLE.blocks === "drop") { // drops of quicksilver hanging high above the mirror halls
+      if (hash(k * 5 + 3) < 0.6) { const h1 = hash(k * 31), h2 = hash(k * 17), r = 0.5 + h2 * 1.6;
+        d.blocks.push({ u: (h1 - 0.5) * 2 * (W + 22), v: 9 + h2 * 14, sx: r, sy: r, sz: r, rx: 0, ry: 0, spin: 0, wob: h1 * TAU }); }
+      decor.set(k, d); return d;
     }
     const nb = STYLE.mirror ? 0 : (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
     for (let i = 0; i < nb; i++) {
@@ -883,7 +995,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
-    const wallKey = STYLE.glassWalls ? "gwall" : "wall", blockKey = STYLE.blocks === "prism" ? "prism" : STYLE.blocks === "coin" ? "coin" : STYLE.blocks === "bush" ? "bush" : "block";
+    const wallKey = STYLE.glassWalls ? "gwall" : "wall", blockKey = STYLE.blocks === "prism" ? "prism" : STYLE.blocks === "coin" ? "coin" : STYLE.blocks === "bush" ? "bush" : STYLE.blocks === "drop" ? "drop" : "block";
     const k0 = Math.floor((sC - 10) / SL), k1 = Math.floor((sC + AHEAD - 4) / SL);
     for (let k = k0; k <= k1; k++) {
       const dec = getDecor(k), s = k * SL + SL / 2;
@@ -909,10 +1021,22 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (dec.arch) { put("pylon", s, -BRIDGE_W + 0.3, -PYLON_H / 2); put("pylon", s, BRIDGE_W - 0.3, -PYLON_H / 2); put("girder", s, 0, -0.35); }
       }
       if (dec.pyr && dec.pyr.side !== open) put(dec.pyr.side < 0 ? "pyrL" : "pyrR", s, dec.pyr.side * (W - 0.25), dec.pyr.v);
+      if (STYLE.rebar) { // rods of rebar out of broken concrete, and caged sodium lamps every 10 m
+        for (const side of [-1, 1]) if ((side < 0 ? dec.wl : dec.wr) && hash(k * 19 + side * 7) < 0.45) {
+          const cnt = 2 + Math.floor(hash(k * 23 + side) * 4), v0 = 0.6 + hash(k * 29 + side) * 4.6;
+          for (let i = 0; i < cnt; i++) {
+            const len = 0.3 + hash(k * 37 + i * 5 + side) * 0.9, bend = (hash(k * 41 + i * 3 + side) - 0.5) * 0.9, ss = s + (hash(k * 43 + i) - 0.5) * 1.4;
+            placeM(M, ss, side * (W - len / 2 * Math.cos(bend)), v0 + i * 0.18 + len / 2 * Math.sin(bend));
+            I.rebar.setMatrixAt(n.rebar++, M.multiply(M2.makeRotationZ(side * (Math.PI / 2 - bend))).scale(SV.set(1, len, 1)));
+          }
+        }
+        if (k % 5 === 0) { const side = (k / 5) % 2 ? 1 : -1; if (side < 0 ? dec.wl : dec.wr) { put("lamp", s, side * (W - 0.3), H - 1.0); put("lampCage", s, side * (W - 0.3), H - 1.0); } }
+      }
       for (const b of dec.blocks) {
         placeM(M, s, b.u, b.v);
         EU.set(b.rx + time * b.spin, b.ry + time * b.spin * 0.7, 0);
-        M.multiply(M2.makeRotationFromEuler(EU)).scale(blockKey === "coin" ? SV.set(b.sx * 0.6, b.sx * 0.6, 1) : SV.set(b.sx, b.sy, b.sz));
+        const wob = b.wob !== undefined ? 1 + 0.07 * Math.sin(time * 2.2 + b.wob) : 1; // a drop of mercury trembles
+        M.multiply(M2.makeRotationFromEuler(EU)).scale(blockKey === "coin" ? SV.set(b.sx * 0.6, b.sx * 0.6, 1) : SV.set(b.sx * wob, b.sy / wob, b.sz * wob));
         I[blockKey].setMatrixAt(n[blockKey]++, M);
       }
     }
@@ -921,7 +1045,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // Speculum: the glass walls are mirrors, and beyond each one the corridor repeats: floor, vault, rails,
     // sleepers and arches, closed by a dark wall where the reflection's own mirror would be
     for (const m of mirStrips) {
-      m.floor.visible = m.vault.visible = !!STYLE.mirror;
+      m.floor.visible = !!STYLE.mirror; m.vault.visible = !!STYLE.mirror && !!STYLE.closed;
       if (!STYLE.mirror) continue;
       fillStrip(m.floor, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, m.o);
       fillStrip(m.vault, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, m.o);
@@ -2258,24 +2382,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       dust: "#90f0cc", block: "#ecfaf4", cart: "#4f8a78", accent: "#3fd8a4" },
   ];
 
-  // Carcer: a dungeon of rust and soot: pale stone and bleached iron in the light, rust in between,
-  // black iron with forge-red embers in the dark
+  // Carcer: raw concrete, asphalt and rebar. Pale sun-bleached concrete in the light, wet grey in between,
+  // soot-black concrete under failing sodium lamps in the dark
   const PAL_CARCER = [
-    { sky: "#0a0403", hor: "#030101", gnd: "#3a0e04", surf: "#0e0605", wall: "#120806", line: "#ff5a20", lineI: 0.85, frame: "#0a0504", frameE: "#ff4a10", frameEI: 0.85,
-      rail: "#3a1c12", sleeper: "#160a06", glass: "#ff7a40", glassO: 0.45, edge: "#ffc0a0", fogN: 3, fogF: 48, hemiS: "#ff8050", hemiG: "#1c0602", hemiI: 0.5, sunI: 0.28,
-      dust: "#ff6a20", block: "#1a0c08", cart: "#22120c", accent: "#ff5a20" },
-    { sky: "#2e221c", hor: "#18110d", gnd: "#100b08", surf: "#3a2c24", wall: "#2e221a", line: "#b08868", lineI: 0.22, frame: "#1a120e", frameE: "#000000", frameEI: 0,
-      rail: "#6a4a36", sleeper: "#261a12", glass: "#d0b098", glassO: 0.42, edge: "#f0e0d0", fogN: 7, fogF: 64, hemiS: "#d4bca8", hemiG: "#1a120e", hemiI: 0.72, sunI: 0.48,
-      dust: "#c89c78", block: "#3a2a20", cart: "#33261c", accent: "#d8a880" },
-    { sky: "#a89890", hor: "#948478", gnd: "#76685e", surf: "#c4b8ae", wall: "#a89a8e", line: "#ffffff", lineI: 0.05, frame: "#56463c", frameE: "#000000", frameEI: 0,
-      rail: "#8a7a6e", sleeper: "#6a5a50", glass: "#e4d8d0", glassO: 0.42, edge: "#ffffff", fogN: 11, fogF: 80, hemiS: "#ffffff", hemiG: "#8a7a70", hemiI: 0.92, sunI: 0.68,
-      dust: "#f4ece6", block: "#9a8a7e", cart: "#4e4038", accent: "#ffffff" },
-    { sky: "#ece6e0", hor: "#f4f0ec", gnd: "#d4ccc4", surf: "#faf8f6", wall: "#e6e0da", line: "#c8b4a4", lineI: 0.15, frame: "#a49284", frameE: "#000000", frameEI: 0,
-      rail: "#bcaea2", sleeper: "#d6ccc4", glass: "#f0e8e2", glassO: 0.4, edge: "#ffffff", fogN: 14, fogF: 94, hemiS: "#ffffff", hemiG: "#d8d0c8", hemiI: 1.0, sunI: 0.75,
-      dust: "#ffffff", block: "#e4dcd4", cart: "#7a6a5e", accent: "#d8a070" },
-    { sky: "#f4ece4", hor: "#fbf8f4", gnd: "#ece4dc", surf: "#ffffff", wall: "#f6f2ee", line: "#e8b890", lineI: 0.35, frame: "#ccbcae", frameE: "#ffe8d4", frameEI: 0.4,
-      rail: "#ddd2c8", sleeper: "#efe8e2", glass: "#f8eae0", glassO: 0.38, edge: "#ffffff", fogN: 16, fogF: 104, hemiS: "#ffffff", hemiG: "#e8e0d8", hemiI: 1.08, sunI: 0.8,
-      dust: "#f8d8c0", block: "#f4eee8", cart: "#86766a", accent: "#e8a070" },
+    { sky: "#060504", hor: "#020201", gnd: "#2a1a08", surf: "#0a0908", wall: "#11100e", line: "#ff8a20", lineI: 0.55, frame: "#0a0908", frameE: "#ff7010", frameEI: 0.6,
+      rail: "#2e2620", sleeper: "#12100e", glass: "#ffa050", glassO: 0.45, edge: "#ffd8b0", fogN: 3, fogF: 46, hemiS: "#ff9a50", hemiG: "#120a04", hemiI: 0.5, sunI: 0.28,
+      dust: "#c8a080", block: "#1a1816", cart: "#1c1a18", accent: "#ff8a20" },
+    { sky: "#2a2a2a", hor: "#181818", gnd: "#101010", surf: "#2c2c2e", wall: "#3a3a3a", line: "#9a9890", lineI: 0.12, frame: "#1c1c1c", frameE: "#000000", frameEI: 0,
+      rail: "#5a5048", sleeper: "#242220", glass: "#c8c4bc", glassO: 0.42, edge: "#eeeae4", fogN: 7, fogF: 62, hemiS: "#d0ccc4", hemiG: "#181818", hemiI: 0.72, sunI: 0.5,
+      dust: "#a8a49c", block: "#3a3a3a", cart: "#2e2c2a", accent: "#e0a060" },
+    { sky: "#8a8a88", hor: "#7a7a78", gnd: "#5a5a58", surf: "#5c5c5e", wall: "#a4a29e", line: "#ffffff", lineI: 0.03, frame: "#4a4846", frameE: "#000000", frameEI: 0,
+      rail: "#7a7068", sleeper: "#5a5652", glass: "#dcd8d0", glassO: 0.42, edge: "#ffffff", fogN: 11, fogF: 80, hemiS: "#ffffff", hemiG: "#7a7874", hemiI: 0.92, sunI: 0.7,
+      dust: "#e8e4dc", block: "#8a8884", cart: "#4a4642", accent: "#ffffff" },
+    { sky: "#d4d2ce", hor: "#e4e2de", gnd: "#b4b2ae", surf: "#8a8a8c", wall: "#d8d6d0", line: "#e0d0b8", lineI: 0.06, frame: "#9a9690", frameE: "#000000", frameEI: 0,
+      rail: "#a49c94", sleeper: "#c4c0b8", glass: "#ece8e2", glassO: 0.4, edge: "#ffffff", fogN: 14, fogF: 94, hemiS: "#ffffff", hemiG: "#c8c6c0", hemiI: 1.0, sunI: 0.78,
+      dust: "#ffffff", block: "#cccac4", cart: "#6e6a64", accent: "#e09050" },
+    { sky: "#ecebe8", hor: "#f6f5f2", gnd: "#d4d2cc", surf: "#a6a6a8", wall: "#eceae4", line: "#f0d8b8", lineI: 0.15, frame: "#c4c0b8", frameE: "#fff0dc", frameEI: 0.3,
+      rail: "#ccc6be", sleeper: "#e2ded8", glass: "#f6f2ec", glassO: 0.38, edge: "#ffffff", fogN: 16, fogF: 104, hemiS: "#ffffff", hemiG: "#e2e0da", hemiI: 1.08, sunI: 0.85,
+      dust: "#fff8ec", block: "#e8e6e0", cart: "#7a766e", accent: "#e8a060" },
   ];
 
   // Lux: light itself. Pure white and pale glass in the light with a faint gold shimmer, pearl grey in between,
@@ -2339,23 +2463,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       dust: "#ffc0d4", block: "#a0d080", cart: "#728a64", accent: "#f890b0" },
   ];
 
-  // Speculum: pearl and silver in the light, graphite steel in between, black chrome with an icy glow in the dark
+  // Speculum: silver and quicksilver. Polished chrome in the light, liquid mercury grey in between,
+  // black mirror with a cold steel sheen in the dark
   const PAL_SPECULUM = [
-    { sky: "#060a14", hor: "#020409", gnd: "#1c2c4a", surf: "#080c16", wall: "#0a1020", line: "#a8c8ff", lineI: 0.8, frame: "#05080f", frameE: "#8fb4ff", frameEI: 0.8,
-      rail: "#2a3650", sleeper: "#0c1220", glass: "#b8d0ff", glassO: 0.45, edge: "#e8f0ff", fogN: 4, fogF: 54, hemiS: "#a8c0ff", hemiG: "#060c1c", hemiI: 0.55, sunI: 0.3,
-      dust: "#c8dcff", block: "#0e1424", cart: "#121a2c", accent: "#a8c8ff" },
-    { sky: "#2a2e36", hor: "#16191e", gnd: "#0e1014", surf: "#30343c", wall: "#262a32", line: "#a0a8b8", lineI: 0.22, frame: "#16181d", frameE: "#000000", frameEI: 0,
-      rail: "#5a6070", sleeper: "#22252c", glass: "#c0c8d8", glassO: 0.42, edge: "#e6eaf2", fogN: 8, fogF: 68, hemiS: "#c4c8d4", hemiG: "#16181d", hemiI: 0.75, sunI: 0.5,
-      dust: "#b0b6c4", block: "#2a2e36", cart: "#2a2e36", accent: "#c8d0e0" },
-    { sky: "#a6acb8", hor: "#9298a4", gnd: "#747a86", surf: "#c4c8d0", wall: "#a8aeba", line: "#ffffff", lineI: 0.05, frame: "#4a505c", frameE: "#000000", frameEI: 0,
-      rail: "#868c98", sleeper: "#686e7a", glass: "#dce4f0", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 82, hemiS: "#ffffff", hemiG: "#868c98", hemiI: 0.95, sunI: 0.7,
-      dust: "#ffffff", block: "#9ca2ae", cart: "#454b56", accent: "#ffffff" },
-    { sky: "#f2f4f8", hor: "#e4e8ee", gnd: "#c4cad4", surf: "#fbfcfd", wall: "#e2e6ee", line: "#b8c4d8", lineI: 0.15, frame: "#8890a0", frameE: "#000000", frameEI: 0,
-      rail: "#a8aebc", sleeper: "#c8ccd6", glass: "#e2eaf8", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 96, hemiS: "#ffffff", hemiG: "#cdd2dc", hemiI: 1.0, sunI: 0.75,
-      dust: "#ffffff", block: "#e6e9f0", cart: "#5c6474", accent: "#a8bce0" },
-    { sky: "#d8e2f4", hor: "#f2f5fb", gnd: "#e0e6f2", surf: "#ffffff", wall: "#eef1f8", line: "#a0b8e8", lineI: 0.35, frame: "#b8c4dc", frameE: "#dce6ff", frameEI: 0.45,
-      rail: "#d2d8e6", sleeper: "#e8ecf4", glass: "#d4e2ff", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 108, hemiS: "#ffffff", hemiG: "#cdd6e8", hemiI: 1.1, sunI: 0.8,
-      dust: "#c8d8ff", block: "#f4f6fb", cart: "#6a7488", accent: "#8fb0f0" },
+    { sky: "#050608", hor: "#020203", gnd: "#16181c", surf: "#08090b", wall: "#0b0c0f", line: "#c8d0dc", lineI: 0.7, frame: "#060708", frameE: "#a8b4c4", frameEI: 0.7,
+      rail: "#2c3038", sleeper: "#0e1014", glass: "#d0d8e4", glassO: 0.45, edge: "#f0f4f8", fogN: 4, fogF: 58, hemiS: "#b8c0cc", hemiG: "#060708", hemiI: 0.55, sunI: 0.3,
+      dust: "#d8e0ec", block: "#1a1c22", cart: "#14161a", accent: "#c8d4e4" },
+    { sky: "#2a2c32", hor: "#18191d", gnd: "#0e0f12", surf: "#383a42", wall: "#2c2e34", line: "#a8acb8", lineI: 0.25, frame: "#18191d", frameE: "#000000", frameEI: 0,
+      rail: "#686c78", sleeper: "#26282e", glass: "#c8ccd8", glassO: 0.42, edge: "#eef0f4", fogN: 8, fogF: 74, hemiS: "#d0d4dc", hemiG: "#18191d", hemiI: 0.78, sunI: 0.55,
+      dust: "#c8ccd4", block: "#4a4c56", cart: "#2e3036", accent: "#dce0e8" },
+    { sky: "#8c9098", hor: "#a4a8b0", gnd: "#5a5e66", surf: "#c4c8ce", wall: "#9ca0a8", line: "#ffffff", lineI: 0.06, frame: "#4a4e56", frameE: "#000000", frameEI: 0,
+      rail: "#8a8e96", sleeper: "#6a6e76", glass: "#e4e8ee", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 88, hemiS: "#ffffff", hemiG: "#80848c", hemiI: 1.0, sunI: 0.8,
+      dust: "#ffffff", block: "#b0b4bc", cart: "#4e525a", accent: "#ffffff" },
+    { sky: "#c4c8ce", hor: "#e8eaee", gnd: "#9ca0a8", surf: "#f4f5f7", wall: "#d4d6dc", line: "#ffffff", lineI: 0.12, frame: "#8a8e98", frameE: "#000000", frameEI: 0,
+      rail: "#b4b8c0", sleeper: "#ced2d8", glass: "#f0f2f6", glassO: 0.38, edge: "#ffffff", fogN: 15, fogF: 100, hemiS: "#ffffff", hemiG: "#c4c8d0", hemiI: 1.1, sunI: 0.9,
+      dust: "#ffffff", block: "#e0e2e8", cart: "#6a6e78", accent: "#b8c4d8" },
+    { sky: "#d8dce4", hor: "#f6f7f9", gnd: "#c0c4cc", surf: "#ffffff", wall: "#eceef2", line: "#dce4f0", lineI: 0.35, frame: "#b8bec8", frameE: "#e8eef8", frameEI: 0.45,
+      rail: "#d4d8de", sleeper: "#eaecf0", glass: "#f4f6fa", glassO: 0.34, edge: "#ffffff", fogN: 17, fogF: 110, hemiS: "#ffffff", hemiG: "#dcdfe6", hemiI: 1.2, sunI: 0.95,
+      dust: "#ffffff", block: "#f2f3f6", cart: "#7a808c", accent: "#a8c0e0" },
   ];
 
   // Thesaurus: warm gold in the light, bronze and ember in the dark
@@ -2439,14 +2564,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота: над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Створку можно и разбить: от первого шара она трескается, от второго разлетается. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
       feats: ["Ворота из тёмного стекла: откройте вертушками или разбейте створку двумя шарами", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
       req: { after: "speculum" }, map: { x: 730, y: 330, label: "bl" } },
-    { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "geometry_of_glass", len: 900, pal: PAL_CARCER, finale: "custodes",
+    { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 900, pal: PAL_CARCER, finale: "custodes",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, driftMul: 1.3, thorns: { from: 0.3, mul: 1.8 },
       pats: { bars: [2, 2.5, 3], imps: [1, 1.5, 3], shutter: [0.5, 1.5, 2], reinf: [0.5, 1, 2], center: [2, 2, 1.5], double: [0.5, 1, 1.5], slider: [1, 1.5, 1.5], wall: [0.5, 0.5, 0.5], sides: [1, 0.5, 0], bonus: [1, 0.3, 0] },
       turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35]],
       desc: "Тупик глубоко во Тьме. Глухие коридоры из ржавого железа: поперёк пути висят решётки на цепях, из стен бьют шипы, а стражи-тени летят навстречу. Тьма здесь тянет сильнее. В конце заперта пушка, которой нет на складе.",
       feats: ["Решётки на цепях: собьёте цепи — решётка рухнет", "Шипы даже в Чистилище", "Награда: пушка Ferrum, финал Custodes"],
       req: { after: "abyssus", fare: 20 }, map: { x: 800, y: 450, label: "b" } },
-    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "refraction_point", len: 1600, pal: PAL_LUX, finale: "triumphus",
+    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 1600, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "prism", glassWalls: true }, gainMul: 0.85,
       gateKinds: ["iris"], gateButton: "dome",
       pats: { doors: [1.2, 1.5, 1.8], spinners: [1.5, 2, 2.5], lblock: [1.5, 2, 2.5], lhang: [1, 1.5, 2], rotor: [0.6, 1, 1.2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], reinf: [0, 0.8, 1.5], triple: [1, 1, 0.8], double: [0, 1, 1.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
@@ -2489,8 +2614,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
 
   let LEVEL = LEVELS[0], STYLE = LEVEL.style;
+  // the look of each level on top of its style: the sky's effect, the surfaces' texture, and decor changes
+  const LEVEL_LOOK = {
+    initium: { sky: { mode: 3, a: 0.85, c: "#ffffff" } },
+    thesaurus: { sky: { mode: 5, a: 0.9, c: "#ffe8b0" } },
+    vitrum: { sky: { mode: 3, a: 0.95, c: "#ffffff" } },
+    labyrinthus: { sky: { mode: 3, a: 0.75, c: "#d4f6e6" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },
+    hortus: { sky: { mode: 3, a: 0.85, c: "#fff0f4" } },
+    speculum: { sky: { mode: 2, a: 0.9, c: "#ffffff" }, style: { blocks: "drop", tex: "chrome", closed: false, skylight: true } }, // open to a sky of quicksilver
+    abyssus: { sky: { mode: 1 } },
+    carcer: { sky: { mode: 0 }, style: { tex: "concrete", rebar: true } },
+    lux: { sky: { mode: 4, a: 0.9, c: "#fff4d0" } },
+  };
   function setLevel(lv) {
-    LEVEL = lv; STYLE = lv.style; PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
+    LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
+    paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, { concrete: "asphalt", stone: "flags", chrome: "chrome" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     buildStation();
   }
@@ -3455,7 +3593,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // test hook: lets an automated check jump the karma or the distance
   window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, setAlt(a) { alt = a; },
-    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, bars(ahead) { addHanger(sC + ahead, 'gate', false, true); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.map(s => s.cones.filter(c => c.alive).length), lblocks: lblocks.length, hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
+    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, halls: () => [...decor.entries()].filter(([, d]) => d.hall).map(([k]) => k * SL), bars(ahead) { addHanger(sC + ahead, 'gate', false, true); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.map(s => s.cones.filter(c => c.alive).length), lblocks: lblocks.length, hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },
     thornScreen() { const r = canvas.getBoundingClientRect(); return thorns.filter(t => t.headOn && t.ext > 0.3).map(t => { const v = t.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); }, state: () => ({ state, sC, alt, balls, score, combo, superOn, sigils: sigils.length, END_S, panes: panes.length, thorns: thorns.length, thornExt: thorns.map(t => t.ext.toFixed(2) + (t.headOn ? '' : 'x')).join(), pitchC }) };
 

@@ -663,6 +663,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !matchMedia("(pointer: coarse)").matches });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
   const scene = new THREE.Scene();
+  // three keeps every geometry it has drawn until it is disposed, so each run left its gates, panes and chains in
+  // memory and the next run grew slower. Whatever is taken off the scene has its geometries freed, once nothing
+  // left on the scene still uses them (a shared one is simply uploaded again when next drawn).
+  const gone = [], sceneRemove = scene.remove.bind(scene);
+  scene.remove = (...objs) => { gone.push(...objs); return sceneRemove(...objs); };
+  function freeGone() {
+    if (!gone.length) return;
+    const used = new Set(); scene.traverse(o => { if (o.geometry) used.add(o.geometry); });
+    for (const r of gone.splice(0)) if (!r.parent) r.traverse(o => { if (o.geometry && !used.has(o.geometry)) o.geometry.dispose(); });
+  }
   scene.fog = new THREE.Fog(0xe8ebec, 16, 100);
   const camera = new THREE.PerspectiveCamera(70, 1, 0.08, 520);
   camera.matrixAutoUpdate = true;
@@ -3989,7 +3999,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const DPR_MAX = Math.min(window.devicePixelRatio || 1, 3);
   let dpr = DPR_MAX, fpsT = 0, fpsN = 0, slow45 = 0, slow30 = 0;
   function adaptResolution(ms) {
-    if (state !== "play") { fpsT = fpsN = 0; return; }
+    if (state !== "play") { fpsT = fpsN = slow45 = slow30 = 0; return; } // each run is judged on its own frames
     fpsT += ms; fpsN++;
     if (fpsT < 1500) return;
     const avg = fpsT / fpsN; fpsT = fpsN = 0;
@@ -4005,6 +4015,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     requestAnimationFrame(frame);
     const dt = Math.min(0.05, (now - last) / 1000);
     adaptResolution(now - last);
+    if (Math.floor(now / 1000) !== Math.floor(last / 1000)) freeGone(); // once a second
     last = now;
     if (state === "paused") { renderer.render(scene, camera); return; } // time stands still while paused
     time += dt;

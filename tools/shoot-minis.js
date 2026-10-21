@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 // Shoots every built level in the light and in the dark for the station sheets' miniatures.
 // Serve the repo (python3 -m http.server 8766) and run: OUT=/some/dir THREE=/path/to/three.min.js node tools/shoot-minis.js
-// then: python3 tools/compose-minis.py /some/dir
+// then: python3 tools/compose-minis.py /some/dir   (ONLY=vitrum,rubinus shoots just those levels)
 const OUT = process.env.OUT, THREE_JS = process.env.THREE;
 const FEAT = {
   initium: r => { r.jump(240); },
@@ -25,7 +25,7 @@ const FEAT = {
   await pg.route('https://fonts.**', r => r.abort());
   await pg.goto('http://127.0.0.1:8766/index.html#all');
   await pg.waitForTimeout(800);
-  for (const id of Object.keys(FEAT)) {
+  for (const id of process.env.ONLY ? process.env.ONLY.split(',') : Object.keys(FEAT)) {
     for (const [alt, tag] of [[0.5, 'L'], [-0.95, 'D']]) {
       await pg.evaluate(id => window.__rails.level(id), id);
       await pg.waitForTimeout(3600);

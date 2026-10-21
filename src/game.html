@@ -659,7 +659,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // ---------- renderer & scene ----------
   const canvas = document.getElementById("game");
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  // no edge smoothing on phones and tablets: at their 2–3× pixels it hardly shows and it costs every frame
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !matchMedia("(pointer: coarse)").matches });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xe8ebec, 16, 100);

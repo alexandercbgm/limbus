@@ -1889,10 +1889,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const domeEdgeGeo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 40 }, (_, i) => new THREE.Vector3(Math.cos(i / 40 * TAU) * 0.97, Math.sin(i / 40 * TAU) * 0.97, 0)));
   const domeEdgeMat = new THREE.LineBasicMaterial({ color: 0xffffff }), domeGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xffa020, transparent: true, opacity: 0.28, depthWrite: false });
   const domeFaceMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.3, roughness: 0.35, metalness: 0.2 });
-  const IRIS_N = 6, irisGeo = (() => { // one iris leaf: a sector of the disc
-    const sh = new THREE.Shape(), a = TAU / IRIS_N / 2; sh.moveTo(0, 0); // wedges meet edge to edge, never overlap
-    for (let k = 0; k <= 8; k++) { const q = -a + (2 * a) * k / 8; sh.lineTo(Math.cos(q) * IRIS_R, Math.sin(q) * IRIS_R); }
-    sh.lineTo(0, 0); return new THREE.ExtrudeGeometry(sh, { depth: GATE_D, bevelEnabled: false }).translate(0, 0, -GATE_D / 2);
+  // one iris leaf: a wedge whose two edges curve the same way, a spiral arm, so the six of them meet edge to edge
+  const IRIS_N = 6, IRIS_TWIST = 1.1, irisGeo = (() => {
+    const sh = new THREE.Shape(), a = TAU / IRIS_N / 2, n = 16, at = (r, q) => new THREE.Vector2(Math.cos(q) * r, Math.sin(q) * r);
+    sh.moveTo(0, 0);
+    for (let k = 1; k <= n; k++) { const r = IRIS_R * k / n; sh.lineTo(...at(r, -a + IRIS_TWIST * k / n).toArray()); }
+    for (let k = 1; k <= 8; k++) sh.lineTo(...at(IRIS_R, -a + IRIS_TWIST + 2 * a * k / 8).toArray());
+    for (let k = n - 1; k >= 0; k--) { const r = IRIS_R * k / n; sh.lineTo(...at(r, a + IRIS_TWIST * k / n).toArray()); }
+    return new THREE.ExtrudeGeometry(sh, { depth: GATE_D, bevelEnabled: false }).translate(0, 0, -GATE_D / 2);
   })();
   // a button is a little anemometer: three hemispherical cups on arms about a vertical axle, the cups open
   // toward the oncoming balls; a hit spins it up and lights it green
@@ -1922,7 +1926,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const hole = new THREE.Path(); hole.absarc(0, IRIS_V, IRIS_R + 0.1, 0, TAU, true); sh.holes.push(hole);
         const bh = new THREE.Mesh(new THREE.ShapeGeometry(sh, 48), bulkheadMat); bh.position.z = 0.07; root.add(bh); // in front: the leaves slide away behind it
       }
-      for (let i = 0; i < IRIS_N; i++) { const m = new THREE.Mesh(irisGeo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(irisGeo), edgeMat)); m.rotation.z = i / IRIS_N * TAU; m.position.z = (i % 2 ? 1 : -1) * 0.004; root.add(m); leaves.push({ m, a: i / IRIS_N * TAU }); }
+      const spin = new THREE.Group(); spin.position.y = IRIS_V; root.add(spin); // the whole iris turns all the time
+      for (let i = 0; i < IRIS_N; i++) { const m = new THREE.Mesh(irisGeo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(irisGeo), edgeMat)); m.rotation.z = i / IRIS_N * TAU; m.position.z = (i % 2 ? 1 : -1) * 0.004; spin.add(m); leaves.push({ m, a: i / IRIS_N * TAU + IRIS_TWIST / 2, spin }); }
     } else {
       for (const sd of [-1, 1]) {
         const geo = kind === "h" ? hDoorGeo : vDoorGeo, m = new THREE.Mesh(geo, doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat)); root.add(m); leaves.push({ m, sd, hp: 0 });
@@ -1936,9 +1941,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       }
     }
     // buttons: how many, how big and whether they wander along the frame follow the difficulty
-    const nb = k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = k > 0.55;
+    const nb = k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = false; // buttons stand still
     const dome = LEVEL.gateButton === "dome";
-    const spots = kind === "iris" ? [Math.PI * 0.5, Math.PI * 0.85, Math.PI * 0.15].map(a => ({ a, rad: dome ? IRIS_R + 1.5 : IRIS_R + 0.12 }))
+    const spots = kind === "iris" ? [Math.PI * 0.5, Math.PI, 0].map(a => ({ a, rad: dome ? IRIS_R + 1.15 : IRIS_R + 0.12 })) // top, left, right: symmetric, clear of the walls
       : [{ u: 0, v: top + 1.0, along: "u" }, /* in the middle; on hard gates it rides along the lintel */ { u: -(BRIDGE_W + 1.3), v: 2.7, along: "v", side: -1 }, { u: BRIDGE_W + 1.3, v: 2.7, along: "v", side: 1 }]; // one on a mast above, two lying on their side out of the posts
     const order = nb === 1 ? [0] : nb === 2 ? [1, 2] : [0, 1, 2]; // one sits on top, a pair at the sides, three both
     const g = { s, kind, k, root, leaves, buttons: [], pr: 0, opening: false, passed: false, dead: false };
@@ -1947,7 +1952,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const sp = spots[o], grp = new THREE.Group(); root.add(grp);
       if (dome) { // a convex round button on the bulkhead
         // steel sides and a lit face, so it reads as a cylinder standing out of the wall
-        const rr = r * 0.42, cap = new THREE.Mesh(domeGeo, [frameMat, domeFaceMat, frameMat]); cap.scale.setScalar(rr); cap.userData.push = true; grp.add(cap);
+        const rr = r * 0.36, cap = new THREE.Mesh(domeGeo, [frameMat, domeFaceMat, frameMat]); cap.scale.setScalar(rr); cap.userData.push = true; grp.add(cap);
         const edge = new THREE.LineLoop(domeEdgeGeo, domeEdgeMat); edge.position.z = 0.9; cap.add(edge); // a bright line round the face's edge
         const rim = new THREE.Mesh(domeRimGeo, laserBaseMat); rim.scale.setScalar(rr); grp.add(rim);
         const glow = new THREE.Sprite(domeGlow); glow.scale.setScalar(r * 1.1); glow.position.z = 0.95 * rr; grp.add(glow);
@@ -2015,11 +2020,15 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const p = smooth5(g.pr);
       setObj(g.root, g.s, 0, 0);
       for (const lf of g.leaves) {
-        lf.m.scale.setScalar(lf.m.scale.x + (1 - lf.m.scale.x) * Math.min(1, dt * 10));
+        if (g.kind !== "iris") lf.m.scale.setScalar(lf.m.scale.x + (1 - lf.m.scale.x) * Math.min(1, dt * 10));
         if (g.kind === "h") lf.m.position.set(lf.sd * (BRIDGE_W / 2 + BRIDGE_W * p), GATE_H / 2, 0);
         else if (g.kind === "v") lf.m.position.set(0, GATE_H / 2 + lf.sd * (GATE_H / 4 + (GATE_H / 2 + 0.3) * p), 0);
-        else { const r = (IRIS_R + 0.15) * p; lf.m.position.set(Math.cos(lf.a) * r, IRIS_V + Math.sin(lf.a) * r, lf.m.position.z); } // each wedge slides straight out, behind the bulkhead
+        else { // each arm slides out and draws in as it goes, so it hides behind the bulkhead and never past its edges
+          const r = (IRIS_R + 0.15) * p, sc = 1 - 0.38 * p;
+          lf.m.scale.set(sc, sc, 1); lf.m.position.set(Math.cos(lf.a) * r, Math.sin(lf.a) * r, lf.m.position.z);
+        }
       }
+      if (g.kind === "iris") g.leaves[0].spin.rotation.z = time * 0.7;
       for (const bt of g.buttons) {
         if (bt.a !== undefined) { const a = bt.a + (bt.moving ? Math.sin(time * 2.6 + bt.phase) * 0.4 : 0); bt.grp.position.set(Math.cos(a) * bt.rad, IRIS_V + Math.sin(a) * bt.rad, 0.08); }
         else bt.grp.position.set(bt.u + (bt.moving && bt.along === "u" ? Math.sin(time * 2.6 + bt.phase) * 1.3 : 0), bt.v + (bt.moving && bt.along === "v" ? Math.sin(time * 2.6 + bt.phase) * 0.6 : 0), 0);

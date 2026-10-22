@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build rails/index.html: the game source with every track from music/ embedded as base64.
 
-The page then works as a single file (offline, from disk, or as a hosted artifact).
+The page then works as a single file (offline, from disk, or as a hosted artifact): three.js is inlined as well.
 A track is addressed in the code by its file stem, e.g. music/seer_vahl.mp3 -> musicBytes("seer_vahl").
 
 To keep the page under the 16 MB artifact limit, tracks are re-encoded to MP3 at 56 kbps with ffmpeg before
@@ -36,6 +36,11 @@ def embedded(track):
 
 
 page = (root / "src" / "game.html").read_text(encoding="utf-8").rstrip("\n") + "\n"
+# three.js goes in inline too, so a saved or exported copy of the page runs where the CDN can't be reached
+THREE_TAG = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>'
+three = (root / "android" / "three.min.js").read_text(encoding="utf-8")
+assert THREE_TAG in page and "</script" not in three
+page = page.replace(THREE_TAG, "<script>" + three + "</script>")
 for track in [] if "--no-music" in sys.argv else sorted((root / "music").glob("*.mp3")):
     raw, kind = embedded(track)
     data = base64.b64encode(raw).decode("ascii")

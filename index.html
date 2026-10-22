@@ -459,7 +459,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   let TURNS = [];
   const toTurns = list => list.map(([s0, len, deg]) => ({ s0, len, a: deg * Math.PI / 180 }));
   // forks (Labyrinthus): the track turns left (sign +1) or right (−1) at f.s, whichever the switch points to
-  const FORK_LEN = 40, FORK_ANG = 0.6, GHOST_N = 100, FORK_OPEN = 24, FORK_NOSE = 25.3; // the inner walls of the two tunnels meet 25.3 m past the fork
+  const FORK_LEN = 40, FORK_ANG = 0.6, GHOST_N = 100, FORK_OPEN = 24;
   let forks = [];
   const smooth5 = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (x * 6 - 15) + 10);
   const forkYaw = (f, s) => FORK_ANG * smooth5((s - f.s) / FORK_LEN);
@@ -1093,11 +1093,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     _C.copy(_P).addScaledVector(_R, u).addScaledVector(_U, v); _nT.copy(_T).negate();
     m.makeBasis(_R, _U, _nT); m.setPosition(_C); return m;
   }
-  // near a fork the walls between the two branches open up: returns the side (+1 right, −1 left) to leave open
-  function forkOpenSide(s) {
-    for (const f of forks) if (s > f.s - 2 && s < f.s + FORK_OPEN) return f.sign > 0 ? 1 : -1;
-    return 0;
-  }
+  // at a fork the walls stay whole on both sides (an opening there jumped from side to side as the switch flipped):
+  // the turnout's blades show between the rails, the branch not taken stays behind the wall
+  function forkOpenSide() { return 0; }
 
   // ---------- corridor (instanced, laid out every frame) ----------
   function inst(geo, mat, max) { const m = new THREE.InstancedMesh(geo, mat, max); m.frustumCulled = false; m.count = 0; scene.add(m); return m; }
@@ -1340,7 +1338,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       // the other branch's floor sits a hair below the main one, so where they overlap the main floor wins
       fillStrip(gFloorStrip, ghost.s + 2, ghost.s + GHOST_N - 2, frameAtG, -0.015);
       fillStrip(gVaultStrip, ghost.s + 2, ghost.s + GHOST_N - 2, frameAtG, H + 0.015);
-      put("nose", ghost.s + FORK_NOSE, -skip * W, H / 2); // on the main track's open side
     }
     for (const key in I) { I[key].count = n[key]; I[key].instanceMatrix.needsUpdate = true; }
     for (const k of decor.keys()) if (k < k0 - 2) decor.delete(k);

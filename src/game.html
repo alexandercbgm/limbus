@@ -935,6 +935,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function lampFlicker() { if (time > flickT) { flickT = time + (Math.random() < 0.15 ? rand(0.04, 0.12) : rand(0.3, 2.4)); flickV = Math.random() < 0.2 ? rand(0.05, 0.4) : rand(0.9, 1.3); } return flickV * (0.95 + 0.05 * Math.sin(time * 120)); }
   const frameMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.25 });
   const safetyMat = new THREE.MeshBasicMaterial({ color: 0xff3a1a }); // Carcer: the red line along a hall's floor
+  const wireMat = new THREE.MeshStandardMaterial({ color: 0x9aa2a8, roughness: 0.35, metalness: 0.9 });
   const railMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.7 });
   const sleeperMat = new THREE.MeshLambertMaterial();
   const spikeMat = new THREE.MeshStandardMaterial({ color: 0x2a0d0a, emissive: 0x9c1e0e, emissiveIntensity: 0.45, roughness: 0.45, metalness: 0.3, flatShading: true });
@@ -982,8 +983,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     sleeperMat.color.copy(cur.sleeper);
     glassMat.color.copy(cur.glass); glassMat.emissive.copy(cur.glass); glassMat.opacity = cur.glassO;
     edgeMat.color.copy(cur.edge);
-    hemi.color.copy(cur.hemiS); hemi.groundColor.copy(cur.hemiG); hemi.intensity = cur.hemiI;
-    sun.intensity = cur.sunI;
+    hemi.color.copy(cur.hemiS); hemi.groundColor.copy(cur.hemiG); hemi.intensity = cur.hemiI * (LEVEL.lightMul || 1); // a level may be lit brighter
+    sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
     shellMat.color.copy(cur.block).lerp(cur.frame, 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
@@ -1131,7 +1132,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // Carcer's halls: the end wall with the corridor's doorway in it, cell bars along the sides, a glowing safety line
     portal: inst((() => { const sh = new THREE.Shape([new THREE.Vector2(-HALL_W - 0.24, 0), new THREE.Vector2(HALL_W + 0.24, 0), new THREE.Vector2(HALL_W + 0.24, HALL_H), new THREE.Vector2(-HALL_W - 0.24, HALL_H)]);
       sh.holes.push(new THREE.Path([new THREE.Vector2(-W, 0), new THREE.Vector2(-W, H), new THREE.Vector2(W, H), new THREE.Vector2(W, 0)])); return new THREE.ShapeGeometry(sh); })(), wallMat, 8),
-    cellbar: inst(new THREE.CylinderGeometry(0.045, 0.045, 1, 6), frameMat, 700),
+    wire: inst(new THREE.TorusGeometry(0.42, 0.016, 4, 18), wireMat, 900), // coils of barbed wire along a hall's sides
     safety: inst(new THREE.BoxGeometry(0.07, 0.03, SL + 0.03), safetyMat, 200),
     pylon: inst(new THREE.BoxGeometry(0.45, PYLON_H, 0.45), frameMat, 60),
     girder: inst(new THREE.BoxGeometry(2 * BRIDGE_W, 0.5, 0.4), frameMat, 30),
@@ -1287,13 +1288,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         I.portal.setMatrixAt(n.portal++, placeM(M, s0, 0, 0));
         I.portal.setMatrixAt(n.portal++, placeM(M, s0, 0, 0).multiply(M2.makeRotationY(Math.PI)));
       }
+      if (LEVEL.halls && !dec.hw && s < SUPER_END - 6 && k % 3 === 0) { put("lamp", s, 0, H - 0.14); put("lampCage", s, 0, H - 0.14); } // a lamp under a corridor's vault every 6 m
       if (dec.hw) { // a hall: pillars and beams instead of arches, cells barred along its sides, a red line along the floor, lamps high up
         if (dec.arch) {
           for (const sd of [-1, 1]) I.post.setMatrixAt(n.post++, placeM(M, s, sd * (dec.hw - 0.2), dec.hh / 2).scale(SV.set(1.6, dec.hh / H, 1.6)));
           I.beam.setMatrixAt(n.beam++, placeM(M, s, 0, dec.hh - 0.25).scale(SV.set((2 * dec.hw + 0.36) / (2 * W + 0.36), 1.6, 1.6)));
         }
         for (const sd of [-1, 1]) {
-          if (hash(k * 53 + sd * 9) < 0.7) for (let i = 0; i < 4; i++) I.cellbar.setMatrixAt(n.cellbar++, placeM(M, s - 0.75 + i * 0.5, sd * (dec.hw - 1.4), 1.7).scale(SV.set(1, 3.4, 1)));
+          for (let i = 0; i < 4; i++) I.wire.setMatrixAt(n.wire++, placeM(M, s - 0.75 + i * 0.5, sd * (dec.hw - 1.1) + Math.sin(k * 3 + i) * 0.06, 0.44).multiply(M2.makeRotationZ(k * 1.7 + i * 2.1)));
           put("safety", s, sd * (W + 0.35), 0.02);
           if (k % 4 === 2) { put("lamp", s, sd * (dec.hw - 0.3), dec.hh - 1.6); put("lampCage", s, sd * (dec.hw - 0.3), dec.hh - 1.6); }
         }
@@ -1792,7 +1794,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const k = Math.floor(s / SL), sa = k * SL + SL / 2;
     return getDecor(k).arch && Math.abs(s - sa) < 1 ? sa + (s < sa ? -1 : 1) : s;
   }
-  function spacing(d) { return lerp(24, 14, d) * (1 - 0.15 * Math.min(1, sC / MAIN_LEN)); }
+  function spacing(d) { return lerp(24, 14, d) * (1 - 0.15 * Math.min(1, sC / MAIN_LEN)) * (LEVEL.spaceMul || 1); } // a level may space its groups wider
 
   // ---------- glass fracture ----------
   // Radial cracks from the impact point to the pane edge, cut by two rings, so every piece is convex.
@@ -1910,9 +1912,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   let HANG_TOP = H - 0.06; // chains hang from the ceiling (set with the level)
   const fineGeo = new THREE.TetrahedronGeometry(0.07), mountGeo = new THREE.BoxGeometry(0.55, 0.1, 0.55);
   const chunkGeo = new THREE.BoxGeometry(0.16, 0.16, 0.12); // tempered-glass chunks, like a car window
-  function makeChain(len) {
-    const g = new THREE.Group(), n = Math.ceil(len / LINK);
-    for (let i = 0; i < n; i++) { const l = new THREE.Mesh(linkGeo, chainMat); l.position.y = -i * LINK - LINK / 2; l.rotation.y = i % 2 ? Math.PI / 4 : -Math.PI / 4; g.add(l); }
+  function makeChain(len, k = 1, mat = chainMat) { // k: the size of the links
+    const g = new THREE.Group(), n = Math.ceil(len / (LINK * k));
+    for (let i = 0; i < n; i++) { const l = new THREE.Mesh(linkGeo, mat); l.scale.setScalar(k); l.position.y = (-i - 0.5) * LINK * k; l.rotation.y = i % 2 ? Math.PI / 4 : -Math.PI / 4; g.add(l); }
     return g;
   }
   function inCurve(s) { return [-30, -15, 0, 15].some(o => Math.abs(yawRateAt(s + o)) > 0.002); }
@@ -2288,8 +2290,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     g.userData.spot.position.y = len; g.userData.spot.scale.setScalar(0.7 + 0.25 * Math.sin(time * 30 + len));
   }
   // how far a beam from (u, v) along (du, dv) runs before it meets a wall, the floor or the vault
-  function beamReach(u, v, du, dv, max) {
-    const u0 = STYLE.bridge ? -60 : -SW + 0.04, u1 = -u0, v0 = 0.03, v1 = STYLE.bridge ? 60 : SH - 0.04; // a beam runs on till it meets something
+  function beamReach(u, v, du, dv, max, s) {
+    const hall = s !== undefined && LEVEL.halls && inHall(s), ww = hall ? HALL_W : SW, wh = hall ? HALL_H : SH; // in a hall, its own walls and vault
+    const u0 = STYLE.bridge ? -60 : -ww + 0.04, u1 = -u0, v0 = 0.03, v1 = STYLE.bridge ? 60 : wh - 0.04; // a beam runs on till it meets something
     let tm = max;
     if (du > 1e-6) tm = Math.min(tm, (u1 - u) / du); else if (du < -1e-6) tm = Math.min(tm, (u0 - u) / du);
     if (dv > 1e-6) tm = Math.min(tm, (v1 - v) / dv); else if (dv < -1e-6) tm = Math.min(tm, (v0 - v) / dv);
@@ -2353,16 +2356,22 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     noz.rotation.z = orient === "h" ? side * Math.PI / 2 : Math.PI; // the nozzle and its beam point across or down
     lblocks.push(Object.assign({ s, orient, side, root, beam, noz, alive: true, passed: false, phase: rand(0, TAU), wp: new THREE.Vector3(), len: 0, row: opt.row }, o, { bu: o.u }));
   }
-  // Carcer: 3–4 lasers in a row from one side (it may drift up and down), from above (it may drift left and right), or
-  // both at once, a grid that stands still. A row burns the cart once: 3 balls, and a ball more for each other live beam
-  // that crosses it. Its nozzles show from afar, so there is time to pick off the ones that matter.
+  // Carcer: lasers in a row from one side (it may drift up and down), from above (it may drift left and right), or both
+  // at once, a grid that stands still. The beams are set wider apart than the cart, so a row has one beam in its way and a
+  // grid one each way, and the drift never takes a nozzle into the floor, the vault or a wall. A row burns the cart once:
+  // 3 balls, a ball more for any other beam across it. Its nozzles show from afar, there is time to pick the right one.
+  const ROW_DV = 2.9, ROW_DU = 3.0; // more than the cart is high, and wide, with the burn margin
   function addLaserRow(s, mode) {
-    const n = Math.random() < 0.5 ? 3 : 4, row = { amp: 0, f: rand(0.9, 1.4), ph: rand(0, TAU), axis: "v", cost: 0 };
-    if (mode !== "grid" && Math.random() < 0.7) row.amp = mode === "side" ? 0.75 : 1.3;
-    if (mode === "top") row.axis = "u";
-    if (mode === "side" || mode === "grid") { const side = Math.random() < 0.5 ? -1 : 1;
-      for (let i = 0; i < n; i++) addLaserBlock(s, "h", { side, v: 0.55 + i * (2.1 / (n - 1)), row }); }
-    if (mode === "top" || mode === "grid") for (let i = 0; i < n; i++) addLaserBlock(s + (mode === "grid" ? 0.4 : 0), "v", { u: -1.8 + i * (3.6 / (n - 1)), v: 5.6, row });
+    const row = { amp: 0, f: rand(0.8, 1.2), ph: rand(0, TAU), axis: mode === "top" ? "u" : "v", cost: 0 };
+    if (mode !== "grid" && Math.random() < 0.7) row.amp = mode === "side" ? 0.6 : 1.2;
+    if (mode === "side" || mode === "grid") {
+      const side = Math.random() < 0.5 ? -1 : 1, n = row.amp ? 3 : Math.random() < 0.5 ? 3 : 4, v0 = rand(0.55 + row.amp, 1.5);
+      for (let i = 0; i < n; i++) addLaserBlock(s, "h", { side, v: v0 + i * ROW_DV, row });
+    }
+    if (mode === "top" || mode === "grid") {
+      const n = Math.random() < 0.5 ? 3 : 4, rowT = mode === "grid" ? row : row;
+      for (let i = 0; i < n; i++) addLaserBlock(s + (mode === "grid" ? 0.4 : 0), "v", { u: (i - (n - 1) / 2) * ROW_DU, v: HALL_H - 2.2, row: rowT });
+    }
   }
   function hitLaserBlock(lb) { lb.alive = false; scene.remove(lb.root); laserOut(lb.wp, orbMat); }
   function updateLasers(dt) {
@@ -2396,7 +2405,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         lb.noz.rotation.x = Math.sin(ph * 1.3) * 0.08;
       } else lb.vv = Math.sin(time * 1.6 + lb.phase) * 0.05; // a still one only hovers
       const v = lb.v + lb.vv;
-      lb.len = beamReach(lb.u, v, lb.du, lb.dv, 60);
+      lb.len = beamReach(lb.u, v, lb.du, lb.dv, 60, lb.s);
       setObj(lb.root, lb.s, lb.u, v); lb.wp.setFromMatrixPosition(lb.root.matrix);
       setBeamLen(lb.beam, Math.max(0, lb.len - 0.16));
       if (state === "play" && !lb.passed && lb.s <= sC + 0.5) {
@@ -2448,24 +2457,31 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const HM_L = 2.4, HM_V = 3.25, hmHubGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.6, 20).rotateX(Math.PI / 2), hmHandleGeo = new THREE.CylinderGeometry(0.15, 0.18, HM_L, 12).translate(0, HM_L / 2, 0);
   const pillarGeo = new THREE.BoxGeometry(0.9, HALL_H, 0.9), axeSocketGeo = new THREE.BoxGeometry(0.34, 0.5, 0.3);
   const bladeMat = new THREE.MeshStandardMaterial({ color: 0xa8b0b6, roughness: 0.22, metalness: 0.92 });
-  const axeBladeGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(0.1, -0.24); sh.lineTo(0.8, -0.62); sh.quadraticCurveTo(1.15, 0, 0.8, 0.62); sh.lineTo(0.1, 0.24); sh.closePath();
-    return new THREE.ExtrudeGeometry(sh, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.03, bevelSegments: 1 }).translate(0, 0, -0.025); })();
+  // the blade: a dark cheek, and a thin bright edge ground along its curve
+  const AXE_L = 2.9, axeHandleGeo = new THREE.CylinderGeometry(0.09, 0.11, AXE_L, 12).translate(0, AXE_L / 2, 0);
+  const axeBladeGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(0.1, -0.22); sh.lineTo(0.66, -0.5); sh.quadraticCurveTo(0.98, 0, 0.66, 0.5); sh.lineTo(0.1, 0.22); sh.closePath();
+    return new THREE.ExtrudeGeometry(sh, { depth: 0.07, bevelEnabled: false }).translate(0, 0, -0.035); })();
+  const axeEdgeGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(0.64, -0.52); sh.quadraticCurveTo(1.16, 0, 0.64, 0.52); sh.lineTo(0.66, 0.46); sh.quadraticCurveTo(0.97, 0, 0.66, -0.46); sh.closePath();
+    return new THREE.ExtrudeGeometry(sh, { depth: 0.014, bevelEnabled: false, curveSegments: 16 }).translate(0, 0, -0.007); })();
   const hmAxleGeo = new THREE.BoxGeometry(1.6, 0.3, 0.3), hmHeadGeo = new THREE.BoxGeometry(1.5, 0.85, 1.0), hmCapGeo = new THREE.BoxGeometry(1.58, 0.16, 1.08);
   // axe (Carcer): a headsman's mill on a stone pillar behind it, four single-bitted axes or two double-bitted ones
   function addHammerMill(s, side, dir, count = 2, axe = false) {
     if (!axe) for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc[side < 0 ? "wl" : "wr"] = false; dc.arch = false; dc.pyr = null; }
     const root = new THREE.Group(); root.matrixAutoUpdate = false; root.add(new THREE.Mesh(hmHubGeo, frameMat));
     if (axe) { // the pillar stands behind the mill, so the axes sweep clear of it
-      const pl = new THREE.Mesh(pillarGeo, blockMat); pl.position.set(0, HALL_H / 2 - HM_V, -1.0); root.add(pl);
+      const pl = new THREE.Mesh(pillarGeo, blockMat); pl.position.set(0, HALL_H / 2 - 3.7, -1.0); root.add(pl);
       const ax = new THREE.Mesh(hmAxleGeo, frameMat); ax.rotation.y = Math.PI / 2; ax.scale.x = 0.7; ax.position.z = -0.5; root.add(ax);
     } else { const axle = new THREE.Mesh(hmAxleGeo, frameMat); axle.position.x = side * 0.8; root.add(axle); } // to the wall
     const rotor = new THREE.Group(); root.add(rotor);
     const step = TAU / count, arms = Array.from({ length: count }, (_, i) => {
       const a = new THREE.Group(); a.rotation.z = i * step; rotor.add(a);
-      a.add(new THREE.Mesh(hmHandleGeo, woodMat));
+      a.add(new THREE.Mesh(axe ? axeHandleGeo : hmHandleGeo, woodMat));
       if (axe) { // the bit faces the way the mill turns; a pair of mills' axes are bitted both ways
-        const sock = new THREE.Mesh(axeSocketGeo, frameMat); sock.position.y = HM_L; a.add(sock);
-        for (const b of count === 2 ? [1, -1] : [dir < 0 ? 1 : -1]) { const bl = new THREE.Mesh(axeBladeGeo, bladeMat); bl.position.y = HM_L - 0.05; bl.rotation.y = b > 0 ? 0 : Math.PI; a.add(bl); }
+        const sock = new THREE.Mesh(axeSocketGeo, darkSteelMat); sock.position.y = AXE_L; a.add(sock);
+        for (const b of count === 2 ? [1, -1] : [dir < 0 ? 1 : -1]) {
+          const bl = new THREE.Group(); bl.position.y = AXE_L - 0.05; bl.rotation.y = b > 0 ? 0 : Math.PI; a.add(bl);
+          bl.add(new THREE.Mesh(axeBladeGeo, darkSteelMat)); bl.add(new THREE.Mesh(axeEdgeGeo, bladeMat));
+        }
       } else {
         const head = new THREE.Mesh(hmHeadGeo, ramMat); head.position.y = HM_L; a.add(head);
         for (const y of [-0.34, 0.34]) { const cp = new THREE.Mesh(hmCapGeo, frameMat); cp.position.y = HM_L + y; a.add(cp); }
@@ -2473,17 +2489,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       return { i, ang: i * step, grp: a, alive: true, A: new THREE.Vector3(), B: new THREE.Vector3(), H: new THREE.Vector3() };
     });
     scene.add(root);
-    // the heads just clear the floor and the vault
-    hmills.push({ s, side, hu: side * (W - 1.6), hv: HM_V, a: rand(0, TAU), spin: dir * rand(1.1, 1.5), root, rotor, arms, heads: [], hit: false });
+    // the heads just clear the floor and the vault; the axes' longer handles turn on a higher hub, in a hall
+    hmills.push({ s, side, hu: side * (W - 1.6), hv: axe ? 3.7 : HM_V, len: axe ? AXE_L : HM_L, a: rand(0, TAU), spin: dir * rand(1.1, 1.5), root, rotor, arms, heads: [], hit: false });
   }
   function breakHandle(m, arm, at) {
     arm.alive = false; Sound.shatter(0.5); Sound.tone(200, 0.15, 0.12, "square", 0, 90); chips(at, woodMat, 10, tmpV2.set(0, 1, 0));
     // the head flies off the way it was turning and falls; it breaks only when it hits the floor
     const a = m.a + arm.ang, g = new THREE.Group();
-    arm.grp.children.slice(1).forEach(o => { g.add(o); o.position.y -= HM_L; });
-    g.position.set(-Math.sin(a) * HM_L, Math.cos(a) * HM_L, 0); g.rotation.z = a; m.root.add(g);
+    arm.grp.children.slice(1).forEach(o => { g.add(o); o.position.y -= m.len; });
+    g.position.set(-Math.sin(a) * m.len, Math.cos(a) * m.len, 0); g.rotation.z = a; m.root.add(g);
     arm.grp.visible = false;
-    m.heads.push({ g, vx: -Math.cos(a) * HM_L * m.spin, vy: -Math.sin(a) * HM_L * m.spin, w: m.spin });
+    m.heads.push({ g, vx: -Math.cos(a) * m.len * m.spin, vy: -Math.sin(a) * m.len * m.spin, w: m.spin });
     addScore(15); karmaGain(0.03); pop(T("молот сбит", "hammer down"), "info");
   }
   function crushed(what) {
@@ -2531,9 +2547,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       setObj(m.root, m.s, m.hu, m.hv); m.root.updateMatrixWorld(true);
       for (const arm of m.arms) {
         // the handle stops short of the head
-        arm.A.set(0, 0.3, 0); arm.grp.localToWorld(arm.A); arm.B.set(0, HM_L - 0.8, 0); arm.grp.localToWorld(arm.B); arm.H.set(0, HM_L, 0); arm.grp.localToWorld(arm.H);
+        arm.A.set(0, 0.3, 0); arm.grp.localToWorld(arm.A); arm.B.set(0, m.len - 0.8, 0); arm.grp.localToWorld(arm.B); arm.H.set(0, m.len, 0); arm.grp.localToWorld(arm.H);
         if (arm.alive && state === "play" && !m.hit && Math.abs(m.s - sC) < 0.8) {
-          const a = m.a + arm.ang + Math.PI / 2, hu = m.hu + Math.cos(a) * HM_L, hv = m.hv + Math.sin(a) * HM_L;
+          const a = m.a + arm.ang + Math.PI / 2, hu = m.hu + Math.cos(a) * m.len, hv = m.hv + Math.sin(a) * m.len;
           if (CART_PTS.some(([u, v]) => Math.hypot(u - hu, v - hv) < 0.95)) { m.hit = true; crushed(T("молот", "hammer")); }
         }
       }
@@ -2557,38 +2573,47 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // it falls toward the cart, flat, a bridge to roll over. bolt: two leaves on side hinges, barred across: one shot breaks
   // the bolt, then a shot on each leaf swings it open. A door still shut when the cart comes is burst for GATE_COST.
   let doors = [], doorPlan = [];
-  const DOOR_W = W - 0.12, FLAP_H = H - 1.5, LEAF_H = H - 0.35, BOLT_V = 2.0;
+  const DOOR_W = W - 0.12, FLAP_H = H - 2.9, LEAF_H = H - 0.35, BOLT_V = 2.0; // a low flap: its chains run long and plain to see
   const flapGeo = new THREE.BoxGeometry(2 * DOOR_W, FLAP_H, 0.16).translate(0, FLAP_H / 2, 0);
   const cellLeafGeo = new THREE.BoxGeometry(DOOR_W, LEAF_H, 0.14).translate(DOOR_W / 2, LEAF_H / 2, 0); // its hinge at x = 0
-  const strapGeo = new THREE.BoxGeometry(1, 0.16, 0.05), doorLintelGeo = new THREE.BoxGeometry(2 * W + 0.4, 0.34, 0.34), boltGeo = new THREE.BoxGeometry(2.8, 0.22, 0.2), bracketGeo = new THREE.BoxGeometry(0.26, 0.44, 0.16);
-  const doorMatC = new THREE.MeshStandardMaterial({ color: 0x3a2c24, roughness: 0.75, metalness: 0.35 });
+  const strapGeo = new THREE.BoxGeometry(1, 0.16, 0.05), doorLintelGeo = new THREE.BoxGeometry(2 * W + 0.4, 0.34, 0.34), boltGeo = new THREE.BoxGeometry(2.8, 0.3, 0.24), bracketGeo = new THREE.BoxGeometry(0.26, 0.44, 0.16);
+  // the doors are drawn plainly: dark steel panels outlined in light, and what is to be shot glows
+  const doorMatC = new THREE.MeshStandardMaterial({ color: 0x23272c, roughness: 0.45, metalness: 0.7 });
+  const doorLineMat = new THREE.LineBasicMaterial({ color: 0x9fd6ff }), doorChainMat = new THREE.MeshStandardMaterial({ color: 0xd8e2ea, roughness: 0.25, metalness: 0.9, emissive: 0x30404c });
+  const targetOn = new THREE.MeshBasicMaterial({ color: 0xff8a2a }), targetOff = new THREE.MeshBasicMaterial({ color: 0x4a545c });
+  const targetGeo = new THREE.RingGeometry(0.28, 0.42, 28), targetDotGeo = new THREE.CircleGeometry(0.12, 20), eyeGeo = new THREE.TorusGeometry(0.16, 0.05, 8, 18);
   function planDoors() { // most halls have a door in, about half a door out; the barred kind more often deeper in
     const out = [];
     for (const [a, b] of HALLS) {
       if (a > MAIN_LEN - 30) continue;
-      for (const [x, p] of [[a, 0.8], [b, 0.5]]) if (x < MAIN_LEN - 30 && Math.random() < p) out.push({ s: x - 0.3, kind: Math.random() < 0.25 + 0.45 * x / MAIN_LEN ? "bolt" : "flap" });
+      for (const [x, p] of [[a, 0.45], [b, 0.25]]) if (x < MAIN_LEN - 30 && Math.random() < p) out.push({ s: x - 0.3, kind: Math.random() < 0.25 + 0.45 * x / MAIN_LEN ? "bolt" : "flap" });
     }
     return out;
   }
+  const outline = (geo, parent) => { const l = new THREE.LineSegments(new THREE.EdgesGeometry(geo), doorLineMat); parent.add(l); return l; };
+  const doorTarget = (parent, x, y, z, on) => { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+    const r = new THREE.Mesh(targetGeo, on ? targetOn : targetOff), d = new THREE.Mesh(targetDotGeo, on ? targetOn : targetOff); g.add(r); g.add(d); return [r, d]; };
   function spawnDoor(o) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
-    const lin = new THREE.Mesh(doorLintelGeo, frameMat); lin.position.y = H - 0.17; root.add(lin);
+    const lin = new THREE.Mesh(doorLintelGeo, darkSteelMat); lin.position.y = H - 0.17; root.add(lin); outline(doorLintelGeo, lin);
     const dr = { s: o.s, kind: o.kind, root, chains: [], leaves: [], bolted: o.kind === "bolt", ang: 0, angV: 0, open: false, passed: false, inv: new THREE.Matrix4() };
-    const strap = (parent, x, y, w) => { const m = new THREE.Mesh(strapGeo, ironMat); m.scale.x = w; m.position.set(x, y, 0.1); parent.add(m); };
-    if (o.kind === "flap") {
-      const leaf = new THREE.Group(); root.add(leaf); leaf.add(new THREE.Mesh(flapGeo, doorMatC));
-      for (const y of [0.6, FLAP_H / 2, FLAP_H - 0.6]) strap(leaf, 0, y, 2 * DOOR_W - 0.2);
+    if (o.kind === "flap") { // a plain steel flap, an eye at each top corner, and long bright chains up to the lintel
+      const leaf = new THREE.Group(); root.add(leaf); leaf.add(new THREE.Mesh(flapGeo, doorMatC)); outline(flapGeo, leaf);
       dr.leaf = leaf;
-      for (const x of [-(DOOR_W - 0.6), DOOR_W - 0.6]) { const L = H - 0.34 - FLAP_H; const m = makeChain(L); m.position.set(x, H - 0.34, 0.05); root.add(m); dr.chains.push({ x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() }); }
-    } else {
+      for (const x of [-(DOOR_W - 0.6), DOOR_W - 0.6]) {
+        const eye = new THREE.Mesh(eyeGeo, targetOn); eye.position.set(x, FLAP_H + 0.08, 0.05); leaf.add(eye);
+        const L = H - 0.34 - FLAP_H - 0.1, m = makeChain(L, 1.7, doorChainMat); m.position.set(x, H - 0.34, 0.05); root.add(m);
+        dr.chains.push({ x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() });
+      }
+    } else { // two steel leaves barred by a glowing bolt; once it is gone, each leaf lights up a target
       for (const sd of [-1, 1]) {
         const hinge = new THREE.Group(); hinge.position.x = sd * DOOR_W; hinge.rotation.y = sd < 0 ? 0 : Math.PI; root.add(hinge);
-        hinge.add(new THREE.Mesh(cellLeafGeo, doorMatC));
-        for (const y of [0.7, LEAF_H / 2, LEAF_H - 0.7]) strap(hinge, DOOR_W / 2, y, DOOR_W - 0.2);
-        const br = new THREE.Mesh(bracketGeo, ironMat); br.position.set(DOOR_W - 0.9, BOLT_V, 0.14); hinge.add(br);
-        dr.leaves.push({ sd, hinge, ang: 0, opening: false });
+        hinge.add(new THREE.Mesh(cellLeafGeo, doorMatC)); outline(cellLeafGeo, hinge);
+        const br = new THREE.Mesh(bracketGeo, darkSteelMat); br.position.set(DOOR_W - 0.9, BOLT_V, 0.14); hinge.add(br);
+        const tg = doorTarget(hinge, DOOR_W / 2, LEAF_H * 0.58, sd < 0 ? 0.09 : -0.09, false); if (sd > 0) tg.forEach(m => { m.rotation.y = Math.PI; });
+        dr.leaves.push({ sd, hinge, ang: 0, opening: false, tg });
       }
-      const bolt = new THREE.Mesh(boltGeo, ironMat); bolt.position.set(0, BOLT_V, 0.24); root.add(bolt); dr.bolt = bolt;
+      const bolt = new THREE.Mesh(boltGeo, targetOn); bolt.position.set(0, BOLT_V, 0.24); root.add(bolt); dr.bolt = bolt;
     }
     doors.push(dr); return dr;
   }
@@ -2597,11 +2622,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (dr.chains.every(x => !x.alive)) { dr.open = true; Sound.tone(110, 0.4, 0.15, "sawtooth", 0, 60); pop(T("створка падает", "the flap falls"), "info"); }
   }
   function doorBoltBreak(dr, at) {
-    dr.bolted = false; dr.bolt.visible = false; Sound.shatter(0.5); Sound.tone(300, 0.15, 0.1, "square", 0, 120); chips(at, ironMat, 10, tmpV2.set(0, 1, 2)); addScore(20); pop(T("засов сбит", "bolt broken"), "info");
+    dr.bolted = false; dr.bolt.visible = false; dr.leaves.forEach(l => l.tg.forEach(m => { m.material = targetOn; })); // now the leaves are the targets Sound.shatter(0.5); Sound.tone(300, 0.15, 0.1, "square", 0, 120); chips(at, ironMat, 10, tmpV2.set(0, 1, 2)); addScore(20); pop(T("засов сбит", "bolt broken"), "info");
   }
   function doorLeafHit(dr, lf, at, vel) {
     if (dr.bolted || lf.opening) { Sound.knock(); chips(at, doorMatC, 4, vel); return; } // barred: a ball only knocks
-    lf.opening = true; Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); chips(at, doorMatC, 6, vel); addScore(15);
+    lf.opening = true; lf.tg.forEach(m => { m.material = targetOff; }); Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); chips(at, doorMatC, 6, vel); addScore(15);
     if (dr.leaves.every(l => l.opening)) { dr.open = true; balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); }
   }
   // what a point (world) touches on a door: a chain, the bolt, a leaf, or nothing; in the door's own frame for leaves
@@ -2609,7 +2634,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function doorTouch(dr, q, r) {
     for (const c of dr.chains) if (c.alive && segDist(q, c.A, c.B) < CHAIN_HIT + r - R_BALL) return { c };
     DL.copy(q).applyMatrix4(dr.inv);
-    if (dr.bolted && Math.abs(DL.y - BOLT_V) < 0.2 + r && Math.abs(DL.x) < 1.45 && Math.abs(DL.z - 0.24) < 0.2 + r) return { bolt: true };
+    if (dr.bolted && Math.abs(DL.y - BOLT_V) < 0.3 + r && Math.abs(DL.x) < 1.5 && Math.abs(DL.z - 0.24) < 0.25 + r) return { bolt: true };
     if (Math.abs(DL.z) > 0.12 + r) return null;
     if (dr.kind === "flap") return dr.ang < 0.35 && Math.abs(DL.x) < DOOR_W && DL.y > 0 && DL.y < FLAP_H ? { leaf: true } : null;
     for (const lf of dr.leaves) if (lf.ang < 0.3 && DL.y > 0 && DL.y < LEAF_H && (lf.sd < 0 ? DL.x < 0 && DL.x > -DOOR_W : DL.x >= 0 && DL.x < DOOR_W)) return { lf };
@@ -2624,7 +2649,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function updateDoors(dt) {
     for (const dr of doors) {
       setObj(dr.root, dr.s, 0, 0); dr.root.updateMatrixWorld(true); dr.inv.copy(dr.root.matrixWorld).invert();
-      for (const c of dr.chains) { c.A.set(c.x, H - 0.34, 0.05); dr.root.localToWorld(c.A); c.B.set(c.x, FLAP_H, 0.05); dr.root.localToWorld(c.B); }
+      for (const c of dr.chains) { c.A.set(c.x, H - 0.34, 0.05); dr.root.localToWorld(c.A); c.B.set(c.x, FLAP_H + 0.1, 0.05); dr.root.localToWorld(c.B); }
       if (dr.kind === "flap" && dr.open && dr.ang < Math.PI / 2) { // it falls toward the cart, faster and faster, and lies flat
         dr.angV += 3.2 * Math.cos(dr.ang) * dt + 0.6 * dt; dr.ang = Math.min(Math.PI / 2, dr.ang + dr.angV * dt);
         if (dr.ang >= Math.PI / 2) { Sound.slam(); chips(new THREE.Vector3().setFromMatrixPosition(dr.root.matrixWorld), doorMatC, 10, tmpV2.set(0, 2, 0)); if (!reduceMotion && Math.abs(dr.s - sC) < 30) shakeT = Math.max(shakeT, 0.2); }
@@ -3331,7 +3356,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       req: { after: "speculum", or: "rubinus" }, map: { x: 730, y: 330, label: "t", dx: 12 } },
     { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 1200, pal: PAL_CARCER, finale: "custodes",
       // corridors only link the halls; the halls, wider and higher, hold the traps
-      style: { arch: "square", blocks: "cube", glassWalls: false }, halls: true, crystalMul: 2.0, armor: 1, driftMul: 1.2, thorns: { from: 0.45, mul: 0.8 }, decoyMul: 0.5,
+      style: { arch: "square", blocks: "cube", glassWalls: false }, halls: true, crystalMul: 2.0, armor: 1, driftMul: 1.2, lightMul: 1.7, speedMul: 0.88, spaceMul: 1.4, thorns: { from: 0.45, mul: 0.8 }, decoyMul: 0.5,
       pats: { bars: [0.8, 1, 1.2], imps: [0.2, 0.4, 0.9], shutter: [0.5, 1.2, 1.5], reinf: [0.5, 1, 1.5], center: [2, 2, 1.5], double: [0.5, 1, 1.2], slider: [1, 1.5, 1.5],
         lift: [0.5, 1, 1], wall: [0.4, 0.4, 0.4], triple: [0.6, 0.8, 0.8], sides: [1, 0.6, 0.2], bonus: [1.2, 0.5, 0.2] },
       hallPats: { grate1: [1, 1.2, 1.4], grate2: [1, 1.2, 1.4], grate3: [0.5, 0.9, 1.3], lrow: [1.2, 1.5, 1.8], lgrid: [0.4, 0.9, 1.4], axes: [1, 1.4, 1.8],
@@ -3477,7 +3502,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     hortus: { sky: { mode: 3, a: 0.85, c: "#fff0f4" } },
     speculum: { sky: { mode: 2, a: 0.9, c: "#f0f4ff" }, shell: [5.3, 8.75], style: { tex: "chrome", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum // open to a sky of quicksilver
     abyssus: { sky: { mode: 1 } },
-    carcer: { sky: { mode: 0 }, style: { tex: "bars" } },
+    carcer: { sky: { mode: 0 }, style: { tex: "concrete" } }, // walls of reinforced concrete slabs
     lux: { sky: { mode: 4, a: 0.9, c: "#fff4d0" } },
   };
   // Carcer: halls of 60–90 m linked by corridors of 28–45 m, on the 2 m grid of the decor; the finale is fought in the yard
@@ -3924,7 +3949,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     pitchTs += (rawPitch - pitchTs) * (1 - Math.exp(-dt * 2.5));
 
     // motion: uphill is slower, downhill faster
-    let sp = BASE_SPEED * (1 - 0.55 * Math.sin(pitchC)) * Math.min(1, 0.4 + runTime * 0.6);
+    let sp = BASE_SPEED * (LEVEL.speedMul || 1) * (1 - 0.55 * Math.sin(pitchC)) * Math.min(1, 0.4 + runTime * 0.6);
     if (superOn) sp *= 1.2;
     if (sC > END_S - 34) sp = Math.min(sp, Math.max(2.2, (END_S - sC) * 0.55 + 1.5)); // brake into the station
     speedNow = sp;

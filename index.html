@@ -1714,7 +1714,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const d = curD(), prog = sC / MAIN_LEN;
     let pat = spawnGroupKind || pickPattern(clamp(d + 0.12 * prog, 0, 1), hall);
     if (spawnGroupKind === "grams2" || spawnGroupKind === "grams1") { addRams(s, spawnGroupKind === "grams2", true); return; }
-    if (!spawnGroupKind && LEVEL.id === "labyrinthus" && openHallAround(s) && Math.random() < 0.55) pat = "grams"; // an open hall is where the glass blocks swing
+    if (!spawnGroupKind && LEVEL.id === "labyrinthus" && openHallAround(s) && Math.random() < 0.8) pat = "grams"; // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
       case "center": addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break;
@@ -1836,18 +1836,19 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       case "grams": if (openHallAround(s)) { addRams(s, Math.random() < 0.5, true); break; } // elsewhere a cross instead
       // falls through
       case "rotor": {
-        const spin = rand(0.8, 1.3) * (Math.random() < 0.5 ? -1 : 1), a0 = rand(0, TAU), lab = LEVEL.id === "labyrinthus";
-        // in Labyrinthus most crosses are solid, as thick as an arm is wide; a flat one only turns round. A solid one may also
-        // spin fast like a propeller on a slowly turning potter's wheel, or tumble about two axes of its own: in all three planes
-        const thick = lab && Math.random() < 0.65 ? 0.55 : 0, tk = thick ? Math.floor(Math.random() * 3) : 0, sg = () => (Math.random() < 0.5 ? -1 : 1);
+        const spin = rand(0.8, 1.3) * (Math.random() < 0.5 ? -1 : 1), a0 = rand(0, TAU), lab = LEVEL.id === "labyrinthus", sg = () => (Math.random() < 0.5 ? -1 : 1);
+        // Labyrinthus's crosses are solid, as thick as an arm is wide: turning round, spinning like a propeller on a slowly
+        // turning potter's wheel, or tumbling about two axes of their own, in all three planes. Vitrum's are flat: turning
+        // round, or tumbling about an arm or a slant axis as they turn
+        const thick = lab ? 0.55 : 0, tk = lab ? Math.floor(Math.random() * 3) : 0;
         const tilt = tk === 2 ? [{ ax: new THREE.Vector3(1, 0, 0), w: rand(0.8, 1.4) * sg(), b: rand(0, TAU) }, { ax: new THREE.Vector3(0, 1, 0), w: rand(0.6, 1.1) * sg(), b: rand(0, TAU) }]
-          : null;
+          : LEVEL.id === "vitrum" && Math.random() < 0.4 ? { ax: Math.random() < 0.5 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(1, 1, 0).normalize(), w: rand(0.9, 1.5) * sg(), b: rand(0, TAU) } : null;
         const turn = tk === 1 ? { w: 0.75 * sg(), b: rand(0, TAU) } : null;
         addPane({ s, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: a0, spin: turn ? 3 * sg() : spin, cross: true, thick, tilt, turn });
         break;
       }
       case "rotor2": { // a mill of two crosses side by side in checkerboard order, one a step behind, turning against each other
-        const spin = rand(0.9, 1.3), a0 = rand(0, TAU), sd = Math.random() < 0.5 ? -1 : 1, thick = Math.random() < 0.6 ? 0.45 : 0, seq = {};
+        const spin = rand(0.9, 1.3), a0 = rand(0, TAU), sd = Math.random() < 0.5 ? -1 : 1, thick = LEVEL.id === "labyrinthus" ? 0.45 : 0, seq = {}; // solid in Labyrinthus, flat in Vitrum
         addPane({ s, u: -1.65 * sd, v: 2.5, w: 3.3, h: 0.45, rot: a0, spin, cross: true, thick, seq });
         addPane({ s: s - 2.4, u: 1.65 * sd, v: 2.5, w: 3.3, h: 0.45, rot: a0 + Math.PI / 4, spin: -spin, cross: true, thick, seq });
         break;
@@ -3522,11 +3523,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "perfect_alignment", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "prism", glassWalls: true }, crystalMul: 1.1,
       pats: { center: [1, 1, 0.7], wall: [0.5, 0.5, 0.5], triple: [0.5, 0.8, 0.5], double: [0, 0.4, 0.8], sides: [1.4, 0.5, 0], gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1],
-        bar: [0.7, 0.8, 0.8], bars2: [0.7, 1.1, 1.3], barrow: [0.4, 0.8, 1.1], barwave: [0.3, 0.7, 1], barfan: [0.4, 0.7, 0.8] }, // and glass bars turning, alone and in sequences
+        bar: [0.45, 0.5, 0.5], bars2: [0.45, 0.7, 0.85], barrow: [0.25, 0.5, 0.7], barwave: [0.2, 0.45, 0.65], barfan: [0.25, 0.45, 0.5], // glass bars turning, alone and in sequences
+        rotor: [0.5, 0.6, 0.6], rotor2: [0.3, 0.5, 0.6] }, // and flat glass crosses, alone or a checkerboard pair
       turns: [[80, 50, -45], [190, 60, 70], [300, 45, -50], [380, 45, 50], [500, 80, -90], [640, 50, 40], [730, 50, -40],
         [830, 70, 80], [960, 50, -55], [1060, 60, 60], [1180, 45, -45], [1260, 45, 45], [1380, 70, -70]],
-      desc: "Призматические галереи над пустотой. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть. Поперёк пути вращаются стеклянные планки, поодиночке и вереницами.",
-      feats: ["Монолиты на цепях и маятники поперёк пути", "Вращающиеся стеклянные планки и их вереницы", "Финал Ruina: обвал глыб"],
+      desc: "Призматические галереи над пустотой. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть. Поперёк пути вращаются стеклянные планки и кресты, поодиночке и вереницами.",
+      feats: ["Монолиты на цепях и маятники поперёк пути", "Вращающиеся стеклянные планки, кресты и их вереницы", "Финал Ruina: обвал глыб"],
       req: { after: "initium" }, map: { x: 270, y: 330, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
@@ -3536,9 +3538,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.2,
       forks: [330, 720, 1110],
-      pats: { rotor: [1.1, 1.5, 1.7], rotor2: [0.6, 1, 1.3], grams: [0.7, 1, 1.2], shutter: [0, 1.5, 2.5], slider: [1, 2, 2], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], sides: [1, 0.6, 0], bonus: [1, 0.3, 0], triple: [0.6, 1, 0.8] },
+      pats: { rotor: [1.1, 1.5, 1.7], rotor2: [0.6, 1, 1.3], grams: [1, 1.4, 1.6], shutter: [0, 1.5, 2.5], slider: [1, 2, 2], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], sides: [1, 0.6, 0], bonus: [1, 0.3, 0], triple: [0.6, 1, 0.8] },
       turns: [[120, 50, 40], [220, 50, -40], [480, 60, 60], [600, 50, -50], [880, 60, -60], [980, 50, 50], [1250, 60, 45], [1360, 50, -45]],
-      desc: "Замкнутые изумрудные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Одна ветка богатая, другая тихая, а невыбранная заканчивается тупиком. В коридорах вращаются стеклянные кресты, плоские и объёмные, а в открытых залах качаются на цепях стеклянные блоки.",
+      desc: "Замкнутые изумрудные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Одна ветка богатая, другая тихая, а невыбранная заканчивается тупиком. В коридорах вращаются массивные стеклянные кресты, а в открытых залах качаются на цепях стеклянные блоки.",
       feats: ["Три развилки: стрелку переводят выстрелом", "Вращающиеся стеклянные крестовины", "Финал Portae: стеклянные врата с ключами"],
       req: { after: "vitrum" }, map: { x: 410, y: 190, label: "t" } },
     { id: "hortus", num: "III·a", latin: "Hortus", ru: "Сад", line: "branch", playable: true, music: "glass_horizon", len: 900, pal: PAL_HORTI, finale: "vindemia",
@@ -3611,11 +3613,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         feats: ["Square arches, solid walls and floating cubes", "Glass, blue crystals; in the Dark spikes and black-red crystal imps", "Finale Iudicium: seals and a multiplier"] },
       thesaurus: { ru: "Treasury", desc: "A dead-end branch off Rubinus. Golden halls with round arches and floating coins. Twice the usual crystals: the ride costs a fare, but you can come back with a profit.",
         feats: ["2.2 times the crystals", "A short ride, about a minute", "Finale Pluvia: a rain of crystals"] },
-      vitrum: { ru: "Glass", desc: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars turn across the track, alone and in sequences.",
-        feats: ["Monoliths on chains and pendulums across the track", "Turning glass bars and their sequences", "Finale Ruina: falling boulders"] },
+      vitrum: { ru: "Glass", desc: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, alone and in sequences.",
+        feats: ["Monoliths on chains and pendulums across the track", "Turning glass bars, crosses and their sequences", "Finale Ruina: falling boulders"] },
       armamentarium: { ru: "Armoury", desc: "A dead-end depot by Vitrum station. Here crystals buy new cannons and upgrades for the cart.",
         feats: ["The Triplex, Gemini and Lumen cannons", "Upgrades: a bigger reserve, a second wind, more bounty from crystals", "What you buy stays yours; switch cannons in the menu"] },
-      labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. One branch is rich, the other quiet, and the one not taken ends in a dead end. Glass crosses turn in the corridors, flat and solid, and in the open halls glass blocks swing on chains.",
+      labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. One branch is rich, the other quiet, and the one not taken ends in a dead end. Solid glass crosses turn in the corridors, and in the open halls glass blocks swing on chains.",
         feats: ["Three forks: flip the switch with a shot", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       hortus: { ru: "Garden", desc: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it.",
         feats: ["Lashing boughs with crystals", "After a ride Gemini costs half at the depot", "Finale Vindemia: the harvest"] },

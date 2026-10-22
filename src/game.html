@@ -1682,12 +1682,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     spawnGroupAt(s);
     for (const dr of doors) if (dr.kind === "flap" && !dr.open) clearFlapZone(dr);
   }
+  let spawnGroupKind = null; // a test may ask for one pattern
   function spawnGroupAt(s) {
     // Carcer's doors come up as the track reaches them, and nothing else is set down right at one
     while (doorPlan.length && doorPlan[0].s < s + 12) spawnDoor(doorPlan.shift());
     if (doors.some(dr => Math.abs(dr.s - s) < 9)) return;
     const hall = LEVEL.halls && inHall(s);
-    const d = curD(), prog = sC / MAIN_LEN, pat = pickPattern(clamp(d + 0.12 * prog, 0, 1), hall);
+    const d = curD(), prog = sC / MAIN_LEN, pat = spawnGroupKind || pickPattern(clamp(d + 0.12 * prog, 0, 1), hall);
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
       case "center": addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break;
@@ -1780,6 +1781,29 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [-1, 1].forEach(k => addPane({ s, u: k * SW / 2, v: SH / 2, w: SW, h: SH - 0.3, move: { axis: "shutter", sign: k, freq, phase } }));
         break;
       }
+      // Vitrum's glass bars, the arms Labyrinth's crosses are made of, each turning about the track like a cross. A bar
+      // may also tumble as it turns: about its own length, or about a slant axis at 45°, out of its plane and back
+      case "bar": addGlassBar(s, {}, Math.random() < 0.4 ? null : Math.random() < 0.5 ? "axis" : "diag"); break;
+      case "bars2": { // two shorter bars side by side in checkerboard order, one a step behind the other, turning against each other
+        const spin = rand(0.9, 1.3), a0 = rand(0, TAU), sd = Math.random() < 0.5 ? -1 : 1;
+        const seq = {}; addGlassBar(s, { u: -1.6 * sd, w: 3.4, rot: a0, spin, seq }); addGlassBar(s - 2.2, { u: 1.6 * sd, w: 3.4, rot: a0 + Math.PI / 2, spin: -spin, seq });
+        break;
+      }
+      case "barrow": { // a screw: bars one behind another, each turned an eighth further on, all turning as one
+        const n = 3 + Math.floor(Math.random() * 3), spin = rand(0.7, 1.1) * (Math.random() < 0.5 ? -1 : 1), a0 = rand(0, TAU), dir = Math.random() < 0.5 ? -1 : 1;
+        const seq = {}; for (let i = 0; i < n; i++) addGlassBar(s - i * 3, { rot: a0 + dir * i * Math.PI / 4, spin, seq });
+        break;
+      }
+      case "barwave": { // scissors: four bars turning against each other in turn, opening and closing on the track
+        const spin = rand(0.8, 1.2), a0 = rand(0, TAU);
+        const seq = {}; for (let i = 0; i < 4; i++) addGlassBar(s - i * 2.6, { rot: a0, spin: i % 2 ? -spin : spin, seq });
+        break;
+      }
+      case "barfan": { // a ripple: bars held at one slant, flipping about their length one after another
+        const n = 3 + Math.floor(Math.random() * 2), a0 = rand(-0.5, 0.5), w = rand(1.6, 2.2) * (Math.random() < 0.5 ? -1 : 1);
+        const seq = {}; for (let i = 0; i < n; i++) addGlassBar(s - i * 3, { rot: a0, spin: 0, seq }, "axis", { w, b: i * Math.PI / 3 });
+        break;
+      }
       case "rotor": {
         const spin = rand(0.8, 1.3) * (Math.random() < 0.5 ? -1 : 1), a0 = rand(0, TAU);
         addPane({ s, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: a0, spin, cross: true });
@@ -1812,6 +1836,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (STYLE.arch === "none") return s;
     const k = Math.floor(s / SL), sa = k * SL + SL / 2;
     return getDecor(k).arch && Math.abs(s - sa) < 1 ? sa + (s < sa ? -1 : 1) : s;
+  }
+  function addGlassBar(s, o, tumble, t = {}) {
+    const tilt = tumble && { ax: tumble === "axis" ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(1, Math.random() < 0.5 ? 1 : -1, 0).normalize(), w: t.w ?? rand(1.2, 2.0) * (Math.random() < 0.5 ? -1 : 1), b: t.b ?? rand(0, TAU) };
+    addPane(Object.assign({ s, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: rand(0, TAU), spin: rand(0.8, 1.3) * (Math.random() < 0.5 ? -1 : 1), tilt }, o));
   }
   function spacing(d) { return lerp(24, 14, d) * (1 - 0.15 * Math.min(1, sC / MAIN_LEN)) * (LEVEL.spaceMul || 1); } // a level may space its groups wider
 
@@ -1878,7 +1906,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       .addScaledVector(p.U, dy * spd + impL.y * 0.06 + 0.6)
       .addScaledVector(p.T, impL.z * (0.15 + Math.random() * 0.25));
     shards.push({
-      mesh: m, life: 2.4 + Math.random() * 1.2, v, floorP: tmpV.copy(p.C).addScaledVector(p.U, -p.v).clone(), floorN: p.U.clone(),
+      mesh: m, life: 2.4 + Math.random() * 1.2, v, floorP: tmpV.copy(p.C).addScaledVector(p.U0 || p.U, -p.v).clone(), floorN: (p.U0 || p.U).clone(),
       w: new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6),
     });
     if (shards.length > MAX_SHARDS) dropShard(shards.shift());
@@ -1945,7 +1973,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // wide: a grate across the whole track on two chains
   function addHanger(s, kind, laser = false, bars = false, opt = {}) {
     if (inCurve(s) && !opt.wide) kind = "pendulum"; // two chains are too much to hit while the track bends
-    const pend = kind === "pendulum", w = laser ? 4.2 : opt.wide ? 5.4 : pend ? 2.3 : 3.0, h = laser ? 0.32 : pend ? 2.1 : 2.4, d = laser ? 0.32 : 0.55;
+    // a monolith: a square block on one chain (pendulum) or an oblong slab on two (gate)
+    const pend = kind === "pendulum", w = laser ? 4.2 : opt.wide ? 5.4 : pend ? 2.3 : bars ? 3.0 : 4.0, h = laser ? 0.32 : pend ? 2.1 : bars ? 2.4 : 2.0, d = laser ? 0.32 : 0.55;
     const top = (inHall(s) ? HALL_H : SH) - 0.06; // chains hang from the vault over them, a hall's being higher
     // a laser beam hangs high, over the cart, and its lasers reach down to the floor
     const L = laser ? top - 4.4 : top - (CAM_V + 0.25) - h / 2, arm = pend ? L + h / 2 : L; // pivot to the slab's center (pendulum) or chain length (gate)
@@ -3398,11 +3427,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       req: { after: "rubinus", fare: 20 }, map: { x: 615, y: 440, label: "t", dy: -5 } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "perfect_alignment", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "prism", glassWalls: true }, crystalMul: 1.1,
-      pats: { center: [1.5, 1.5, 1], wall: [0.5, 0.5, 0.5], triple: [0.6, 1, 0.6], double: [0, 0.4, 0.8], sides: [2, 0.6, 0], gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1] },
+      pats: { center: [1.2, 1.2, 0.8], wall: [0.5, 0.5, 0.5], triple: [0.6, 1, 0.6], double: [0, 0.4, 0.8], sides: [1.6, 0.5, 0], gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1],
+        bar: [0.8, 1, 1], bars2: [0.3, 0.6, 0.8], barrow: [0.2, 0.5, 0.8], barwave: [0.1, 0.4, 0.7], barfan: [0.3, 0.5, 0.6] }, // and glass bars turning, alone and in sequences
       turns: [[80, 50, -45], [190, 60, 70], [300, 45, -50], [380, 45, 50], [500, 80, -90], [640, 50, 40], [730, 50, -40],
         [830, 70, 80], [960, 50, -55], [1060, 60, 60], [1180, 45, -45], [1260, 45, 45], [1380, 70, -70]],
-      desc: "Призматические галереи над пустотой. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть.",
-      feats: ["Монолиты на цепях и маятники поперёк пути", "Шестигранные своды и стеклянные стены", "Финал Ruina: обвал глыб"],
+      desc: "Призматические галереи над пустотой. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть. Поперёк пути вращаются стеклянные планки, поодиночке и вереницами.",
+      feats: ["Монолиты на цепях и маятники поперёк пути", "Вращающиеся стеклянные планки и их вереницы", "Финал Ruina: обвал глыб"],
       req: { after: "initium" }, map: { x: 270, y: 330, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
@@ -3487,8 +3517,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         feats: ["Square arches, solid walls and floating cubes", "Glass, blue crystals; in the Dark spikes and black-red crystal imps", "Finale Iudicium: seals and a multiplier"] },
       thesaurus: { ru: "Treasury", desc: "A dead-end branch off Rubinus. Golden halls with round arches and floating coins. Twice the usual crystals: the ride costs a fare, but you can come back with a profit.",
         feats: ["2.2 times the crystals", "A short ride, about a minute", "Finale Pluvia: a rain of crystals"] },
-      vitrum: { ru: "Glass", desc: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss.",
-        feats: ["Monoliths on chains and pendulums across the track", "Hexagonal vaults and glass walls", "Finale Ruina: falling boulders"] },
+      vitrum: { ru: "Glass", desc: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars turn across the track, alone and in sequences.",
+        feats: ["Monoliths on chains and pendulums across the track", "Turning glass bars and their sequences", "Finale Ruina: falling boulders"] },
       armamentarium: { ru: "Armoury", desc: "A dead-end depot by Vitrum station. Here crystals buy new cannons and upgrades for the cart.",
         feats: ["The Triplex, Gemini and Lumen cannons", "Upgrades: a bigger reserve, a second wind, more bounty from crystals", "What you buy stays yours; switch cannons in the menu"] },
       labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. One branch is rich, the other quiet, and the one not taken ends in a dead end.",
@@ -4122,7 +4152,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (sC > MAIN_LEN - 150) resetWorld(false);
   }
 
-  const ENVELOPE = [[-0.5, 0.8], [0.5, 0.8], [-0.5, 1.8], [0.5, 1.8], [0, 1.3], [0, 0.8], [0, 1.8]]; // points of the cart a rotor bar may hit
+  const CART_ENV = [0.8, 1.05, 1.3, 1.55, 1.8].flatMap(v => [-0.5, -0.25, 0, 0.25, 0.5].map(u => [u, v])); // points of the cart a rotor bar may hit
   const inv = { x: 0, y: 0, z: 0 };
   function toLocal(p, pos) { tmpV.copy(pos).sub(p.C); inv.x = tmpV.dot(p.R); inv.y = tmpV.dot(p.U); inv.z = -tmpV.dot(p.T); return inv; }
 
@@ -4145,20 +4175,24 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       setObj(p.group, p.s, p.u, p.v);
       frameAt(p.s);
       p.R.copy(_R); p.U.copy(_U); p.T.copy(_T); p.C.copy(_P).addScaledVector(_R, p.u).addScaledVector(_U, p.v);
-      if (p.rot !== undefined) { // a rotor bar: turn its frame about the track axis
-        p.rot += p.spin * dt;
-        const c = Math.cos(p.rot), sn = Math.sin(p.rot), r = tmpV.copy(p.R);
-        p.R.multiplyScalar(c).addScaledVector(p.U, sn); p.U.multiplyScalar(c).addScaledVector(r, -sn);
+      if (p.rot !== undefined) { // a rotor bar: turn it about the track axis, and maybe tumble it about an axis of its own
+        p.rot += p.spin * dt; p.U0 = (p.U0 || new THREE.Vector3()).copy(_U);
         p.group.matrix.multiply(M2.makeRotationZ(p.rot));
+        if (p.tilt) { p.tilt.b += p.tilt.w * dt; p.group.matrix.multiply(M2.makeRotationAxis(p.tilt.ax, p.tilt.b)); }
+        const e = p.group.matrix.elements; // its basis is (R, U, −T): T is the pane's normal, away from the cart
+        p.R.set(e[0], e[1], e[2]).normalize(); p.U.set(e[4], e[5], e[6]).normalize(); p.T.set(-e[8], -e[9], -e[10]).normalize();
       }
       p.q.setFromRotationMatrix(p.group.matrix);
       if (state === "play" && !p.passed && p.s <= sC + 0.6) {
         p.passed = true;
         let blocks;
-        if (p.rot !== undefined) {
-          const c = Math.cos(p.rot), sn = Math.sin(p.rot);
-          blocks = ENVELOPE.some(([cu, cv]) => { const du = cu - p.u, dv = cv - p.v; return inPane(p, du * c + dv * sn, -du * sn + dv * c); });
+        if (p.rot !== undefined) { // the cart's body swept along the track through the pane, turned and tumbled as it is now
+          blocks = CART_ENV.some(([cu, cv]) => {
+            for (let t = -3; t <= 3.01; t += 0.2) { const l = toLocal(p, tmpV2.copy(_P).addScaledVector(_R, cu).addScaledVector(_U, cv).addScaledVector(_T, t)); if (Math.abs(l.z) < 0.12 && inPane(p, l.x, l.y)) return true; }
+            return false;
+          });
         } else blocks = p.u - p.w / 2 < 0.55 && p.u + p.w / 2 > -0.55 && p.v - p.h / 2 < CAM_V + 0.1 && p.v + p.h / 2 > 0.7;
+        if (blocks && p.seq) { if (p.seq.hit) blocks = false; else p.seq.hit = true; } // a sequence of bars crashes the cart once
         if (blocks) { if (p.link) p.link.passed = true; crash(p); } // one crash per rotor
       }
       if (p.alive && p.s < sC - 6) removePane(p);
@@ -4804,6 +4838,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (what === "chains") dr.chains.forEach(c => c.alive && doorStrike(dr, { c }, at, v)); else if (what === "bolt") doorStrike(dr, { bolt: true }, at, v); else dr.leaves.forEach(lf => doorStrike(dr, { lf }, at, v)); return true; },
     lastSet: () => lastSet && { s: +(lastSet.s - sC).toFixed(1), cost: lastSet.cost, axis: lastSet.axis, n: lastSet.bars.length, bits: barBits.length },
     crystalsNear: (a, b) => crystals.filter(c => c.s - sC > a && c.s - sC < b).length,
+    glassBar(kind, ahead) { spawnGroupKind = kind; spawnGroupAt(sC + ahead); spawnGroupKind = null; }, paneState: () => panes.map(p => [+(p.s - sC).toFixed(1), p.rot !== undefined, !!p.tilt, p.passed || false]),
     barState: () => lbars.map(x => ({ s: +(x.s - sC).toFixed(1), axis: x.axis, cost: x.cost, bars: x.bars.map(b => b.orient + b.n + (b.alive ? '' : 'x')).join() })), breakBars() { lbars.forEach(x => x.bars.forEach(b => b.alive && breakBar(b, b.wp.clone()))); },
     doorState: () => doors.map(d => ({ s: +(d.s - sC).toFixed(1), kind: d.kind, open: d.open, bolted: d.bolted, ang: +d.ang.toFixed(2), chains: d.chains.filter(c => c.alive).length })), breakHammer() { const m = hmills[0], a = m && m.arms.find(x => x.alive); if (a) breakHandle(m, a, a.A.clone()); return m ? m.heads.length : -1; }, heads: () => hmills.map(m => m.heads.map(h => h.g.position.y.toFixed(2)).join('/')).join(), ramState: () => ({ rams: rams.map(r => [r.falling, r.hit, r.chains.map(c => c.alive).join(), +(r.phi || 0).toFixed(2), +r.body.position.y.toFixed(2), +(r.lc || 0).toFixed(2)]), hm: hmills.map(m => [m.hit, m.arms.map(a => a.alive).join()]) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), dropAll() { gates.forEach(g => g.weights && g.leaves.forEach(lf => dropWeight(g, lf))); return gates.map(g => g.weights); }, pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },

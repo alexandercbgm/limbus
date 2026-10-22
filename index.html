@@ -384,6 +384,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     </div>
     <div class="btns">
       <button class="cta" id="nextBtn" type="button">Дальше</button>
+      <button class="cta" id="nextBtn2" type="button" hidden>Дальше</button>
       <button class="ghost" id="againBtn" type="button">Ещё раз</button>
       <button class="ghost" id="winMenu" type="button" data-en="To the scheme">На схему</button>
     </div>
@@ -3227,9 +3228,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const unlockAll = location.hash === "#all"; // for testing: open every built station
   // a station opens once the one before it is done; with req.or there is a second way in (Abyssus: from Crystallum)
   function isOpen(lv) { return unlockAll || !lv.req.after || !!progress.done[lv.req.after] || (lv.req.or && !!progress.done[lv.req.or]) || !!progress.open[lv.id]; }
-  // the next station: along the main line, or where a side line rejoins it (Rubinus → Abyssus, Tao → Lux); a dead end has none
-  const NEXT_OFF = { rubinus: "abyssus", tao: "lux" };
-  function nextLevel(lv) { const i = MAIN_LINE.indexOf(lv.id); return NEXT_OFF[lv.id] ? byId(NEXT_OFF[lv.id]) : i >= 0 && i < MAIN_LINE.length - 1 ? byId(MAIN_LINE[i + 1]) : null; }
+  // the stations a finished one leads on to, along any of the lines (Vitrum: Rubinus or Labyrinthus; Speculum: Abyssus
+  // or Tao); a dead end leads nowhere
+  function nextLevels(lv) {
+    if (lv.line === "branch") return [];
+    return LEVELS.filter(l => l.line !== "branch" && l.playable && (l.req.after === lv.id || l.req.or === lv.id))
+      .sort((a, b) => (a.id === "rubinus" || a.id === "abyssus" ? -1 : 0) - (b.id === "rubinus" || b.id === "abyssus" ? -1 : 0)); // Linea Ima first
+  }
   // a ride on a branch costs its fare every time; with too few crystals the station sheet explains why
   function rideLevel(lv) {
     const fare = lv.req.fare || 0;
@@ -3360,9 +3365,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       $("wSuper").textContent = superGain; // already among the balls left, so no plus
       $("wAcc").textContent = (stats.thrown ? Math.round(stats.hits / stats.thrown * 100) : 0) + "%";
       $("wBest").textContent = best.toLocaleString(T("ru-RU", "en-US"));
-      const nx = nextLevel(LEVEL), nb = $("nextBtn");
-      nb.hidden = !(nx && nx.playable);
-      if (nx) nb.textContent = T(`Дальше: ${nx.latin}`, `Next: ${nx.latin}`);
+      const nxs = nextLevels(LEVEL); // one button for each way on
+      ["nextBtn", "nextBtn2"].forEach((id, i) => { const nb = $(id), nx = nxs[i]; nb.hidden = !nx; if (nx) { nb.dataset.id = nx.id; nb.textContent = T(`Дальше: ${nx.latin}`, `Next: ${nx.latin}`); } });
       $("againBtn").textContent = againText();
       $("win").hidden = false;
     } else {
@@ -4349,7 +4353,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     $("over").hidden = true; state = "play"; pop(T("второе дыхание", "second wind"), "info");
   });
   $("againBtn").addEventListener("click", () => rideLevel(LEVEL));
-  $("nextBtn").addEventListener("click", () => { const nx = nextLevel(LEVEL); if (nx && nx.playable) rideLevel(nx); });
+  ["nextBtn", "nextBtn2"].forEach(id => $(id).addEventListener("click", () => { const nx = byId($(id).dataset.id); if (nx && nx.playable) rideLevel(nx); }));
   ["overMenu", "winMenu"].forEach(id => $(id).addEventListener("click", showMenu));
   $("pauseBtn").addEventListener("click", pauseGame);
   $("resumeBtn").addEventListener("click", resumeGame);

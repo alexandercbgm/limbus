@@ -80,6 +80,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .rules { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 0; margin: 18px 0 20px; }
 .rules li { border-top: 2px solid #10242e; padding-top: 8px; font-size: 11.5px; line-height: 1.35; color: #4c6470; }
 .rules b { display: block; font-family: var(--mono); font-size: 19px; color: #10242e; margin-bottom: 2px; }
+.journey { margin: -6px 0 18px; padding: 12px 14px; border-radius: 6px; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); font-size: 13px; line-height: 1.45; color: #4c6470; }
+.journey h2 { margin: 0 0 6px; font: 700 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: #10242e; }
+.journey p { font-size: 13px; margin: 0 0 6px; }
+.journey ul { margin: 4px 0 8px; padding-left: 18px; }
+.journey b { color: #10242e; }
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; margin: 18px 0 22px; }
 .stat span { display: block; font-size: 11px; color: #4c6470; text-transform: uppercase; letter-spacing: 0.08em; }
 .stat b { font-family: var(--mono); font-size: 24px; font-variant-numeric: tabular-nums; }
@@ -218,6 +223,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   .stats { margin: 10px 0; }
   .banner .bn-name { font-size: 34px; } .banner .bn-note { font-size: 13px; }
   .tc-name { font-size: 44px; }
+}
+/* the end of the game on a phone held sideways: the results on the left, the journey on the right */
+@media (orientation: landscape) and (max-height: 560px) {
+  #win .panel.end { width: min(900px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 18px; align-items: start; }
+  #win .panel.end > * { grid-column: 1; }
+  #win .panel.end .journey { grid-column: 2; grid-row: 1 / span 5; margin: 0; }
+  #win .panel.end .stats { margin: 10px 0 12px; gap: 8px 14px; } #win .panel.end .stat b { font-size: 20px; }
+  #win .panel.end .btns { gap: 7px; } #win .panel.end .btns > * { padding-block: 10px; }
 }
 /* landscape screens too low for the one-column station sheet: the shot on the left, the text on the right */
 @media (orientation: landscape) and (max-height: 860px) {
@@ -384,6 +397,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       <div class="stat"><span data-en="Accuracy">Точность</span><b id="wAcc">0%</b></div>
       <div class="stat"><span data-en="Best">Лучший результат</span><b id="wBest">0</b></div>
     </div>
+    <div class="journey" id="winJourney" hidden></div>
     <div class="btns">
       <button class="cta" id="nextBtn" type="button">Дальше</button>
       <button class="cta" id="nextBtn2" type="button" hidden>Дальше</button>
@@ -1982,8 +1996,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (!reduceMotion) shakeT = 0.45;
   }
   // spawns one beat of the level's finale at s and returns the gap to the next beat
-  function spawnFinale(s) {
-    const f = LEVEL.finale;
+  // Triumphus: the finales of the stations this player has finished (dead ends too), in the order of the scheme
+  function triumphTrials() {
+    const t = [...new Set(LEVELS.filter(l => l.id !== "lux" && l.playable && l.finale && progress.done[l.id]).map(l => l.finale))];
+    return t.length ? t : ["iudicium", "reflexio", "rota", "portae", "pluvia"]; // a test ride straight to Lux
+  }
+  function spawnFinale(s, f = LEVEL.finale) {
     if (f === "portae") return spawnPortae(s);
     if (f === "ruina") {
       addDrop(s, rand(-2, 2), "block");
@@ -2020,15 +2038,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (let i = 0; i < n; i++) { addImp(s + i * 2.2, rand(-2.6, 2.6), rand(1.3, 4.4)); imps[imps.length - 1].wave = wave; }
       return 13;
     }
-    if (f === "triumphus") { // the trials of the whole line, one after another
-      const step = triStep++ % 5;
-      if (step === 0) { spawnSuper(s); return 11; }
-      if (step === 1) { spawnPair(s); return 11; }
-      if (step === 2) { addWheel(s); return 13; }
-      if (step === 3) { spawnPortae(s); return 15; }
-      for (let i = 0; i < 3; i++) addDrop(s + i * 2.5, rand(-3, 3), Math.random() < 0.25 ? "decoy" : "gem");
-      return 9;
-    }
+    if (f === "triumphus") { const t = triumphTrials(); return spawnFinale(s, t[triStep++ % t.length]); } // one trial after another
     if (f === "vindemia") { addBough(s, Math.random() < 0.5 ? -1 : 1, { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 }); return rand(10, 12); }
     if (f === "pluvia") {
       for (let i = 0; i < 2; i++) addDrop(s + i * 2.5, rand(-3, 3), Math.random() < 0.25 ? "decoy" : "gem");
@@ -2885,7 +2895,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     tessera: { name: "TESSERA", ru: "Мозаика", note: "Поперёк пути встаёт мозаика из рубинов, и в ней по очереди вспыхивает один камень. Попали во вспыхнувший — +2 шара, три подряд — ещё +3. Тусклый камень стоит шар." },
     fragmenta: { name: "FRAGMENTA", ru: "Осколки", note: "Волны хрусталя: за каждой перегородкой горит кристалл. Разбейте всю волну до последнего стекла — +4 шара, кристаллы платят как обычно." },
     custodes: { name: "CUSTODES", ru: "Стражи", note: "Стражи-тени летят волнами. Каждый сбитый — +1 шар, вся волна до последнего — ещё +4. Долетевший страж отнимает 3 шара." },
-    triumphus: { name: "TRIUMPHUS", ru: "Триумф", note: "Финал всей линии: по очереди печати, пары отражений, колёса, врата с ключами и дождь кристаллов. Каждое испытание идёт по своим правилам." },
+    triumphus: { name: "TRIUMPHUS", ru: "Триумф", note: "Финал всего пути: по очереди возвращаются суперигры станций, которые вы прошли, — и тупиков тоже. Каждая идёт по своим правилам." },
     rota: { name: "ROTA", ru: "Колесо", note: "Над мостом вращаются колёса из кристаллов. Голубой — +2 шара, красный — −3. Соберите все голубые с колеса, пока оно не проехало, — ещё +5." },
     vindemia: { name: "VINDEMIA", ru: "Сбор урожая", note: "Ветви тяжелы от кристаллов: каждый даёт 2 шара, а собранная целиком ветка ещё +3. Сломать ветку безопасно, но её кристаллы упадут. Хлёст по вагонетке стоит 3 шара." },
     reflexio: { name: "REFLEXIO", ru: "Отражение", note: "Мишени летят парами: предмет и его отражение. Сбейте обе мишени пары — +5 шаров, только одну — +1. Пропущенная мишень ничего не стоит." },
@@ -3112,7 +3122,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
       desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота, над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
       feats: ["Ворота из тёмного стекла: откройте их вертушками", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
-      req: { after: "speculum", or: "rubinus" }, map: { x: 730, y: 330, label: "tr", dx: -28, dy: -16 } },
+      req: { after: "speculum", or: "rubinus" }, map: { x: 730, y: 330, label: "t", dx: 12 } },
     { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 900, pal: PAL_CARCER, finale: "custodes",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.6, armor: 1, driftMul: 1.3, thorns: { from: 0.3, mul: 1.8 },
       pats: { bars: [2, 2.5, 3], imps: [1, 1.5, 3], shutter: [0.5, 1.5, 2], reinf: [0.5, 1, 2], center: [2, 2, 1.5], double: [0.5, 1, 1.5], slider: [1, 1.5, 1.5], wall: [0.5, 0.5, 0.5], sides: [1, 0.5, 0], bonus: [1, 0.3, 0] },
@@ -3127,7 +3137,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[110, 60, 50], [240, 60, -60], [370, 50, 45], [480, 80, -85], [640, 50, 50], [750, 60, -55], [870, 50, 45],
         [980, 70, -75], [1120, 50, 50], [1230, 60, -55], [1350, 50, 45], [1450, 60, -50]],
       desc: "Конечная. Белые залы со стеклянными стенами. Путь стерегут красные лазеры: вертушки в разрывах стен, парящие блоки, балки на цепях. Луч через вагонетку стоит 3 шара. Переборки с диафрагмой открываются кнопками. Подъём к Свету здесь самый тяжёлый.",
-      feats: ["Красные лазеры: вертушки, блоки, балки на цепях", "Переборки с диафрагмой и кнопками", "Финал Triumphus: все испытания линии по очереди"],
+      feats: ["Красные лазеры: вертушки, блоки, балки на цепях", "Переборки с диафрагмой и кнопками", "Финал Triumphus: суперигры пройденных станций по очереди"],
       req: { after: "abyssus", or: "tao" }, map: { x: 910, y: 330, label: "t", dx: 30 } }, // above and to the right, clear of the Tao line
   ];
   // ---------- English: the level, cannon and finale texts; Russian is what the tables above hold ----------
@@ -3156,7 +3166,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark. Blind corridors of rusted iron: grates hang on chains across the track, spikes strike from the walls and shade guards fly at you. The Dark pulls harder here. At the end lies a cannon the depot doesn't sell.",
         feats: ["Grates on chains: shoot the chains and the grate falls", "Spikes even in Purgatory", "Reward: the Ferrum cannon; finale Custodes"] },
       lux: { ru: "Light", desc: "The terminus. White halls with glass walls. Red lasers guard the way: spinners in gaps in the walls, floating blocks, beams on chains. A beam across the cart costs 3 balls. Iris bulkheads open with buttons. The climb to the Light is hardest here.",
-        feats: ["Red lasers: spinners, blocks, beams on chains", "Iris bulkheads with buttons", "Finale Triumphus: every trial of the line in turn"] },
+        feats: ["Red lasers: spinners, blocks, beams on chains", "Iris bulkheads with buttons", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
     },
     weapons: {
       ballista: { ru: "Railgun", desc: "One ball a shot. A crystal you hit pays its usual value." },
@@ -3173,7 +3183,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       tessera: { ru: "Mosaic", note: "A ruby mosaic rises across the track, and one stone at a time lights up. Hit the lit one: +2 balls, three in a row another +3. A dim stone costs a ball." },
       fragmenta: { ru: "Shards", note: "Waves of crystal glass: behind every partition glows a crystal. Break a whole wave to the last pane: +4 balls; the crystals pay as usual." },
       custodes: { ru: "Guards", note: "Shade guards fly in waves. Each one downed is +1 ball, a whole wave another +4. A guard that gets through takes 3 balls." },
-      triumphus: { ru: "Triumph", note: "The finale of the whole line: seals, mirrored pairs, wheels, gates with keys and a rain of crystals in turn. Each trial keeps its own rules." },
+      triumphus: { ru: "Triumph", note: "The finale of the whole journey: the finales of the stations you have finished, dead ends too, come back one after another, each with its own rules." },
       rota: { ru: "Wheel", note: "Wheels of crystals turn over the bridge. Blue is +2 balls, red −3. Take every blue off a wheel before it passes: another +5." },
       vindemia: { ru: "Harvest", note: "The boughs are heavy with crystals: each gives 2 balls, a bough picked clean another +3. Breaking a bough is safe, but its crystals fall. A lash across the cart costs 3 balls." },
       reflexio: { ru: "Reflection", note: "Targets fly in pairs: a thing and its reflection. Down both of a pair: +5 balls; only one: +1. A missed target costs nothing." },
@@ -3342,6 +3352,33 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     renderMap();
     resetWorld(false); // the rails keep rolling empty behind the menu
   }
+  // Lux is the end of the game: its win screen congratulates, sums up the journey and says what is left to do
+  function journey(first) {
+    const box = $("winJourney"), end = LEVEL.id === "lux", fin = $("winMenu");
+    box.hidden = !end; $("win").querySelector(".panel").classList.toggle("end", end);
+    fin.className = end ? "cta" : "ghost"; fin.style.order = end ? "-1" : "";
+    fin.textContent = end ? T("Финиш", "Finish") : T("На схему", "To the scheme");
+    if (!end) return;
+    $("winEyebrow").textContent = T("Станция Lux · конечная", "Lux station · the terminus");
+    $("winTitle").textContent = first ? T("Limbus пройден!", "Limbus complete!") : T("Снова в Свете", "Back in the Light");
+    const built = LEVELS.filter(l => l.playable), done = built.filter(l => progress.done[l.id]), left = built.filter(l => !progress.done[l.id]);
+    const total = Object.values(progress.best).reduce((t, v) => t + v, 0);
+    const cannons = Object.keys(WEAPONS).filter(id => !progress.weapons[id] && WEAPONS[id].price !== null);
+    const ups = Object.keys(UPGRADES).reduce((t, id) => t + 3 - upLevel(id), 0);
+    const cost = cannons.reduce((t, id) => t + priceOf(id), 0) + Object.keys(UPGRADES).reduce((t, id) => t + UPGRADES[id].prices.slice(upLevel(id)).reduce((a, b) => a + b, 0), 0);
+    let h = `<h2>${first ? T("Поздравляем!", "Congratulations!") : T("Ваш путь", "Your journey")}</h2>`;
+    h += `<p>${first ? T("Вы прошли путь от Initium до Света. ", "You have ridden from Initium to the Light. ") : ""}${T("Пройдено станций", "Stations finished")}: <b>${done.length} ${T("из", "of")} ${built.length}</b> · ${T("сумма лучших результатов", "best scores in all")}: <b>${total.toLocaleString(T("ru-RU", "en-US"))}</b></p>`;
+    if (left.length) {
+      h += `<p>${T("Ещё не пройдены — их суперигры добавятся в Triumphus:", "Not finished yet, and their finales will join Triumphus:")}</p><ul>` + left.map(l => {
+        const from = byId(l.req.after).latin + (l.req.or ? T(" или ", " or ") + byId(l.req.or).latin : "");
+        const how = l.line === "branch" ? T(`тупик от ${from}, проезд ◆ ${l.req.fare}`, `a dead end off ${from}, fare ◆ ${l.req.fare}`) : T(`после ${from}`, `after ${from}`);
+        return `<li><b>${esc(l.latin)}</b> · ${esc(l.ru)} — ${esc(how)}${l.id === "carcer" && !progress.weapons.ferrum ? T(", в конце пушка Ferrum", ", with the Ferrum cannon at its end") : ""}</li>`;
+      }).join("") + "</ul>";
+    }
+    if (cannons.length || ups) h += `<p>${T("В Armamentarium ещё", "Still at Armamentarium")}: ${cannons.length ? `<b>${cannons.map(id => WEAPONS[id].name).join(", ")}</b>` : ""}${cannons.length && ups ? T(" и ", " and ") : ""}${ups ? `<b>${ups}</b> ${T("уровней улучшений", "upgrade levels")}` : ""} — ◆ ${cost} ${T("на всё", "for all of it")}.</p>`;
+    if (!left.length && !cannons.length && !ups) h += `<p>${T("Все станции пройдены, весь арсенал собран. Осталось одно — бить свои рекорды.", "Every station finished, the whole arsenal bought. Only your records are left to beat.")}</p>`;
+    box.innerHTML = h;
+  }
   function endRun(won) {
     state = won ? "win" : "over";
     $("combo").hidden = true;
@@ -3349,6 +3386,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (won) {
       const total = score + balls * 10;
       const best = Math.max(progress.best[LEVEL.id] || 0, total);
+      const firstFinish = LEVEL.id === "lux" && !progress.done.lux; // the first time the whole way is ridden
       progress.best[LEVEL.id] = best; progress.done[LEVEL.id] = true; progress.bank += stats.crystals;
       const freed = LEVEL.id === "carcer" && !progress.weapons.ferrum; // the dungeon gives up its cannon
       if (freed) progress.weapons.ferrum = true;
@@ -3370,6 +3408,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const nxs = nextLevels(LEVEL); // one button for each way on
       ["nextBtn", "nextBtn2"].forEach((id, i) => { const nb = $(id), nx = nxs[i]; nb.hidden = !nx; if (nx) { nb.dataset.id = nx.id; nb.textContent = T(`Дальше: ${nx.latin}`, `Next: ${nx.latin}`); } });
       $("againBtn").textContent = againText();
+      journey(firstFinish);
       $("win").hidden = false;
     } else {
       const pc = Math.floor(Math.min(1, sC / END_S) * 100);
@@ -3694,7 +3733,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       finaleShown = true;
       // white or black text, whichever reads against the world as it is when the banner comes up; it keeps that colour
       const lum = 0.3 * cur.hor.r + 0.55 * cur.hor.g + 0.15 * cur.hor.b, ink = lum < 0.45 ? "#ffffff" : "#0a0d0f", halo = lum < 0.45 ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.6)";
-      showOverlay("banner", `<div style="color:${ink};text-shadow:0 1px 10px ${halo}"><div class="bn-name">${fin.name}</div><div class="bn-sub">${fin.ru} · ${T("20 секунд", "20 seconds")}</div><div class="bn-note">${fin.note}</div></div>`, 6500);
+      showOverlay("banner", `<div style="color:${ink};text-shadow:0 1px 10px ${halo}"><div class="bn-name">${fin.name}</div><div class="bn-sub">${fin.ru} · ${T("20 секунд", "20 seconds")}</div><div class="bn-note">${fin.note}${LEVEL.finale === "triumphus" ? `<br><b>${triumphTrials().map(f => FINALES[f].name).join(" · ")}</b>` : ""}</div></div>`, 6500);
       Sound.crystal(5);
     }
     if (!superOn && sC >= MAIN_LEN && sC < SUPER_END) {

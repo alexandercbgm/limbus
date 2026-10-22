@@ -565,9 +565,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const buildPal = raw => raw.map(o => { const r = {}; for (const k in Object.assign({ stars: 0, band: "#000000" }, o)) { const v = k in o ? o[k] : k === "stars" ? 0 : "#000000"; r[k] = typeof v === "string" ? new THREE.Color(v) : v; } return r; });
   let PAL = buildPal(PAL_INITIUM);
   const cur = {}; for (const k in PAL[2]) cur[k] = typeof PAL[2][k] === "number" ? PAL[2][k] : PAL[2][k].clone();
-  // a branch of Labyrinthus has its own light: warm gold on the rich one, cool blue on the quiet one, faded in and out
+  // a branch of Labyrinthus has its own light: turquoise on the rich one, white on the quiet one, faded in and out
   let branchK = 0, branchKind = null;
-  const BRANCH_TINT = { rich: new THREE.Color("#ffc15a"), calm: new THREE.Color("#6fd0ff") };
+  const BRANCH_TINT = { rich: new THREE.Color("#3fe6d4"), calm: new THREE.Color("#ffffff") }; // as their signs: turquoise crystals, white light
   function tintBranch(dt) {
     const br = forks.length ? branchAt(sC) : null; if (br) branchKind = br;
     branchK += ((br ? 1 : 0) - branchK) * Math.min(1, dt * 2);
@@ -2284,25 +2284,45 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     g.fillStyle = "#f4fbfc"; g.beginPath(); g.moveTo(70, 108); g.lineTo(150, 108); g.lineTo(150, 72); g.lineTo(200, 128); g.lineTo(150, 184); g.lineTo(150, 148); g.lineTo(70, 148); g.closePath(); g.fill();
   }, 256, 256);
   // the switch signs, painted once per language
-  const SIGNS = { rich: ["#ffc860", ["◆◆ БОГАТАЯ", "◆◆ RICH"], ["КРИСТАЛЛОВ ВДВОЕ · КРЕСТЫ И БЛОКИ", "TWICE THE CRYSTALS · CROSSES AND BLOCKS"]],
-    calm: ["#7fd8ff", ["ТИХАЯ", "QUIET"], ["ТОЛЬКО СТЁКЛА · ТЯНЕТ К СВЕТУ", "PLAIN GLASS ONLY · DRAWS YOU TO THE LIGHT"]] };
+  const SIGNS = { rich: ["#3fe6d4", ["◆◆ БОГАТАЯ", "◆◆ RICH"], ["КРИСТАЛЛОВ ВДВОЕ · КРЕСТЫ И БЛОКИ", "TWICE THE CRYSTALS · CROSSES AND BLOCKS"]],
+    calm: ["#ffffff", ["ТИХАЯ", "QUIET"], ["ТОЛЬКО СТЁКЛА · ТЯНЕТ К СВЕТУ", "PLAIN GLASS ONLY · DRAWS YOU TO THE LIGHT"]] };
   // the small plates either side of the switch: which way is which, an arrow pointing out to its own side
   const sideTexes = {};
   function sideTex(kind, side) {
-    // a sign to read at speed: a big icon (two crystals for the rich way, a sun for the quiet one that draws you to the
-    // Light), an arrow out to its own side, and a small word under the icon
-    const key = kind + side + LANG, [bar, head] = SIGNS[kind], word = T(...head).replace("◆◆ ", "");
+    // a sign to read at speed: a large drawn icon (a cluster of turquoise crystals for the rich way, a white sun of light
+    // for the quiet one that draws you to the Light), a double chevron out to its own side, a small word under the icon
+    const key = kind + side + LANG, word = T(...SIGNS[kind][1]).replace("◆◆ ", ""), rich = kind === "rich";
+    const col = rich ? "#3fe6d4" : "#ffffff", deep = rich ? "#0f8f86" : "#bcd6ea";
     return sideTexes[key] || (sideTexes[key] = plateTexture((g, w, h) => {
-      g.fillStyle = "#10242e"; g.fillRect(0, 0, w, h); g.fillStyle = bar; g.fillRect(0, h - 8, w, 8);
-      const left = side > 0, ax = left ? 52 : w - 52, cx = left ? w / 2 + 34 : w / 2 - 34, y = 84; // side +1 is the left turn
-      g.fillStyle = bar; g.beginPath(); g.moveTo(ax + (left ? -36 : 36), y); g.lineTo(ax + (left ? 28 : -28), y - 52); g.lineTo(ax + (left ? 28 : -28), y + 52); g.fill();
-      if (kind === "rich") for (const [dx, r] of [[-44, 56], [46, 44]]) { const x = cx + dx; g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r * 0.68, y); g.lineTo(x, y + r); g.lineTo(x - r * 0.68, y); g.closePath(); g.fill(); g.strokeStyle = "#fff4d0"; g.lineWidth = 5; g.stroke(); }
-      else { g.beginPath(); g.arc(cx, y, 34, 0, TAU); g.fill(); g.strokeStyle = bar; g.lineWidth = 10; g.lineCap = "round";
-        for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.beginPath(); g.moveTo(cx + Math.cos(a) * 50, y + Math.sin(a) * 50); g.lineTo(cx + Math.cos(a) * 70, y + Math.sin(a) * 70); g.stroke(); } }
-      g.fillStyle = "#f4fbfc"; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "700 30px 'JetBrains Mono', monospace"; g.fillText(word, cx, h - 30);
-    }, 440, 220));
+      const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, "#16303c"); bg.addColorStop(1, "#0a1820"); g.fillStyle = bg; g.fillRect(0, 0, w, h);
+      g.strokeStyle = col; g.globalAlpha = 0.55; g.lineWidth = 4; g.strokeRect(6, 6, w - 12, h - 12); g.globalAlpha = 1;
+      const left = side > 0, cx = left ? w / 2 + 40 : w / 2 - 40, cy = 104; // side +1 is the left turn
+      // the double chevron
+      g.strokeStyle = col; g.lineWidth = 14; g.lineCap = "round"; g.lineJoin = "round";
+      for (const k of [0, 1]) { const x = left ? 44 + k * 34 : w - 44 - k * 34, d = left ? 1 : -1; g.globalAlpha = k ? 0.5 : 1; g.beginPath(); g.moveTo(x + d * 26, cy - 38); g.lineTo(x, cy); g.lineTo(x + d * 26, cy + 38); g.stroke(); }
+      g.globalAlpha = 1;
+      const glow = g.createRadialGradient(cx, cy, 4, cx, cy, 110); glow.addColorStop(0, rich ? "rgba(63,230,212,0.45)" : "rgba(255,255,255,0.55)"); glow.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = glow; g.fillRect(cx - 120, cy - 110, 240, 220);
+      if (rich) { // three faceted crystals, the middle one tallest, each lit on one face and shaded on the other
+        for (const [dx, hh, ww] of [[-52, 70, 30], [52, 62, 27], [0, 92, 38]]) {
+          const x = cx + dx, top = cy - hh + 22, bot = cy + 52, mid = cy + 6;
+          const P = [[x, top], [x + ww, top + ww * 0.9], [x + ww, mid + 22], [x, bot], [x - ww, mid + 22], [x - ww, top + ww * 0.9]];
+          g.fillStyle = deep; g.beginPath(); P.forEach(([a, b], i) => i ? g.lineTo(a, b) : g.moveTo(a, b)); g.closePath(); g.fill();
+          g.fillStyle = col; g.beginPath(); g.moveTo(x, top); g.lineTo(x - ww, top + ww * 0.9); g.lineTo(x - ww, mid + 22); g.lineTo(x, bot); g.lineTo(x - ww * 0.2, mid); g.closePath(); g.fill();
+          g.fillStyle = "#c9fff8"; g.beginPath(); g.moveTo(x, top); g.lineTo(x + ww, top + ww * 0.9); g.lineTo(x - ww * 0.2, mid); g.closePath(); g.fill();
+          g.strokeStyle = "#e8fffc"; g.lineWidth = 2.5; g.beginPath(); P.forEach(([a, b], i) => i ? g.lineTo(a, b) : g.moveTo(a, b)); g.closePath(); g.stroke();
+        }
+        g.fillStyle = "#ffffff"; for (const [sx, sy, r] of [[cx + 66, cy - 46, 9], [cx - 70, cy - 30, 6]]) { g.beginPath(); g.moveTo(sx, sy - r * 2); g.lineTo(sx + r * 0.5, sy - r * 0.5); g.lineTo(sx + r * 2, sy); g.lineTo(sx + r * 0.5, sy + r * 0.5); g.lineTo(sx, sy + r * 2); g.lineTo(sx - r * 0.5, sy + r * 0.5); g.lineTo(sx - r * 2, sy); g.lineTo(sx - r * 0.5, sy - r * 0.5); g.closePath(); g.fill(); }
+      } else { // a white sun: a bright disc in a halo, long and short rays in turn
+        g.strokeStyle = "#ffffff"; g.lineCap = "round";
+        for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, r0 = 50, r1 = i % 2 ? 72 : 92; g.lineWidth = i % 2 ? 7 : 11; g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.stroke(); }
+        const disc = g.createRadialGradient(cx - 10, cy - 10, 4, cx, cy, 40); disc.addColorStop(0, "#ffffff"); disc.addColorStop(1, "#d8ecff");
+        g.fillStyle = disc; g.beginPath(); g.arc(cx, cy, 38, 0, TAU); g.fill();
+      }
+      g.fillStyle = col; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "700 32px 'JetBrains Mono', monospace"; g.fillText(word, cx, h - 28);
+    }, 512, 256));
   }
-  const sidePlateGeo = new THREE.PlaneGeometry(2.5, 1.25);
+  const sidePlateGeo = new THREE.PlaneGeometry(2.8, 1.4);
   const signTexes = {};
   function signTex(kind) {
     const key = kind + LANG, [bar, head, sub] = SIGNS[kind];
@@ -2332,7 +2352,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (vis) { setObj(f.sw, swS, 0, 4.4); f.wp.setFromMatrixPosition(f.sw.matrix); }
       for (const pl of f.plates) { // the side the arrow points to is lit, the other dim
         pl.mesh.visible = vis; if (!vis) continue;
-        placeM(pl.mesh.matrix, swS, -pl.side * 2.25, 4.4); pl.mesh.matrixWorldNeedsUpdate = true; // a fork's side +1 turns left
+        placeM(pl.mesh.matrix, swS, -pl.side * 2.4, 4.4); pl.mesh.matrixWorldNeedsUpdate = true; // a fork's side +1 turns left
         pl.mesh.material.opacity += ((pl.side === f.sign ? 1 : 0.35) - pl.mesh.material.opacity) * Math.min(1, dt * 10);
       }
       // the arrow points along the branch taken: the plaque is mirrored for a left turn

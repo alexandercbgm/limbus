@@ -1930,7 +1930,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const frameBarGeo = new THREE.BoxGeometry(1, 0.14, 0.18), spikeTipGeo = new THREE.ConeGeometry(0.08, 0.28, 6).rotateZ(Math.PI);
   const ledGeo = new THREE.SphereGeometry(0.07, 12, 8), ledMat = new THREE.MeshBasicMaterial({ color: 0xff2a14 });
   // opt (Carcer's grates): look "medieval" (heavy black iron, spiked) or "modern" (thin steel bars in a plain frame; all of Carcer's grates are modern now);
-  // wide: a grate across the whole track on three chains
+  // wide: a grate across the whole track on two chains
   function addHanger(s, kind, laser = false, bars = false, opt = {}) {
     if (inCurve(s) && !opt.wide) kind = "pendulum"; // two chains are too much to hit while the track bends
     const pend = kind === "pendulum", w = laser ? 4.2 : opt.wide ? 5.4 : pend ? 2.3 : 3.0, h = laser ? 0.32 : pend ? 2.1 : 2.4, d = laser ? 0.32 : 0.55;
@@ -1952,7 +1952,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const y of [-h / 2 + 0.08, 0, h / 2 - 0.08]) { const b = new THREE.Mesh(barGeo, ironMat); b.scale.set(1.4, w, 1.4); b.rotation.z = Math.PI / 2; b.position.y = y; body.add(b); }
     } else body.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), laser ? laserEdgeMat : edgeMat));
     root.add(body);
-    const emitters = laser ? [-1, 1].map(sd => { // a glowing recess in the underside near each end, the laser out of it
+    // a glowing recess in the underside near each end, the laser out of it; a beam that hangs still has a third in the middle, or the cart would pass between
+    const emitters = laser ? (pend ? [-1, 1] : [-1, 0, 1]).map(sd => {
       const x = sd * (w / 2 - 0.35), blk = new THREE.Mesh(recessGeo, recessMat); blk.position.set(x, -h / 2 - CONE_OUT + 0.03, 0); body.add(blk);
       const beam = laserBeam(); beam.rotation.z = Math.PI; beam.position.set(x, -h / 2, 0); body.add(beam);
       return { x, blk, beam, alive: true, len: 4 };

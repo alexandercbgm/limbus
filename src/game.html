@@ -314,11 +314,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="howTitle">
     <h1 id="howTitle" data-en="How to play">Как играть</h1>
     <p data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it; Space fires at the centre.">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь; пробел стреляет в центр.</p>
-    <p data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and crystals pay more, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystals and red decoys, yet a blue crystal there gives three times the balls."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, кристаллы щедрее, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы и красные ловушки, зато голубой кристалл даёт втрое больше шаров.</p>
+    <p data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and blue crystals come often, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystals and red decoys, and fewer blue crystals, yet each one there gives almost twice the balls and banks two crystals."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, голубые кристаллы попадаются часто, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы и красные ловушки, а голубых кристаллов меньше — зато каждый даёт почти вдвое больше шаров и два кристалла в запас.</p>
     <p data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons and upgrades at Armamentarium. Later stations hold more crystals, and tougher glass. Two lines lead to Abyssus, one is enough; Lux can also be reached through Tao.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки, пушки и улучшения в Armamentarium. Дальше по линии кристаллов больше, но и стекло прочнее. К Abyssus ведут две линии, хватит одной; к Lux можно доехать и через Tao.</p>
     <ul class="rules">
       <li><b>−1</b><span data-en="ball a shot">шар за выстрел</span></li>
-      <li><b>+3…6</b><span data-en="a blue crystal, for every ball that hits">голубой кристалл, за каждый попавший шар</span></li>
+      <li><b>+4/+7</b><span data-en="a blue crystal, for every ball that hits it; +7 in the Dark">голубой кристалл за каждый попавший шар, во Тьме +7</span></li>
       <li><b>−6</b><span data-en="crashing into glass or a spike">удар о стекло или шип</span></li>
       <li><b>−3</b><span data-en="a red or black-red crystal">красный или чёрно-красный кристалл</span></li>
     </ul>
@@ -1538,12 +1538,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (!p.alive) return;
     p.alive = false; scene.remove(p.group); p.geo.dispose(); p.eg.dispose(); p.cracks.forEach(c => c.dispose());
   }
+  const CRYSTAL_VAL = 4, CRYSTAL_DARK = 7; // balls a hit, by the light and in the dark
   function addCrystal(s, u, v, val, decoyKind) {
     const g = new THREE.Group(); g.matrixAutoUpdate = false;
     const m = new THREE.Mesh(crystalGeo, decoyKind ? decoyMat : crystalMat); g.add(m);
     if (decoyKind) { const m2 = new THREE.Mesh(crystalGeo, decoyMat); m2.rotation.set(Math.PI / 4, 0, Math.PI / 4); m2.scale.setScalar(0.9); m.add(m2); }
-    const big = !decoyKind && val >= 5;
-    if (big) m.scale.setScalar(1.25);
+    const big = !decoyKind && val >= CRYSTAL_VAL;
+    if (big) m.scale.setScalar(val >= CRYSTAL_DARK ? 1.45 : 1.25); // a dark one stands out
     const glow = new THREE.Sprite(decoyKind ? redGlow : blueGlow); glow.scale.setScalar(big ? 2.4 : 1.8); g.add(glow);
     scene.add(g);
     crystals.push({ s, u, v, val, decoy: !!decoyKind, group: g, mesh: m, alive: true, spin: 0.8 + Math.random(), wp: new THREE.Vector3() });
@@ -1684,12 +1685,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         break;
       case "imps": { const n = d > 0.8 ? 4 : 3; for (let i = 0; i < n; i++) addImp(s + i * 5, rand(-2.4, 2.4), rand(1.3, 4.2)); break; }
     }
-    // crystals between groups: frequent near the light; rare in the dark, but there each one gives three times as many balls
+    // crystals between groups: frequent near the light, rarer in the dark. Up to the dusk each gives 4 balls a hit; from
+    // there down 7, and it banks two crystals instead of one, so the risk of the dark pays (CRYSTAL_DARK)
     const cs = s - spacing(d) * 0.5;
     const br = branchAt(s), cm = (LEVEL.crystalMul || 1) * (br === "rich" ? 2.2 : br === "calm" ? 0.2 : 1);
-    if (cm > 1 && Math.random() < (cm - 1) * 0.5) addCrystal(cs + 4, rand(-2.8, 2.8), rand(1.1, 4.6), d < 0.3 ? 5 : d < 0.65 ? 3 : 6);
+    if (cm > 1 && Math.random() < (cm - 1) * 0.5) addCrystal(cs + 4, rand(-2.8, 2.8), rand(1.1, 4.6), d < 0.65 ? CRYSTAL_VAL : CRYSTAL_DARK);
     if (Math.random() < Math.min(0.95, lerp(0.85, 0.3, d) * cm)) {
-      const val = d < 0.3 ? 5 : d < 0.65 ? 3 : 6;
+      const val = d < 0.65 ? CRYSTAL_VAL : CRYSTAL_DARK;
       // in the mirror halls a crystal may hang beside its reflection, the two mirrored about the track
       const twin = LEVEL.mirages && Math.random() < LEVEL.mirages, cu = twin ? (Math.random() < 0.5 ? -1 : 1) * rand(1.2, 2.8) : rand(-2.8, 2.8), cv = rand(1.1, 4.6);
       addCrystal(cs, cu, cv, val);
@@ -3589,12 +3591,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       chips(c.wp, decoyMat, 12, b.v);
       return;
     }
-    stats.crystals++; addScore(25); karmaGain(0.045); Sound.crystal(c.val);
+    const dark = c.val >= CRYSTAL_DARK; stats.crystals += dark ? 2 : 1; addScore(dark ? 50 : 25); karmaGain(0.045); Sound.crystal(Math.min(6, c.val));
     chips(c.wp, crystalMat, 10, b.v);
     if (c.gate) openGate(c.gate, b.v);
     if (c.bough) pickFruit(c);
     if (c.wheel) pickWheel(c);
-    award(b, c.wp, 0.75, h => { const gain = (c.val + upLevel("largitas")) * h; balls += gain; if (superOn) superGain += gain; updateCount(); pop(h > 1 ? `+${gain} · ${h} ${ballsWord(h)}` : "+" + gain, "gain"); });
+    award(b, c.wp, 0.75, h => { const gain = (c.val + upLevel("largitas")) * h; balls += gain; if (superOn) superGain += gain; updateCount(); pop((h > 1 ? `+${gain} · ${h} ${ballsWord(h)}` : "+" + gain) + (dark ? " · ◆2" : ""), "gain"); });
   }
   function shatterThorn(t, vel) { // the whole thorn, head and rod, comes apart
     t.headOn = false; t.alive = false;

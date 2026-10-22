@@ -2379,8 +2379,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // Carcer: laser bars float in the halls, steel bars with nozzles along one face as in Lux, but on no chains: one lying
   // across under the vault, its beams down; one standing by a wall, its beams across; or the two crossed into a grid of
   // 2×2 or 3×3 beams. Deeper in, the same sets come as loose nozzles, each to be shot out by itself. They hover still,
-  // or glide side to side or up and down, a set all as one. One beam of a lone bar always crosses the cart, and of a
-  // lone bar overhead (3 or 4 beams) an inner one; of a grid the
+  // or glide side to side or up and down, a set all as one. One beam of a lone bar always crosses the cart, of a lone
+  // bar overhead the middle one of 3; a rare overhead bar of 4 lets the cart through between its inner beams; of a grid the
   // lowest across, and of a 3×3 the middle one down too; the lowest beam is at the middle of the cart's height. A shot
   // anywhere on a bar cracks it, all its beams out, and the pieces fall. A set burns the cart once: 3 balls, a ball more
   // for any other beam across it, 6 at most. A set stands midway between the hall's pillars, the stone around it cleared.
@@ -2391,11 +2391,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const s8 = Math.round((s - 5) / 8) * 8 + 5; if (inHall(s8)) s = s8; // the pillars stand at 8 m + 1
     const grid = mode === "grid";
     n = grid ? (n === 2 || n === 3 ? n : Math.random() < 0.5 ? 2 : 3) : n || 2 + Math.floor(Math.random() * 3);
-    if (mode === "h" && n < 3) n = 3; // a lone bar overhead has a beam on the cart, and that one is never an outer one
+    // a lone bar overhead: 3 beams, the middle one on the cart; now and then 4, and the cart slips between the inner two
+    if (mode === "h" && !(n === 3 || n === 4)) n = Math.random() < 0.2 ? 4 : 3;
     const axis = Math.random() < 0.35 ? null : Math.random() < 0.5 ? "u" : "v", side = Math.random() < 0.5 ? -1 : 1;
     const set = { s, bars: [], axis, amp: axis === "u" ? 0.6 : axis === "v" ? 0.5 : 0, f: rand(0.7, 1.1), ph: rand(0, TAU), cost: 0, passed: false };
-    let bu = 0; // a lone lying bar: shifted so that one of its beams falls on the rails, and the whole of it clear of the walls
-    if (mode === "h") { const ks = [...Array(n).keys()].slice(1, -1).map(k => -(k - (n - 1) / 2) * BAR_DU).filter(x => Math.abs(x) + (n - 1) * BAR_DU / 2 + BAR_M + set.amp <= HALL_W - 1.2); bu = ks[Math.floor(Math.random() * ks.length)]; }
+    let bu = 0; // every set stands centred over the rails
+    if (mode === "h" && n === 3) bu = 0; // 4 beams overhead stay centred, ±1.5 m and ±4.5 m: a scare, no beam on the cart
     if (mode === "h" || grid) addBar(set, "h", n, bu, HALL_H - 1.3, side, noz);
     if (mode === "v" || grid) addBar(set, "v", n, side * (HALL_W - 1.9), BAR_V0 + (n - 1) * BAR_DV(n) / 2, side, noz);
     for (let k = Math.floor((s - 5) / SL); k <= Math.floor((s + 5) / SL); k++) { const d = getDecor(k); if (d.blocks) d.blocks = d.blocks.filter(bl => Math.abs(k * SL + SL / 2 - s) > bl.sz / 2 + 0.9); }

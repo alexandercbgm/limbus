@@ -3338,9 +3338,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       $("wScore").textContent = score.toLocaleString(T("ru-RU", "en-US"));
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;
-      $("wSuperName").textContent = FINALES[LEVEL.finale].name;
-      const fn = LEVEL.finale, row = T("подряд", "in a row");
-      $("wSuper").textContent = fn === "iudicium" ? `×${bestCombo} · +${superGain}` : fn === "portae" || fn === "tessera" || fn === "taiji" ? `${row} ${bestCombo} · +${superGain}` : fn === "rota" ? `${T("колёса", "wheels")} ${wheelsDone} · +${superGain}` : fn === "custodes" || fn === "fragmenta" ? `${T("волны", "waves")} ${wavesDone} · +${superGain}` : fn === "reflexio" ? `${T("пары", "pairs")} ${pairsDone} · +${superGain}` : fn === "vindemia" ? `${T("ветви", "boughs")} ${harvested} · +${superGain}` : `+${superGain}`;
+      $("wSuperName").textContent = T("Суперигра, шаров", "Finale, balls"); // the same on every level, whatever its finale
+      $("wSuper").textContent = "+" + superGain;
       $("wAcc").textContent = (stats.thrown ? Math.round(stats.hits / stats.thrown * 100) : 0) + "%";
       $("wBest").textContent = best.toLocaleString(T("ru-RU", "en-US"));
       const nx = nextLevel(LEVEL), nb = $("nextBtn");

@@ -3338,7 +3338,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       $("wScore").textContent = score.toLocaleString(T("ru-RU", "en-US"));
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;
-      $("wSuperName").textContent = T("Суперигра, шаров", "Finale, balls"); // the same on every level, whatever its finale
+      $("wSuperName").textContent = T("Шаров за суперигру", "Balls from the finale"); // the same on every level, whatever its finale
       $("wSuper").textContent = "+" + superGain;
       $("wAcc").textContent = (stats.thrown ? Math.round(stats.hits / stats.thrown * 100) : 0) + "%";
       $("wBest").textContent = best.toLocaleString(T("ru-RU", "en-US"));

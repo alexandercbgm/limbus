@@ -1172,7 +1172,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       arch: !station && k % 4 === 0, pyr: null, blocks: [] };
     if (STYLE.bridge) d.wl = d.wr = d.ceil = false; // Abyssus: a bare bridge over the void
     if (STYLE.open && !station) { // Labyrinthus: walled passages that now and then open into a wide hall
-      const hall = hash(seg * 13 + 7) < 0.32 && s > 70 && s < MAIN_LEN - 40 && !forks.some(f => Math.abs(s - f.s) < 80);
+      const hall = hash(seg * 13 + 7) < 0.55 && s > 70 && s < MAIN_LEN - 40 && !forks.some(f => Math.abs(s - f.s) < 80);
       d.wl = d.wr = d.ceil = !hall; if (hall) { d.arch = false; d.hall = true; }
     }
     // In the dark single pyramids stick out of the walls, placed at random so every run differs.

@@ -1713,6 +1713,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const hall = LEVEL.halls && inHall(s);
     const d = curD(), prog = sC / MAIN_LEN;
     let pat = spawnGroupKind || pickPattern(clamp(d + 0.12 * prog, 0, 1), hall);
+    if (spawnGroupKind === "grams2" || spawnGroupKind === "grams1") { addRams(s, spawnGroupKind === "grams2", true); return; }
     if (!spawnGroupKind && LEVEL.id === "labyrinthus" && openHallAround(s) && Math.random() < 0.55) pat = "grams"; // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
@@ -2636,13 +2637,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // glass: a block of glass like a pyramid's stone instead of the log, its beam on two posts (an open hall has no walls)
   const gramGeo = new THREE.BoxGeometry(RAM_LEN, 2 * RAM_R, 1.1), gramEdge = new THREE.EdgesGeometry(gramGeo), gramPostGeo = new THREE.BoxGeometry(0.22, H - 0.1, 0.22);
   function addRams(s, both, glass) {
-    const ph = rand(0, TAU), w = rand(1.1, 1.4), sides = both ? [-1, 1] : [Math.random() < 0.5 ? -1 : 1];
+    // a real pendulum: a pair swing as one and meet in the middle; a lone glass block hangs lower and swings as wide
+    const ph = rand(0, TAU), sides = both ? [-1, 1] : [Math.random() < 0.5 ? -1 : 1];
+    // Tao's logs swing about a point leaned in from straight down, so they hardly swing out at the wall behind them
+    const L = glass && !both ? RAM_L + 0.6 : RAM_L, c0 = glass ? 0 : 0.18, amp = glass ? (both ? rand(0.45, 0.55) : rand(0.5, 0.58)) : 0.3, w0 = Math.sqrt(G / L);
     for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc.arch = false; dc.pyr = null; for (const sd of sides) dc[sd < 0 ? "wl" : "wr"] = false; } // room to swing out
     for (const side of sides) {
       const root = new THREE.Group(); root.matrixAutoUpdate = false;
       root.add(new THREE.Mesh(ramBeamGeo, frameMat));
       const xs = [-1, 1].map(k => k * (RAM_LEN / 2 - 0.25));
-      const chains = xs.map(x => { const c = makeChain(RAM_L - RAM_R); c.position.x = x; root.add(c); return { x, alive: true, mesh: c, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
+      const chains = xs.map(x => { const c = makeChain(L - RAM_R); c.position.x = x; root.add(c); return { x, alive: true, mesh: c, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
       const body = new THREE.Group(); root.add(body);
       if (glass) {
         body.add(new THREE.Mesh(gramGeo, glassMat)); body.add(new THREE.LineSegments(gramEdge, edgeMat));
@@ -2653,7 +2657,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (const k of [-1, 1]) { const cap = new THREE.Mesh(ramCapGeo, frameMat); cap.position.x = k * RAM_LEN / 2; body.add(cap); }
       }
       scene.add(root);
-      rams.push({ s, side, pair: both, glass, root, body, chains, ph, w, th: 0, twist: 0, hit: false, falling: false, fallT: 0 });
+      rams.push({ s, side, pair: both, glass, root, body, chains, L, amp, w0, c0, th: c0 + amp * Math.sin(ph), thv: amp * w0 * Math.cos(ph), twist: 0, hit: false, falling: false, fallT: 0 });
     }
   }
   function breakRamChain(r, c, at) {
@@ -2661,7 +2665,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     r.hit = true; // a ram with a chain shot through is harmless from then on
     if (r.chains.every(x => !x.alive)) { r.falling = true; karmaGain(0.04); pop(T("таран сбит", "ram down"), "info"); return; }
     r.one = r.chains.find(x => x.alive); // the log swings down to hang end-on from the other chain, clear of the floor
-    r.lc = RAM_L - RAM_R; r.phi = r.twist; r.phv = 0; r.thv = 0.3 * r.w * Math.cos(time * r.w + r.ph); // from the swing it was in
+    r.lc = r.L - RAM_R; r.phi = r.twist; r.phv = 0; // its swing goes on from where it was
   }
   // a hammer mill turns in a gap of the wall: handles out of a hub, a heavy head on each; shoot a handle to break it off
   let hmills = [];
@@ -2740,21 +2744,25 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         r.phv += (12 * (tgt - r.phi) - 1.6 * r.phv) * dt; r.phi += r.phv * dt;
         r.thv += (-9 * r.th - 1.5 * r.thv) * dt; r.th += r.thv * dt;
         const px = c.x - r.side * r.lc * Math.sin(r.th), py = -r.lc * Math.cos(r.th), cs = Math.cos(r.phi), sn = Math.sin(r.phi);
-        c.mesh.rotation.z = -r.side * r.th; c.mesh.scale.y = r.lc / (RAM_L - RAM_R);
+        c.mesh.rotation.z = -r.side * r.th; c.mesh.scale.y = r.lc / (r.L - RAM_R);
         r.body.rotation.z = r.phi; // the chain holds the log's top at c.x, wherever that point has turned to
         r.body.position.set(px - (c.x * cs - RAM_R * sn), py - (c.x * sn + RAM_R * cs), 0);
         r.root.updateMatrixWorld(true); c.A.set(c.x, 0, 0); r.root.localToWorld(c.A); c.B.set(px, py, 0); r.root.localToWorld(c.B);
         if (r.s < sC - 8) { r.dead = true; scene.remove(r.root); }
         continue;
       }
-      r.th = -0.12 + 0.3 * (1 + Math.sin(time * r.w + r.ph)); // 0 hangs straight, positive swings in
+      // θ'' = −(g/L)·sin θ; 0 hangs straight, positive swings in. What the air takes is given back, so the swing keeps its width
+      r.thv -= r.w0 * r.w0 * Math.sin(r.th - r.c0) * dt;
+      const E = 0.5 * r.thv * r.thv + r.w0 * r.w0 * (1 - Math.cos(r.th - r.c0)), E0 = r.w0 * r.w0 * (1 - Math.cos(r.amp));
+      r.thv *= 1 + clamp((E0 - E) / (E0 || 1), -0.5, 0.5) * dt;
+      r.th += r.thv * dt;
       const mate = r.pair && rams.find(x => x !== r && x.s === r.s && !x.falling && !x.one);
-      if (mate && r.th > RAM_MEET) { r.th = RAM_MEET - (r.th - RAM_MEET); if (!r.clack) { r.clack = true; if (r.side > 0) Sound.knock(); } } else r.clack = false; // a pair meet and bounce apart
-      const du = -r.side * RAM_L * Math.sin(r.th), dv = -RAM_L * Math.cos(r.th);
+      if (mate && r.th > RAM_MEET && r.thv > 0) { r.th = RAM_MEET; r.thv = -0.9 * r.thv; if (r.side > 0) Sound.knock(); } // a pair meet end to end and bounce straight back
+      const du = -r.side * r.L * Math.sin(r.th), dv = -r.L * Math.cos(r.th);
       for (const c of r.chains) if (c.mesh.visible) c.mesh.rotation.z = -r.side * r.th;
       r.body.position.set(du, dv, 0); r.body.rotation.z = r.twist;
       r.root.updateMatrixWorld(true);
-      for (const c of r.chains) { c.A.set(c.x, 0, 0); r.root.localToWorld(c.A); c.B.set(c.x + du * (1 - RAM_R / RAM_L), dv * (1 - RAM_R / RAM_L), 0); r.root.localToWorld(c.B); }
+      for (const c of r.chains) { c.A.set(c.x, 0, 0); r.root.localToWorld(c.A); c.B.set(c.x + du * (1 - RAM_R / r.L), dv * (1 - RAM_R / r.L), 0); r.root.localToWorld(c.B); }
       const inner = r.side * RAM_U + du - r.side * RAM_LEN / 2, rv = H - 0.1 + dv; // the end nearest the rails
       if (state === "play" && !r.hit && Math.abs(r.s - sC) < RAM_R + 0.7 && r.side * inner < 1.2 && rv - RAM_R < 2.4) { r.hit = true; crushed(T("таран", "ram")); }
       if (r.s < sC - 8) { r.dead = true; scene.remove(r.root); }
@@ -4950,7 +4958,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     glassBar(kind, ahead) { spawnGroupKind = kind; spawnGroupAt(sC + ahead); spawnGroupKind = null; }, paneState: () => panes.map(p => [+(p.s - sC).toFixed(1), p.rot !== undefined, !!p.tilt, p.passed || false]),
     cutChain(i = 0) { const hg = hangers.find(h => !h.falling && h.chains.length === 2); if (!hg) return null; const c = hg.chains[i]; breakChain(hg, c, c.A.clone()); return true; },
     slabState: () => hangers.filter(h => h.one).map(h => { const k = h.chains.find(c => c.alive), q = new THREE.Vector3(h.one.x - h.body.position.x, h.h / 2, 0); q.applyAxisAngle(new THREE.Vector3(0, 0, 1), 0); const a = new THREE.Vector3(h.one.x, h.h / 2, 0).sub(new THREE.Vector3()); h.body.localToWorld(a); return { phi: +h.one.phi.toFixed(2), rest: h.one.rest, gap: +a.distanceTo(k.B).toFixed(3), low: +(h.top + h.body.position.y + h.lowY).toFixed(2) }; }),
-    breakThick() { const p = panes.find(x => x.alive && x.thick); if (!p) return false; damagePane(p, 0.3, 0.2, new THREE.Vector3().copy(p.T).multiplyScalar(30)); return true; }, openHall: d => openHallAround(sC + d), spawnAt: d => spawnGroupAt(sC + d), ramState2: () => rams.map(r => [+(r.s - sC).toFixed(1), r.glass ? 'g' : 'w', r.side, r.chains.filter(c => c.alive).length]), paneKinds: () => panes.map(p => (p.cross ? 'x' : 'b') + (p.thick ? 'T' : '') + (Array.isArray(p.tilt) ? '3' : p.tilt ? '2' : '')).join(),
+    breakThick() { const p = panes.find(x => x.alive && x.thick); if (!p) return false; damagePane(p, 0.3, 0.2, new THREE.Vector3().copy(p.T).multiplyScalar(30)); return true; }, openHall: d => openHallAround(sC + d), spawnAt: d => spawnGroupAt(sC + d), ramTh: () => rams.map(r => +r.th.toFixed(3)).join(), ramState2: () => rams.map(r => [+(r.s - sC).toFixed(1), r.glass ? 'g' : 'w', r.side, r.chains.filter(c => c.alive).length]), paneKinds: () => panes.map(p => (p.cross ? 'x' : 'b') + (p.thick ? 'T' : '') + (Array.isArray(p.tilt) ? '3' : p.tilt ? '2' : '')).join(),
     barState: () => lbars.map(x => ({ s: +(x.s - sC).toFixed(1), axis: x.axis, cost: x.cost, bars: x.bars.map(b => b.orient + b.n + (b.alive ? '' : 'x')).join() })), breakBars() { lbars.forEach(x => x.bars.forEach(b => b.alive && breakBar(b, b.wp.clone()))); },
     doorState: () => doors.map(d => ({ s: +(d.s - sC).toFixed(1), kind: d.kind, open: d.open, bolted: d.bolted, ang: +d.ang.toFixed(2), chains: d.chains.filter(c => c.alive).length })), breakHammer() { const m = hmills[0], a = m && m.arms.find(x => x.alive); if (a) breakHandle(m, a, a.A.clone()); return m ? m.heads.length : -1; }, heads: () => hmills.map(m => m.heads.map(h => h.g.position.y.toFixed(2)).join('/')).join(), ramState: () => ({ rams: rams.map(r => [r.falling, r.hit, r.chains.map(c => c.alive).join(), +(r.phi || 0).toFixed(2), +r.body.position.y.toFixed(2), +(r.lc || 0).toFixed(2)]), hm: hmills.map(m => [m.hit, m.arms.map(a => a.alive).join()]) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), dropAll() { gates.forEach(g => g.weights && g.leaves.forEach(lf => dropWeight(g, lf))); return gates.map(g => g.weights); }, pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },

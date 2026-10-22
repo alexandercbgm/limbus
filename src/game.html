@@ -329,13 +329,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="howTitle">
     <h1 id="howTitle" data-en="How to play">Как играть</h1>
     <p data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it; Space fires at the centre.">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь; пробел стреляет в центр.</p>
-    <p data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and blue crystals come often, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystals and red decoys, and fewer blue crystals, yet each one there gives almost twice the balls and banks two crystals."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, голубые кристаллы попадаются часто, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы и красные ловушки, а голубых кристаллов меньше — зато каждый даёт почти вдвое больше шаров и два кристалла в запас.</p>
+    <p data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and blue crystals come often, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystal imps and red decoys, and fewer blue crystals, yet each one there gives almost twice the balls and banks two crystals."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, голубые кристаллы попадаются часто, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы-бесы и красные ловушки, а голубых кристаллов меньше — зато каждый даёт почти вдвое больше шаров и два кристалла в запас.</p>
     <p data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons and upgrades at Armamentarium. Later stations hold more crystals, and tougher glass. Two lines lead to Abyssus, one is enough; Lux can also be reached through Tao.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки, пушки и улучшения в Armamentarium. Дальше по линии кристаллов больше, но и стекло прочнее. К Abyssus ведут две линии, хватит одной; к Lux можно доехать и через Tao.</p>
     <ul class="rules">
       <li><b>−1</b><span data-en="ball a shot">шар за выстрел</span></li>
       <li><b>+4/+7</b><span data-en="a blue crystal, for every ball that hits it; +7 in the Dark">голубой кристалл за каждый попавший шар, во Тьме +7</span></li>
       <li><b>−6</b><span data-en="crashing into glass or a spike">удар о стекло или шип</span></li>
-      <li><b>−3</b><span data-en="a red or black-red crystal">красный или чёрно-красный кристалл</span></li>
+      <li><b>−3</b><span data-en="a red crystal or a black-red crystal imp">красный кристалл или чёрно-красный кристалл-бес</span></li>
     </ul>
     <button class="cta" id="howClose" type="button" data-en="Got it">Понятно</button>
   </div>
@@ -422,6 +422,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // W and H are the room the game is played in; the shell of walls, floor and ceiling may stand further out (SW, SH),
   // where a level's frames are bigger than the tunnel (Vitrum, Speculum, Rubinus). Set for each level in setLevel.
   let SW = W, SH = H;
+  // Carcer's halls: wider and higher than its corridors, which only link one hall to the next
+  const HALL_W = 8.5, HALL_H = 10;
+  let HALLS = []; // [start, end] of each hall along the track, planned afresh for every ride
   const BRIDGE_W = 1.75, PYLON_H = 40; // Abyssus: half the bridge's width, and how far its pylons reach down
   const DS = 1, BACK = 44, AHEAD = 150, NS = BACK + AHEAD + 1, SL = 2;
   const START_BALLS = 30, R_BALL = 0.18, G = 11, MAX_SHARDS = 520;
@@ -931,6 +934,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   let flickT = 0, flickV = 1;
   function lampFlicker() { if (time > flickT) { flickT = time + (Math.random() < 0.15 ? rand(0.04, 0.12) : rand(0.3, 2.4)); flickV = Math.random() < 0.2 ? rand(0.05, 0.4) : rand(0.9, 1.3); } return flickV * (0.95 + 0.05 * Math.sin(time * 120)); }
   const frameMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.25 });
+  const safetyMat = new THREE.MeshBasicMaterial({ color: 0xff3a1a }); // Carcer: the red line along a hall's floor
   const railMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.7 });
   const sleeperMat = new THREE.MeshLambertMaterial();
   const spikeMat = new THREE.MeshStandardMaterial({ color: 0x2a0d0a, emissive: 0x9c1e0e, emissiveIntensity: 0.45, roughness: 0.45, metalness: 0.3, flatShading: true });
@@ -1124,6 +1128,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     lamp: inst(new THREE.BoxGeometry(0.5, 0.22, 0.9), lampMat, 60),
     lampCage: inst(new THREE.BoxGeometry(0.6, 0.3, 1.0), cageMat, 60),
     kerb: inst(new THREE.BoxGeometry(0.14, 0.2, SL + 0.03), frameMat, 200), // Abyssus: the bridge's edge
+    // Carcer's halls: the end wall with the corridor's doorway in it, cell bars along the sides, a glowing safety line
+    portal: inst((() => { const sh = new THREE.Shape([new THREE.Vector2(-HALL_W - 0.24, 0), new THREE.Vector2(HALL_W + 0.24, 0), new THREE.Vector2(HALL_W + 0.24, HALL_H), new THREE.Vector2(-HALL_W - 0.24, HALL_H)]);
+      sh.holes.push(new THREE.Path([new THREE.Vector2(-W, 0), new THREE.Vector2(-W, H), new THREE.Vector2(W, H), new THREE.Vector2(W, 0)])); return new THREE.ShapeGeometry(sh); })(), wallMat, 8),
+    cellbar: inst(new THREE.CylinderGeometry(0.045, 0.045, 1, 6), frameMat, 700),
+    safety: inst(new THREE.BoxGeometry(0.07, 0.03, SL + 0.03), safetyMat, 200),
     pylon: inst(new THREE.BoxGeometry(0.45, PYLON_H, 0.45), frameMat, 60),
     girder: inst(new THREE.BoxGeometry(2 * BRIDGE_W, 0.5, 0.4), frameMat, 30),
     bush: inst(new THREE.IcosahedronGeometry(0.75, 0), bushMat, 260), // clumps of foliage floating in Hortus
@@ -1175,16 +1184,34 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const hall = hash(seg * 13 + 7) < 0.55 && s > 70 && s < MAIN_LEN - 40 && !forks.some(f => Math.abs(s - f.s) < 80);
       d.wl = d.wr = d.ceil = !hall; if (hall) { d.arch = false; d.hall = true; }
     }
+    if (LEVEL.halls && !station) { // Carcer: the corridors are walled and roofed all along; a hall is the same, only wider and higher
+      d.wl = d.wr = d.ceil = true;
+      if (inHall(s)) { d.hall = true; d.hw = HALL_W; d.hh = HALL_H; d.arch = k % 4 === 0; }
+    }
     // In the dark single pyramids stick out of the walls, placed at random so every run differs.
     // Some of the low ones are thorns: they slide out on a piston as the cart comes near.
     const th = LEVEL.thorns || { from: 0.6, mul: 1 }; // Carcer brings thorns up out of the dark
-    if (!station && s < MAIN_LEN && z > th.from && Math.random() < (z - th.from + 0.05) * 0.6 * th.mul) {
+    if (!station && !d.hw && s < MAIN_LEN && z > th.from && Math.random() < (z - th.from + 0.05) * 0.6 * th.mul) {
       const sides = [d.wl && -1, d.wr && 1].filter(Boolean);
       if (sides.length) {
         const side = sides[Math.floor(Math.random() * sides.length)], v = rand(0.8, 4.6);
         if (state === "play" && v < 2.7 && s > sC + 40 && Math.random() < 0.55) addThornAt(s, side, v);
         else d.pyr = { side, v };
       }
+    }
+    if (d.hw) { // a hall of the dungeon: quarried stone stacked along its walls, and blocks of it adrift under the vault
+      for (const side of [-1, 1]) {
+        if (k % 2 === 0 && hash(k * 7 + side * 3 + 5) < 0.55) {
+          let v = 0; const n = 1 + Math.floor(hash(k * 3 + side * 11) * 3);
+          for (let i = 0; i < n; i++) {
+            const a = hash(k * 31 + i * 7 + side), b = hash(k * 17 + i * 11 + side), sx = 1.2 + a * 1.1, sy = 0.7 + b * 0.9, sz = 1.4 + a * 1.4;
+            d.blocks.push({ u: side * (HALL_W - 0.6 - sx / 2 - b * 0.5), v: v + sy / 2, sx, sy, sz, rx: 0, ry: (b - 0.5) * 0.5, spin: 0 }); v += sy + 0.02;
+          }
+        }
+        if (hash(k * 13 + side * 7 + 1) < 0.3) { const a = hash(k * 19 + side), r = 0.6 + a * 1.2;
+          d.blocks.push({ u: side * (W + 1 + a * (HALL_W - W - 2.4)), v: 6.4 + hash(k * 23 + side) * 2.6, sx: r, sy: r, sz: r, rx: a * TAU, ry: a * 3, spin: (a - 0.5) * 0.6 }); }
+      }
+      decor.set(k, d); return d;
     }
     if (STYLE.blocks === "slab") { // massive stacks of horizontal slabs far out, seen from the halls
       if (k % 3 === 0) for (const side of [-1, 1]) {
@@ -1238,7 +1265,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
-    const putWall = (key, s, u) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, SH / 2).scale(SV.set(1, SH / H, 1))); }; // as tall as the shell
+    const putWall = (key, s, u, hh = SH) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, hh / 2).scale(SV.set(1, hh / H, 1))); }; // as tall as the shell (or the hall)
     const wallKey = STYLE.glassWalls ? "gwall" : "wall", blockKey = STYLE.blocks === "prism" ? "prism" : STYLE.blocks === "coin" ? "coin" : STYLE.blocks === "bush" ? "bush" : STYLE.blocks === "drop" ? "drop" : "block";
     const k0 = Math.floor((sC - 10) / SL), k1 = Math.floor((sC + AHEAD - 4) / SL);
     for (let k = k0; k <= k1; k++) {
@@ -1251,11 +1278,27 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const a0 = s - SL / 2, a1 = slot.s - SLOT_W / 2, b0 = slot.s + SLOT_W / 2, b1 = s + SL / 2;
         for (const [x0, x1] of [[a0, a1], [b0, b1]]) if (x1 - x0 > 0.05) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, (x0 + x1) / 2, u, 0.19).scale(SV.set(1, 1, (x1 - x0) / (SL + 0.04))));
       }
-      const open = forkOpenSide(s);
-      if (dec.wl && open !== -1) putWall(wallKey, s, -SW - 0.12);
-      if (dec.wr && open !== 1) putWall(wallKey, s, SW + 0.12);
-      if (dec.ceil && !STYLE.closed) I.ceil.setMatrixAt(n.ceil++, placeM(M, s, 0, SH).scale(SV.set(SW / W, 1, 1))); // a closed maze has a continuous vault instead
-      if (dec.arch && !open) {
+      const open = forkOpenSide(s), ww = dec.hw || SW, wh = dec.hh || SH;
+      if (dec.wl && open !== -1) putWall(wallKey, s, -ww - 0.12, wh);
+      if (dec.wr && open !== 1) putWall(wallKey, s, ww + 0.12, wh);
+      if (dec.ceil && !STYLE.closed) I.ceil.setMatrixAt(n.ceil++, placeM(M, s, 0, wh).scale(SV.set(ww / W, 1, 1))); // a closed maze has a continuous vault instead
+      if (LEVEL.halls && !!dec.hw !== !!getDecor(k - 1).hw && (dec.hw || getDecor(k - 1).hw)) { // where a corridor meets a hall: the hall's end wall, seen from both sides
+        const s0 = k * SL;
+        I.portal.setMatrixAt(n.portal++, placeM(M, s0, 0, 0));
+        I.portal.setMatrixAt(n.portal++, placeM(M, s0, 0, 0).multiply(M2.makeRotationY(Math.PI)));
+      }
+      if (dec.hw) { // a hall: pillars and beams instead of arches, cells barred along its sides, a red line along the floor, lamps high up
+        if (dec.arch) {
+          for (const sd of [-1, 1]) I.post.setMatrixAt(n.post++, placeM(M, s, sd * (dec.hw - 0.2), dec.hh / 2).scale(SV.set(1.6, dec.hh / H, 1.6)));
+          I.beam.setMatrixAt(n.beam++, placeM(M, s, 0, dec.hh - 0.25).scale(SV.set((2 * dec.hw + 0.36) / (2 * W + 0.36), 1.6, 1.6)));
+        }
+        for (const sd of [-1, 1]) {
+          if (hash(k * 53 + sd * 9) < 0.7) for (let i = 0; i < 4; i++) I.cellbar.setMatrixAt(n.cellbar++, placeM(M, s - 0.75 + i * 0.5, sd * (dec.hw - 1.4), 1.7).scale(SV.set(1, 3.4, 1)));
+          put("safety", s, sd * (W + 0.35), 0.02);
+          if (k % 4 === 2) { put("lamp", s, sd * (dec.hw - 0.3), dec.hh - 1.6); put("lampCage", s, sd * (dec.hw - 0.3), dec.hh - 1.6); }
+        }
+      }
+      if (dec.arch && !open && !dec.hw) {
         if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
         else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY).scale(SV.set(RING_SX, RING_SY, 1))); // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
         else if (STYLE.arch === "tri") { const tr = triAt(s); for (let e = 0; e < 3; e++) { const A = tr[e], B = tr[(e + 1) % 3], L = Math.hypot(B[0] - A[0], B[1] - A[1]);
@@ -1267,7 +1310,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (dec.arch) { put("pylon", s, -BRIDGE_W + 0.3, -PYLON_H / 2); put("pylon", s, BRIDGE_W - 0.3, -PYLON_H / 2); put("girder", s, 0, -0.35); }
       }
       if (dec.pyr && dec.pyr.side !== open) put(dec.pyr.side < 0 ? "pyrL" : "pyrR", s, dec.pyr.side * (SW - 0.25), dec.pyr.v);
-      if (STYLE.rebar) { // rods of rebar out of broken concrete, and caged sodium lamps every 10 m
+      if (STYLE.rebar && !dec.hw) { // rods of rebar out of broken concrete, and caged sodium lamps every 10 m
         for (const side of [-1, 1]) if ((side < 0 ? dec.wl : dec.wr) && hash(k * 19 + side * 7) < 0.45) {
           const cnt = 2 + Math.floor(hash(k * 23 + side) * 4), v0 = 0.6 + hash(k * 29 + side) * 4.6;
           for (let i = 0; i < cnt; i++) {
@@ -1286,7 +1329,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         I[blockKey].setMatrixAt(n[blockKey]++, M);
       }
     }
-    fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, STYLE.bridge ? BRIDGE_W : SW);
+    fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, STYLE.bridge ? BRIDGE_W : LEVEL.halls ? HALL_W : SW);
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H); else vaultStrip.visible = false;
     // Speculum: the glass walls are mirrors, and beyond each one the corridor repeats: floor, vault, rails,
     // sleepers and arches, closed by a dark wall where the reflection's own mirror would be
@@ -1594,7 +1637,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     drops.forEach(d => scene.remove(d.group)); drops = [];
     boughs.forEach(b => scene.remove(b.root)); boughs = [];
     gates.forEach(g => scene.remove(g.root)); gates = []; lastGateS = -1e9;
-    rams.forEach(r => scene.remove(r.root)); rams = []; hmills.forEach(m => scene.remove(m.root)); hmills = [];
+    rams.forEach(r => scene.remove(r.root)); rams = []; hmills.forEach(m => scene.remove(m.root)); hmills = []; doors.forEach(d => scene.remove(d.root)); doors = [];
     spinners.forEach(x => scene.remove(x.root)); spinners = []; lblocks.forEach(x => scene.remove(x.root)); lblocks = [];
     wheels.forEach(w => scene.remove(w.ring)); wheels = [];
     pendingHits = [];
@@ -1611,15 +1654,19 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     lift: [0.5, 2, 1.5], double: [0, 1, 2], reinf: [0, 0.6, 3], shutter: [0, 1, 2.5], imps: [0, 0.6, 3],
   };
   function curD() { return clamp((1 - alt) / 2, 0, 1); }
-  function pickPattern(d) {
-    const w = {}, pats = Object.assign({}, PATS, LEVEL.pats || {}); let total = 0;
+  function pickPattern(d, hall) {
+    const w = {}, pats = hall ? LEVEL.hallPats : Object.assign({}, PATS, LEVEL.pats || {}); let total = 0;
     for (const k in pats) { const a = pats[k]; w[k] = d < 0.5 ? lerp(a[0], a[1], d * 2) : lerp(a[1], a[2], d * 2 - 1); total += w[k]; }
     let x = Math.random() * total;
     for (const k in w) { x -= w[k]; if (x <= 0) return k; }
     return "center";
   }
   function spawnGroup(s) {
-    const d = curD(), prog = sC / MAIN_LEN, pat = pickPattern(clamp(d + 0.12 * prog, 0, 1));
+    // Carcer's doors come up as the track reaches them, and nothing else is set down right at one
+    while (doorPlan.length && doorPlan[0].s < s + 12) spawnDoor(doorPlan.shift());
+    if (doors.some(dr => Math.abs(dr.s - s) < 9)) return;
+    const hall = LEVEL.halls && inHall(s);
+    const d = curD(), prog = sC / MAIN_LEN, pat = pickPattern(clamp(d + 0.12 * prog, 0, 1), hall);
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
       case "center": addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break;
@@ -1638,6 +1685,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 + (LEVEL.armor || 0) });
         break;
       case "rams": addRams(s, d > 0.3 && Math.random() < 0.4 + d * 0.5); break;
+      // Carcer's halls: grates of either look on one, two or three chains, rows and grids of lasers, the headsman's mills
+      case "grate1": case "grate2": case "grate3": {
+        const look = Math.random() < 0.5 ? "medieval" : "modern";
+        if (s - lastHangerS > 42) { addHanger(s, pat === "grate1" ? "pendulum" : "gate", false, true, { look, wide: pat === "grate3" }); lastHangerS = s; }
+        else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 + (LEVEL.armor || 0) });
+        break;
+      }
+      case "lrow": addLaserRow(s, Math.random() < 0.5 ? "side" : "top"); break;
+      case "lgrid": addLaserRow(s, "grid"); break;
+      case "axes": {
+        const side = Math.random() < 0.5 ? -1 : 1, dir = Math.random() < 0.5 ? -1 : 1, n = Math.random() < 0.5 ? 2 : 4;
+        addHammerMill(s, side, dir, n, true);
+        if (d > 0.45 && Math.random() < 0.3 + d * 0.4) addHammerMill(s - 9, -side, -dir, 6 - n, true);
+        break;
+      }
       case "hammers": { // one, or a staggered pair turning against each other
         const side = Math.random() < 0.5 ? -1 : 1, dir = Math.random() < 0.5 ? -1 : 1;
         const cnt = () => Math.random() < 0.3 + d * 0.4 ? 4 : 2;
@@ -1722,7 +1784,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (twin) addMirage(c0, -cu, cv, val);
       if (d < 0.3 && Math.random() < 0.35) addCrystal(clearOfArch(cs - 3), rand(-2.8, 2.8), rand(1.1, 4.6), val);
     }
-    if (d > 0.55 && Math.random() < (d - 0.55) * 1.4) addCrystal(clearOfArch(cs + 2), rand(-1.2, 1.2), rand(1.4, 3), 0, true);
+    if (d > 0.55 && Math.random() < (d - 0.55) * 1.4 * (LEVEL.decoyMul || 1)) addCrystal(clearOfArch(cs + 2), rand(-1.2, 1.2), rand(1.4, 3), 0, true);
   }
   // a crystal never hangs inside one of the tunnel's frames: it keeps a metre off an arch
   function clearOfArch(s) {
@@ -1856,15 +1918,33 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function inCurve(s) { return [-30, -15, 0, 15].some(o => Math.abs(yawRateAt(s + o)) > 0.002); }
   const ironMat = new THREE.MeshStandardMaterial({ color: 0x4a3a30, roughness: 0.6, metalness: 0.85 });
   const barGeo = new THREE.CylinderGeometry(0.06, 0.06, 1, 8), hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
-  function addHanger(s, kind, laser = false, bars = false) {
-    if (inCurve(s)) kind = "pendulum"; // two chains are too much to hit while the track bends
-    const pend = kind === "pendulum", w = laser ? 4.2 : pend ? 2.3 : 3.0, h = laser ? 0.32 : pend ? 2.1 : 2.4, d = laser ? 0.32 : 0.55;
+  const steelMat = new THREE.MeshStandardMaterial({ color: 0xb4bcc2, roughness: 0.28, metalness: 0.9 }), darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x2a2e33, roughness: 0.4, metalness: 0.8 });
+  const frameBarGeo = new THREE.BoxGeometry(1, 0.14, 0.18), spikeTipGeo = new THREE.ConeGeometry(0.08, 0.28, 6).rotateZ(Math.PI);
+  const hazardGeo = new THREE.BoxGeometry(1, 0.18, 0.02), ledGeo = new THREE.SphereGeometry(0.07, 12, 8), ledMat = new THREE.MeshBasicMaterial({ color: 0xff2a14 });
+  const hazardMat = new THREE.MeshBasicMaterial({ map: (() => { const c = document.createElement("canvas"); c.width = 64; c.height = 8; const g = c.getContext("2d");
+    g.fillStyle = "#16181a"; g.fillRect(0, 0, 64, 8); g.fillStyle = "#e8b020"; for (let x = -8; x < 64; x += 8) { g.beginPath(); g.moveTo(x, 8); g.lineTo(x + 4, 0); g.lineTo(x + 8, 0); g.lineTo(x + 4, 8); g.fill(); }
+    const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.repeat.set(6, 1); return t; })() });
+  // opt (Carcer's grates): look "medieval" (heavy black iron, spiked) or "modern" (thin steel bars in a hazard-striped frame);
+  // wide: a grate across the whole track on three chains
+  function addHanger(s, kind, laser = false, bars = false, opt = {}) {
+    if (inCurve(s) && !opt.wide) kind = "pendulum"; // two chains are too much to hit while the track bends
+    const pend = kind === "pendulum", w = laser ? 4.2 : opt.wide ? 5.4 : pend ? 2.3 : 3.0, h = laser ? 0.32 : pend ? 2.1 : 2.4, d = laser ? 0.32 : 0.55;
+    const top = (inHall(s) ? HALL_H : SH) - 0.06; // chains hang from the vault over them, a hall's being higher
     // a laser beam hangs high, over the cart, and its lasers reach down to the floor
-    const L = laser ? HANG_TOP - 4.4 : HANG_TOP - (CAM_V + 0.25) - h / 2, arm = pend ? L + h / 2 : L; // pivot to the slab's center (pendulum) or chain length (gate)
+    const L = laser ? top - 4.4 : top - (CAM_V + 0.25) - h / 2, arm = pend ? L + h / 2 : L; // pivot to the slab's center (pendulum) or chain length (gate)
     const root = new THREE.Group(); root.matrixAutoUpdate = false;
     const geo = new THREE.BoxGeometry(w, h, d), body = new THREE.Mesh(geo, bars ? hitBoxMat : laser ? laserBaseMat : monoMat);
-    if (bars) { // a portcullis: iron bars in a frame; its hit box stays invisible
-      for (let x = -w / 2 + 0.15; x <= w / 2 - 0.1; x += 0.38) { const b = new THREE.Mesh(barGeo, ironMat); b.scale.y = h; b.position.x = x; body.add(b); }
+    if (bars && opt.look === "modern") { // a modern cell door: thin polished bars in a heavy frame, hazard stripes at the foot, a red lamp
+      for (let x = -w / 2 + 0.22; x <= w / 2 - 0.2; x += 0.26) { const b = new THREE.Mesh(barGeo, steelMat); b.scale.set(0.55, h - 0.2, 0.55); b.position.x = x; body.add(b); }
+      for (const y of [-h / 2 + 0.07, h / 2 - 0.07]) { const b = new THREE.Mesh(frameBarGeo, darkSteelMat); b.scale.x = w; b.position.y = y; body.add(b); }
+      for (const x of [-w / 2 + 0.07, w / 2 - 0.07]) { const b = new THREE.Mesh(frameBarGeo, darkSteelMat); b.scale.set(0.14 / 1, h / 0.14, 1); b.rotation.z = 0; b.position.x = x; body.add(b); }
+      const st = new THREE.Mesh(hazardGeo, hazardMat); st.scale.x = w - 0.3; st.position.set(0, -h / 2 + 0.2, 0.06); body.add(st);
+      const led = new THREE.Mesh(ledGeo, ledMat); led.position.set(w / 2 - 0.3, h / 2 - 0.25, 0.1); body.add(led);
+    } else if (bars) { // a portcullis: iron bars in a frame, spiked at the foot; its hit box stays invisible
+      for (let x = -w / 2 + 0.15; x <= w / 2 - 0.1; x += 0.38) {
+        const b = new THREE.Mesh(barGeo, ironMat); b.scale.y = h; b.position.x = x; body.add(b);
+        if (opt.look === "medieval") { const sp = new THREE.Mesh(spikeTipGeo, ironMat); sp.position.set(x, -h / 2 - 0.14, 0); body.add(sp); }
+      }
       for (const y of [-h / 2 + 0.08, 0, h / 2 - 0.08]) { const b = new THREE.Mesh(barGeo, ironMat); b.scale.set(1.4, w, 1.4); b.rotation.z = Math.PI / 2; b.position.y = y; body.add(b); }
     } else body.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), laser ? laserEdgeMat : edgeMat));
     root.add(body);
@@ -1873,17 +1953,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const beam = laserBeam(); beam.rotation.z = Math.PI; beam.position.set(x, -h / 2, 0); body.add(beam);
       return { x, blk, beam, alive: true, len: 4 };
     }) : [];
-    const xs = pend ? [0] : [-(w / 2 - 0.35), w / 2 - 0.35];
+    const xs = pend ? [0] : opt.wide ? [-(w / 2 - 0.35), 0, w / 2 - 0.35] : [-(w / 2 - 0.35), w / 2 - 0.35];
     const chains = xs.map(x => { const m = makeChain(L); m.position.x = x; root.add(m); return { x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
     xs.forEach(x => { const plate = new THREE.Mesh(mountGeo, frameMat); plate.position.set(x, 0.02, 0); root.add(plate); }); // anchor plates
     scene.add(root);
     // a monolith always hangs under a ceiling: close the vault over it
     for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) getDecor(k).ceil = true;
     // under a raised ceiling the chains are longer, but the swing keeps the tempo and sideways reach of a normal one
-    const arm0 = arm - (HANG_TOP - (H - 0.06)), kArm = arm0 / arm;
+    const arm0 = arm - (top - (H - 0.06)), kArm = arm0 / arm;
     const wn2 = G / arm0, amp = pend ? rand(0.4, 0.52) * kArm : 0, ph = rand(0, TAU);
-    hangers.push({ s, kind, w, h, d, L, arm, wn2, kArm, u0: pend || laser ? 0 : rand(-0.4, 0.4), theta: amp * Math.sin(ph), omega: amp * Math.sqrt(wn2) * Math.cos(ph), tilt: 0,
-      laser, bars, emitters, lasHit: false, root, body, chains, hp: laser ? 6 : bars ? 9 : pend ? 5 : 7, falling: false, fallT: 0, fv: new THREE.Vector3(), alive: true, passed: false, inv: new THREE.Matrix4() });
+    hangers.push({ s, kind, w, h, d, L, arm, wn2, kArm, top, u0: pend || laser ? 0 : rand(-0.4, 0.4), theta: amp * Math.sin(ph), omega: amp * Math.sqrt(wn2) * Math.cos(ph), tilt: 0,
+      laser, bars, emitters, lasHit: false, root, body, chains, hp: laser ? 6 : opt.wide ? 13 : bars ? 9 : pend ? 5 : 7, falling: false, fallT: 0, fv: new THREE.Vector3(), alive: true, passed: false, inv: new THREE.Matrix4() });
   }
   const SWEEP = new THREE.Vector3(), CHAIN_HIT = 0.4; // chains look thin, so their hit zone is generous
   function segDist(pt, A, B) {
@@ -2031,6 +2111,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     if (f === "custodes") {
       superWave++;
+      if (superWave % 3 === 0) { // the strongroom: a wide grate on three chains, blue crystals behind it; cut it down and take them
+        addHanger(s, "gate", false, true, { look: superWave % 6 ? "modern" : "medieval", wide: true });
+        for (const u of [-2.1, -0.7, 0.7, 2.1]) addCrystal(s + 2.4, u, rand(1.5, 3.1), 3);
+        return 15;
+      }
       const n = Math.min(7, 3 + Math.floor(superWave / 2)), wave = { n, killed: 0, lost: false };
       for (let i = 0; i < n; i++) { addImp(s + i * 2.2, rand(-2.6, 2.6), rand(1.3, 4.4)); imps[imps.length - 1].wave = wave; }
       return 13;
@@ -2212,9 +2297,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   const segDist2 = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay, k = clamp(((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1), 0, 1); return Math.hypot(ax + dx * k - px, ay + dy * k - py); };
   const beamHitsCart = (ax, ay, bx, by) => CART_PTS.some(([u, v]) => segDist2(u, v, ax, ay, bx, by) < 0.22);
-  function laserHit() {
-    balls = Math.max(0, balls - LASER_COST); updateCount(); karmaLoss(0.1);
-    Sound.burn(); flash(); pop("−" + LASER_COST + T(" · ожог", " · burn"), "loss");
+  function laserHit(cost = LASER_COST) {
+    balls = Math.max(0, balls - cost); updateCount(); karmaLoss(0.1);
+    Sound.burn(); flash(); pop("−" + cost + T(" · ожог", " · burn"), "loss");
     if (!reduceMotion) shakeT = 0.25;
   }
   function laserOut(at, mat = recessMat) { Sound.shatter(0.5); Sound.tone(800, 0.15, 0.1, "square", 0, 200); chips(at, mat, 10, tmpV2.set(0, 1, 0)); addScore(20); karmaGain(0.03); pop(T("лазер погашен", "laser out"), "info"); }
@@ -2253,19 +2338,31 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const nozzleBodyGeo = new THREE.CylinderGeometry(0.11, 0.13, 0.42, 16).translate(0, -0.1, 0), nozzleBellGeo = new THREE.CylinderGeometry(0.2, 0.1, 0.22, 18, 1, true).translate(0, 0.22, 0);
   const nozzleThroatGeo = new THREE.CircleGeometry(0.1, 16).rotateX(-Math.PI / 2).translate(0, 0.14, 0), finGeo = new THREE.BoxGeometry(0.03, 0.2, 0.16).translate(0, -0.22, 0.12);
   const nozzleMat = new THREE.MeshStandardMaterial({ color: 0xcfd2da, roughness: 0.25, metalness: 0.9, side: THREE.DoubleSide }), ORB_HIT = 0.36;
-  function addLaserBlock(s, orient) {
-    const side = Math.random() < 0.5 ? -1 : 1, root = new THREE.Group(); root.matrixAutoUpdate = false;
+  // opt (a row or grid of lasers): side, u, v of this nozzle, and the row it belongs to (its drift and its one burn)
+  function addLaserBlock(s, orient, opt = {}) {
+    const side = opt.side || (Math.random() < 0.5 ? -1 : 1), root = new THREE.Group(); root.matrixAutoUpdate = false;
     const noz = new THREE.Group(); root.add(noz);
     noz.add(new THREE.Mesh(nozzleBodyGeo, nozzleMat)); noz.add(new THREE.Mesh(nozzleBellGeo, nozzleMat)); noz.add(new THREE.Mesh(nozzleThroatGeo, orbMat));
     for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(finGeo, nozzleMat); f.rotation.y = i * Math.PI / 2; noz.add(f); }
     const glow = new THREE.Sprite(orbGlow); glow.scale.setScalar(0.9); glow.position.y = 0.2; noz.add(glow);
     const beam = laserBeam(); beam.position.y = 0.16; noz.add(beam);
     scene.add(root);
-    const drift = Math.random() < 0.5; // still, or drifting side to side
-    const o = orient === "h" ? { u: side * (W - 0.6), v: rand(0.9, 1.7), du: -side, dv: 0, amp: drift ? 0.5 : 0 }
-      : { u: rand(-1.2, 1.2), v: H - 0.8, du: 0, dv: -1, amp: drift ? 1.6 : 0 };
+    const drift = !opt.row && Math.random() < 0.5; // still, or drifting side to side
+    const o = orient === "h" ? { u: side * (W - 0.6), v: opt.v ?? rand(0.9, 1.7), du: -side, dv: 0, amp: drift ? 0.5 : 0 }
+      : { u: opt.u ?? rand(-1.2, 1.2), v: opt.v ?? H - 0.8, du: 0, dv: -1, amp: drift ? 1.6 : 0 };
     noz.rotation.z = orient === "h" ? side * Math.PI / 2 : Math.PI; // the nozzle and its beam point across or down
-    lblocks.push(Object.assign({ s, orient, side, root, beam, noz, alive: true, passed: false, phase: rand(0, TAU), wp: new THREE.Vector3(), len: 0 }, o, { bu: o.u }));
+    lblocks.push(Object.assign({ s, orient, side, root, beam, noz, alive: true, passed: false, phase: rand(0, TAU), wp: new THREE.Vector3(), len: 0, row: opt.row }, o, { bu: o.u }));
+  }
+  // Carcer: 3–4 lasers in a row from one side (it may drift up and down), from above (it may drift left and right), or
+  // both at once, a grid that stands still. A row burns the cart once: 3 balls, and a ball more for each other live beam
+  // that crosses it. Its nozzles show from afar, so there is time to pick off the ones that matter.
+  function addLaserRow(s, mode) {
+    const n = Math.random() < 0.5 ? 3 : 4, row = { amp: 0, f: rand(0.9, 1.4), ph: rand(0, TAU), axis: "v", cost: 0 };
+    if (mode !== "grid" && Math.random() < 0.7) row.amp = mode === "side" ? 0.75 : 1.3;
+    if (mode === "top") row.axis = "u";
+    if (mode === "side" || mode === "grid") { const side = Math.random() < 0.5 ? -1 : 1;
+      for (let i = 0; i < n; i++) addLaserBlock(s, "h", { side, v: 0.55 + i * (2.1 / (n - 1)), row }); }
+    if (mode === "top" || mode === "grid") for (let i = 0; i < n; i++) addLaserBlock(s + (mode === "grid" ? 0.4 : 0), "v", { u: -1.8 + i * (3.6 / (n - 1)), v: 5.6, row });
   }
   function hitLaserBlock(lb) { lb.alive = false; scene.remove(lb.root); laserOut(lb.wp, orbMat); }
   function updateLasers(dt) {
@@ -2291,7 +2388,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     spinners = spinners.filter(x => x.alive);
     for (const lb of lblocks) {
       if (!lb.alive) continue;
-      if (lb.amp) { // a drifting nozzle levitates: it glides side to side and bobs, swaying a little as it goes
+      if (lb.row && lb.row.amp) { const o = Math.sin(time * lb.row.f + lb.row.ph) * lb.row.amp; if (lb.row.axis === "v") lb.vv = o; else { lb.u = lb.bu + o; lb.vv = 0; } } // a row drifts as one
+      else if (lb.amp) { // a drifting nozzle levitates: it glides side to side and bobs, swaying a little as it goes
         const ph = time * 0.8 + lb.phase;
         if (lb.orient === "h") { lb.u = lb.bu - lb.side * (0.5 + 0.5 * Math.sin(ph)) * lb.amp; lb.vv = Math.sin(ph * 1.7) * 0.18; }
         else { lb.u = clamp(lb.bu + Math.sin(ph) * lb.amp, -W + 0.6, W - 0.6); lb.vv = Math.sin(ph * 2.1) * 0.15; }
@@ -2303,7 +2401,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       setBeamLen(lb.beam, Math.max(0, lb.len - 0.16));
       if (state === "play" && !lb.passed && lb.s <= sC + 0.5) {
         lb.passed = true;
-        if (beamHitsCart(lb.u, lb.v + lb.vv, lb.u + lb.du * lb.len, lb.v + lb.vv + lb.dv * lb.len)) laserHit();
+        if (beamHitsCart(lb.u, lb.v + lb.vv, lb.u + lb.du * lb.len, lb.v + lb.vv + lb.dv * lb.len)) {
+          if (!lb.row) laserHit();
+          else { const c = lb.row.cost ? 1 : LASER_COST; if (lb.row.cost + c <= 6) { lb.row.cost += c; laserHit(c); } }
+        }
       }
       if (lb.s < sC - 6) { lb.alive = false; scene.remove(lb.root); }
     }
@@ -2345,17 +2446,30 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // a hammer mill turns in a gap of the wall: handles out of a hub, a heavy head on each; shoot a handle to break it off
   let hmills = [];
   const HM_L = 2.4, HM_V = 3.25, hmHubGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.6, 20).rotateX(Math.PI / 2), hmHandleGeo = new THREE.CylinderGeometry(0.15, 0.18, HM_L, 12).translate(0, HM_L / 2, 0);
+  const pillarGeo = new THREE.BoxGeometry(0.9, HALL_H, 0.9), axeSocketGeo = new THREE.BoxGeometry(0.34, 0.5, 0.3);
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xa8b0b6, roughness: 0.22, metalness: 0.92 });
+  const axeBladeGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(0.1, -0.24); sh.lineTo(0.8, -0.62); sh.quadraticCurveTo(1.15, 0, 0.8, 0.62); sh.lineTo(0.1, 0.24); sh.closePath();
+    return new THREE.ExtrudeGeometry(sh, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.03, bevelSegments: 1 }).translate(0, 0, -0.025); })();
   const hmAxleGeo = new THREE.BoxGeometry(1.6, 0.3, 0.3), hmHeadGeo = new THREE.BoxGeometry(1.5, 0.85, 1.0), hmCapGeo = new THREE.BoxGeometry(1.58, 0.16, 1.08);
-  function addHammerMill(s, side, dir, count = 2) {
-    for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc[side < 0 ? "wl" : "wr"] = false; dc.arch = false; dc.pyr = null; }
+  // axe (Carcer): a headsman's mill on a stone pillar behind it, four single-bitted axes or two double-bitted ones
+  function addHammerMill(s, side, dir, count = 2, axe = false) {
+    if (!axe) for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc[side < 0 ? "wl" : "wr"] = false; dc.arch = false; dc.pyr = null; }
     const root = new THREE.Group(); root.matrixAutoUpdate = false; root.add(new THREE.Mesh(hmHubGeo, frameMat));
-    const axle = new THREE.Mesh(hmAxleGeo, frameMat); axle.position.x = side * 0.8; root.add(axle); // to the wall
+    if (axe) { // the pillar stands behind the mill, so the axes sweep clear of it
+      const pl = new THREE.Mesh(pillarGeo, blockMat); pl.position.set(0, HALL_H / 2 - HM_V, -1.0); root.add(pl);
+      const ax = new THREE.Mesh(hmAxleGeo, frameMat); ax.rotation.y = Math.PI / 2; ax.scale.x = 0.7; ax.position.z = -0.5; root.add(ax);
+    } else { const axle = new THREE.Mesh(hmAxleGeo, frameMat); axle.position.x = side * 0.8; root.add(axle); } // to the wall
     const rotor = new THREE.Group(); root.add(rotor);
     const step = TAU / count, arms = Array.from({ length: count }, (_, i) => {
       const a = new THREE.Group(); a.rotation.z = i * step; rotor.add(a);
       a.add(new THREE.Mesh(hmHandleGeo, woodMat));
-      const head = new THREE.Mesh(hmHeadGeo, ramMat); head.position.y = HM_L; a.add(head);
-      for (const y of [-0.34, 0.34]) { const cp = new THREE.Mesh(hmCapGeo, frameMat); cp.position.y = HM_L + y; a.add(cp); }
+      if (axe) { // the bit faces the way the mill turns; a pair of mills' axes are bitted both ways
+        const sock = new THREE.Mesh(axeSocketGeo, frameMat); sock.position.y = HM_L; a.add(sock);
+        for (const b of count === 2 ? [1, -1] : [dir < 0 ? 1 : -1]) { const bl = new THREE.Mesh(axeBladeGeo, bladeMat); bl.position.y = HM_L - 0.05; bl.rotation.y = b > 0 ? 0 : Math.PI; a.add(bl); }
+      } else {
+        const head = new THREE.Mesh(hmHeadGeo, ramMat); head.position.y = HM_L; a.add(head);
+        for (const y of [-0.34, 0.34]) { const cp = new THREE.Mesh(hmCapGeo, frameMat); cp.position.y = HM_L + y; a.add(cp); }
+      }
       return { i, ang: i * step, grp: a, alive: true, A: new THREE.Vector3(), B: new THREE.Vector3(), H: new THREE.Vector3() };
     });
     scene.add(root);
@@ -2436,6 +2550,101 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (m.s < sC - 6) { m.dead = true; scene.remove(m.root); }
     }
     hmills = hmills.filter(m => !m.dead);
+  }
+
+  // ---------- Carcer: doors where a corridor meets a hall ----------
+  // flap: one leaf on a bottom hinge stands in the doorway, held up by two chains from the lintel; shoot both chains and
+  // it falls toward the cart, flat, a bridge to roll over. bolt: two leaves on side hinges, barred across: one shot breaks
+  // the bolt, then a shot on each leaf swings it open. A door still shut when the cart comes is burst for GATE_COST.
+  let doors = [], doorPlan = [];
+  const DOOR_W = W - 0.12, FLAP_H = H - 1.5, LEAF_H = H - 0.35, BOLT_V = 2.0;
+  const flapGeo = new THREE.BoxGeometry(2 * DOOR_W, FLAP_H, 0.16).translate(0, FLAP_H / 2, 0);
+  const cellLeafGeo = new THREE.BoxGeometry(DOOR_W, LEAF_H, 0.14).translate(DOOR_W / 2, LEAF_H / 2, 0); // its hinge at x = 0
+  const strapGeo = new THREE.BoxGeometry(1, 0.16, 0.05), doorLintelGeo = new THREE.BoxGeometry(2 * W + 0.4, 0.34, 0.34), boltGeo = new THREE.BoxGeometry(2.8, 0.22, 0.2), bracketGeo = new THREE.BoxGeometry(0.26, 0.44, 0.16);
+  const doorMatC = new THREE.MeshStandardMaterial({ color: 0x3a2c24, roughness: 0.75, metalness: 0.35 });
+  function planDoors() { // most halls have a door in, about half a door out; the barred kind more often deeper in
+    const out = [];
+    for (const [a, b] of HALLS) {
+      if (a > MAIN_LEN - 30) continue;
+      for (const [x, p] of [[a, 0.8], [b, 0.5]]) if (x < MAIN_LEN - 30 && Math.random() < p) out.push({ s: x - 0.3, kind: Math.random() < 0.25 + 0.45 * x / MAIN_LEN ? "bolt" : "flap" });
+    }
+    return out;
+  }
+  function spawnDoor(o) {
+    const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
+    const lin = new THREE.Mesh(doorLintelGeo, frameMat); lin.position.y = H - 0.17; root.add(lin);
+    const dr = { s: o.s, kind: o.kind, root, chains: [], leaves: [], bolted: o.kind === "bolt", ang: 0, angV: 0, open: false, passed: false, inv: new THREE.Matrix4() };
+    const strap = (parent, x, y, w) => { const m = new THREE.Mesh(strapGeo, ironMat); m.scale.x = w; m.position.set(x, y, 0.1); parent.add(m); };
+    if (o.kind === "flap") {
+      const leaf = new THREE.Group(); root.add(leaf); leaf.add(new THREE.Mesh(flapGeo, doorMatC));
+      for (const y of [0.6, FLAP_H / 2, FLAP_H - 0.6]) strap(leaf, 0, y, 2 * DOOR_W - 0.2);
+      dr.leaf = leaf;
+      for (const x of [-(DOOR_W - 0.6), DOOR_W - 0.6]) { const L = H - 0.34 - FLAP_H; const m = makeChain(L); m.position.set(x, H - 0.34, 0.05); root.add(m); dr.chains.push({ x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() }); }
+    } else {
+      for (const sd of [-1, 1]) {
+        const hinge = new THREE.Group(); hinge.position.x = sd * DOOR_W; hinge.rotation.y = sd < 0 ? 0 : Math.PI; root.add(hinge);
+        hinge.add(new THREE.Mesh(cellLeafGeo, doorMatC));
+        for (const y of [0.7, LEAF_H / 2, LEAF_H - 0.7]) strap(hinge, DOOR_W / 2, y, DOOR_W - 0.2);
+        const br = new THREE.Mesh(bracketGeo, ironMat); br.position.set(DOOR_W - 0.9, BOLT_V, 0.14); hinge.add(br);
+        dr.leaves.push({ sd, hinge, ang: 0, opening: false });
+      }
+      const bolt = new THREE.Mesh(boltGeo, ironMat); bolt.position.set(0, BOLT_V, 0.24); root.add(bolt); dr.bolt = bolt;
+    }
+    doors.push(dr); return dr;
+  }
+  function doorChainCut(dr, c, at) {
+    c.alive = false; c.mesh.visible = false; Sound.clink(); Sound.tone(900, 0.12, 0.08, "square", 0, 300); chips(at, chainMat, 8, tmpV2.set(0, 2, 0)); addScore(15);
+    if (dr.chains.every(x => !x.alive)) { dr.open = true; Sound.tone(110, 0.4, 0.15, "sawtooth", 0, 60); pop(T("створка падает", "the flap falls"), "info"); }
+  }
+  function doorBoltBreak(dr, at) {
+    dr.bolted = false; dr.bolt.visible = false; Sound.shatter(0.5); Sound.tone(300, 0.15, 0.1, "square", 0, 120); chips(at, ironMat, 10, tmpV2.set(0, 1, 2)); addScore(20); pop(T("засов сбит", "bolt broken"), "info");
+  }
+  function doorLeafHit(dr, lf, at, vel) {
+    if (dr.bolted || lf.opening) { Sound.knock(); chips(at, doorMatC, 4, vel); return; } // barred: a ball only knocks
+    lf.opening = true; Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); chips(at, doorMatC, 6, vel); addScore(15);
+    if (dr.leaves.every(l => l.opening)) { dr.open = true; balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); }
+  }
+  // what a point (world) touches on a door: a chain, the bolt, a leaf, or nothing; in the door's own frame for leaves
+  const DL = new THREE.Vector3(), DQ = new THREE.Vector3();
+  function doorTouch(dr, q, r) {
+    for (const c of dr.chains) if (c.alive && segDist(q, c.A, c.B) < CHAIN_HIT + r - R_BALL) return { c };
+    DL.copy(q).applyMatrix4(dr.inv);
+    if (dr.bolted && Math.abs(DL.y - BOLT_V) < 0.2 + r && Math.abs(DL.x) < 1.45 && Math.abs(DL.z - 0.24) < 0.2 + r) return { bolt: true };
+    if (Math.abs(DL.z) > 0.12 + r) return null;
+    if (dr.kind === "flap") return dr.ang < 0.35 && Math.abs(DL.x) < DOOR_W && DL.y > 0 && DL.y < FLAP_H ? { leaf: true } : null;
+    for (const lf of dr.leaves) if (lf.ang < 0.3 && DL.y > 0 && DL.y < LEAF_H && (lf.sd < 0 ? DL.x < 0 && DL.x > -DOOR_W : DL.x >= 0 && DL.x < DOOR_W)) return { lf };
+    return null;
+  }
+  function doorStrike(dr, t, at, vel) { // a ball or the beam reaches t
+    if (t.c) doorChainCut(dr, t.c, at);
+    else if (t.bolt) doorBoltBreak(dr, at);
+    else if (t.lf) doorLeafHit(dr, t.lf, at, vel);
+    else { Sound.knock(); chips(at, doorMatC, 4, vel); }
+  }
+  function updateDoors(dt) {
+    for (const dr of doors) {
+      setObj(dr.root, dr.s, 0, 0); dr.root.updateMatrixWorld(true); dr.inv.copy(dr.root.matrixWorld).invert();
+      for (const c of dr.chains) { c.A.set(c.x, H - 0.34, 0.05); dr.root.localToWorld(c.A); c.B.set(c.x, FLAP_H, 0.05); dr.root.localToWorld(c.B); }
+      if (dr.kind === "flap" && dr.open && dr.ang < Math.PI / 2) { // it falls toward the cart, faster and faster, and lies flat
+        dr.angV += 3.2 * Math.cos(dr.ang) * dt + 0.6 * dt; dr.ang = Math.min(Math.PI / 2, dr.ang + dr.angV * dt);
+        if (dr.ang >= Math.PI / 2) { Sound.slam(); chips(new THREE.Vector3().setFromMatrixPosition(dr.root.matrixWorld), doorMatC, 10, tmpV2.set(0, 2, 0)); if (!reduceMotion && Math.abs(dr.s - sC) < 30) shakeT = Math.max(shakeT, 0.2); }
+        dr.leaf.rotation.x = dr.ang; // the top comes toward the cart (local +z)
+        for (const c of dr.chains) c.mesh.visible = false;
+      }
+      for (const lf of dr.leaves) if (lf.opening && lf.ang < 1.75) { lf.ang = Math.min(1.75, lf.ang + dt * (1.2 + lf.ang * 2)); lf.hinge.rotation.y = (lf.sd < 0 ? 0 : Math.PI) + (lf.sd < 0 ? 1 : -1) * lf.ang; } // swing away, into the hall
+      if (state === "play" && !dr.passed && dr.s <= sC + 0.6) {
+        dr.passed = true;
+        const shut = dr.kind === "flap" ? dr.ang < 1.2 : dr.leaves.some(l => l.ang < 0.9);
+        if (shut) { // burst through
+          balls = Math.max(0, balls - GATE_COST); updateCount(); karmaLoss(0.15);
+          Sound.slam(); Sound.crash(); flash(); pop("−" + GATE_COST + T(" · ворота", " · gate"), "loss"); if (!reduceMotion) shakeT = 0.45;
+          chips(new THREE.Vector3().setFromMatrixPosition(dr.root.matrixWorld).addScaledVector(_U, 2), doorMatC, 24, tmpV2.set(0, 2, 0));
+          if (dr.leaf) dr.leaf.visible = false; dr.leaves.forEach(l => { l.hinge.visible = false; }); if (dr.bolt) dr.bolt.visible = false;
+        }
+      }
+      if (dr.s < sC - 8) { dr.dead = true; scene.remove(dr.root); }
+    }
+    doors = doors.filter(d => !d.dead);
   }
 
   // ---------- Abyssus: gates ----------
@@ -2891,7 +3100,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     taiji: { name: "TAIJI", ru: "Инь и ян", note: "Над путём вращается круг из белых и чёрных камней. Бейте их по очереди: белый, чёрный, белый… Каждое чередование — +2 шара, четыре подряд — ещё +3. Два одного цвета подряд сбивают серию и стоят шар." },
     tessera: { name: "TESSERA", ru: "Мозаика", note: "Поперёк пути встаёт мозаика из рубинов, и в ней по очереди вспыхивает один камень. Попали во вспыхнувший — +2 шара, три подряд — ещё +3. Тусклый камень стоит шар." },
     fragmenta: { name: "FRAGMENTA", ru: "Осколки", note: "Волны хрусталя: за каждой перегородкой горит кристалл. Разбейте всю волну до последнего стекла — +4 шара, кристаллы платят как обычно." },
-    custodes: { name: "CUSTODES", ru: "Стражи", note: "Стражи-тени летят волнами. Каждый сбитый — +1 шар, вся волна до последнего — ещё +4. Долетевший страж отнимает 3 шара." },
+    custodes: { name: "CUSTODES", ru: "Стражи", note: "Стражи-тени летят волнами: каждый сбитый — +1 шар, вся волна — ещё +4, долетевший отнимает 3. Между волнами — сейф: широкая решётка на трёх цепях, за ней голубые кристаллы по 3 шара." },
     triumphus: { name: "TRIUMPHUS", ru: "Триумф", note: "Финал всего пути: по очереди возвращаются суперигры станций, которые вы прошли, — и тупиков тоже. Каждая идёт по своим правилам." },
     rota: { name: "ROTA", ru: "Колесо", note: "Над мостом вращаются колёса из кристаллов. Голубой — +2 шара, красный — −3. Соберите все голубые с колеса, пока оно не проехало, — ещё +5." },
     vindemia: { name: "VINDEMIA", ru: "Сбор урожая", note: "Ветви тяжелы от кристаллов: каждый даёт 2 шара, а собранная целиком ветка ещё +3. Сломать ветку безопасно, но её кристаллы упадут. Хлёст по вагонетке стоит 3 шара." },
@@ -3048,7 +3257,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[105, 60, 50], [225, 70, -80], [350, 50, 40], [455, 80, -65], [585, 60, 70], [700, 50, -45], [775, 50, 45],
         [880, 90, -100], [1040, 60, 60], [1150, 50, -40], [1240, 60, 55], [1350, 55, -35]],
       desc: "Знакомство с рельсами. Белые залы с квадратными арками, первые стёкла и первый спуск во Тьму.",
-      feats: ["Квадратные арки, сплошные стены и парящие кубы", "Стекло, голубые и чёрно-красные кристаллы, шипы во Тьме", "Финал Iudicium: печати и множитель"],
+      feats: ["Квадратные арки, сплошные стены и парящие кубы", "Стекло, голубые кристаллы, во Тьме шипы и чёрно-красные кристаллы-бесы", "Финал Iudicium: печати и множитель"],
       req: {}, map: { x: 90, y: 330, label: "t" } },
     { id: "thesaurus", num: "I·a", latin: "Thesaurus", ru: "Сокровищница", line: "branch", playable: true, music: "luminous_glass", len: 900, pal: PAL_AURUM, finale: "pluvia",
       style: { arch: "ring", blocks: "coin", glassWalls: false }, crystalMul: 2.2,
@@ -3120,12 +3329,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота, над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее.",
       feats: ["Ворота из тёмного стекла: откройте их вертушками", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
       req: { after: "speculum", or: "rubinus" }, map: { x: 730, y: 330, label: "t", dx: 12 } },
-    { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 900, pal: PAL_CARCER, finale: "custodes",
-      style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.6, armor: 1, driftMul: 1.3, thorns: { from: 0.3, mul: 1.8 },
-      pats: { bars: [2, 2.5, 3], imps: [1, 1.5, 3], shutter: [0.5, 1.5, 2], reinf: [0.5, 1, 2], center: [2, 2, 1.5], double: [0.5, 1, 1.5], slider: [1, 1.5, 1.5], wall: [0.5, 0.5, 0.5], sides: [1, 0.5, 0], bonus: [1, 0.3, 0] },
-      turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35]],
-      desc: "Тупик глубоко во Тьме. Глухие коридоры из ржавого железа: поперёк пути висят решётки на цепях, из стен бьют шипы, а стражи-тени летят навстречу. Тьма здесь тянет сильнее. В конце заперта пушка, которой нет на складе.",
-      feats: ["Решётки на цепях: собьёте цепи — решётка рухнет", "Шипы даже в Чистилище", "Награда: пушка Ferrum, финал Custodes"],
+    { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 1200, pal: PAL_CARCER, finale: "custodes",
+      // corridors only link the halls; the halls, wider and higher, hold the traps
+      style: { arch: "square", blocks: "cube", glassWalls: false }, halls: true, crystalMul: 2.0, armor: 1, driftMul: 1.2, thorns: { from: 0.45, mul: 0.8 }, decoyMul: 0.5,
+      pats: { bars: [0.8, 1, 1.2], imps: [0.2, 0.4, 0.9], shutter: [0.5, 1.2, 1.5], reinf: [0.5, 1, 1.5], center: [2, 2, 1.5], double: [0.5, 1, 1.2], slider: [1, 1.5, 1.5],
+        lift: [0.5, 1, 1], wall: [0.4, 0.4, 0.4], triple: [0.6, 0.8, 0.8], sides: [1, 0.6, 0.2], bonus: [1.2, 0.5, 0.2] },
+      hallPats: { grate1: [1, 1.2, 1.4], grate2: [1, 1.2, 1.4], grate3: [0.5, 0.9, 1.3], lrow: [1.2, 1.5, 1.8], lgrid: [0.4, 0.9, 1.4], axes: [1, 1.4, 1.8],
+        center: [1.5, 1.4, 1], triple: [0.8, 1, 1], slider: [0.6, 1, 1], sides: [1, 0.6, 0.2], bonus: [1.2, 0.6, 0.2], imps: [0.1, 0.3, 0.6] },
+      turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35], [860, 50, -45], [980, 60, 50], [1090, 50, -40]],
+      desc: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах решётки старые и новые, на одной, двух и трёх цепях, ряды и сетки лазеров и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
+      feats: ["Залы с решётками на 1–3 цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Custodes с сейфом"],
       req: { after: "abyssus", fare: 30 }, map: { x: 825, y: 440, label: "t", dy: -5 } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 1600, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "prism", glassWalls: true }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
@@ -3141,7 +3354,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const EN = {
     levels: {
       initium: { ru: "Beginning", desc: "Getting to know the rails. White halls with square arches, the first panes of glass and the first descent into the Dark.",
-        feats: ["Square arches, solid walls and floating cubes", "Glass, blue and black-red crystals, spikes in the Dark", "Finale Iudicium: seals and a multiplier"] },
+        feats: ["Square arches, solid walls and floating cubes", "Glass, blue crystals; in the Dark spikes and black-red crystal imps", "Finale Iudicium: seals and a multiplier"] },
       thesaurus: { ru: "Treasury", desc: "A dead-end branch off Rubinus. Golden halls with round arches and floating coins. Twice the usual crystals: the ride costs a fare, but you can come back with a profit.",
         feats: ["2.2 times the crystals", "A short ride, about a minute", "Finale Pluvia: a rain of crystals"] },
       vitrum: { ru: "Glass", desc: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss.",
@@ -3160,8 +3373,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         feats: ["Mirror walls: the corridor runs off into reflections", "False crystals: a reflection flickers and spins the other way", "Finale Reflexio: targets in pairs"] },
       abyssus: { ru: "Abyss", desc: "A narrow bridge over the abyss, with no walls or ceiling. Steel gates rise across the bridge, with cup anemometers spinning over the frame: hit them all and the leaves slide apart. Glass and shades rise from the void below. The Dark pulls harder here.",
         feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
-      carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark. Blind corridors of rusted iron: grates hang on chains across the track, spikes strike from the walls and shade guards fly at you. The Dark pulls harder here. At the end lies a cannon the depot doesn't sell.",
-        feats: ["Grates on chains: shoot the chains and the grate falls", "Spikes even in Purgatory", "Reward: the Ferrum cannon; finale Custodes"] },
+      carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang grates old and new on one, two or three chains, rows and grids of lasers, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
+        feats: ["Halls of grates on 1–3 chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Custodes with a strongroom"] },
       lux: { ru: "Light", desc: "The terminus. White halls with glass walls. Red lasers guard the way: spinners in gaps in the walls, floating blocks, beams on chains. A beam across the cart costs 3 balls. Iris bulkheads open with buttons. The climb to the Light is hardest here.",
         feats: ["Red lasers: spinners, blocks, beams on chains", "Iris bulkheads with buttons", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
     },
@@ -3179,7 +3392,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       taiji: { ru: "Yin and yang", note: "A ring of white and black stones turns over the track. Hit them in turn: white, black, white… Each change is +2 balls, four in a row another +3. Two of one colour in a row break the run and cost a ball." },
       tessera: { ru: "Mosaic", note: "A ruby mosaic rises across the track, and one stone at a time lights up. Hit the lit one: +2 balls, three in a row another +3. A dim stone costs a ball." },
       fragmenta: { ru: "Shards", note: "Waves of crystal glass: behind every partition glows a crystal. Break a whole wave to the last pane: +4 balls; the crystals pay as usual." },
-      custodes: { ru: "Guards", note: "Shade guards fly in waves. Each one downed is +1 ball, a whole wave another +4. A guard that gets through takes 3 balls." },
+      custodes: { ru: "Guards", note: "Shade guards fly in waves: each downed +1 ball, a whole wave another +4, one that gets through takes 3. Between waves, a strongroom: a wide grate on three chains with blue crystals behind it, 3 balls each." },
       triumphus: { ru: "Triumph", note: "The finale of the whole journey: the finales of the stations you have finished, dead ends too, come back one after another, each with its own rules." },
       rota: { ru: "Wheel", note: "Wheels of crystals turn over the bridge. Blue is +2 balls, red −3. Take every blue off a wheel before it passes: another +5." },
       vindemia: { ru: "Harvest", note: "The boughs are heavy with crystals: each gives 2 balls, a bough picked clean another +3. Breaking a bough is safe, but its crystals fall. A lash across the cart costs 3 balls." },
@@ -3267,12 +3480,21 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     carcer: { sky: { mode: 0 }, style: { tex: "bars" } },
     lux: { sky: { mode: 4, a: 0.9, c: "#fff4d0" } },
   };
+  // Carcer: halls of 60–90 m linked by corridors of 28–45 m, on the 2 m grid of the decor; the finale is fought in the yard
+  function planHalls() {
+    const out = [], snap = x => Math.round(x / SL) * SL; let s = snap(rand(40, 60));
+    while (s < MAIN_LEN - 110) { const e = snap(s + rand(60, 90)); out.push([s, e]); s = snap(e + rand(28, 45)); }
+    out.push([snap(MAIN_LEN - 16), snap(SUPER_END - 6)]);
+    return out;
+  }
+  function inHall(s) { for (const [a, b] of HALLS) if (s >= a && s < b) return true; return false; }
   function setLevel(lv) {
     LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
     [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;
     mirStrips.forEach(m => { m.o = m.k * 2 * (SW + 0.12); });
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, { concrete: "asphalt", stone: "flags", chrome: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
+    HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     buildStation();
   }
 
@@ -3533,6 +3755,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     sphere(sigils, 0.75, "sigil"); sphere(drops, 0.95, "drop");
     for (const f of forks) if (f.sw.visible && !f.locked) { tmpV.copy(f.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.8) hits.push({ d, kind: "switch", x: f }); }
     for (const r of rams) for (const c of r.chains) if (c.alive) { const rs = raySeg(o, dir, c.A, c.B); if (rs.dist < CHAIN_HIT + 0.05 && rs.d > 0 && rs.d < LASER_LEN) hits.push({ d: rs.d, kind: "ramchain", x: r, c }); }
+    for (const dr of doors) { // the beam is tested along its length a step at a time
+      if (Math.abs(dr.s - sC) > 130) continue;
+      for (let d = 0.5; d < LASER_LEN; d += 0.25) { const q = DQ.copy(o).addScaledVector(dir, d), t = doorTouch(dr, q, 0.12); if (t) { hits.push({ d, kind: "door", x: dr, t }); break; } }
+    }
     for (const m of hmills) for (const arm of m.arms) if (arm.alive) {
       const rs = raySeg(o, dir, arm.A, arm.B); if (rs.dist < 0.3 && rs.d > 0 && rs.d < LASER_LEN) hits.push({ d: rs.d, kind: "handle", x: m, arm });
       tmpV.copy(arm.H).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.64) hits.push({ d, kind: "hmhead" });
@@ -3580,6 +3806,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       else if (h.kind === "button" && !h.x.pressed) pressButton(h.x);
       else if (h.kind === "weight") dropWeight(h.x, h.lf);
       else if (h.kind === "hmhead") { end = h.d; break; }
+      else if (h.kind === "door") { const at = tmpV.copy(o).addScaledVector(dir, h.d).clone(); doorStrike(h.x, h.t, at, vel); if (!h.t.c) { end = h.d; break; } } // a chain cut lets the beam on
       else if (h.kind === "ramchain" && h.c.alive) { breakRamChain(h.x, h.c, tmpV.copy(o).addScaledVector(dir, h.d).clone()); end = h.d; break; } // one chain per shot
       else if (h.kind === "handle" && h.arm.alive) breakHandle(h.x, h.arm, tmpV.copy(o).addScaledVector(dir, h.d).clone());
       else if (h.kind === "cone" && h.c.alive) { killCone(h.x, h.c, h.c.wp.clone()); end = h.d; break; }
@@ -3806,7 +4033,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     panes = panes.filter(p => p.alive);
 
-    updateBoughs(dt); updateWheels(dt); updateGates(dt); updateLasers(dt); updateTessera(dt); updateRams(dt);
+    updateBoughs(dt); updateWheels(dt); updateGates(dt); updateLasers(dt); updateTessera(dt); updateRams(dt); updateDoors(dt);
     mirageMat.opacity = 0.5 + 0.18 * Math.sin(time * 7.5);
     for (const c of crystals) {
       if (!c.alive) continue;
@@ -3881,7 +4108,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       // pendulum: θ'' = −(g/arm)·sin θ, lightly damped
       hg.omega += -hg.wn2 * Math.sin(hg.theta) * dt; hg.omega *= Math.exp(-0.12 * dt); hg.theta += hg.omega * dt;
       const sn = Math.sin(hg.theta), cs = Math.cos(hg.theta), pend = hg.kind === "pendulum";
-      setObj(hg.root, hg.s, hg.u0, HANG_TOP);
+      setObj(hg.root, hg.s, hg.u0, hg.top);
       for (const c of hg.chains) c.mesh.rotation.z = hg.theta;
       if (pend) { hg.body.position.set(hg.arm * sn, -hg.arm * cs, 0); hg.body.rotation.z = hg.theta; }
       else { hg.body.position.set(hg.L * sn, -hg.L * cs - hg.h / 2, 0); hg.body.rotation.z = hg.tilt; }
@@ -3889,7 +4116,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const c of hg.chains) if (c.alive) { c.A.set(c.x, 0, 0); hg.root.localToWorld(c.A); c.B.set(c.x + hg.L * sn, -hg.L * cs, 0); hg.root.localToWorld(c.B); }
       hg.inv.copy(hg.body.matrixWorld).invert();
       if (hg.laser) { // a laser down from each live end, stopped by the floor and the walls
-        const bu = hg.u0 + hg.body.position.x, bv = HANG_TOP + hg.body.position.y, rz = hg.body.rotation.z, c = Math.cos(rz), sn2 = Math.sin(rz);
+        const bu = hg.u0 + hg.body.position.x, bv = hg.top + hg.body.position.y, rz = hg.body.rotation.z, c = Math.cos(rz), sn2 = Math.sin(rz);
         for (const em of hg.emitters) {
           const ax = bu + em.x * c + hg.h / 2 * sn2, ay = bv + em.x * sn2 - hg.h / 2 * c;
           em.len = beamReach(ax, ay, sn2, -c, 12); setBeamLen(em.beam, em.alive ? em.len : 0);
@@ -3898,7 +4125,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       }
       if (state === "play" && !hg.passed && hg.s <= sC + 0.6) {
         hg.passed = true;
-        const bu = hg.u0 + hg.body.position.x, bv = HANG_TOP + hg.body.position.y;
+        const bu = hg.u0 + hg.body.position.x, bv = hg.top + hg.body.position.y;
         if (!hg.laser && Math.abs(bu) < hg.w / 2 + 0.55 && bv - hg.h / 2 < CAM_V + 0.1) hangerCrash(hg);
       }
       if (hg.alive && hg.s < sC - 6) { hg.alive = false; scene.remove(hg.root); }
@@ -3961,6 +4188,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         if (Math.abs(r.s - sC) > 130) continue;
         const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.12));
         for (let k = 1; k <= steps && !dead; k++) { const q = SWEEP.copy(b.p0).lerp(pos, k / steps); for (const c of r.chains) if (c.alive && segDist(q, c.A, c.B) < CHAIN_HIT) { mark(); breakRamChain(r, c, q.clone()); dead = true; break; } }
+        if (dead) break;
+      }
+      if (!dead) for (const dr of doors) {
+        if (Math.abs(dr.s - sC) > 130) continue;
+        const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.12));
+        for (let k = 1; k <= steps && !dead; k++) { const q = SWEEP.copy(b.p0).lerp(pos, k / steps), t = doorTouch(dr, q, R_BALL); if (t) { mark(); doorStrike(dr, t, q.clone(), b.v); dead = true; } }
         if (dead) break;
       }
       if (!dead) for (const m of hmills) {
@@ -4426,7 +4659,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   // test hook: lets an automated check jump the karma or the distance
   window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, setAlt(a) { alt = a; },
-    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, halls: () => [...decor.entries()].filter(([, d]) => d.hall).map(([k]) => k * SL), bars(ahead) { addHanger(sC + ahead, 'gate', false, true); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.map(s => s.cones.filter(c => c.alive).length), lblocks: lblocks.length, hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), rams(ahead, both) { addRams(sC + ahead, both); }, cutRam() { const r = rams.find(x => !x.falling); if (!r) return null; const c = r.chains.find(x => x.alive); breakRamChain(r, c, c.A.clone()); return r.chains.map(x => x.alive).join(); }, hammer(ahead, side = 1, dir = 1, n = 2) { addHammerMill(sC + ahead, side, dir, n); }, breakHammer() { const m = hmills[0], a = m && m.arms.find(x => x.alive); if (a) breakHandle(m, a, a.A.clone()); return m ? m.heads.length : -1; }, heads: () => hmills.map(m => m.heads.map(h => h.g.position.y.toFixed(2)).join('/')).join(), ramState: () => ({ rams: rams.map(r => [r.falling, r.hit, r.chains.map(c => c.alive).join(), +(r.phi || 0).toFixed(2), +r.body.position.y.toFixed(2), +(r.lc || 0).toFixed(2)]), hm: hmills.map(m => [m.hit, m.arms.map(a => a.alive).join()]) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), dropAll() { gates.forEach(g => g.weights && g.leaves.forEach(lf => dropWeight(g, lf))); return gates.map(g => g.weights); }, pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
+    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, halls: () => [...decor.entries()].filter(([, d]) => d.hall).map(([k]) => k * SL), bars(ahead) { addHanger(sC + ahead, 'gate', false, true); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.map(s => s.cones.filter(c => c.alive).length), lblocks: lblocks.length, hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), rams(ahead, both) { addRams(sC + ahead, both); }, cutRam() { const r = rams.find(x => !x.falling); if (!r) return null; const c = r.chains.find(x => x.alive); breakRamChain(r, c, c.A.clone()); return r.chains.map(x => x.alive).join(); }, hammer(ahead, side = 1, dir = 1, n = 2) { addHammerMill(sC + ahead, side, dir, n); }, carcerPlan: () => ({ halls: HALLS.map(h => h.map(Math.round)), doors: doorPlan.map(d => [Math.round(d.s), d.kind]) }), carcer(kind, ahead, look) { const s = sC + ahead;
+      if (kind === "side" || kind === "top" || kind === "grid") addLaserRow(s, kind); else if (kind === "axes2" || kind === "axes4") addHammerMill(s, 1, 1, kind === "axes2" ? 2 : 4, true);
+      else if (kind === "flap" || kind === "bolt") spawnDoor({ s, kind }); else addHanger(s, kind === "grate1" ? "pendulum" : "gate", false, true, { look, wide: kind === "grate3" }); },
+    doorHit(what) { const dr = doors[0]; if (!dr) return null; const at = new THREE.Vector3(), v = new THREE.Vector3();
+      if (what === "chains") dr.chains.forEach(c => c.alive && doorStrike(dr, { c }, at, v)); else if (what === "bolt") doorStrike(dr, { bolt: true }, at, v); else dr.leaves.forEach(lf => doorStrike(dr, { lf }, at, v)); return true; },
+    doorState: () => doors.map(d => ({ s: +(d.s - sC).toFixed(1), kind: d.kind, open: d.open, bolted: d.bolted, ang: +d.ang.toFixed(2), chains: d.chains.filter(c => c.alive).length })), breakHammer() { const m = hmills[0], a = m && m.arms.find(x => x.alive); if (a) breakHandle(m, a, a.A.clone()); return m ? m.heads.length : -1; }, heads: () => hmills.map(m => m.heads.map(h => h.g.position.y.toFixed(2)).join('/')).join(), ramState: () => ({ rams: rams.map(r => [r.falling, r.hit, r.chains.map(c => c.alive).join(), +(r.phi || 0).toFixed(2), +r.body.position.y.toFixed(2), +(r.lc || 0).toFixed(2)]), hm: hmills.map(m => [m.hit, m.arms.map(a => a.alive).join()]) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), dropAll() { gates.forEach(g => g.weights && g.leaves.forEach(lf => dropWeight(g, lf))); return gates.map(g => g.weights); }, pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },
     thornScreen() { const r = canvas.getBoundingClientRect(); return thorns.filter(t => t.headOn && t.ext > 0.3).map(t => { const v = t.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); }, state: () => ({ state, sC, alt, balls, score, combo, superOn, sigils: sigils.length, END_S, panes: panes.length, thorns: thorns.length, thornExt: thorns.map(t => t.ext.toFixed(2) + (t.headOn ? '' : 'x')).join(), pitchC }) };
 

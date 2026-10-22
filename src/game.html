@@ -2542,7 +2542,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // buttons: how many, how big and whether they wander along the frame follow the difficulty
     const nb = weights ? 0 : kind === "taiji" ? (k < 0.5 ? 1 : 2) : k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = false; // buttons stand still
     const dome = LEVEL.gateButton === "dome";
-    const spots = round ? [Math.PI * 0.5, Math.PI, 0].map(a => ({ a, rad: dome ? IRIS_R + 1.15 : IRIS_R + 0.12 })) // top, left, right: symmetric, clear of the walls
+    const spots = round ? [Math.PI * 0.5, Math.PI * 0.75, Math.PI * 0.25].map(a => ({ a, rad: dome ? IRIS_R + 1.15 : IRIS_R + 0.12 })) // top, and 45° to either side of it
       : dome ? [{ u: 0, v: GATE_H + 0.9 }, { u: -(BRIDGE_W + 1.2), v: 2.4 }, { u: BRIDGE_W + 1.2, v: 2.4 }]
       : [{ u: 0, v: top + 1.0, along: "u" }, /* in the middle; on hard gates it rides along the lintel */ { u: -(BRIDGE_W + 1.3), v: 2.7, along: "v", side: -1 }, { u: BRIDGE_W + 1.3, v: 2.7, along: "v", side: 1 }]; // one on a mast above, two lying on their side out of the posts
     // one sits on top in the middle, a pair on top a little left and right of the middle, three on top and at the sides
@@ -3138,7 +3138,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [980, 70, -75], [1120, 50, 50], [1230, 60, -55], [1350, 50, 45], [1450, 60, -50]],
       desc: "Конечная. Белые залы со стеклянными стенами. Путь стерегут красные лазеры: вертушки в разрывах стен, парящие блоки, балки на цепях. Луч через вагонетку стоит 3 шара. Переборки с диафрагмой открываются кнопками. Подъём к Свету здесь самый тяжёлый.",
       feats: ["Красные лазеры: вертушки, блоки, балки на цепях", "Переборки с диафрагмой и кнопками", "Финал Triumphus: суперигры пройденных станций по очереди"],
-      req: { after: "abyssus", or: "tao" }, map: { x: 910, y: 330, label: "t", dx: 30 } }, // above and to the right, clear of the Tao line
+      req: { after: "abyssus", or: "tao" }, map: { x: 910, y: 330, label: "t", dx: 12 } }, // above and to the right, clear of the Tao line
   ];
   // ---------- English: the level, cannon and finale texts; Russian is what the tables above hold ----------
   const EN = {

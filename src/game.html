@@ -1669,7 +1669,20 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     for (const k in w) { x -= w[k]; if (x <= 0) return k; }
     return "center";
   }
+  // where a flap falls, into the hall, there must be nothing for it to fall through
+  function clearFlapZone(dr) {
+    const a = dr.s - 0.6, b = dr.s + FLAP_H + 1.2, inZ = x => x.s > a && x.s < b, off = (list, rm) => list.filter(x => inZ(x) ? (rm(x), false) : true);
+    panes = off(panes, removePane); crystals = off(crystals, c => scene.remove(c.group)); imps = off(imps, c => scene.remove(c.group));
+    sigils = off(sigils, c => scene.remove(c.group)); drops = off(drops, c => scene.remove(c.group)); thorns = off(thorns, c => scene.remove(c.group));
+    hangers = off(hangers, h => { scene.remove(h.root); scene.remove(h.body); }); hmills = off(hmills, m => scene.remove(m.root));
+    spinners = off(spinners, x => scene.remove(x.root)); rams = off(rams, x => scene.remove(x.root)); lblocks = off(lblocks, x => scene.remove(x.root));
+    lbars = off(lbars, x => x.bars.forEach(b => scene.remove(b.root)));
+  }
   function spawnGroup(s) {
+    spawnGroupAt(s);
+    for (const dr of doors) if (dr.kind === "flap" && !dr.open) clearFlapZone(dr);
+  }
+  function spawnGroupAt(s) {
     // Carcer's doors come up as the track reaches them, and nothing else is set down right at one
     while (doorPlan.length && doorPlan[0].s < s + 12) spawnDoor(doorPlan.shift());
     if (doors.some(dr => Math.abs(dr.s - s) < 9)) return;
@@ -1928,7 +1941,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const barGeo = new THREE.CylinderGeometry(0.06, 0.06, 1, 8), hitBoxMat = new THREE.MeshBasicMaterial({ visible: false });
   const steelMat = new THREE.MeshStandardMaterial({ color: 0xb4bcc2, roughness: 0.28, metalness: 0.9 }), darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x2a2e33, roughness: 0.4, metalness: 0.8 });
   const frameBarGeo = new THREE.BoxGeometry(1, 0.14, 0.18), spikeTipGeo = new THREE.ConeGeometry(0.08, 0.28, 6).rotateZ(Math.PI);
-  const ledGeo = new THREE.SphereGeometry(0.07, 12, 8), ledMat = new THREE.MeshBasicMaterial({ color: 0xff2a14 });
   // opt (Carcer's grates): look "medieval" (heavy black iron, spiked) or "modern" (thin steel bars in a plain frame; all of Carcer's grates are modern now);
   // wide: a grate across the whole track on two chains
   function addHanger(s, kind, laser = false, bars = false, opt = {}) {
@@ -1939,11 +1951,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const L = laser ? top - 4.4 : top - (CAM_V + 0.25) - h / 2, arm = pend ? L + h / 2 : L; // pivot to the slab's center (pendulum) or chain length (gate)
     const root = new THREE.Group(); root.matrixAutoUpdate = false;
     const geo = new THREE.BoxGeometry(w, h, d), body = new THREE.Mesh(geo, bars ? hitBoxMat : laser ? laserBaseMat : monoMat);
-    if (bars && opt.look === "modern") { // a modern cell door: thin polished bars in a heavy frame and a red lamp
+    if (bars && opt.look === "modern") { // a modern cell door: thin polished bars in a heavy frame
       for (let x = -w / 2 + 0.22; x <= w / 2 - 0.2; x += 0.26) { const b = new THREE.Mesh(barGeo, steelMat); b.scale.set(0.55, h - 0.2, 0.55); b.position.x = x; body.add(b); }
       for (const y of [-h / 2 + 0.07, h / 2 - 0.07]) { const b = new THREE.Mesh(frameBarGeo, darkSteelMat); b.scale.x = w; b.position.y = y; body.add(b); }
       for (const x of [-w / 2 + 0.07, w / 2 - 0.07]) { const b = new THREE.Mesh(frameBarGeo, darkSteelMat); b.scale.set(0.14 / 1, h / 0.14, 1); b.rotation.z = 0; b.position.x = x; body.add(b); }
-      const led = new THREE.Mesh(ledGeo, ledMat); led.position.set(w / 2 - 0.3, h / 2 - 0.25, 0.1); body.add(led);
     } else if (bars) { // a portcullis: iron bars in a frame, spiked at the foot; its hit box stays invisible
       for (let x = -w / 2 + 0.15; x <= w / 2 - 0.1; x += 0.38) {
         const b = new THREE.Mesh(barGeo, ironMat); b.scale.y = h; b.position.x = x; body.add(b);
@@ -2362,7 +2373,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // Carcer: laser bars float in the halls, steel bars with nozzles along one face as in Lux, but on no chains: one lying
   // across under the vault, its beams down; one standing by a wall, its beams across; or the two crossed into a grid of
   // 2×2 or 3×3 beams. Deeper in, the same sets come as loose nozzles, each to be shot out by itself. They hover still,
-  // or glide side to side or up and down, a set all as one. One beam of a lone bar always crosses the cart; of a grid the
+  // or glide side to side or up and down, a set all as one. One beam of a lone bar always crosses the cart, and of a
+  // lone bar overhead (3 or 4 beams) an inner one; of a grid the
   // lowest across, and of a 3×3 the middle one down too; the lowest beam is at the middle of the cart's height. A shot
   // anywhere on a bar cracks it, all its beams out, and the pieces fall. A set burns the cart once: 3 balls, a ball more
   // for any other beam across it, 6 at most. A set stands midway between the hall's pillars, the stone around it cleared.
@@ -2373,10 +2385,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const s8 = Math.round((s - 5) / 8) * 8 + 5; if (inHall(s8)) s = s8; // the pillars stand at 8 m + 1
     const grid = mode === "grid";
     n = grid ? (n === 2 || n === 3 ? n : Math.random() < 0.5 ? 2 : 3) : n || 2 + Math.floor(Math.random() * 3);
+    if (mode === "h" && n < 3) n = 3; // a lone bar overhead has a beam on the cart, and that one is never an outer one
     const axis = Math.random() < 0.35 ? null : Math.random() < 0.5 ? "u" : "v", side = Math.random() < 0.5 ? -1 : 1;
     const set = { s, bars: [], axis, amp: axis === "u" ? 0.6 : axis === "v" ? 0.5 : 0, f: rand(0.7, 1.1), ph: rand(0, TAU), cost: 0, passed: false };
     let bu = 0; // a lone lying bar: shifted so that one of its beams falls on the rails, and the whole of it clear of the walls
-    if (mode === "h") { const ks = [...Array(n).keys()].map(k => -(k - (n - 1) / 2) * BAR_DU).filter(x => Math.abs(x) + (n - 1) * BAR_DU / 2 + BAR_M + set.amp <= HALL_W - 1.2); bu = ks[Math.floor(Math.random() * ks.length)]; }
+    if (mode === "h") { const ks = [...Array(n).keys()].slice(1, -1).map(k => -(k - (n - 1) / 2) * BAR_DU).filter(x => Math.abs(x) + (n - 1) * BAR_DU / 2 + BAR_M + set.amp <= HALL_W - 1.2); bu = ks[Math.floor(Math.random() * ks.length)]; }
     if (mode === "h" || grid) addBar(set, "h", n, bu, HALL_H - 1.3, side, noz);
     if (mode === "v" || grid) addBar(set, "v", n, side * (HALL_W - 1.9), BAR_V0 + (n - 1) * BAR_DV(n) / 2, side, noz);
     for (let k = Math.floor((s - 5) / SL); k <= Math.floor((s + 5) / SL); k++) { const d = getDecor(k); if (d.blocks) d.blocks = d.blocks.filter(bl => Math.abs(k * SL + SL / 2 - s) > bl.sz / 2 + 0.9); }
@@ -2661,8 +2674,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // ---------- Carcer: doors where a corridor meets a hall ----------
   // flap: one leaf on a bottom hinge stands in the doorway, held up by one or two chains from the lintel; shoot them and
   // it falls away into the hall, flat, a bridge to roll over. bolt: two leaves on side hinges, barred across: one shot breaks
-  // the bolt, then a shot on each leaf's target swings it open; balls
-  // anywhere else on the steel only knock. A door still shut when the cart comes is burst for GATE_COST.
+  // the bolt, then a shot anywhere on each leaf swings it open; while
+  // the bolt holds, balls on the leaves only knock. No door gives way to balls on the steel alone. A door still shut when the cart comes is burst for GATE_COST.
   let doors = [], doorPlan = [];
   const DOOR_W = W - 0.12, FLAP_H = H - 2.9, LEAF_H = H - 0.35, BOLT_V = 2.0; // a low flap: its chains run long and plain to see
   const flapGeo = new THREE.BoxGeometry(2 * DOOR_W, FLAP_H, 0.16).translate(0, FLAP_H / 2, 0);
@@ -2706,7 +2719,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       }
       const bolt = new THREE.Mesh(boltGeo, targetOn); bolt.position.set(0, BOLT_V, 0.24); root.add(bolt); dr.bolt = bolt;
     }
-    doors.push(dr); return dr;
+    doors.push(dr); if (dr.kind === "flap") clearFlapZone(dr); return dr;
   }
   function doorChainCut(dr, c, at) {
     c.alive = false; c.mesh.visible = false; Sound.clink(); Sound.tone(900, 0.12, 0.08, "square", 0, 300); chips(at, chainMat, 8, tmpV2.set(0, 2, 0)); addScore(15);
@@ -2716,8 +2729,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     dr.bolted = false; dr.bolt.visible = false; dr.leaves.forEach(l => l.tg.forEach(m => { m.material = targetOn; })); // now the leaves are the targets
     Sound.shatter(0.5); Sound.tone(300, 0.15, 0.1, "square", 0, 120); chips(at, ironMat, 10, tmpV2.set(0, 1, 2)); addScore(20); pop(T("засов сбит", "bolt broken"), "info");
   }
-  function doorLeafHit(dr, lf, at, vel, onT) {
-    if (dr.bolted || lf.opening || !onT) { Sound.knock(); chips(at, doorMatC, 4, vel); return; } // barred, or off the target: a ball only knocks
+  function doorLeafHit(dr, lf, at, vel) {
+    if (dr.bolted || lf.opening) { Sound.knock(); chips(at, doorMatC, 4, vel); return; } // barred: a ball only knocks
     lf.opening = true; lf.tg.forEach(m => { m.material = targetOff; }); Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); chips(at, doorMatC, 6, vel); addScore(15);
     if (dr.leaves.every(l => l.opening)) { dr.open = true; balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); }
   }
@@ -2729,14 +2742,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (dr.bolted && Math.abs(DL.y - BOLT_V) < 0.3 + r && Math.abs(DL.x) < 1.5 && Math.abs(DL.z - 0.24) < 0.25 + r) return { bolt: true };
     if (Math.abs(DL.z) > 0.12 + r) return null;
     if (dr.kind === "flap") return dr.ang < 0.35 && Math.abs(DL.x) < DOOR_W && DL.y > 0 && DL.y < FLAP_H ? { leaf: true } : null;
-    for (const lf of dr.leaves) if (lf.ang < 0.3 && DL.y > 0 && DL.y < LEAF_H && (lf.sd < 0 ? DL.x < 0 && DL.x > -DOOR_W : DL.x >= 0 && DL.x < DOOR_W))
-      return { lf, onT: Math.hypot(DL.x - lf.sd * DOOR_W / 2, DL.y - LEAF_H * 0.58) < 0.5 + r }; // on its target, or only on the steel
+    for (const lf of dr.leaves) if (lf.ang < 0.3 && DL.y > 0 && DL.y < LEAF_H && (lf.sd < 0 ? DL.x < 0 && DL.x > -DOOR_W : DL.x >= 0 && DL.x < DOOR_W)) return { lf };
     return null;
   }
   function doorStrike(dr, t, at, vel) { // a ball or the beam reaches t
     if (t.c) doorChainCut(dr, t.c, at);
     else if (t.bolt) doorBoltBreak(dr, at);
-    else if (t.lf) doorLeafHit(dr, t.lf, at, vel, t.onT);
+    else if (t.lf) doorLeafHit(dr, t.lf, at, vel);
     else { Sound.knock(); chips(at, doorMatC, 4, vel); }
   }
   function updateDoors(dt) {
@@ -4788,8 +4800,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (/^n?(side|top|grid)$/.test(kind)) { const k = kind.replace(/^n/, ""); lastSet = addLaserBars(s, k === "side" ? "v" : k === "top" ? "h" : "grid", typeof look === "number" ? look : 0, kind[0] === "n"); } else if (kind === "axes2" || kind === "axes4") addHammerMill(s, 1, 1, kind === "axes2" ? 2 : 4, true);
       else if (kind === "flap" || kind === "bolt") spawnDoor({ s, kind }); else addHanger(s, kind === "grate1" ? "pendulum" : "gate", false, true, { look, wide: kind === "grate3" }); },
     doorHit(what) { const dr = doors[0]; if (!dr) return null; const at = new THREE.Vector3(), v = new THREE.Vector3();
-      if (what === "chains") dr.chains.forEach(c => c.alive && doorStrike(dr, { c }, at, v)); else if (what === "bolt") doorStrike(dr, { bolt: true }, at, v); else dr.leaves.forEach(lf => doorStrike(dr, { lf, onT: what !== "steel" }, at, v)); return true; },
+      if (what === "chains") dr.chains.forEach(c => c.alive && doorStrike(dr, { c }, at, v)); else if (what === "bolt") doorStrike(dr, { bolt: true }, at, v); else dr.leaves.forEach(lf => doorStrike(dr, { lf }, at, v)); return true; },
     lastSet: () => lastSet && { s: +(lastSet.s - sC).toFixed(1), cost: lastSet.cost, axis: lastSet.axis, n: lastSet.bars.length, bits: barBits.length },
+    crystalsNear: (a, b) => crystals.filter(c => c.s - sC > a && c.s - sC < b).length,
     barState: () => lbars.map(x => ({ s: +(x.s - sC).toFixed(1), axis: x.axis, cost: x.cost, bars: x.bars.map(b => b.orient + b.n + (b.alive ? '' : 'x')).join() })), breakBars() { lbars.forEach(x => x.bars.forEach(b => b.alive && breakBar(b, b.wp.clone()))); },
     doorState: () => doors.map(d => ({ s: +(d.s - sC).toFixed(1), kind: d.kind, open: d.open, bolted: d.bolted, ang: +d.ang.toFixed(2), chains: d.chains.filter(c => c.alive).length })), breakHammer() { const m = hmills[0], a = m && m.arms.find(x => x.alive); if (a) breakHandle(m, a, a.A.clone()); return m ? m.heads.length : -1; }, heads: () => hmills.map(m => m.heads.map(h => h.g.position.y.toFixed(2)).join('/')).join(), ramState: () => ({ rams: rams.map(r => [r.falling, r.hit, r.chains.map(c => c.alive).join(), +(r.phi || 0).toFixed(2), +r.body.position.y.toFixed(2), +(r.lc || 0).toFixed(2)]), hm: hmills.map(m => [m.hit, m.arms.map(a => a.alive).join()]) }), gate(ahead, kind) { addGate(sC + ahead, kind); }, gateState: () => gates.map(g => ({ s: g.s - sC, kind: g.kind, k: +g.k.toFixed(2), buttons: g.buttons.length, pressed: g.buttons.filter(b => b.pressed).length, pr: +g.pr.toFixed(2) })), dropAll() { gates.forEach(g => g.weights && g.leaves.forEach(lf => dropWeight(g, lf))); return gates.map(g => g.weights); }, pressAll() { gates.forEach(g => g.buttons.forEach(pressButton)); }, hitLeafOnce() { const g = gates[0]; if (!g) return -1; hitLeaf(g, g.leaves[0], new THREE.Vector3(), new THREE.Vector3(), 0.4, 1.1); return g.leaves[0].hp; }, breakLeaf() { const g = gates[0]; if (!g) return -1; const lf = g.leaves[0]; let n = 0; while (!lf.broken && n < 20) { hitLeaf(g, lf, new THREE.Vector3(), new THREE.Vector3(), 0.3, 1.2); n++; } return n; }, rotor(ahead) { addPane({ s: sC + ahead, u: 0, v: 2.9, w: 5.6, h: 0.55, rot: 0.3, spin: 1, cross: true }); }, wheel(ahead) { addWheel(sC + ahead); }, bough(ahead, side = 1, harvest) { addBough(sC + ahead, side, harvest ? { harvest: true, fruit: [0.45, 0.7, 0.95], val: 2 } : {}); }, boughs: () => boughs.map(b => ({ s: b.s - sC, phi: +b.phi.toFixed(2), broken: b.broken, hitCart: b.hitCart, fruit: b.fruit.filter(c => c.alive).length })), breakBough() { const b = boughs.find(x => !x.broken); if (b) breakBough(b); return !!b; }, pickAll() { const b = boughs.find(x => !x.broken); if (!b) return 0; for (const c of b.fruit) if (c.alive) hitCrystal(c, { v: new THREE.Vector3() }); return b.picked; },
     sigilScreen() { const r = canvas.getBoundingClientRect(); return sigils.filter(g => g.s - sC < 40 && g.s - sC > 6).map(g => { const v = g.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }); },

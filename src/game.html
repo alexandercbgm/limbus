@@ -565,6 +565,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const buildPal = raw => raw.map(o => { const r = {}; for (const k in Object.assign({ stars: 0, band: "#000000" }, o)) { const v = k in o ? o[k] : k === "stars" ? 0 : "#000000"; r[k] = typeof v === "string" ? new THREE.Color(v) : v; } return r; });
   let PAL = buildPal(PAL_INITIUM);
   const cur = {}; for (const k in PAL[2]) cur[k] = typeof PAL[2][k] === "number" ? PAL[2][k] : PAL[2][k].clone();
+  // a branch of Labyrinthus has its own light: warm gold on the rich one, cool blue on the quiet one, faded in and out
+  let branchK = 0, branchKind = null;
+  const BRANCH_TINT = { rich: new THREE.Color("#ffc15a"), calm: new THREE.Color("#6fd0ff") };
+  function tintBranch(dt) {
+    const br = forks.length ? branchAt(sC) : null; if (br) branchKind = br;
+    branchK += ((br ? 1 : 0) - branchK) * Math.min(1, dt * 2);
+    if (branchK < 0.01 || !branchKind) return;
+    const c = BRANCH_TINT[branchKind], k = branchK;
+    cur.hemiS.lerp(c, 0.45 * k); cur.hor.lerp(c, 0.3 * k); cur.sky.lerp(c, 0.25 * k); cur.line.lerp(c, 0.6 * k); cur.frameE.lerp(c, 0.5 * k); cur.accent.lerp(c, 0.6 * k);
+    cur.wall.lerp(c, 0.12 * k); cur.surf.lerp(c, 0.1 * k); cur.lineI += 0.15 * k;
+  }
   function samplePalette(a) {
     let i = 0;
     while (i < PAL_KEYS.length - 2 && a > PAL_KEYS[i + 1]) i++;
@@ -1716,7 +1727,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const d = curD(), prog = sC / MAIN_LEN;
     let pat = spawnGroupKind || pickPattern(clamp(d + 0.12 * prog, 0, 1), hall);
     if (spawnGroupKind === "grams2" || spawnGroupKind === "grams1") { addRams(s, spawnGroupKind === "grams2", true); return; }
-    if (!spawnGroupKind && LEVEL.id === "labyrinthus" && openHallAround(s) && Math.random() < 0.8) pat = "grams"; // an open hall is where the glass blocks swing
+    if (!spawnGroupKind && LEVEL.id === "labyrinthus" && openHallAround(s) && Math.random() < 0.8) pat = "grams";
+    const brS = LEVEL.id === "labyrinthus" && !spawnGroupKind && branchAt(s); // the branches: crosses and blocks on the rich one, plain glass on the quiet
+    if (brS) { const opts = brS === "rich" ? ["rotor", "rotor2", "grams", "grams"] : ["center", "center", "sides", "triple"]; pat = opts[Math.floor(Math.random() * opts.length)]; } // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
       case "center": addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break;
@@ -1836,7 +1849,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         break;
       }
       // Labyrinthus: in an open hall, glass blocks like a pyramid's stones swing on chains, one or a pair end to end, as Tao's rams
-      case "grams": if (openHallAround(s)) { addRams(s, Math.random() < 0.5, true); break; } // elsewhere a cross instead
+      case "grams": if (openHallAround(s) || branchAt(s) === "rich") { addRams(s, Math.random() < 0.5, true); break; } // elsewhere a cross instead
       // falls through
       case "rotor": {
         const spin = rand(0.8, 1.3) * (Math.random() < 0.5 ? -1 : 1), a0 = rand(0, TAU), lab = LEVEL.id === "labyrinthus", sg = () => (Math.random() < 0.5 ? -1 : 1);
@@ -2271,8 +2284,25 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     g.fillStyle = "#f4fbfc"; g.beginPath(); g.moveTo(70, 108); g.lineTo(150, 108); g.lineTo(150, 72); g.lineTo(200, 128); g.lineTo(150, 184); g.lineTo(150, 148); g.lineTo(70, 148); g.closePath(); g.fill();
   }, 256, 256);
   // the switch signs, painted once per language
-  const SIGNS = { rich: ["#7fd3ff", ["◆◆ БОГАТАЯ", "◆◆ RICH"], ["КРИСТАЛЛОВ ВДВОЕ · СТЕКЛА ГУЩЕ", "TWICE THE CRYSTALS · DENSER GLASS"]],
-    calm: ["#9fb7c1", ["ТИХАЯ", "QUIET"], ["ПРЕПЯТСТВИЙ МАЛО · КРИСТАЛЛОВ ПОЧТИ НЕТ", "FEW OBSTACLES · HARDLY ANY CRYSTALS"]] };
+  const SIGNS = { rich: ["#ffc860", ["◆◆ БОГАТАЯ", "◆◆ RICH"], ["КРИСТАЛЛОВ ВДВОЕ · КРЕСТЫ И БЛОКИ", "TWICE THE CRYSTALS · CROSSES AND BLOCKS"]],
+    calm: ["#7fd8ff", ["ТИХАЯ", "QUIET"], ["ТОЛЬКО СТЁКЛА · ТЯНЕТ К СВЕТУ", "PLAIN GLASS ONLY · DRAWS YOU TO THE LIGHT"]] };
+  // the small plates either side of the switch: which way is which, an arrow pointing out to its own side
+  const sideTexes = {};
+  function sideTex(kind, side) {
+    // a sign to read at speed: a big icon (two crystals for the rich way, a sun for the quiet one that draws you to the
+    // Light), an arrow out to its own side, and a small word under the icon
+    const key = kind + side + LANG, [bar, head] = SIGNS[kind], word = T(...head).replace("◆◆ ", "");
+    return sideTexes[key] || (sideTexes[key] = plateTexture((g, w, h) => {
+      g.fillStyle = "#10242e"; g.fillRect(0, 0, w, h); g.fillStyle = bar; g.fillRect(0, h - 8, w, 8);
+      const left = side > 0, ax = left ? 52 : w - 52, cx = left ? w / 2 + 34 : w / 2 - 34, y = 84; // side +1 is the left turn
+      g.fillStyle = bar; g.beginPath(); g.moveTo(ax + (left ? -36 : 36), y); g.lineTo(ax + (left ? 28 : -28), y - 52); g.lineTo(ax + (left ? 28 : -28), y + 52); g.fill();
+      if (kind === "rich") for (const [dx, r] of [[-44, 56], [46, 44]]) { const x = cx + dx; g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r * 0.68, y); g.lineTo(x, y + r); g.lineTo(x - r * 0.68, y); g.closePath(); g.fill(); g.strokeStyle = "#fff4d0"; g.lineWidth = 5; g.stroke(); }
+      else { g.beginPath(); g.arc(cx, y, 34, 0, TAU); g.fill(); g.strokeStyle = bar; g.lineWidth = 10; g.lineCap = "round";
+        for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.beginPath(); g.moveTo(cx + Math.cos(a) * 50, y + Math.sin(a) * 50); g.lineTo(cx + Math.cos(a) * 70, y + Math.sin(a) * 70); g.stroke(); } }
+      g.fillStyle = "#f4fbfc"; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "700 30px 'JetBrains Mono', monospace"; g.fillText(word, cx, h - 30);
+    }, 440, 220));
+  }
+  const sidePlateGeo = new THREE.PlaneGeometry(2.5, 1.25);
   const signTexes = {};
   function signTex(kind) {
     const key = kind + LANG, [bar, head, sub] = SIGNS[kind];
@@ -2282,7 +2312,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   const discGeo = new THREE.CircleGeometry(0.8, 40), signGeo = new THREE.PlaneGeometry(2.8, 0.62);
   function buildForks() {
-    forks.forEach(f => { scene.remove(f.sw); f.signs.forEach(o => scene.remove(o.mesh)); });
+    forks.forEach(f => { scene.remove(f.sw); f.signs.forEach(o => scene.remove(o.mesh)); f.plates.forEach(o => scene.remove(o.mesh)); });
     forks = (LEVEL.forks || []).map(fs => {
       const sw = new THREE.Group(); sw.matrixAutoUpdate = false;
       const disc = new THREE.Mesh(discGeo, new THREE.MeshBasicMaterial({ map: arrowTex, transparent: true, side: THREE.DoubleSide })); sw.add(disc);
@@ -2290,7 +2320,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       scene.add(sw);
       const rich = Math.random() < 0.5 ? 1 : -1, kinds = { [rich]: "rich", [-rich]: "calm" };
       const signs = [1, -1].map(side => { const m = new THREE.Mesh(signGeo, new THREE.MeshBasicMaterial({ map: signTex(kinds[side]) })); /* front side only: never read mirrored */ m.matrixAutoUpdate = false; scene.add(m); return { side, mesh: m }; });
-      return { s: fs, sign: Math.random() < 0.5 ? 1 : -1, kinds, locked: false, sw, disc, signs, cd: 0, wp: new THREE.Vector3() };
+      const plates = [1, -1].map(side => { const m = new THREE.Mesh(sidePlateGeo, new THREE.MeshBasicMaterial({ map: sideTex(kinds[side], side), transparent: true })); m.matrixAutoUpdate = false; scene.add(m); return { side, mesh: m }; });
+      return { s: fs, sign: Math.random() < 0.5 ? 1 : -1, kinds, locked: false, sw, disc, signs, plates, cd: 0, wp: new THREE.Vector3() };
     });
   }
   function layoutForks(dt) {
@@ -2299,6 +2330,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const swS = f.s - 30, vis = swS > sC - 4 && swS - sC < AHEAD - 6;
       f.sw.visible = vis;
       if (vis) { setObj(f.sw, swS, 0, 4.4); f.wp.setFromMatrixPosition(f.sw.matrix); }
+      for (const pl of f.plates) { // the side the arrow points to is lit, the other dim
+        pl.mesh.visible = vis; if (!vis) continue;
+        placeM(pl.mesh.matrix, swS, -pl.side * 2.25, 4.4); pl.mesh.matrixWorldNeedsUpdate = true; // a fork's side +1 turns left
+        pl.mesh.material.opacity += ((pl.side === f.sign ? 1 : 0.35) - pl.mesh.material.opacity) * Math.min(1, dt * 10);
+      }
       // the arrow points along the branch taken: the plaque is mirrored for a left turn
       f.disc.scale.x += ((f.sign > 0 ? -1 : 1) - f.disc.scale.x) * Math.min(1, dt * 14);
       for (const sg of f.signs) {
@@ -4359,8 +4395,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (sC > nextClack) { nextClack = sC + 6; Sound.clack(); }
     for (const f of forks) if (!f.locked && sC >= f.s - 30) { // the switch is passed: the branch is fixed
       f.locked = true;
-      pop(f.kinds[f.sign] === "rich" ? T("Богатая ветка", "Rich branch") : T("Тихая ветка", "Quiet branch"), "info");
+      pop(f.kinds[f.sign] === "rich" ? T("Богатая ветка", "Rich branch") : T("Тихая ветка · к Свету", "Quiet branch · toward the Light"), "info");
     }
+    if (state === "play" && branchAt(sC) === "calm") pending += 0.012 * dt; // the quiet branch draws the cart up toward the Light
     while (nextSpawn < sC + SPAWN_AHEAD) {
       // nothing spawns around a fork until its branch is chosen; the bend itself stays clear
       if (forks.some(f => !f.locked && nextSpawn > f.s - 36 && nextSpawn < f.s + 46)) break;
@@ -4417,7 +4454,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
   function updateWorld(dt) {
     computePath();
-    samplePalette(alt); applyPalette();
+    samplePalette(alt); tintBranch(dt); applyPalette();
     layoutCorridor();
     layoutStation();
 
@@ -5129,6 +5166,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       else if (kind === "flap" || kind === "bolt") spawnDoor({ s, kind }); else addHanger(s, kind === "grate1" ? "pendulum" : "gate", false, true, { look, wide: kind === "grate3" }); },
     doorHit(what) { const dr = doors[0]; if (!dr) return null; const at = new THREE.Vector3(), v = new THREE.Vector3();
       if (what === "chains") dr.chains.forEach(c => c.alive && doorStrike(dr, { c }, at, v)); else if (what === "bolt") doorStrike(dr, { bolt: true }, at, v); else dr.leaves.forEach(lf => doorStrike(dr, { lf }, at, v)); return true; },
+    branchInfo: () => ({ k: +branchK.toFixed(2), kind: branchKind, at: branchAt(sC), sC: +sC.toFixed(1) }),
     lastSet: () => lastSet && { s: +(lastSet.s - sC).toFixed(1), cost: lastSet.cost, axis: lastSet.axis, n: lastSet.bars.length, bits: barBits.length },
     crystalsNear: (a, b) => crystals.filter(c => c.s - sC > a && c.s - sC < b).length,
     glassBar(kind, ahead) { spawnGroupKind = kind; spawnGroupAt(sC + ahead); spawnGroupKind = null; }, paneState: () => panes.map(p => [+(p.s - sC).toFixed(1), p.rot !== undefined, !!p.tilt, p.passed || false]),

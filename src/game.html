@@ -886,6 +886,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     } else if (kind === "grate") { // a floor of square grating
       g.strokeStyle = "rgba(0,0,0,0.25)"; g.lineWidth = 4; for (let i = 0; i <= 8; i++) { const x = i * S / 8; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, S); g.moveTo(0, x); g.lineTo(S, x); g.stroke(); }
       e.strokeStyle = "rgba(255,255,255,0.3)"; e.lineWidth = 2; for (let i = 0; i <= 8; i += 2) { const x = i * S / 8; e.beginPath(); e.moveTo(x, 0); e.lineTo(x, S); e.moveTo(0, x); e.lineTo(S, x); e.stroke(); }
+    } else if (kind === "mirror") { // Speculum: polished mirror panels holding the sky's light, a bright seam, diagonal glints
+      const gr = g.createLinearGradient(0, 0, 0, S); gr.addColorStop(0, "#ffffff"); gr.addColorStop(0.42, "#d4def0"); gr.addColorStop(0.52, "#8494b4"); gr.addColorStop(0.6, "#b8c6de"); gr.addColorStop(1, "#f2f6fc");
+      g.fillStyle = gr; g.fillRect(0, 0, S, S);
+      const glint = (ctx, x, w, a) => { ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + w, 0); ctx.lineTo(x + w - S * 0.35, S); ctx.lineTo(x - S * 0.35, S); ctx.fill(); };
+      glint(g, S * 0.3, S * 0.16, 0.55); glint(g, S * 0.62, S * 0.05, 0.7); glint(g, S * 1.05, S * 0.1, 0.45);
+      g.strokeStyle = "rgba(30,50,90,0.55)"; g.lineWidth = 4; g.strokeRect(2, 2, S - 4, S - 4);
+      glint(e, S * 0.3, S * 0.16, 0.22); glint(e, S * 0.62, S * 0.05, 0.4);
+      e.strokeStyle = "#ffffff"; e.lineWidth = 3; e.strokeRect(1, 1, S - 2, S - 2);
     } else if (kind === "chrome") { // brushed metal panels with a polished seam and rivets
       for (let y = 0; y < S; y++) { const v = 225 + R() * 30 | 0; g.fillStyle = `rgba(${v},${v},${v},0.5)`; g.fillRect(0, y, S, 1); }
       const gr = g.createLinearGradient(0, 0, S, S); gr.addColorStop(0, "rgba(255,255,255,0.4)"); gr.addColorStop(0.5, "rgba(0,0,0,0.12)"); gr.addColorStop(1, "rgba(255,255,255,0.3)"); g.fillStyle = gr; g.fillRect(0, 0, S, S);
@@ -2589,7 +2597,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const spPrismEdge = new THREE.EdgesGeometry(spPrismGeo, 20);
   const spPrismMat = new THREE.MeshStandardMaterial({ color: 0xe8f4ff, emissive: 0x9fd4ff, emissiveIntensity: 0.55, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false });
   const spPrismEdgeMat = new THREE.LineBasicMaterial({ color: 0xffffff });
-  const spMirrorMat = new THREE.MeshStandardMaterial({ color: 0xf4f7ff, roughness: 0.04, metalness: 1.0, emissive: 0x6a7890, emissiveIntensity: 0.6 });
+  const spMirrorMat = new THREE.MeshStandardMaterial({ color: 0x3a4660, roughness: 0.3, metalness: 0.8 }); // the frame
+  const mirrorFaceTex = (() => { const c = document.createElement("canvas"); c.width = 128; c.height = 128; const g = c.getContext("2d");
+    const gr = g.createLinearGradient(0, 0, 128, 128); gr.addColorStop(0, "#ffffff"); gr.addColorStop(0.35, "#cfe0f8"); gr.addColorStop(0.5, "#8ea6cc"); gr.addColorStop(0.62, "#dfeafa"); gr.addColorStop(1, "#ffffff");
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128); g.fillStyle = "rgba(255,255,255,0.75)"; g.beginPath(); g.moveTo(30, 0); g.lineTo(52, 0); g.lineTo(0, 52); g.lineTo(0, 30); g.fill();
+    g.beginPath(); g.moveTo(74, 0); g.lineTo(80, 0); g.lineTo(0, 80); g.lineTo(0, 74); g.fill(); return new THREE.CanvasTexture(c); })();
+  const mirrorFaceMat = new THREE.MeshBasicMaterial({ map: mirrorFaceTex, side: THREE.DoubleSide });
   const spMirrorEdgeMat = new THREE.LineBasicMaterial({ color: 0x2a3c66 });
   const lightCoreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
   const lightHaloMat = new THREE.MeshBasicMaterial({ color: 0xffe9a8, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
@@ -2598,12 +2611,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const spPrismGlowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xcfe8ff, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending });
   function lightBeam() {
     const g = new THREE.Group();
-    for (const [geo, mat] of [[beamGeo, lightCoreMat], [beamHaloGeo, lightHaloMat], [beamGlowGeo, lightGlowMat]]) g.add(new THREE.Mesh(geo, mat));
+    for (const [geo, mat] of [[beamGeo, lightCoreMat], [beamHaloGeo, lightHaloMat], [beamGlowGeo, lightGlowMat]]) { const m = new THREE.Mesh(geo, mat); m.scale.set(0.75, 1, 0.75); g.add(m); } // a quarter finer than a laser
     const spot = new THREE.Sprite(lightSpotMat); spot.scale.setScalar(0.8); g.add(spot); g.userData.spot = spot; return g;
   }
   const spMirGeos = {};
   const spMirGeo = len => spMirGeos[len] || (spMirGeos[len] = new THREE.BoxGeometry(len, 0.07, MIR_D));
-  const inCart = (u, v, m) => Math.abs(u) < 1.0 + m && v < 2.2 + m; // where nothing may hover: the cart's way
+  const faceGeos = {}, mirrorFaceGeo = len => faceGeos[len] || (faceGeos[len] = new THREE.PlaneGeometry(len - 0.12, MIR_D - 0.12));
+  const inCart = (u, v, m) => Math.abs(u) < 1.0 + m && v < 2.2 + m, RING_R = 3.2; // where nothing may hover: the cart's way
   // Speculum's hexagonal frames (circumradius 4.9 about v 4.2): the light stays within them, the mirrors well inside
   const HEX_N = [0, 1, 2, 3, 4, 5].map(k => [Math.cos(Math.PI / 6 + k * Math.PI / 3), Math.sin(Math.PI / 6 + k * Math.PI / 3)]), HEX_IN = 4.9 * Math.cos(Math.PI / 6), HEX_V = 4.2;
   const inHex = (u, v, m) => HEX_N.every(([a, b]) => a * u + b * (v - HEX_V) <= HEX_IN - m);
@@ -2620,29 +2634,35 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     return t > 0.02 && Math.abs(k) <= m.len / 2 ? t : Infinity;
   }
   function planPrism(set) { // a prism, 1–3 mirrors, and the way out: one or two of its legs across the cart
-    const pt = () => { for (;;) { const u = rand(-4.5, 4.5), v = rand(0.6, 7.4); if (inHex(u, v, 0.9) && !inCart(u, v, 0.5) && set.taken.every(([a, b]) => Math.hypot(a - u, b - v) > 1.6)) return [u, v]; } };
-    for (let tr = 0; tr < 80; tr++) {
-      const k = 1 + Math.floor(Math.random() * 3), P = [pt()];
-      for (let i = 0; i < k; i++) P.push(pt());
-      if (P.some((a, i) => P.some((b, j) => j > i && Math.hypot(a[0] - b[0], a[1] - b[1]) < 1.8))) continue;
-      const ea = rand(0, TAU), last = P[k], end = [last[0] + Math.cos(ea), last[1] + Math.sin(ea)];
+    // the prism and its mirrors sit on twelve places round a ring that fills the hexagon, none next to another, so the beam
+    // draws long chords right across the way, a star rather than a heap; a pair of prisms may be mirror images
+    const slot = i => [RING_R * Math.sin(i * Math.PI / 6), HEX_V - RING_R * Math.cos(i * Math.PI / 6)];
+    const free = i => { const [u, v] = slot(i); return !inCart(u, v, 0.4) && set.taken.every(([a, b]) => Math.hypot(a - u, b - v) > 1.5); };
+    for (let tr = 0; tr < 120; tr++) {
+      const k = 1 + Math.floor(Math.random() * 3), ids = [];
+      if (set.mirror) ids.push(...set.mirror.map(i => (12 - i) % 12)); // the other prism's places, mirrored left for right
+      else for (let i = 0; i <= k; i++) { let id, n = 0; do id = Math.floor(Math.random() * 12); while (n++ < 40 && (!free(id) || ids.some(j => Math.min(Math.abs(j - id), 12 - Math.abs(j - id)) < 2))); ids.push(id); }
+      if (ids.some(i => !free(i)) || new Set(ids).size !== ids.length) continue;
+      const P = ids.map(slot), kk = ids.length - 1, eid = set.mirror ? (12 - set.endId) % 12 : (ids[kk] + 3 + Math.floor(Math.random() * 7)) % 12;
+      const end = slot(eid), last = P[kk];
+      if (Math.hypot(end[0] - last[0], end[1] - last[1]) < 1) continue;
       const mirrors = []; let ok = true;
-      for (let i = 1; i <= k; i++) { // the mirror at P[i] turns the beam from P[i-1] on to the next point
-        const a = P[i - 1], b = P[i], c = i < k ? P[i + 1] : end;
+      for (let i = 1; i <= kk; i++) { // the mirror at P[i] turns the beam from P[i-1] on to the next point
+        const a = P[i - 1], b = P[i], c = i < kk ? P[i + 1] : end;
         let ix = b[0] - a[0], iy = b[1] - a[1], il = Math.hypot(ix, iy); ix /= il; iy /= il;
         let ox = c[0] - b[0], oy = c[1] - b[1], ol = Math.hypot(ox, oy); ox /= ol; oy /= ol;
         let nu = ox - ix, nv = oy - iy; const nl = Math.hypot(nu, nv); if (nl < 0.5) { ok = false; break; } nu /= nl; nv /= nl; // too glancing a bounce
-        mirrors.push({ u: b[0], v: b[1], nu, nv, len: Math.random() < 0.5 ? 1.0 : rand(1.2, 1.6), alive: true });
+        mirrors.push({ u: b[0], v: b[1], nu, nv, len: set.mirror ? set.lens[i - 1] : Math.random() < 0.5 ? 1.0 : 1.4, alive: true });
       }
       if (!ok) continue;
       const pr = { u: P[0][0], v: P[0][1], dx: P[1][0] - P[0][0], dy: P[1][1] - P[0][1], mirrors, alive: true };
       const l0 = Math.hypot(pr.dx, pr.dy); pr.dx /= l0; pr.dy /= l0;
       const path = tracePrism(set, pr, true);
-      if (path.mirrorsHit !== k) continue; // every mirror on the way, in order
+      if (path.mirrorsHit !== kk) continue; // every mirror on the way, in order
       const across = path.segs.filter(([a, b, c, d]) => beamHitsCart(a, b, c, d)).length;
       if (across < 1 || across > 2) continue;
       if (path.segs.some(([a, b, c, d]) => [...set.taken, ...P].some(([u, v]) => segDist2(u, v, a, b, c, d) < 0.45 && !P.some(q => q[0] === u && q[1] === v)))) continue; // clear of others
-      set.taken.push(...P); return pr;
+      set.taken.push(...P); pr.ids = ids; pr.endId = eid; return pr;
     }
     return null;
   }
@@ -2660,10 +2680,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     return { segs, mirrorsHit: hit };
   }
   function addPrisms(s, n) {
-    n = n || (Math.random() < 0.5 ? 1 : Math.random() < 0.7 ? 2 : 3);
+    n = Math.min(2, n || (Math.random() < 0.55 ? 1 : 2)); // one prism or two
     const set = { s, prisms: [], taken: [], cost: 0, passed: false, root: new THREE.Group() };
     set.root.matrixAutoUpdate = false; scene.add(set.root);
-    for (let i = 0; i < n; i++) { const pr = planPrism(set); if (pr) set.prisms.push(pr); }
+    for (let i = 0; i < n; i++) {
+      let pr = planPrism(set);
+      if (!pr && set.mirror) { set.mirror = null; pr = planPrism(set); } // no room for the mirror image: a free one
+      if (!pr) continue; set.prisms.push(pr);
+      if (i === 0 && n === 2 && Math.random() < 0.6) { set.mirror = pr.ids; set.endId = pr.endId; set.lens = pr.mirrors.map(m => m.len); } // the second, the first's mirror image
+      else { set.mirror = null; }
+    }
+    set.mirror = null;
     if (!set.prisms.length) { scene.remove(set.root); return null; }
     for (const pr of set.prisms) {
       const g = new THREE.Group(); g.position.set(pr.u, pr.v, 0); set.root.add(g); pr.g = g;
@@ -2674,6 +2701,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const m of pr.mirrors) {
         const mg = new THREE.Group(); mg.position.set(m.u, m.v, 0); mg.rotation.z = Math.atan2(m.nu, -m.nv); set.root.add(mg); // its face along (−nv, nu)
         const geo = spMirGeo(m.len); mg.add(new THREE.Mesh(geo, spMirrorMat)); mg.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), spMirrorEdgeMat));
+        for (const y of [-0.037, 0.037]) { const f = new THREE.Mesh(mirrorFaceGeo(m.len), mirrorFaceMat); f.rotation.x = Math.PI / 2; f.position.y = y; mg.add(f); } // the silvered faces inside the frame
         m.g = mg; m.inv = new THREE.Matrix4(); m.wp = new THREE.Vector3();
       }
     }
@@ -3594,19 +3622,19 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // Speculum: silver and quicksilver. Polished chrome in the light, liquid mercury grey in between,
   // black mirror with a cold steel sheen in the dark
   const PAL_SPECULUM = [
-    { sky: "#050608", hor: "#020203", gnd: "#16181c", surf: "#08090b", wall: "#0b0c0f", line: "#c8d0dc", lineI: 0.7, frame: "#060708", frameE: "#a8b4c4", frameEI: 0.7,
+    { sky: "#050608", hor: "#020203", gnd: "#16181c", surf: "#0c111c", wall: "#141c2c", line: "#c8d0dc", lineI: 0.7, frame: "#060708", frameE: "#a8b4c4", frameEI: 0.7,
       rail: "#2c3038", sleeper: "#0e1014", glass: "#d0d8e4", glassO: 0.45, edge: "#f0f4f8", fogN: 4, fogF: 58, hemiS: "#b8c0cc", hemiG: "#060708", hemiI: 0.55, sunI: 0.3,
       dust: "#d8e0ec", block: "#1a1c22", cart: "#14161a", accent: "#c8d4e4" },
-    { sky: "#2a2c32", hor: "#18191d", gnd: "#0e0f12", surf: "#383a42", wall: "#2c2e34", line: "#a8acb8", lineI: 0.25, frame: "#18191d", frameE: "#000000", frameEI: 0,
-      rail: "#686c78", sleeper: "#26282e", glass: "#c8ccd8", glassO: 0.42, edge: "#eef0f4", fogN: 8, fogF: 74, hemiS: "#d0d4dc", hemiG: "#18191d", hemiI: 0.78, sunI: 0.55,
-      dust: "#c8ccd4", block: "#4a4c56", cart: "#2e3036", accent: "#dce0e8" },
-    { sky: "#8c9098", hor: "#a4a8b0", gnd: "#5a5e66", surf: "#c4c8ce", wall: "#9ca0a8", line: "#ffffff", lineI: 0.06, frame: "#4a4e56", frameE: "#000000", frameEI: 0,
-      rail: "#8a8e96", sleeper: "#6a6e76", glass: "#e4e8ee", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 88, hemiS: "#ffffff", hemiG: "#80848c", hemiI: 1.0, sunI: 0.8,
-      dust: "#ffffff", block: "#b0b4bc", cart: "#4e525a", accent: "#ffffff" },
-    { sky: "#c4c8ce", hor: "#e8eaee", gnd: "#9ca0a8", surf: "#f4f5f7", wall: "#d4d6dc", line: "#ffffff", lineI: 0.12, frame: "#8a8e98", frameE: "#000000", frameEI: 0,
+    { sky: "#2a3448", hor: "#1a2234", gnd: "#10141e", surf: "#4a5670", wall: "#5a6884", line: "#b8cce8", lineI: 0.35, frame: "#2a3448", frameE: "#9fb8e0", frameEI: 0.35,
+      rail: "#686c78", sleeper: "#26282e", glass: "#d2def2", glassO: 0.4, edge: "#eef0f4", fogN: 8, fogF: 74, hemiS: "#d0d4dc", hemiG: "#18191d", hemiI: 0.78, sunI: 0.55,
+      dust: "#c8ccd4", block: "#5a6884", cart: "#2e3442", accent: "#dce0e8" },
+    { sky: "#9aa8c4", hor: "#c2cee4", gnd: "#64728e", surf: "#d8e2f0", wall: "#c2cfe6", line: "#ffffff", lineI: 0.2, frame: "#5a6a8a", frameE: "#000000", frameEI: 0,
+      rail: "#8a8e96", sleeper: "#6a6e76", glass: "#e8f0fa", glassO: 0.38, edge: "#ffffff", fogN: 12, fogF: 88, hemiS: "#ffffff", hemiG: "#80848c", hemiI: 1.0, sunI: 0.8,
+      dust: "#ffffff", block: "#c4d0e6", cart: "#4e5668", accent: "#ffffff" },
+    { sky: "#ccd8ec", hor: "#eef2f8", gnd: "#a0acc4", surf: "#f6f8fc", wall: "#e0e8f4", line: "#ffffff", lineI: 0.25, frame: "#8a9ab8", frameE: "#000000", frameEI: 0,
       rail: "#b4b8c0", sleeper: "#ced2d8", glass: "#f0f2f6", glassO: 0.38, edge: "#ffffff", fogN: 15, fogF: 100, hemiS: "#ffffff", hemiG: "#c4c8d0", hemiI: 1.1, sunI: 0.9,
       dust: "#ffffff", block: "#e0e2e8", cart: "#6a6e78", accent: "#b8c4d8" },
-    { sky: "#d8dce4", hor: "#f6f7f9", gnd: "#c0c4cc", surf: "#ffffff", wall: "#eceef2", line: "#dce4f0", lineI: 0.35, frame: "#b8bec8", frameE: "#e8eef8", frameEI: 0.45,
+    { sky: "#d8dce4", hor: "#f6f7f9", gnd: "#c0c4cc", surf: "#ffffff", wall: "#f0f4fa", line: "#dce6f6", lineI: 0.35, frame: "#b8bec8", frameE: "#e8eef8", frameEI: 0.45,
       rail: "#d4d8de", sleeper: "#eaecf0", glass: "#f4f6fa", glassO: 0.34, edge: "#ffffff", fogN: 17, fogF: 110, hemiS: "#ffffff", hemiG: "#dcdfe6", hemiI: 1.2, sunI: 0.95,
       dust: "#ffffff", block: "#f2f3f6", cart: "#7a808c", accent: "#a8c0e0" },
   ];
@@ -3859,7 +3887,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     rubinus: { sky: { mode: 6, a: 0.95, c: "#ff2a46" }, shell: [8, 10.5] }, // the triangles are wide: a hall of glass
     labyrinthus: { sky: { mode: 3, a: 0.75, c: "#d4f6e6" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },
     hortus: { sky: { mode: 3, a: 0.85, c: "#fff0f4" } },
-    speculum: { sky: { mode: 2, a: 0.9, c: "#f0f4ff" }, shell: [5.3, 8.75], style: { tex: "chrome", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum // open to a sky of quicksilver
+    speculum: { sky: { mode: 2, a: 0.9, c: "#f0f4ff" }, shell: [5.3, 8.75], style: { tex: "mirror", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum // open to a sky of quicksilver
     abyssus: { sky: { mode: 1 } },
     carcer: { sky: { mode: 0 }, style: { tex: "panels" } }, // walls of grey Soviet precast slabs
     lux: { sky: { mode: 4, a: 0.9, c: "#fff4d0" } },
@@ -3876,7 +3904,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
     [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;
     mirStrips.forEach(m => { m.o = m.k * 2 * (SW + 0.12); });
-    paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
+    paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", mirror: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     buildStation();

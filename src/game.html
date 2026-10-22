@@ -850,7 +850,15 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const speck = (ctx, n, a0, a1, light, sz = 2) => { for (let i = 0; i < n; i++) { const v = light ? 255 : 0; ctx.fillStyle = `rgba(${v},${v},${v},${a0 + R() * (a1 - a0)})`; ctx.fillRect(R() * S, R() * S, R() * sz + 0.5, R() * sz + 0.5); } };
     g.globalAlpha = 1; e.globalAlpha = 1;
     g.fillStyle = "#ffffff"; g.fillRect(0, 0, S, S); e.fillStyle = "#000000"; e.fillRect(0, 0, S, S);
-    if (kind === "concrete") { // cast concrete: speckle, rust streaks, formwork joints and tie holes
+    if (kind === "panels") { // Soviet precast slabs: grey, unevenly toned panels, dark caulked seams, rust weeping from the joints
+      for (const [y0, y1] of [[0, S / 2], [S / 2, S]]) { const t = 128 + R() * 26 | 0; g.fillStyle = `rgb(${t},${t - 2},${t - 8})`; g.fillRect(0, y0, S, y1 - y0); }
+      for (let i = 0; i < 14; i++) { g.fillStyle = `rgba(${R() < 0.5 ? "70,66,58" : "190,186,176"},${0.05 + R() * 0.08})`; g.beginPath(); g.ellipse(R() * S, R() * S, 20 + R() * 60, 10 + R() * 40, R() * 3, 0, TAU); g.fill(); }
+      speck(g, 3800, 0.05, 0.22, false, 2.2); speck(g, 1200, 0.05, 0.16, true, 1.6);
+      for (let i = 0; i < 7; i++) { const x = R() * S, y = R() < 0.5 ? 2 : S / 2 + 2, gr = g.createLinearGradient(0, y, 0, y + 60 + R() * 70); gr.addColorStop(0, "rgba(110,62,28,0.35)"); gr.addColorStop(1, "rgba(110,62,28,0)"); g.fillStyle = gr; g.fillRect(x, y, 2 + R() * 6, 130); }
+      g.fillStyle = "#2c2a26"; g.fillRect(0, 0, S, 5); g.fillRect(0, S / 2 - 3, S, 6); g.fillRect(0, 0, 5, S); g.fillRect(S - 3, 0, 3, S); // the caulked seams
+      g.fillStyle = "rgba(0,0,0,0.25)"; g.fillRect(0, 5, S, 3); g.fillRect(0, S / 2 + 3, S, 3);
+      g.fillStyle = "rgba(0,0,0,0.5)"; for (const y of [S / 4, 3 * S / 4]) for (const x of [S / 3, 2 * S / 3]) { g.beginPath(); g.arc(x, y, 3, 0, TAU); g.fill(); } // lifting sockets
+    } else if (kind === "concrete") { // cast concrete: speckle, rust streaks, formwork joints and tie holes
       speck(g, 2600, 0.03, 0.12, false); speck(g, 900, 0.05, 0.15, true);
       for (let i = 0; i < 6; i++) { const x = R() * S, gr = g.createLinearGradient(0, 0, 0, S); gr.addColorStop(0, "rgba(110,60,30,0.22)"); gr.addColorStop(1, "rgba(110,60,30,0)"); g.fillStyle = gr; g.fillRect(x, 0, 2 + R() * 5, S * (0.3 + R() * 0.7)); }
       g.strokeStyle = "rgba(0,0,0,0.22)"; g.lineWidth = 2; g.strokeRect(1, 1, S - 2, S - 2); g.beginPath(); g.moveTo(0, S / 2); g.lineTo(S, S / 2); g.stroke();
@@ -1288,7 +1296,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         I.portal.setMatrixAt(n.portal++, placeM(M, s0, 0, 0));
         I.portal.setMatrixAt(n.portal++, placeM(M, s0, 0, 0).multiply(M2.makeRotationY(Math.PI)));
       }
-      if (LEVEL.halls && !dec.hw && s < SUPER_END - 6 && k % 3 === 0) { put("lamp", s, 0, H - 0.14); put("lampCage", s, 0, H - 0.14); } // a lamp under a corridor's vault every 6 m
       if (dec.hw) { // a hall: pillars and beams instead of arches, cells barred along its sides, a red line along the floor, lamps high up
         if (dec.arch) {
           for (const sd of [-1, 1]) I.post.setMatrixAt(n.post++, placeM(M, s, sd * (dec.hw - 0.2), dec.hh / 2).scale(SV.set(1.6, dec.hh / H, 1.6)));
@@ -1297,7 +1304,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (const sd of [-1, 1]) {
           for (let i = 0; i < 4; i++) I.wire.setMatrixAt(n.wire++, placeM(M, s - 0.75 + i * 0.5, sd * (dec.hw - 1.1) + Math.sin(k * 3 + i) * 0.06, 0.44).multiply(M2.makeRotationZ(k * 1.7 + i * 2.1)));
           put("safety", s, sd * (W + 0.35), 0.02);
-          if (k % 4 === 2) { put("lamp", s, sd * (dec.hw - 0.3), dec.hh - 1.6); put("lampCage", s, sd * (dec.hw - 0.3), dec.hh - 1.6); }
         }
       }
       if (dec.arch && !open && !dec.hw) {
@@ -1690,7 +1696,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       // Carcer's halls: grates of either look on one, two or three chains, rows and grids of lasers, the headsman's mills
       case "grate1": case "grate2": case "grate3": {
         const look = Math.random() < 0.5 ? "medieval" : "modern";
-        if (s - lastHangerS > 42) { addHanger(s, pat === "grate1" ? "pendulum" : "gate", false, true, { look, wide: pat === "grate3" }); lastHangerS = s; }
+        if (s - lastHangerS > 70) { addHanger(s, pat === "grate1" ? "pendulum" : "gate", false, true, { look, wide: pat === "grate3" }); lastHangerS = s; }
         else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 + (LEVEL.armor || 0) });
         break;
       }
@@ -1955,7 +1961,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const beam = laserBeam(); beam.rotation.z = Math.PI; beam.position.set(x, -h / 2, 0); body.add(beam);
       return { x, blk, beam, alive: true, len: 4 };
     }) : [];
-    const xs = pend ? [0] : opt.wide ? [-(w / 2 - 0.35), 0, w / 2 - 0.35] : [-(w / 2 - 0.35), w / 2 - 0.35];
+    const xs = pend ? [0] : [-(w / 2 - 0.35), w / 2 - 0.35]; // a wide grate too hangs on two chains
     const chains = xs.map(x => { const m = makeChain(L); m.position.x = x; root.add(m); return { x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
     xs.forEach(x => { const plate = new THREE.Mesh(mountGeo, frameMat); plate.position.set(x, 0.02, 0); root.add(plate); }); // anchor plates
     scene.add(root);
@@ -2113,7 +2119,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     }
     if (f === "custodes") {
       superWave++;
-      if (superWave % 3 === 0) { // the strongroom: a wide grate on three chains, blue crystals behind it; cut it down and take them
+      if (superWave % 3 === 0) { // the strongroom: a wide grate on two chains, blue crystals behind it; cut it down and take them
         addHanger(s, "gate", false, true, { look: superWave % 6 ? "modern" : "medieval", wide: true });
         for (const u of [-2.1, -0.7, 0.7, 2.1]) addCrystal(s + 2.4, u, rand(1.5, 3.1), 3);
         return 15;
@@ -2365,7 +2371,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const row = { amp: 0, f: rand(0.8, 1.2), ph: rand(0, TAU), axis: mode === "top" ? "u" : "v", cost: 0 };
     if (mode !== "grid" && Math.random() < 0.7) row.amp = mode === "side" ? 0.6 : 1.2;
     if (mode === "side" || mode === "grid") {
-      const side = Math.random() < 0.5 ? -1 : 1, n = row.amp ? 3 : Math.random() < 0.5 ? 3 : 4, v0 = rand(0.55 + row.amp, 1.5);
+      const side = Math.random() < 0.5 ? -1 : 1, n = 3, v0 = 1.25; // the lowest beam at the middle of the cart's height
       for (let i = 0; i < n; i++) addLaserBlock(s, "h", { side, v: v0 + i * ROW_DV, row });
     }
     if (mode === "top" || mode === "grid") {
@@ -2456,13 +2462,20 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   let hmills = [];
   const HM_L = 2.4, HM_V = 3.25, hmHubGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.6, 20).rotateX(Math.PI / 2), hmHandleGeo = new THREE.CylinderGeometry(0.15, 0.18, HM_L, 12).translate(0, HM_L / 2, 0);
   const pillarGeo = new THREE.BoxGeometry(0.9, HALL_H, 0.9), axeSocketGeo = new THREE.BoxGeometry(0.34, 0.5, 0.3);
-  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xa8b0b6, roughness: 0.22, metalness: 0.92 });
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xdde4ea, roughness: 0.18, metalness: 0.95, emissive: 0x3a444c, side: THREE.DoubleSide }); // a ground, polished edge
   // the blade: a dark cheek, and a thin bright edge ground along its curve
   const AXE_L = 2.9, axeHandleGeo = new THREE.CylinderGeometry(0.09, 0.11, AXE_L, 12).translate(0, AXE_L / 2, 0);
-  const axeBladeGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(0.1, -0.22); sh.lineTo(0.66, -0.5); sh.quadraticCurveTo(0.98, 0, 0.66, 0.5); sh.lineTo(0.1, 0.22); sh.closePath();
-    return new THREE.ExtrudeGeometry(sh, { depth: 0.07, bevelEnabled: false }).translate(0, 0, -0.035); })();
-  const axeEdgeGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(0.64, -0.52); sh.quadraticCurveTo(1.16, 0, 0.64, 0.52); sh.lineTo(0.66, 0.46); sh.quadraticCurveTo(0.97, 0, 0.66, -0.46); sh.closePath();
-    return new THREE.ExtrudeGeometry(sh, { depth: 0.014, bevelEnabled: false, curveSegments: 16 }).translate(0, 0, -0.007); })();
+  const axeBladeGeo = (() => { const sh = new THREE.Shape(); sh.moveTo(0.1, -0.2); sh.lineTo(0.72, -0.55); sh.quadraticCurveTo(1.04, 0, 0.72, 0.55); sh.lineTo(0.1, 0.2); sh.closePath();
+    return new THREE.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: false, curveSegments: 16 }).translate(0, 0, -0.015); })();
+  // the edge: a narrow bright band past the cheek's curve, a wedge that comes to almost nothing at the cutting line
+  const axeEdgeGeo = (() => { const g = new THREE.BufferGeometry(), pos = [], N = 20, q = (t, a, b, c) => (1 - t) * (1 - t) * a + 2 * (1 - t) * t * b + t * t * c;
+    for (let i = 0; i <= N; i++) { const t = i / N; pos.push([q(t, 0.72, 1.04, 0.72), q(t, -0.55, 0, 0.55)], [q(t, 0.8, 1.2, 0.8), q(t, -0.62, 0, 0.62)]); }
+    const v = [], idx = [];
+    for (const [x, y] of pos) v.push(x, y, 0);
+    for (let i = 0; i <= N; i++) { const [x, y] = pos[i * 2]; v.push(x, y, 0.015, x, y, -0.015); } // the inner line on both faces of the cheek
+    for (let i = 0; i < N; i++) { const a = i * 2, b = a + 2, e = 2 * (N + 1) + i * 2, f = e + 2; // inner (two faces) to the cutting line (one)
+      idx.push(e, a + 1, f, f, a + 1, b + 1, e + 1, f + 1, a + 1, f + 1, b + 1, a + 1); }
+    g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3)); g.setIndex(idx); g.computeVertexNormals(); return g; })();
   const hmAxleGeo = new THREE.BoxGeometry(1.6, 0.3, 0.3), hmHeadGeo = new THREE.BoxGeometry(1.5, 0.85, 1.0), hmCapGeo = new THREE.BoxGeometry(1.58, 0.16, 1.08);
   // axe (Carcer): a headsman's mill on a stone pillar behind it, four single-bitted axes or two double-bitted ones
   function addHammerMill(s, side, dir, count = 2, axe = false) {
@@ -2600,9 +2613,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (o.kind === "flap") { // a plain steel flap, an eye at each top corner, and long bright chains up to the lintel
       const leaf = new THREE.Group(); root.add(leaf); leaf.add(new THREE.Mesh(flapGeo, doorMatC)); outline(flapGeo, leaf);
       dr.leaf = leaf;
-      for (const x of [-(DOOR_W - 0.6), DOOR_W - 0.6]) {
-        const eye = new THREE.Mesh(eyeGeo, targetOn); eye.position.set(x, FLAP_H + 0.08, 0.05); leaf.add(eye);
-        const L = H - 0.34 - FLAP_H - 0.1, m = makeChain(L, 1.7, doorChainMat); m.position.set(x, H - 0.34, 0.05); root.add(m);
+      for (const x of Math.random() < 0.5 ? [0] : [-DOOR_W / 3, DOOR_W / 3]) { // one chain in the middle, or two at the thirds
+        const eye = new THREE.Mesh(eyeGeo, targetOn); eye.position.set(x, FLAP_H + 0.08, 0.05); eye.scale.setScalar(1.4); leaf.add(eye);
+        const L = H - 0.34 - FLAP_H - 0.1, m = makeChain(L, 2.3, doorChainMat); m.position.set(x, H - 0.34, 0.05); root.add(m);
         dr.chains.push({ x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() });
       }
     } else { // two steel leaves barred by a glowing bolt; once it is gone, each leaf lights up a target
@@ -2632,7 +2645,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // what a point (world) touches on a door: a chain, the bolt, a leaf, or nothing; in the door's own frame for leaves
   const DL = new THREE.Vector3(), DQ = new THREE.Vector3();
   function doorTouch(dr, q, r) {
-    for (const c of dr.chains) if (c.alive && segDist(q, c.A, c.B) < CHAIN_HIT + r - R_BALL) return { c };
+    for (const c of dr.chains) if (c.alive && segDist(q, c.A, c.B) < CHAIN_HIT + 0.15 + r - R_BALL) return { c }; // thick chains, a generous mark
     DL.copy(q).applyMatrix4(dr.inv);
     if (dr.bolted && Math.abs(DL.y - BOLT_V) < 0.3 + r && Math.abs(DL.x) < 1.5 && Math.abs(DL.z - 0.24) < 0.25 + r) return { bolt: true };
     if (Math.abs(DL.z) > 0.12 + r) return null;
@@ -3125,7 +3138,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     taiji: { name: "TAIJI", ru: "Инь и ян", note: "Над путём вращается круг из белых и чёрных камней. Бейте их по очереди: белый, чёрный, белый… Каждое чередование — +2 шара, четыре подряд — ещё +3. Два одного цвета подряд сбивают серию и стоят шар." },
     tessera: { name: "TESSERA", ru: "Мозаика", note: "Поперёк пути встаёт мозаика из рубинов, и в ней по очереди вспыхивает один камень. Попали во вспыхнувший — +2 шара, три подряд — ещё +3. Тусклый камень стоит шар." },
     fragmenta: { name: "FRAGMENTA", ru: "Осколки", note: "Волны хрусталя: за каждой перегородкой горит кристалл. Разбейте всю волну до последнего стекла — +4 шара, кристаллы платят как обычно." },
-    custodes: { name: "CUSTODES", ru: "Стражи", note: "Стражи-тени летят волнами: каждый сбитый — +1 шар, вся волна — ещё +4, долетевший отнимает 3. Между волнами — сейф: широкая решётка на трёх цепях, за ней голубые кристаллы по 3 шара." },
+    custodes: { name: "CUSTODES", ru: "Стражи", note: "Стражи-тени летят волнами: каждый сбитый — +1 шар, вся волна — ещё +4, долетевший отнимает 3. Между волнами — сейф: широкая решётка на двух цепях, за ней голубые кристаллы по 3 шара." },
     triumphus: { name: "TRIUMPHUS", ru: "Триумф", note: "Финал всего пути: по очереди возвращаются суперигры станций, которые вы прошли, — и тупиков тоже. Каждая идёт по своим правилам." },
     rota: { name: "ROTA", ru: "Колесо", note: "Над мостом вращаются колёса из кристаллов. Голубой — +2 шара, красный — −3. Соберите все голубые с колеса, пока оно не проехало, — ещё +5." },
     vindemia: { name: "VINDEMIA", ru: "Сбор урожая", note: "Ветви тяжелы от кристаллов: каждый даёт 2 шара, а собранная целиком ветка ещё +3. Сломать ветку безопасно, но её кристаллы упадут. Хлёст по вагонетке стоит 3 шара." },
@@ -3356,14 +3369,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       req: { after: "speculum", or: "rubinus" }, map: { x: 730, y: 330, label: "t", dx: 12 } },
     { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 1200, pal: PAL_CARCER, finale: "custodes",
       // corridors only link the halls; the halls, wider and higher, hold the traps
-      style: { arch: "square", blocks: "cube", glassWalls: false }, halls: true, crystalMul: 2.0, armor: 1, driftMul: 1.2, lightMul: 1.7, speedMul: 0.88, spaceMul: 1.4, thorns: { from: 0.45, mul: 0.8 }, decoyMul: 0.5,
+      style: { arch: "square", blocks: "cube", glassWalls: false }, halls: true, crystalMul: 2.0, armor: 1, driftMul: 1.2, lightMul: 2.0, speedMul: 0.88, spaceMul: 1.4, thorns: { from: 0.45, mul: 0.8 }, decoyMul: 0.5,
       pats: { bars: [0.8, 1, 1.2], imps: [0.2, 0.4, 0.9], shutter: [0.5, 1.2, 1.5], reinf: [0.5, 1, 1.5], center: [2, 2, 1.5], double: [0.5, 1, 1.2], slider: [1, 1.5, 1.5],
         lift: [0.5, 1, 1], wall: [0.4, 0.4, 0.4], triple: [0.6, 0.8, 0.8], sides: [1, 0.6, 0.2], bonus: [1.2, 0.5, 0.2] },
-      hallPats: { grate1: [1, 1.2, 1.4], grate2: [1, 1.2, 1.4], grate3: [0.5, 0.9, 1.3], lrow: [1.2, 1.5, 1.8], lgrid: [0.4, 0.9, 1.4], axes: [1, 1.4, 1.8],
+      hallPats: { grate1: [0.6, 0.8, 1], grate2: [0.2, 0.3, 0.4], lrow: [1.2, 1.5, 1.8], lgrid: [0.4, 0.9, 1.4], axes: [1, 1.4, 1.8],
         center: [1.5, 1.4, 1], triple: [0.8, 1, 1], slider: [0.6, 1, 1], sides: [1, 0.6, 0.2], bonus: [1.2, 0.6, 0.2], imps: [0.1, 0.3, 0.6] },
       turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35], [860, 50, -45], [980, 60, 50], [1090, 50, -40]],
-      desc: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах решётки старые и новые, на одной, двух и трёх цепях, ряды и сетки лазеров и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
-      feats: ["Залы с решётками на 1–3 цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Custodes с сейфом"],
+      desc: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах решётки старые и новые на цепях, ряды и сетки лазеров и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
+      feats: ["Залы с решётками на цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Custodes с сейфом"],
       req: { after: "abyssus", fare: 30 }, map: { x: 825, y: 440, label: "t", dy: -5 } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 1600, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "prism", glassWalls: true }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
@@ -3398,8 +3411,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         feats: ["Mirror walls: the corridor runs off into reflections", "False crystals: a reflection flickers and spins the other way", "Finale Reflexio: targets in pairs"] },
       abyssus: { ru: "Abyss", desc: "A narrow bridge over the abyss, with no walls or ceiling. Steel gates rise across the bridge, with cup anemometers spinning over the frame: hit them all and the leaves slide apart. Glass and shades rise from the void below. The Dark pulls harder here.",
         feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
-      carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang grates old and new on one, two or three chains, rows and grids of lasers, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
-        feats: ["Halls of grates on 1–3 chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Custodes with a strongroom"] },
+      carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang grates old and new on chains, rows and grids of lasers, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
+        feats: ["Halls of grates on chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Custodes with a strongroom"] },
       lux: { ru: "Light", desc: "The terminus. White halls with glass walls. Red lasers guard the way: spinners in gaps in the walls, floating blocks, beams on chains. A beam across the cart costs 3 balls. Iris bulkheads open with buttons. The climb to the Light is hardest here.",
         feats: ["Red lasers: spinners, blocks, beams on chains", "Iris bulkheads with buttons", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
     },
@@ -3417,7 +3430,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       taiji: { ru: "Yin and yang", note: "A ring of white and black stones turns over the track. Hit them in turn: white, black, white… Each change is +2 balls, four in a row another +3. Two of one colour in a row break the run and cost a ball." },
       tessera: { ru: "Mosaic", note: "A ruby mosaic rises across the track, and one stone at a time lights up. Hit the lit one: +2 balls, three in a row another +3. A dim stone costs a ball." },
       fragmenta: { ru: "Shards", note: "Waves of crystal glass: behind every partition glows a crystal. Break a whole wave to the last pane: +4 balls; the crystals pay as usual." },
-      custodes: { ru: "Guards", note: "Shade guards fly in waves: each downed +1 ball, a whole wave another +4, one that gets through takes 3. Between waves, a strongroom: a wide grate on three chains with blue crystals behind it, 3 balls each." },
+      custodes: { ru: "Guards", note: "Shade guards fly in waves: each downed +1 ball, a whole wave another +4, one that gets through takes 3. Between waves, a strongroom: a wide grate on two chains with blue crystals behind it, 3 balls each." },
       triumphus: { ru: "Triumph", note: "The finale of the whole journey: the finales of the stations you have finished, dead ends too, come back one after another, each with its own rules." },
       rota: { ru: "Wheel", note: "Wheels of crystals turn over the bridge. Blue is +2 balls, red −3. Take every blue off a wheel before it passes: another +5." },
       vindemia: { ru: "Harvest", note: "The boughs are heavy with crystals: each gives 2 balls, a bough picked clean another +3. Breaking a bough is safe, but its crystals fall. A lash across the cart costs 3 balls." },
@@ -3502,7 +3515,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     hortus: { sky: { mode: 3, a: 0.85, c: "#fff0f4" } },
     speculum: { sky: { mode: 2, a: 0.9, c: "#f0f4ff" }, shell: [5.3, 8.75], style: { tex: "chrome", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum // open to a sky of quicksilver
     abyssus: { sky: { mode: 1 } },
-    carcer: { sky: { mode: 0 }, style: { tex: "concrete" } }, // walls of reinforced concrete slabs
+    carcer: { sky: { mode: 0 }, style: { tex: "panels" } }, // walls of grey Soviet precast slabs
     lux: { sky: { mode: 4, a: 0.9, c: "#fff4d0" } },
   };
   // Carcer: halls of 60–90 m linked by corridors of 28–45 m, on the 2 m grid of the decor; the finale is fought in the yard
@@ -3517,7 +3530,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
     [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;
     mirStrips.forEach(m => { m.o = m.k * 2 * (SW + 0.12); });
-    paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, { concrete: "asphalt", stone: "flags", chrome: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
+    paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     buildStation();

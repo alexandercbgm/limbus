@@ -176,14 +176,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .how.paged.pg2 h1 { display: none; } .how.paged .panel p { font-size: 12px; line-height: 1.38; } .how.paged .rules { margin: 8px 0 10px; } .how.paged.pg2 .btns { margin-top: 14px; }
 
 .m-side { display: grid; gap: 8px; justify-items: end; }
-/* Telegram: the scheme's buttons on top, off the scheme; under them the bank and the cannons side by side */
+/* Telegram: the bank and the cannons side by side */
 .tg .m-side { grid-template-columns: auto auto; grid-auto-flow: row; align-items: center; justify-content: end; }
-.tg .m-side .map-tools { position: static; grid-column: 1 / -1; grid-row: 1; justify-self: end; }
+/* a phone in Telegram: the Space line on a line of its own, and a station sheet the whole height of the screen, so nothing shows round it */
+.tgphone .spc { display: block; }
+.tgphone .overlay.sheet .panel { align-self: stretch; align-content: center; }
 /* on a low screen held sideways all of it goes in one row beside the logo, and the legend gives way to the scheme */
 @media (orientation: landscape) and (max-height: 380px) {
-  .tg .m-side { grid-template-columns: auto auto auto; gap: 6px; }
-  .tg .m-side .map-tools { grid-column: auto; grid-row: auto; gap: 5px; }
-  .tg .map-tools .ibtn { width: 34px; height: 34px; } .tg .map-tools .lang { width: auto; }
+  .tg .m-side { gap: 6px; }
   .tg .bank { white-space: nowrap; }
   .tg .logo { font-size: 24px; }
   .tg .bank { padding: 6px 9px; font-size: 11px; } .tg .bank b { font-size: 14px; }
@@ -373,7 +373,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 <section class="overlay how" id="how" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="howTitle">
     <h1 id="howTitle" data-en="How to play">Как играть</h1>
-    <p data-pg="1" data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it. Space fires at the centre.">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь. Пробел стреляет в центр.</p>
+    <p data-pg="1" data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it. &lt;span class=&quot;spc&quot;&gt;Space fires at the centre.&lt;/span&gt;">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь. <span class="spc">Пробел стреляет в центр.</span></p>
     <p data-pg="2" data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and blue crystals come often, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystal imps and red decoys, and fewer blue crystals, yet each one there gives almost twice the balls and banks two crystals."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, голубые кристаллы попадаются часто, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы-бесы и красные ловушки, а голубых кристаллов меньше — зато каждый даёт почти вдвое больше шаров и два кристалла в запас.</p>
     <p data-pg="2" data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons and upgrades at Armamentarium. Later stations hold more crystals, and tougher glass. Two lines leave Vitrum: the lower through Rubinus to Speculum, the upper through Labyrinthus to Tao, from where the Way of Tao leads through Nox to Lux.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки, пушки и улучшения в Armamentarium. Дальше по линии кристаллов больше, но и стекло прочнее. Из Vitrum расходятся две линии: нижняя через Rubinus к Speculum, верхняя через Labyrinthus к Tao, откуда путь Дао ведёт через Nox к Lux.</p>
     <ul class="rules" data-pg="1">
@@ -5493,7 +5493,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // ---------- Telegram Mini App ----------
   if (TG) {
     TG.ready(); TG.expand();
-    document.body.classList.add("tg"); document.querySelector(".m-side").prepend(document.querySelector(".map-tools"));
+    document.body.classList.add("tg"); if (/^(android|ios)$/.test(TG.platform)) document.body.classList.add("tgphone");
     if (TG.isVersionAtLeast("7.7")) TG.disableVerticalSwipes(); // a swipe down to aim must not fold the app away
     if (TG.isVersionAtLeast("6.1")) { TG.setHeaderColor("#e9eced"); TG.setBackgroundColor("#e9eced"); }
     if (TG.isVersionAtLeast("8.0")) TG.requestFullscreen(); // the whole screen from the start

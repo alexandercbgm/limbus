@@ -1791,10 +1791,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       case "doors": // never two gates close together: there would be no time to open the second
         if (s - lastGateS > GATE_GAP) addGate(s); else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.0), h: rand(2.4, 2.9) });
         break;
-      case "rise": { // a pane comes up out of the abyss and stops in the way just before the cart
-        addPane({ s, u: rand(-0.5, 0.5), v: -8, w: rand(2.4, 3.0), h: rand(2.4, 2.9) });
-        panes[panes.length - 1].rise = glassV;
-        if (d > 0.5) { addPane({ s: s - 8, u: (Math.random() < 0.5 ? -1 : 1) * 1.6, v: -8, w: 2.2, h: 2.6 }); panes[panes.length - 1].rise = glassV; }
+      case "rise": { // a pane comes up out of the abyss beside the bridge, then slides in over the deck and stops in the way
+        if (s < sC + 75) { addPane({ s, u: rand(-0.5, 0.5), v: glassV, w: rand(2.4, 3.0), h: rand(2.4, 2.9) }); break; } // too near to be seen rising: it stands there
+        const rise = (u, w, h, ss) => { addPane({ s: ss, u, v: -8, w, h }); const p = panes[panes.length - 1]; p.rise = glassV; p.riseU = u; p.riseSide = Math.random() < 0.5 ? -1 : 1; };
+        rise(rand(-0.5, 0.5), rand(2.4, 3.0), rand(2.4, 2.9), s);
+        if (d > 0.5) rise((Math.random() < 0.5 ? -1 : 1) * 1.6, 2.2, 2.6, s - 8);
         break;
       }
       case "shades": { // shadows climb out of the void at the sides and come for the cart
@@ -1819,7 +1820,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         break;
       case "abspin": { const side = Math.random() < 0.5 ? -1 : 1; addSpinner(s, side, Math.random() < 0.5 ? -1 : 1); break; } // Abyssus: a laser mill beside the bridge
       // a bar of three: overhead, gliding side to side or still and centred over the rails; or beside, low at the wheels, gliding up and down or still
-      case "abbar": if (Math.random() < 0.5) addLaserBars(s, "h", 3, false, Math.random() < 0.75 ? "u" : null); else addLaserBars(s, "v", 3, false, Math.random() < 0.75 ? "v" : null); break;
+      case "abbar": if (Math.random() < 0.5) addLaserBars(s, "h", 3, false, Math.random() < 0.85 ? "u" : null); else addLaserBars(s, "v", 3, false, Math.random() < 0.85 ? "v" : null); break;
       case "gears": addGears(s, Math.random() < 0.7); break; // more often a pair than one
       case "fblocks": { // glass blocks hovering over the bridge, no chains: one, or two at different heights, gliding; one hit breaks one
         const n = Math.random() < 0.55 ? 1 : 2;
@@ -2600,7 +2601,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (mode === "h" && n === 3) bu = 0; // 4 beams overhead stay centred, ±1.5 m and ±4.5 m: a scare, no beam on the cart
     const hv = LEVEL.halls ? HALL_H - 1.3 : 6.2, vu = LEVEL.halls ? HALL_W - 1.9 : BRIDGE_W + 1.6; // a hall's vault and walls, or over and beside the bridge
     if (mode === "h" || grid) addBar(set, "h", n, bu, hv, side, noz);
-    const v0 = STYLE.bridge ? 0.5 + (axis === "v" ? set.amp : 0) : BAR_V0; // over the bridge the lowest beam runs at the wheels, just above the rails (a gliding bar rises from there)
+    const v0 = STYLE.bridge ? 0.32 + (axis === "v" ? set.amp : 0) : BAR_V0; // over the bridge the lowest beam runs at the wheels, just above the rails (a gliding bar rises from there)
     if (mode === "v" || grid) addBar(set, "v", n, side * vu, v0 + (n - 1) * barGap("v", n) / 2, side, noz);
     for (let k = Math.floor((s - 5) / SL); k <= Math.floor((s + 5) / SL); k++) { const d = getDecor(k); if (d.blocks) d.blocks = d.blocks.filter(bl => Math.abs(k * SL + SL / 2 - s) > bl.sz / 2 + 0.9); }
     lbars.push(set); return set;
@@ -4702,7 +4703,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         else if (p.move.axis === "v") p.v = p.bv + p.move.amp * sn;
         else p.u = p.move.sign * (p.w / 2 + 0.05 + (1 + sn) / 2 * (SW - p.w - 0.12)); // a shutter half: from the middle to its wall, never into it
       }
-      if (p.rise !== undefined) p.v = lerp(-8, p.rise, smooth5((62 - (p.s - sC)) / 26)); // up out of the abyss as the cart nears
+      if (p.rise !== undefined) { // up out of the abyss beside the bridge, never through its deck, then in over it as the cart nears
+        const k = (62 - (p.s - sC)) / 26, side = p.riseSide || 1, out = side * (BRIDGE_W + p.w / 2 + 0.4);
+        p.v = lerp(-8, p.rise, smooth5(clamp(k / 0.6, 0, 1))); p.u = lerp(out, p.riseU ?? p.bu, smooth5(clamp((k - 0.6) / 0.4, 0, 1)));
+      }
       setObj(p.group, p.s, p.u, p.v);
       frameAt(p.s);
       p.R.copy(_R); p.U.copy(_U); p.T.copy(_T); p.C.copy(_P).addScaledVector(_R, p.u).addScaledVector(_U, p.v);

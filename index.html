@@ -3184,30 +3184,30 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // would come down on the cart: a tooth that catches it costs as a ram does, once a gear set.
   let gears = [];
   const GEAR_ROOT = 4.2, GEAR_TOOTH = 3.0, GEAR_N = 12, GEAR_TW = 0.9, GEAR_D = 0.6;
-  const gearMat = new THREE.MeshStandardMaterial({ color: 0x3a3e46, roughness: 0.4, metalness: 0.85 });
-  const gearEdgeMat = new THREE.LineBasicMaterial({ color: 0x9fb8d0 });
+  // pale porcelain-blue steel with a cold glow, like the bridge and the drifting blocks: a light rim on five slender
+  // spokes round a solid hub, open between, so the abyss shows through
+  const gearMat = new THREE.MeshStandardMaterial({ color: 0xdfe8f6, roughness: 0.22, metalness: 0.6, emissive: 0x2c4a7a, emissiveIntensity: 0.45 });
   const gearDiscGeo = (() => { const sh = new THREE.Shape(); sh.absarc(0, 0, GEAR_ROOT, 0, TAU, false);
-    for (let i = 0; i < 6; i++) { const a = i * TAU / 6, h = new THREE.Path(); h.absarc(Math.cos(a) * GEAR_ROOT * 0.58, Math.sin(a) * GEAR_ROOT * 0.58, GEAR_ROOT * 0.24, 0, TAU, true); sh.holes.push(h); }
-    const hub = new THREE.Path(); hub.absarc(0, 0, 0.5, 0, TAU, true); sh.holes.push(hub);
-    return new THREE.ExtrudeGeometry(sh, { depth: GEAR_D, bevelEnabled: false, curveSegments: 40 }).translate(0, 0, -GEAR_D / 2); })();
+    const rIn = GEAR_ROOT * 0.8, rHub = 1.0, d = 0.16, n = 5;
+    for (let i = 0; i < n; i++) { const a0 = i * TAU / n + d, a1 = (i + 1) * TAU / n - d, h = new THREE.Path(); // the opening between two spokes
+      h.absarc(0, 0, rIn, a0, a1, false); h.absarc(0, 0, rHub + 0.25, a1 - d * 0.6, a0 + d * 0.6, true); sh.holes.push(h); }
+    return new THREE.ExtrudeGeometry(sh, { depth: GEAR_D, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 2, curveSegments: 48 }).translate(0, 0, -GEAR_D / 2); })();
   const gearToothGeo = (() => { const r0 = GEAR_ROOT - 0.15, r1 = GEAR_ROOT + GEAR_TOOTH, sh = new THREE.Shape([[-0.62, r0], [0.62, r0], [0.36, r1 - 0.12], [0.24, r1], [-0.24, r1], [-0.36, r1 - 0.12]].map(([x, y]) => new THREE.Vector2(x, y)));
     return new THREE.ExtrudeGeometry(sh, { depth: GEAR_D, bevelEnabled: false }).translate(0, 0, -GEAR_D / 2); })(); // a tooth: broad at the rim, tapering, its tip squared off
-  const gearAxleGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.4, 20).rotateX(Math.PI / 2);
   function addGears(s, two) {
     const set = { s, gears: [], hit: false };
     const sides = two ? [-1, 1] : [Math.random() < 0.5 ? -1 : 1], spin = rand(0.4, 0.6) * (Math.random() < 0.5 ? -1 : 1), a0 = rand(0, TAU);
     for (const side of sides) {
       const cu = side * (two ? 5.8 : 4.2), cv = two ? 6.0 : 6.5; // a pair meshes over the middle
       const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
-      root.add(new THREE.Mesh(gearAxleGeo, frameMat));
       const rotor = new THREE.Group(); root.add(rotor);
-      rotor.add(new THREE.Mesh(gearDiscGeo, gearMat)); rotor.add(new THREE.LineSegments(new THREE.EdgesGeometry(gearDiscGeo, 30), gearEdgeMat));
+      rotor.add(new THREE.Mesh(gearDiscGeo, gearMat));
       const teeth = Array.from({ length: GEAR_N }, (_, i) => { const g = new THREE.Group(); g.rotation.z = i * TAU / GEAR_N; rotor.add(g);
-        g.add(new THREE.Mesh(gearToothGeo, gearMat)); g.add(new THREE.LineSegments(new THREE.EdgesGeometry(gearToothGeo), gearEdgeMat));
+        g.add(new THREE.Mesh(gearToothGeo, gearMat));
         return { i, g, alive: true, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
       // two meshing gears turn against each other, the second half a tooth on
       const dir = side === sides[0] ? 1 : -1;
-      set.gears.push({ side, cu, cv, root, rotor, teeth, a: a0 * dir + (dir < 0 ? Math.PI / GEAR_N : 0), spin: spin * dir, wp: new THREE.Vector3() });
+      set.gears.push({ side, cu, cv, root, rotor, teeth, a: a0 * dir + (dir < 0 ? Math.PI / GEAR_N : 0), spin: spin * dir, wp: new THREE.Vector3(), n: new THREE.Vector3() });
     }
     gears.push(set); return set;
   }
@@ -3221,7 +3221,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     for (const set of gears) {
       for (const gr of set.gears) {
         gr.a += gr.spin * dt; gr.rotor.rotation.z = gr.a;
-        setObj(gr.root, set.s, gr.cu, gr.cv); gr.root.updateMatrixWorld(true); gr.wp.setFromMatrixPosition(gr.root.matrixWorld);
+        setObj(gr.root, set.s, gr.cu, gr.cv); gr.root.updateMatrixWorld(true); gr.wp.setFromMatrixPosition(gr.root.matrixWorld); gr.n.setFromMatrixColumn(gr.root.matrixWorld, 2).normalize(); // its axis
         for (const t of gr.teeth) { t.A.set(0, GEAR_ROOT, 0); t.g.localToWorld(t.A); t.B.set(0, GEAR_ROOT + GEAR_TOOTH - 0.2, 0); t.g.localToWorld(t.B); }
         if (state === "play" && !set.hit && Math.abs(set.s - sC) < GEAR_D / 2 + 0.6) for (const t of gr.teeth) if (t.alive && !set.hit) {
           const an = gr.a + t.i * TAU / GEAR_N + Math.PI / 2, c = Math.cos(an), sn = Math.sin(an); // the tooth's line, out from the hub, across the track
@@ -4860,9 +4860,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.12));
         for (let k = 1; k <= steps && !dead; k++) { const q = SWEEP.copy(b.p0).lerp(pos, k / steps);
           for (const gr of set.gears) { if (dead) break;
-            const t = gr.teeth.find(x => x.alive && segDist(q, x.A, x.B) < GEAR_TW / 2 + R_BALL && Math.abs(tmpV.copy(q).sub(gr.wp).dot(_T)) < GEAR_D);
+            const off = Math.abs(tmpV.copy(q).sub(gr.wp).dot(gr.n)); // how far out of the gear's plane
+            const t = off < GEAR_D / 2 + R_BALL + 0.15 && gr.teeth.find(x => x.alive && segDist(q, x.A, x.B) < GEAR_TW / 2 + R_BALL + 0.1);
             if (t) { mark(); breakTooth(gr, t, q.clone()); dead = true; }
-            else if (q.distanceTo(gr.wp) < GEAR_ROOT && Math.abs(tmpV.copy(q).sub(gr.wp).dot(_T)) < GEAR_D / 2 + R_BALL) { mark(); Sound.knock(); chips(q, gearMat, 4, b.v); dead = true; } // the disc takes the ball
+            else if (off < GEAR_D / 2 + R_BALL && (() => { const dd = q.distanceTo(gr.wp); return (dd > GEAR_ROOT * 0.8 && dd < GEAR_ROOT) || dd < 1.25; })()) { mark(); Sound.knock(); chips(q, gearMat, 4, b.v); dead = true; } // the rim and the hub take the ball; between the spokes it is open
           } }
         if (dead) break;
       }
@@ -5346,6 +5347,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     prismAudit(n) { let bad = 0, total = 0, mir = 0, pairs = 0, sym = 0; for (let i = 0; i < n; i++) { const set = addPrisms(sC + 40 + i * 0.01); if (!set) continue; mir = Math.max(mir, set.prisms.reduce((a, p) => a + p.mirrors.length, 0)); if (set.prisms.length === 2) { pairs++; const [a, b] = set.prisms; if (Math.abs(a.u + b.u) < 1e-6 && Math.abs(a.v - b.v) < 1e-6 && a.mirrors.every((m, i) => b.mirrors[i] && Math.abs(m.u + b.mirrors[i].u) < 1e-6)) sym++; } for (const pr of set.prisms) { total++; const t = tracePrism(set, pr); const own = tracePrism(set, pr, true); if (t.segs.length !== own.segs.length || t.segs.some((sg, j) => sg.some((x, q) => Math.abs(x - own.segs[j][q]) > 1e-3))) bad++; } scene.remove(set.root); prismSets.pop(); } return { bad, total, mir, pairs, sym }; },
     prismLive: () => prismSets.map(x => ({ s: +(x.s - sC).toFixed(1), p: x.prisms.map(p => [p.alive, (p.segs || []).length, +(p.segs || []).reduce((a, q) => a + Math.hypot(q[2] - q[0], q[3] - q[1]), 0).toFixed(2), p.beams.filter(b => b.visible).length]) })),
     prisms(d, n) { return !!addPrisms(sC + d, n); }, prismState: () => prismSets.map(x => ({ s: +(x.s - sC).toFixed(1), cost: x.cost, prisms: x.prisms.map(p => [p.alive, p.mirrors.length, (p.segs || []).length]) })), breakMirrors() { prismSets.forEach(x => x.prisms.forEach(p => p.mirrors.forEach(m => m.alive && breakMirror(x, m, m.wp.clone())))); }, breakPrisms() { prismSets.forEach(x => x.prisms.forEach(p => p.alive && breakPrism(x, p, p.wp.clone()))); },
+    gearTarget() { const set = gears[0]; if (!set) return null; const gr = set.gears[0]; const t = gr.teeth.find(x => { const an = gr.a + x.i * TAU / GEAR_N + Math.PI / 2, m = GEAR_ROOT + GEAR_TOOTH / 2; return x.alive && Math.abs(gr.cu + Math.cos(an) * m) < 3 && gr.cv + Math.sin(an) * m > 0.5; }); if (!t) return null; const an = gr.a + t.i * TAU / GEAR_N + Math.PI / 2, m = GEAR_ROOT + GEAR_TOOTH / 2; return { d: set.s - sC, u: gr.cu + Math.cos(an) * m, v: gr.cv + Math.sin(an) * m, alive: gr.teeth.filter(x => x.alive).length }; }, gearAlive: () => gears.length ? gears[0].gears[0].teeth.filter(x => x.alive).length : -1,
     breakTeeth() { gears.forEach(x => x.gears.forEach(g => g.teeth.forEach(t => t.alive && breakTooth(g, t, t.A.clone())))); },
     breakThick() { const p = panes.find(x => x.alive && x.thick); if (!p) return false; damagePane(p, 0.3, 0.2, new THREE.Vector3().copy(p.T).multiplyScalar(30)); return true; }, openHall: d => openHallAround(sC + d), spawnAt: d => spawnGroupAt(sC + d), ramTh: () => rams.map(r => +r.th.toFixed(3)).join(), ramState2: () => rams.map(r => [+(r.s - sC).toFixed(1), r.glass ? 'g' : 'w', r.side, r.chains.filter(c => c.alive).length]), paneKinds: () => panes.map(p => (p.cross ? 'x' : 'b') + (p.thick ? 'T' : '') + (Array.isArray(p.tilt) ? '3' : p.tilt ? '2' : '') + (p.turn ? 'P' : '')).join(),
     barState: () => lbars.map(x => ({ s: +(x.s - sC).toFixed(1), axis: x.axis, cost: x.cost, bars: x.bars.map(b => b.orient + b.n + (b.alive ? '' : 'x')).join() })), breakBars() { lbars.forEach(x => x.bars.forEach(b => b.alive && breakBar(b, b.wp.clone()))); },

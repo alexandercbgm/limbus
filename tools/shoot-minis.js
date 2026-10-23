@@ -3,26 +3,23 @@ const fs = require('fs');
 // Shoots every built level in the light and in the dark for the station sheets' miniatures.
 // Serve the repo (python3 -m http.server 8766) and run: OUT=/some/dir THREE=/path/to/three.min.js node tools/shoot-minis.js
 // then: python3 tools/compose-minis.py /some/dir
+// ONLY=tao,lux shoots just those.
 const OUT = process.env.OUT, THREE_JS = process.env.THREE;
-const FEAT = {
-  initium: r => { r.jump(240); },
-  thesaurus: r => { r.jump(200); },
-  vitrum: r => { r.jump(300); r.hanger(20, 'gate'); },
-  labyrinthus: r => { r.jump(296); },
-  hortus: r => { r.jump(300); r.bough(20, 1); },
-  speculum: r => { r.jump(300); r.crystalAhead(14, 1.6, 2.6); },
-  abyssus: r => { r.jump(420); },
-  lux: r => { r.jump(300); },
-  rubinus: r => { r.jump(240); },
-  tao: r => { r.jump(240); },
-  carcer: r => { r.jump(240); r.bars(22); },
-};
-// set down once the cart has run on, just before the shot, so they stand where they are asked to
-// (the way ahead is first cleared where the cart stands, so nothing else gets into the shot)
-const LATE = { // on a straight run, the way ahead cleared: the level itself down the track
-  abyssus: r => { r.jump(292); },
-  lux: r => { r.jump(302); r.crystalAhead(40, 0, 2.4); },
-  tao: r => { r.jump(284); r.crystalAhead(40, 0, 2.4); },
+// Each shot is taken on a straight run (just past a turn), the way ahead cleared, with a few of the level's own sights set
+// down at middle distance: enough to tell the level by, not so many that the frame is crowded.
+// at: the s to stand at (or 'hall', a little way into a hall of Labyrinthus or Carcer); put: what to set down ahead of the cart
+const SCENE = {
+  initium: { at: 262, put: r => { r.glassBar('sides', 30); r.glassBar('center', 46); r.crystalAhead(34, -1.2, 2.6); } },
+  thesaurus: { at: 262, put: r => { r.crystalAhead(24, -1.6, 2.2); r.crystalAhead(30, 1.5, 3.0); r.glassBar('center', 44); } },
+  vitrum: { at: 428, put: r => { r.hanger(30, 'gate'); r.glassBar('barfan', 50); } },
+  labyrinthus: { at: 'hall', put: r => { r.glassBar('grams', 30); r.crystalAhead(22, 1.8, 2.6); } },
+  hortus: { at: 262, put: r => { r.bough(24, 1); r.bough(36, -1); } },
+  speculum: { at: 272, put: r => { r.prisms(36, 2); r.crystalAhead(24, -1.4, 2.6); } },
+  abyssus: { at: 292, put: r => { r.gearsAt(40, true); r.crystalAhead(24, 0.8, 2.4); } },
+  lux: { at: 302, put: r => { r.spinner(24, 1, 1); r.lhang(38, 'gate'); } },
+  rubinus: { at: 292, put: r => { r.gate(38); r.crystalAhead(24, 1.4, 2.4); } },
+  tao: { at: 282, put: r => { r.hammer(34, -1, 1, 2); r.gate(48, 'taiji'); r.crystalAhead(24, 1.2, 2.4); } },
+  carcer: { at: 'hall', put: r => { r.carcer('grate1', 24); r.carcer('top', 40); } },
 };
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader'] });
@@ -32,17 +29,32 @@ const LATE = { // on a straight run, the way ahead cleared: the level itself dow
   await pg.route('https://fonts.**', r => r.abort());
   await pg.goto('http://127.0.0.1:8766/index.html#all');
   await pg.waitForTimeout(800);
-  for (const id of (process.env.ONLY ? process.env.ONLY.split(',') : Object.keys(FEAT))) {
+  for (const id of (process.env.ONLY ? process.env.ONLY.split(',') : Object.keys(SCENE))) {
     for (const [alt, tag] of [[0.5, 'L'], [-0.95, 'D']]) {
       await pg.evaluate(id => window.__rails.level(id), id);
-      await pg.waitForTimeout(3600);
-      await pg.evaluate(([id, alt, f]) => { const r = window.__rails; r.setBalls(80); r.setAlt(alt); (new Function('r', 'return (' + f + ')(r)'))(r); }, [id, alt, FEAT[id].toString()]);
+      await pg.waitForTimeout(3000);
+      let at = SCENE[id].at;
+      if (at === 'hall') at = await hallStart(pg, id);
+      // stand there in the light or the dark a moment, the track and its decor built round the cart
+      await pg.evaluate(([at, alt]) => { const r = window.__rails; r.setBalls(80); r.setAlt(alt); r.jump(at); }, [at, alt]);
+      for (let i = 0; i < 10; i++) { await pg.waitForTimeout(100); await pg.evaluate(a => { window.__rails.setAlt(a); window.__rails.setBalls(80); }, alt); }
+      // then clear the way where the cart now is, and set the sights down
+      await pg.evaluate(f => { const r = window.__rails; r.jump(r.branchInfo().sC); (new Function('r', 'return (' + f + ')(r)'))(r); }, SCENE[id].put.toString());
       await pg.addStyleTag({ content: 'body > *:not(canvas) { visibility: hidden !important; }' });
-      for (let i = 0; i < 16; i++) { await pg.waitForTimeout(100); await pg.evaluate(a => { window.__rails.setAlt(a); window.__rails.setBalls(80); }, alt); }
-      if (LATE[id]) { await pg.evaluate(f => (new Function('r', 'return (' + f + ')(r)'))(window.__rails), LATE[id].toString()); await pg.waitForTimeout(300); }
+      for (let i = 0; i < 4; i++) { await pg.waitForTimeout(100); await pg.evaluate(a => window.__rails.setAlt(a), alt); }
       await pg.locator('canvas').first().screenshot({ path: `${OUT}/${id}_${tag}.png` });
     }
   }
   console.log('errs', JSON.stringify(errs));
   await b.close();
 })();
+// a little way into a hall: Carcer plans its halls up front; Labyrinthus's open halls are found by looking down the track
+async function hallStart(pg, id) {
+  if (id === 'carcer') return pg.evaluate(() => { const h = window.__rails.carcerPlan().halls.find(([a, b]) => a > 150 && b - a > 50); return h ? h[0] + 4 : 300; });
+  for (let s = 270; s < 1400; s += 30) {
+    await pg.evaluate(s => window.__rails.jump(s), s); await pg.waitForTimeout(250);
+    const h = await pg.evaluate(s => window.__rails.halls().filter(x => x > s + 10 && x < s + 40), s);
+    if (h.length >= 3) return Math.min(...h) - 6;
+  }
+  return 296;
+}

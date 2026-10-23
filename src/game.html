@@ -1942,16 +1942,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (const [a, b] of [[hh, hh + cut], [hh + cut, hw]]) {
         const m = (a + b) / 2, l = b - a; parts.push(dx ? [dx * m, 0, l, p.h] : [0, dy * m, p.h, l]);
       }
-    } else { const n = Math.max(2, Math.round(p.w / 1.4)); for (let i = 0; i < n; i++) parts.push([-hw + (i + 0.5) * p.w / n, 0, p.w / n, p.h]); }
+    } else { const n = Math.max(2, Math.round(p.w / 0.65)); for (let i = 0; i < n; i++) parts.push([-hw + (i + 0.5) * p.w / n, 0, p.w / n, p.h]); } // a block: smaller pieces
     const up = p.U0 || p.U, pieces = [];
     // each part splits into a few big irregular shards: wedges fanned out from a point somewhere inside it, each as thick
     // as the glass, or a little less where it chipped
-    if (!p.cross) { // a block: a few long slabs, root to tip as a broken tooth, each a little thinner and skewed
-      const n = 3 + Math.floor(Math.random() * 2), cuts = [-hw, ...Array.from({ length: n - 1 }, (_, i) => -hw + (i + 1) * p.w / n + rand(-0.15, 0.15) * p.w / n), hw];
-      for (let i = 0; i < n; i++) { const a = cuts[i], b = cuts[i + 1], sy = p.h * rand(0.75, 1), x = (a + b) / 2, y = rand(-0.1, 0.1) * p.h;
-        pieces.push([[a, y - sy / 2], [b, y - sy / 2 + rand(-0.08, 0.08)], [b, y + sy / 2], [a, y + sy / 2 + rand(-0.08, 0.08)]]); }
-    }
-    for (const [x, y, sx, sy] of p.cross ? parts : []) {
+    for (const [x, y, sx, sy] of parts) {
       const hx = sx / 2, hy = sy / 2, ix = x + rand(-0.35, 0.35) * hx, iy = y + rand(-0.35, 0.35) * hy, k = sx * sy > 1 ? 4 : 3;
       const angs = Array.from({ length: k }, (_, i) => (i + rand(0.2, 0.8)) * TAU / k + rand(0, 0.3)).sort((u, v) => u - v);
       const edgeAt = a => { const dx = Math.cos(a), dy = Math.sin(a), tx = dx > 1e-9 ? (x + hx - ix) / dx : dx < -1e-9 ? (x - hx - ix) / dx : Infinity, ty = dy > 1e-9 ? (y + hy - iy) / dy : dy < -1e-9 ? (y - hy - iy) / dy : Infinity, t = Math.min(tx, ty); return [ix + dx * t, iy + dy * t]; };
@@ -1962,11 +1957,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         pieces.push([[ix, iy], edgeAt(a0), ...mid, edgeAt(a1)]);
       }
     }
-    for (const poly of pieces) {
+    for (const [poly, zo] of pieces.flatMap(q => p.cross ? [[q, 0]] : [[q, -0.25], [q, 0.25]])) { // a block's shards split through its depth too
       let x = 0, y = 0; poly.forEach(([u, v]) => { x += u; y += v; }); x /= poly.length; y /= poly.length;
-      const depth = p.thick * rand(0.7, 1), geo = new THREE.ExtrudeGeometry(new THREE.Shape(poly.map(([u, v]) => new THREE.Vector2(u - x, v - y))), { depth, bevelEnabled: false }).translate(0, 0, -depth / 2);
+      const depth = p.thick * (p.cross ? 1 : 0.5) * rand(0.7, 1), geo = new THREE.ExtrudeGeometry(new THREE.Shape(poly.map(([u, v]) => new THREE.Vector2(u - x, v - y))), { depth, bevelEnabled: false }).translate(0, 0, -depth / 2);
       const m = new THREE.Mesh(geo, p.mat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
-      m.position.copy(p.C).addScaledVector(p.R, x).addScaledVector(p.U, y); m.quaternion.copy(p.q); scene.add(m);
+      m.position.copy(p.C).addScaledVector(p.R, x).addScaledVector(p.U, y).addScaledVector(p.T, zo * p.thick); m.quaternion.copy(p.q); scene.add(m);
       let dx = x - lx, dy = y - ly; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
       const spd = rand(1.5, 3.2) / (0.8 + d * 0.3);
       const v = new THREE.Vector3().addScaledVector(p.R, dx * spd + impL.x * 0.05).addScaledVector(p.U, dy * spd + impL.y * 0.05 + 1).addScaledVector(p.T, impL.z * rand(0.1, 0.25));

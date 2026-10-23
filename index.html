@@ -3179,6 +3179,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function addGate(s, forceKind) {
     const k = gateLevel(), kinds = LEVEL.gateKinds || ["h", "v", "iris"], kind = forceKind || kinds[Math.floor(Math.random() * kinds.length)];
+    if (STYLE.arch && STYLE.arch !== "none") { // midway between the profile's arches (at 8 m + 1), and none of them close by: they would pass through each other
+      s = Math.round((s - 5) / 8) * 8 + 5;
+      for (let kk = Math.floor((s - 3.5) / SL); kk <= Math.floor((s + 3.5) / SL); kk++) getDecor(kk).arch = false;
+    }
     lastGateS = s;
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
     const leaves = [];
@@ -3209,8 +3213,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const sd of [-1, 1]) {
         const geo = kind === "h" ? hDoorGeo : vDoorGeo, m = new THREE.Mesh(geo, LEVEL.doorColor ? solidDoorMat(LEVEL.doorColor) : doorMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat)); root.add(m); leaves.push({ m, sd, hp: 0 });
       }
-      for (const sd of [-1, 1]) { const pst = new THREE.Mesh(postGeo, frameMat); pst.scale.y = (top + 0.2) / (GATE_H + 0.4); pst.position.set(sd * (BRIDGE_W + 0.2), (top + 0.2) / 2, 0); root.add(pst); }
-      const lin = new THREE.Mesh(lintelGeo, frameMat); lin.position.set(0, top, 0); root.add(lin);
+      const fm = LEVEL.gateIron ? gateIronMat : frameMat; // Rubinus: black iron, as its chains
+      for (const sd of [-1, 1]) { const pst = new THREE.Mesh(postGeo, fm); pst.scale.y = (top + 0.2) / (GATE_H + 0.4); pst.position.set(sd * (BRIDGE_W + 0.2), (top + 0.2) / 2, 0); root.add(pst); }
+      const lin = new THREE.Mesh(lintelGeo, fm); lin.position.set(0, top, 0); root.add(lin);
       if (kind === "v") { // the slot in the deck the lower leaf drops into, with steel lips along it
         const hw = 2 * (STYLE.bridge ? BRIDGE_W : SW);
         const slot = new THREE.Mesh(slotGeo, slotMat); slot.scale.x = hw; slot.position.y = 0.005; root.add(slot);
@@ -3230,8 +3235,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     leaves.forEach(lf => { lf.pr = 0; });
     if (weights) for (const lf of leaves) { // a counterweight for each leaf on a black chain, hanging from a bracket out from the wall beside the doorway; drop it and its leaf slides open
       const x = lf.sd * (BRIDGE_W + 1.25), yTop = H - 0.15, yW = 2.9 + Math.random() * 0.8, z = WT_Z, grp = new THREE.Group(); root.add(grp);
-      const arm = new THREE.Mesh(wtArmGeo, frameMat); arm.position.set(x, yTop + 0.08, z / 2); grp.add(arm);
-      const brace = new THREE.Mesh(wtBraceGeo, frameMat); brace.position.set(x, yTop - 0.45, z * 0.3); brace.rotation.x = -Math.atan2(0.9, z * 0.6); grp.add(brace); // a strut down to the wall
+      const arm = new THREE.Mesh(wtArmGeo, LEVEL.gateIron ? gateIronMat : frameMat); arm.position.set(x, yTop + 0.08, z / 2); grp.add(arm);
+      const brace = new THREE.Mesh(wtBraceGeo, LEVEL.gateIron ? gateIronMat : frameMat); brace.position.set(x, yTop - 0.45, z * 0.3); brace.rotation.x = -Math.atan2(0.9, z * 0.6); grp.add(brace); // a strut down to the wall
       const ch = makeChain(yTop - yW - 0.45, 1, wtChainMat); ch.position.set(x, yTop, z); grp.add(ch);
       const wt = new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt);
       lf.wt = { x, z, yTop, yW, grp, ch, wt, vy: 0, down: false, wp: new THREE.Vector3(), A: new THREE.Vector3(), B: new THREE.Vector3() };
@@ -3268,6 +3273,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const solidDoorMat = c => doorMats[c] || (doorMats[c] = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.35, roughness: 0.2, metalness: 0.4 }));
   const WT_Z = 1.3, wtArmGeo = new THREE.BoxGeometry(0.16, 0.16, WT_Z + 0.1), wtBraceGeo = new THREE.BoxGeometry(0.1, 0.1, Math.hypot(0.9, WT_Z * 0.6));
   const wtChainMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.45, metalness: 0.7 }); // the rubies hang on black chains
+  const gateIronMat = new THREE.MeshStandardMaterial({ color: 0x1c1c22, roughness: 0.35, metalness: 0.8 });
   const weightGeo = new THREE.OctahedronGeometry(0.45, 0), weightMat = new THREE.MeshStandardMaterial({ color: 0x8a0a20, emissive: 0xff1a40, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.4, flatShading: true });
   function dropWeight(g, lf) {
     const w = lf.wt; if (w.down) return;
@@ -3773,7 +3779,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
       req: { after: "initium", fare: 15 }, map: { x: 185, y: 440, label: "t", dy: -5 } }, // the first branch: Initium opens it
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
-      style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0x5a0012,
+      style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0x5a0012, gateIron: true,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
         shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0],
         grams: [0.7, 1, 1.2] }, // and glass blocks on chains, as in Labyrinthus

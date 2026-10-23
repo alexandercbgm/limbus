@@ -330,9 +330,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         <span><i style="background:#a68bd6"></i><span data-en="Rami · dead-end branches">Rami · тупиковые ветки</span></span>
       </div>
       <div class="map-tools">
-        <button class="ibtn" id="fullBtn" type="button" hidden aria-label="На весь экран" title="На весь экран" data-en-aria="Full screen" data-en-title="Full screen">
-          <svg class="globe" viewBox="0 0 24 24" aria-hidden="true" stroke-width="1.8"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
-        </button>
         <button class="ibtn snd" id="mapMute" type="button" aria-pressed="false" aria-label="Звук" title="Звук" data-en-aria="Sound" data-en-title="Sound">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/>
             <path class="snd-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke-width="2" stroke-linecap="round"/>
@@ -5479,11 +5476,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     document.body.classList.add("tg"); document.querySelector(".m-side").prepend(document.querySelector(".map-tools"));
     if (TG.isVersionAtLeast("7.7")) TG.disableVerticalSwipes(); // a swipe down to aim must not fold the app away
     if (TG.isVersionAtLeast("6.1")) { TG.setHeaderColor("#e9eced"); TG.setBackgroundColor("#e9eced"); }
-    if (TG.isVersionAtLeast("8.0")) { // the whole screen from the start; a button on the scheme toggles it
-      TG.requestFullscreen(); // at the start, as if the button were pressed
-      $("fullBtn").hidden = false;
-      $("fullBtn").addEventListener("click", () => { if (TG.isFullscreen) TG.exitFullscreen(); else TG.requestFullscreen(); });
-    }
+    if (TG.isVersionAtLeast("8.0")) TG.requestFullscreen(); // the whole screen from the start
     // Telegram's own bar and the phone's cut-outs, kept clear of the HUD and the menus
     const insets = () => {
       const a = TG.safeAreaInset || {}, c = TG.contentSafeAreaInset || {}, st = document.documentElement.style;

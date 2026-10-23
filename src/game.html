@@ -31,7 +31,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 
 .hud {
   position: fixed; left: 0; right: 0; top: 0; z-index: 2;
-  padding: calc(env(safe-area-inset-top, 0px) + 14px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+  padding: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 14px) max(16px, var(--safe-right, env(safe-area-inset-right, 0px))) 0 max(16px, var(--safe-left, env(safe-area-inset-left, 0px)));
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 12px;
   pointer-events: none; transition: color 0.6s;
 }
@@ -50,7 +50,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 }
 
 .meter {
-  position: fixed; z-index: 2; right: max(16px, env(safe-area-inset-right, 0px)); top: 50%; transform: translateY(-50%);
+  position: fixed; z-index: 2; right: max(16px, var(--safe-right, env(safe-area-inset-right, 0px))); top: 50%; transform: translateY(-50%);
   display: grid; justify-items: center; gap: 6px; pointer-events: none;
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); transition: color 0.6s;
 }
@@ -62,7 +62,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .meter .trend { font-size: 14px; height: 14px; line-height: 14px; }
 
 .overlay { position: fixed; inset: 0; z-index: 3; display: grid; place-items: safe center; /* a panel taller than the screen scrolls from its top */
-  padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px));
+  padding: 16px max(16px, var(--safe-right, env(safe-area-inset-right, 0px))) 16px max(16px, var(--safe-left, env(safe-area-inset-left, 0px)));
   background: rgba(233, 236, 237, 0.2); overflow-y: auto; }
 .panel {
   width: min(470px, 100%); box-sizing: border-box; padding: 28px 24px 24px; color: #10242e;
@@ -103,11 +103,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
 #vignette { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
   background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(120, 6, 0, 0.55) 100%); transition: opacity 0.4s; }
-.pop { position: fixed; left: 50%; z-index: 2; top: calc(env(safe-area-inset-top, 0px) + 70px); transform: translateX(-50%);
+.pop { position: fixed; left: 50%; z-index: 2; top: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 70px); transform: translateX(-50%);
   font-family: var(--mono); font-weight: 700; font-size: 22px; pointer-events: none; animation: pop 0.9s ease-out forwards; white-space: nowrap; }
 .pop.gain { color: var(--gain); }
 .pop.loss { color: var(--hit); }
-.pop.info { color: var(--ink); font-family: var(--display); font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; top: calc(env(safe-area-inset-top, 0px) + 104px); animation-duration: 1.8s; }
+.pop.info { color: var(--ink); font-family: var(--display); font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; top: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 104px); animation-duration: 1.8s; }
 @keyframes pop { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -30px); } }
 @media (max-width: 420px) { .count { font-size: 34px; } .rules { grid-template-columns: repeat(2, 1fr); } .score { font-size: 15px; } }
 @media (prefers-reduced-motion: reduce) { #flash.on, .pop { animation-duration: 0.01s; } }
@@ -119,7 +119,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .ibtn .snd-off { display: none; }
 .ibtn[aria-pressed="true"] .snd-on { display: none; }
 .ibtn[aria-pressed="true"] .snd-off { display: inline; }
-.combo { position: fixed; left: 50%; transform: translateX(-50%); z-index: 2; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+.combo { position: fixed; left: 50%; transform: translateX(-50%); z-index: 2; bottom: calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 18px);
   font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink);
   display: flex; align-items: center; gap: 10px; pointer-events: none; }
 .combo b { font-family: var(--mono); font-size: 26px; letter-spacing: 0; color: var(--gain); }
@@ -136,8 +136,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   background: linear-gradient(180deg, rgba(240, 246, 248, 0.78), rgba(232, 238, 241, 0.9));
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .menu-in { max-width: 1000px; margin: 0 auto; box-sizing: border-box; display: grid; gap: 18px;
-  padding-block: calc(env(safe-area-inset-top, 0px) + 28px) calc(env(safe-area-inset-bottom, 0px) + 28px);
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  padding-block: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 28px) calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 28px);
+  padding-left: max(16px, var(--safe-left, env(safe-area-inset-left, 0px))); padding-right: max(16px, var(--safe-right, env(safe-area-inset-right, 0px))); }
 .m-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
 .logo { font-family: var(--display); font-weight: 700; font-size: clamp(40px, 11vw, 76px); letter-spacing: 0.22em; line-height: 1; margin: 0; }
 .logo span { color: #1d6f8f; }
@@ -202,7 +202,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .cta:disabled { background: #8d9ba1; cursor: not-allowed; }
 /* phones and small tablets held sideways (16:9, 18:9, 20:9…): a compact menu and two-column station sheets */
 @media (orientation: landscape) and (max-height: 560px) {
-  .menu-in { gap: 10px; padding-block: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 12px); max-width: none; }
+  .menu-in { gap: 10px; padding-block: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 10px) calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 12px); max-width: none; }
   .m-head { align-items: center; flex-wrap: nowrap; }
   .logo { font-size: 30px; }
   .tagline { display: none; }
@@ -210,7 +210,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   .bank { padding: 7px 10px; font-size: 12px; } .bank b { font-size: 15px; }
   .map-card { padding: 8px 6px; }
   .map-title { top: 10px; left: 12px; gap: 4px; font-size: 9.5px; }
-  .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); width: 100%; } /* the whole scheme on one screen */
+  .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))); width: 100%; } /* the whole scheme on one screen */
   .overlay { padding-block: 8px; }
   .panel { padding: 16px 18px; }
   .panel h1 { font-size: 22px; margin-bottom: 6px; }
@@ -433,8 +433,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const SUPER_LEN = 260, STATION_LEN = 40;
   let MAIN_LEN = 1500, SUPER_END = MAIN_LEN + SUPER_LEN, END_S = SUPER_END + STATION_LEN;
   // the language: English or Russian, remembered; English at first
+  // Telegram: the page opened as a bot's Mini App (telegram-web-app.js is loaded only in the Telegram build)
+  const TG = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData ? window.Telegram.WebApp : null;
   let LANG = (() => { try { const l = localStorage.getItem("limbus-lang"); if (l === "ru" || l === "en") return l; } catch (e) { /* storage unavailable */ }
-    return "en"; })();
+    const tl = TG && TG.initDataUnsafe && TG.initDataUnsafe.user && TG.initDataUnsafe.user.language_code;
+    return tl ? (/^(ru|uk|be|kk)/.test(tl) ? "ru" : "en") : "en"; })(); // in Telegram, the user's own language to start with
   const T = (ru, en) => LANG === "en" ? en : ru;
   // background tracks: embedded as base64 at the end of the file by build.py, or (the Android app) files in music/
   const musicCache = {};
@@ -4143,15 +4146,28 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   ];
   const byId = id => LEVELS.find(l => l.id === id);
   const STORE = "limbus-progress-v1";
-  function loadProgress() {
+  function parseProgress(str) {
     try {
-      const p = JSON.parse(localStorage.getItem(STORE) || "{}");
+      const p = JSON.parse(str || "{}");
       const weapons = Object.assign({ ballista: true }, p.weapons || {});
-      return { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {} };
-    } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {} }; }
+      return { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {}, t: p.t || 0 };
+    } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {}, t: 0 }; }
   }
-  function saveProgress() { try { localStorage.setItem(STORE, JSON.stringify(progress)); } catch (e) { /* storage unavailable */ } }
+  function loadProgress() { let str = null; try { str = localStorage.getItem(STORE); } catch (e) { /* storage unavailable */ } return parseProgress(str); }
+  // in Telegram the progress is kept in the bot's cloud as well, so it follows the player from phone to computer
+  function saveProgress() {
+    progress.t = Date.now(); const str = JSON.stringify(progress);
+    try { localStorage.setItem(STORE, str); } catch (e) { /* storage unavailable */ }
+    if (TG && TG.CloudStorage && TG.isVersionAtLeast("6.9")) try { TG.CloudStorage.setItem(STORE, str); } catch (e) { /* the cloud is out of reach */ }
+  }
   let progress = loadProgress();
+  if (TG && TG.CloudStorage && TG.isVersionAtLeast("6.9")) try { // the newer of the two copies wins
+    TG.CloudStorage.getItem(STORE, (err, str) => {
+      if (err || !str) return;
+      const p = parseProgress(str);
+      if (p.t > (progress.t || 0)) { progress = p; try { localStorage.setItem(STORE, str); } catch (e) { /* storage unavailable */ } if (state === "menu") renderMap(); }
+    });
+  } catch (e) { /* the cloud is out of reach */ }
   const unlockAll = location.hash === "#all"; // for testing: open every built station
   // a station opens once the one before it is done; with req.or there is a second way in (Abyssus: from Crystallum)
   function isOpen(lv) { return unlockAll || !lv.req.after || !!progress.done[lv.req.after] || (lv.req.or && !!progress.done[lv.req.or]) || !!progress.open[lv.id]; }
@@ -5418,6 +5434,30 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // browsers start sound only after a tap: the first one on the scheme starts its music
   const firstTap = () => { if (state === "menu" && !document.hidden) Sound.init(); };
   window.addEventListener("pointerdown", firstTap, true); window.addEventListener("keydown", firstTap, true);
+  // ---------- Telegram Mini App ----------
+  if (TG) {
+    TG.ready(); TG.expand();
+    if (TG.isVersionAtLeast("7.7")) TG.disableVerticalSwipes(); // a swipe down to aim must not fold the app away
+    if (TG.isVersionAtLeast("6.1")) { TG.setHeaderColor("#e9eced"); TG.setBackgroundColor("#e9eced"); }
+    if (TG.isVersionAtLeast("8.0") && /^(android|ios)$/.test(TG.platform)) TG.requestFullscreen(); // on a phone, the whole screen
+    // Telegram's own bar and the phone's cut-outs, kept clear of the HUD and the menus
+    const insets = () => {
+      const a = TG.safeAreaInset || {}, c = TG.contentSafeAreaInset || {}, st = document.documentElement.style;
+      for (const k of ["top", "bottom", "left", "right"]) st.setProperty("--safe-" + k, ((a[k] || 0) + (c[k] || 0)) + "px");
+    };
+    insets(); for (const ev of ["safeAreaChanged", "contentSafeAreaChanged", "fullscreenChanged", "viewportChanged"]) TG.onEvent(ev, insets);
+    // Telegram's back button does what the Android one does; on the scheme with nothing open there is nowhere to go back to
+    if (TG.isVersionAtLeast("6.1")) {
+      TG.BackButton.onClick(() => window.__back());
+      let shown = null, guard = null;
+      setInterval(() => {
+        const need = state !== "menu" || !$("sheet").hidden || !$("how").hidden;
+        if (need !== shown) { shown = need; need ? TG.BackButton.show() : TG.BackButton.hide(); }
+        const riding = state === "play" || state === "paused"; // closing mid-ride asks first
+        if (riding !== guard && TG.isVersionAtLeast("6.2")) { guard = riding; riding ? TG.enableClosingConfirmation() : TG.disableClosingConfirmation(); }
+      }, 250);
+    }
+  }
   $("sheet").addEventListener("click", e => { if (e.target === $("sheet")) $("sheet").hidden = true; });
   window.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;

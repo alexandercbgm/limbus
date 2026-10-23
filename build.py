@@ -10,6 +10,10 @@ browser decodes it. Without ffmpeg the MP3s go in as they are.
 
 With --no-music the tracks are left out: the page then loads music/<stem>.mp3 next to it at full quality
 (the Android app ships them as files).
+
+With --telegram it builds dist/telegram/, the Telegram Mini App served by GitHub Pages: the page without its music
+and with Telegram's telegram-web-app.js, the tracks beside it in music/ (re-encoded to 96 kbps when ffmpeg is there),
+so the first load is small and each track comes in with its level.
 """
 import base64
 import pathlib
@@ -41,7 +45,10 @@ THREE_TAG = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/t
 three = (root / "android" / "three.min.js").read_text(encoding="utf-8")
 assert THREE_TAG in page and "</script" not in three
 page = page.replace(THREE_TAG, "<script>" + three + "</script>")
-for track in [] if "--no-music" in sys.argv else sorted((root / "music").glob("*.mp3")):
+TELEGRAM = "--telegram" in sys.argv
+if TELEGRAM:
+    page = page.replace("<script>", '<script src="https://telegram.org/js/telegram-web-app.js"></script>\n<script>', 1)
+for track in [] if "--no-music" in sys.argv or TELEGRAM else sorted((root / "music").glob("*.mp3")):
     raw, kind = embedded(track)
     data = base64.b64encode(raw).decode("ascii")
     page += f'<script type="application/octet-stream" id="music-{track.stem}" data-type="{kind}">{data}</script>\n'
@@ -49,5 +56,20 @@ for track in [] if "--no-music" in sys.argv else sorted((root / "music").glob("*
 for shot in sorted((root / "minis").glob("*.jpg")):
     data = base64.b64encode(shot.read_bytes()).decode("ascii")
     page += f'<img hidden alt="" id="mini-{shot.stem}" src="data:image/jpeg;base64,{data}">\n'
-(root / "index.html").write_text(page, encoding="utf-8")
-print(f"index.html: {len(page) / 1e6:.1f} MB")
+if TELEGRAM:
+    out = root / "dist" / "telegram"
+    shutil.rmtree(out, ignore_errors=True)
+    (out / "music").mkdir(parents=True)
+    (out / "index.html").write_text(page, encoding="utf-8")
+    for track in sorted((root / "music").glob("*.mp3")):
+        if ffmpeg:
+            subprocess.run([ffmpeg, "-loglevel", "error", "-y", "-i", str(track), "-map", "0:a", "-c:a", "libmp3lame",
+                            "-b:a", "96k", "-ar", "44100", str(out / "music" / track.name)], check=True)
+        else:
+            shutil.copy(track, out / "music" / track.name)
+    (out / ".nojekyll").write_text("")
+    size = sum(f.stat().st_size for f in out.rglob("*") if f.is_file())
+    print(f"dist/telegram: page {len(page) / 1e6:.1f} MB, {size / 1e6:.1f} MB in all")
+else:
+    (root / "index.html").write_text(page, encoding="utf-8")
+    print(f"index.html: {len(page) / 1e6:.1f} MB")

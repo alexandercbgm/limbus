@@ -3,3 +3,4 @@ android/out/
 android/limbus.apk
 android/limbus.keystore
 android/limbus.apk.idsig
+dist/

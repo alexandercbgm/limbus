@@ -166,14 +166,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .rotate button { font: 600 13px var(--body); padding: 10px 16px; border-radius: 4px; border: 1px solid #10242e; background: transparent; color: #10242e; }
 @media (orientation: landscape) { .rotate { display: none; } }
 .how .panel { width: min(640px, 100%); }
-.how .panel p { font-size: 14px; margin-top: 8px; }
+.how .panel p { font-size: 14px; margin-top: 8px; text-wrap: pretty; } /* no word left alone on the last line */
 .how .rules { margin: 16px 0 18px; }
 /* on a low screen held sideways the help is two pages, turned with a button */
 .how .pg-nav { display: none; }
 .how.paged .pg-nav { display: block; }
 .how.paged.pg1 [data-pg="2"], .how.paged.pg2 [data-pg="1"] { display: none; }
 .how.paged .btns { grid-template-columns: auto 1fr; } .how.paged.pg1 .btns { grid-template-columns: 1fr; }
-.how.paged.pg2 h1 { display: none; } .how.paged .panel p { font-size: 12px; line-height: 1.38; } .how.paged .rules { margin: 8px 0 10px; }
+.how.paged.pg2 h1 { display: none; } .how.paged .panel p { font-size: 12px; line-height: 1.38; } .how.paged .rules { margin: 8px 0 10px; } .how.paged.pg2 .btns { margin-top: 14px; }
 
 .m-side { display: grid; gap: 8px; justify-items: end; }
 /* Telegram: the scheme's buttons on top, off the scheme; under them the bank and the cannons side by side */
@@ -237,9 +237,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   .map-title { top: 10px; left: 12px; gap: 4px; font-size: 9.5px; }
   .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))); width: 100%; } /* the whole scheme on one screen */
   .overlay { padding-block: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 8px) calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 8px); }
-  /* the Light–Dark scale sits low on the right, clear of the pause and sound buttons over it */
-  .meter { top: auto; bottom: calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 10px); transform: none; }
-  .meter .track { height: clamp(60px, calc(100dvh - 200px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))), 220px); }
+  /* the Light–Dark scale sits lower on the right, clear of the pause and sound buttons over it */
+  .meter { top: calc((var(--safe-top, env(safe-area-inset-top, 0px)) + 68px + 100dvh - var(--safe-bottom, env(safe-area-inset-bottom, 0px))) / 2); } /* midway between the buttons and the bottom */
   .panel { padding: 16px 18px; }
   .panel h1 { font-size: 22px; margin-bottom: 6px; }
   .how .panel { width: min(760px, 100%); } .how .panel h1 { margin-bottom: 4px; } .how .panel p { font-size: 12.5px; line-height: 1.42; }
@@ -271,6 +270,20 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   .sheet .feats { margin-top: 8px; } .sheet .reqs { margin: 8px 0 10px; gap: 5px; }
   .sheet .cta, .sheet .ghost { padding-block: 10px; }
   .sheet .btns { gap: 7px; }
+}
+/* phones held sideways in Telegram are lower still: a tighter sheet, its buttons side by side */
+@media (orientation: landscape) and (max-height: 430px) {
+  .sheet .panel { padding: 10px 14px; column-gap: 14px; grid-template-columns: minmax(0, 34%) minmax(0, 1fr); }
+  .sheet .feats { display: none; } /* the description says as much; the list would push the buttons off the screen */
+}
+@media (orientation: landscape) and (max-height: 330px) {
+  .sheet .panel p, .sheet .reqs li { font-size: 11px; line-height: 1.3; }
+  .overlay.sheet { padding-block: calc(var(--safe-top, 0px) + 4px) 4px; }
+  .sheet .eyebrow { display: none; } .sheet .panel { grid-template-columns: minmax(0, 30%) minmax(0, 1fr); }
+  .sheet .eyebrow { margin-bottom: 2px; } .sheet .panel h1 { font-size: 18px; margin-bottom: 2px; }
+  .sheet .panel p, .sheet .feats, .sheet .reqs li { font-size: 11.5px; line-height: 1.35; }
+  .sheet .feats { margin-top: 5px; } .sheet .reqs { margin: 6px 0 8px; gap: 3px; }
+  .sheet .btns { grid-auto-flow: column; grid-auto-columns: 1fr; } .sheet .cta, .sheet .ghost { padding-block: 8px; }
   .sheet h1 small { display: inline; margin-left: 10px; }
 }
 .sheet .panel.nomini { display: block; } /* the depot has no shot to show */

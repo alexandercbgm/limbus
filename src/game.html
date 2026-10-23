@@ -3354,6 +3354,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const mastGeo = new THREE.CylinderGeometry(0.06, 0.08, 0.9, 8).translate(0, -0.45, 0);
   const buttonGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xffa020, transparent: true, opacity: 0.7, depthWrite: false });
   const pressedGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x40ff90, transparent: true, opacity: 0.6, depthWrite: false });
+  // how many vanes a gate has: not a fixed step on the difficulty (with a full stock of balls the one-vane gate never came
+  // up), but a chance: one vane often early and in the light, three more often late and in the dark, two between
+  function gateButtons(k) { const r = Math.random(), p1 = lerp(0.55, 0.2, k), p3 = lerp(0.05, 0.4, k); return r < p1 ? 1 : r < p1 + p3 ? 3 : 2; }
   function gateLevel() {
     let k = 0.2 + 0.35 * Math.min(1, sC / MAIN_LEN) + 0.3 * curD();
     if (balls < 12) k -= 0.3; else if (balls < 25) k -= 0.12; else if (balls > 60) k += 0.15;
@@ -3405,7 +3408,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       }
     }
     // buttons: how many, how big and whether they wander along the frame follow the difficulty
-    const nb = weights ? 0 : kind === "taiji" ? (k < 0.5 ? 1 : 2) : k < 0.35 ? 1 : k < 0.7 ? 2 : 3, r = lerp(1.15, 0.8, k), moving = false; // buttons stand still
+    const nb = weights ? 0 : kind === "taiji" ? (k < 0.5 ? 1 : 2) : gateButtons(k), r = lerp(1.15, 0.8, k), moving = false; // buttons stand still
     const dome = LEVEL.gateButton === "dome";
     const spots = round ? [Math.PI * 0.5, Math.PI * 0.75, Math.PI * 0.25].map(a => ({ a, rad: dome ? IRIS_R + 1.15 : IRIS_R + 0.12 })) // top, and 45° to either side of it
       : dome ? [{ u: 0, v: GATE_H + 0.9 }, { u: -(BRIDGE_W + 1.2), v: 2.4 }, { u: BRIDGE_W + 1.2, v: 2.4 }]

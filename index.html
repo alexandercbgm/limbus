@@ -1711,9 +1711,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     for (const k in w) { x -= w[k]; if (x <= 0) return k; }
     return "center";
   }
-  // where a flap falls, into the hall, there must be nothing for it to fall through
-  function clearFlapZone(dr) {
-    const a = dr.s - 0.6, b = dr.s + FLAP_H + 1.2, inZ = x => x.s > a && x.s < b, off = (list, rm) => list.filter(x => inZ(x) ? (rm(x), false) : true);
+  // where a door opens into the hall, a flap falling or two leaves swinging, there must be nothing for it to pass through
+  function clearDoorZone(dr) {
+    const a = dr.s - 0.6, b = dr.s + (dr.kind === "flap" ? FLAP_H + 1.2 : DOOR_W + 0.8), inZ = x => x.s > a && x.s < b, off = (list, rm) => list.filter(x => inZ(x) ? (rm(x), false) : true);
     panes = off(panes, removePane); crystals = off(crystals, c => scene.remove(c.group)); imps = off(imps, c => scene.remove(c.group));
     sigils = off(sigils, c => scene.remove(c.group)); drops = off(drops, c => scene.remove(c.group)); thorns = off(thorns, c => scene.remove(c.group));
     hangers = off(hangers, h => { scene.remove(h.root); scene.remove(h.body); }); hmills = off(hmills, m => scene.remove(m.root));
@@ -1722,7 +1722,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function spawnGroup(s) {
     spawnGroupAt(s);
-    for (const dr of doors) if (dr.kind === "flap" && !dr.open) clearFlapZone(dr);
+    for (const dr of doors) if (!dr.open) clearDoorZone(dr);
   }
   let spawnGroupKind = null; // a test may ask for one pattern
   function spawnGroupAt(s) {
@@ -3062,7 +3062,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       }
       const bolt = new THREE.Mesh(boltGeo, targetOn); bolt.position.set(0, BOLT_V, 0.24); root.add(bolt); dr.bolt = bolt;
     }
-    doors.push(dr); if (dr.kind === "flap") clearFlapZone(dr); return dr;
+    doors.push(dr); clearDoorZone(dr); return dr;
   }
   function doorChainCut(dr, c, at) {
     c.alive = false; c.mesh.visible = false; Sound.clink(); Sound.tone(900, 0.12, 0.08, "square", 0, 300); chips(at, chainMat, 8, tmpV2.set(0, 2, 0)); addScore(15);

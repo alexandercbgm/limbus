@@ -1823,7 +1823,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       case "gears": addGears(s, Math.random() < 0.7); break; // more often a pair than one
       case "fblocks": { // glass blocks hovering over the bridge, no chains: one, or two at different heights, gliding; one hit breaks one
         const n = Math.random() < 0.55 ? 1 : 2;
-        for (let i = 0; i < n; i++) { const ax = Math.random() < 0.5 ? "u" : "v"; addPane({ s: s - i * 5, u: rand(-0.8, 0.8), v: i ? rand(2.6, 3.4) : rand(1.0, 1.8), w: RAM_LEN, h: 2 * RAM_R, thick: 1.1, move: ax === "u" ? { axis: "u", amp: 1.4, freq: rand(0.7, 1.1), phase: rand(0, TAU) } : { axis: "v", amp: 0.5, freq: rand(0.8, 1.2), phase: rand(0, TAU) } }); }
+        for (let i = 0; i < n; i++) { const ax = Math.random() < 0.5 ? "u" : "v"; addPane({ s: s - i * 5, u: rand(-0.8, 0.8), v: i ? rand(3.1, 3.6) : rand(1.0, 1.8), w: RAM_LEN, h: 2 * RAM_R, thick: 1.1, move: ax === "u" ? { axis: "u", amp: 1.4, freq: rand(0.7, 1.1), phase: rand(0, TAU) } : { axis: "v", amp: 0.5, freq: rand(0.8, 1.2), phase: rand(0, TAU) } }); }
         break;
       }
       case "prisms": if (!addPrisms(s)) addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break; // Speculum: light through prisms off mirrors
@@ -1946,7 +1946,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const up = p.U0 || p.U, pieces = [];
     // each part splits into a few big irregular shards: wedges fanned out from a point somewhere inside it, each as thick
     // as the glass, or a little less where it chipped
-    for (const [x, y, sx, sy] of parts) {
+    if (!p.cross) { // a block: a few long slabs, root to tip as a broken tooth, each a little thinner and skewed
+      const n = 3 + Math.floor(Math.random() * 2), cuts = [-hw, ...Array.from({ length: n - 1 }, (_, i) => -hw + (i + 1) * p.w / n + rand(-0.15, 0.15) * p.w / n), hw];
+      for (let i = 0; i < n; i++) { const a = cuts[i], b = cuts[i + 1], sy = p.h * rand(0.75, 1), x = (a + b) / 2, y = rand(-0.1, 0.1) * p.h;
+        pieces.push([[a, y - sy / 2], [b, y - sy / 2 + rand(-0.08, 0.08)], [b, y + sy / 2], [a, y + sy / 2 + rand(-0.08, 0.08)]]); }
+    }
+    for (const [x, y, sx, sy] of p.cross ? parts : []) {
       const hx = sx / 2, hy = sy / 2, ix = x + rand(-0.35, 0.35) * hx, iy = y + rand(-0.35, 0.35) * hy, k = sx * sy > 1 ? 4 : 3;
       const angs = Array.from({ length: k }, (_, i) => (i + rand(0.2, 0.8)) * TAU / k + rand(0, 0.3)).sort((u, v) => u - v);
       const edgeAt = a => { const dx = Math.cos(a), dy = Math.sin(a), tx = dx > 1e-9 ? (x + hx - ix) / dx : dx < -1e-9 ? (x - hx - ix) / dx : Infinity, ty = dy > 1e-9 ? (y + hy - iy) / dy : dy < -1e-9 ? (y - hy - iy) / dy : Infinity, t = Math.min(tx, ty); return [ix + dx * t, iy + dy * t]; };
@@ -2593,12 +2598,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // a lone bar overhead: 3 beams, the middle one on the cart; now and then 4, and the cart slips between the inner two
     if (mode === "h" && !(n === 3 || n === 4)) n = Math.random() < 0.2 ? 4 : 3;
     const axis = axisF !== undefined ? axisF : Math.random() < 0.35 ? null : Math.random() < 0.5 ? "u" : "v", side = Math.random() < 0.5 ? -1 : 1;
-    const set = { s, bars: [], axis, amp: axis === "u" ? (STYLE.bridge ? 0.35 : 0.6) : axis === "v" ? (STYLE.bridge ? 0.22 : 0.5) : 0, f: rand(0.7, 1.1), ph: rand(0, TAU), cost: 0, passed: false };
+    // over the bridge a gliding bar sweeps a span twice its own length (so it travels its length), as fast as the hovering blocks
+    const blen = (n - 1) * barGap(mode === "h" ? "h" : "v", n) + 2 * BAR_M;
+    const set = { s, bars: [], axis, amp: axis === "u" ? (STYLE.bridge ? blen / 2 : 0.6) : axis === "v" ? (STYLE.bridge ? blen / 2 : 0.5) : 0, f: rand(0.7, 1.1), ph: rand(0, TAU), cost: 0, passed: false };
     let bu = 0; // every set stands centred over the rails
     if (mode === "h" && n === 3) bu = 0; // 4 beams overhead stay centred, ±1.5 m and ±4.5 m: a scare, no beam on the cart
     const hv = LEVEL.halls ? HALL_H - 1.3 : 6.2, vu = LEVEL.halls ? HALL_W - 1.9 : BRIDGE_W + 1.6; // a hall's vault and walls, or over and beside the bridge
     if (mode === "h" || grid) addBar(set, "h", n, bu, hv, side, noz);
-    const v0 = STYLE.bridge ? 0.5 : BAR_V0; // over the bridge the lowest beam runs at the wheels, just above the rails
+    const v0 = STYLE.bridge ? 0.5 + (axis === "v" ? set.amp : 0) : BAR_V0; // over the bridge the lowest beam runs at the wheels, just above the rails (a gliding bar rises from there)
     if (mode === "v" || grid) addBar(set, "v", n, side * vu, v0 + (n - 1) * barGap("v", n) / 2, side, noz);
     for (let k = Math.floor((s - 5) / SL); k <= Math.floor((s + 5) / SL); k++) { const d = getDecor(k); if (d.blocks) d.blocks = d.blocks.filter(bl => Math.abs(k * SL + SL / 2 - s) > bl.sz / 2 + 0.9); }
     lbars.push(set); return set;
@@ -2642,7 +2649,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     for (const sh of barBits) {
       if (!sh.rest) {
         sh.vv -= 12 * dt; sh.u += sh.vu * dt; sh.v += sh.vv * dt; sh.rz += sh.wz * dt;
-        const lim = HALL_W - sh.l / 2 - 0.4; if (Math.abs(sh.u) > lim) { sh.u = Math.sign(sh.u) * lim; sh.vu *= -0.3; }
+        const lim = HALL_W - sh.l / 2 - 0.4; if (!STYLE.bridge && Math.abs(sh.u) > lim) { sh.u = Math.sign(sh.u) * lim; sh.vu *= -0.3; }
+        if (STYLE.bridge && Math.abs(sh.u) > BRIDGE_W) { if (sh.v < -30) sh.dead = true; sh.m.rotation.z = sh.rz; setObj(sh.root, sh.s, sh.u, sh.v); if (sh.dead) scene.remove(sh.root); continue; } // off the deck: down into the abyss
         const lowest = Math.abs(Math.sin(sh.rz)) * sh.l / 2 + BAR_T / 2; // how far it reaches below its middle as it turns
         if (sh.v < lowest && sh.vv < 0) { sh.v = lowest; sh.rest = true; if (Math.abs(sh.u) < sh.l / 2 + 1.1) sh.u = Math.sign(sh.u || 1) * (sh.l / 2 + 1.1); Sound.knock(); chips(sh.root.getWorldPosition(new THREE.Vector3()), laserBaseMat, 4, tmpV2.set(0, 1, 0)); }
       } else { const tz = Math.round(sh.rz / Math.PI) * Math.PI; sh.rz += (tz - sh.rz) * Math.min(1, dt * 10); sh.v = Math.max(BAR_T / 2, Math.abs(Math.sin(sh.rz)) * sh.l / 2 + BAR_T / 2); } // it settles flat
@@ -4715,7 +4723,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (state === "play" && !p.passed && p.s <= sC + 0.6) {
         p.passed = true;
         let blocks;
-        if (p.rot !== undefined) { // the cart's body swept along the track through the pane, turned and tumbled as it is now
+        if (p.rot !== undefined || p.thick) { // the cart's body swept along the track through the pane, turned and tumbled as it is now
           blocks = CART_ENV.some(([cu, cv]) => {
             for (let t = -3; t <= 3.01; t += 0.2) { const l = toLocal(p, tmpV2.copy(_P).addScaledVector(_R, cu).addScaledVector(_U, cv).addScaledVector(_T, t)); if (Math.abs(l.z) < (p.thick || 0) / 2 + 0.12 && inPane(p, l.x, l.y)) return true; }
             return false;
@@ -5428,6 +5436,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     gearDbg: () => gears.flatMap(x => x.gears.map(g => [g.kind, g.a, g.rotor.children.length, g.rotor.matrixWorld.elements.slice(12, 15).map(v => +v.toFixed(1)), g.root.matrix.elements.slice(12, 15).map(v => +v.toFixed(1))])),
     gearsAt(d, two) { addGears(sC + d, two); }, gearInfo: () => gears.map(x => x.gears.map(g => ({ s: +(g.s - sC).toFixed(1), cu: g.cu, kind: g.kind, vis: g.root.visible, par: !!g.root.parent, pin: +(g.pin.s - sC).toFixed(1), wp: g.wp.toArray().map(v => +v.toFixed(1)) }))), gearKinds(d, two) { const set = addGears(sC + d, two); const k = set.gears.map(g => g.kind).join('+'); set.gears.forEach(g => { scene.remove(g.root); scene.remove(g.pin.root); }); gears.pop(); return k; },
     patRun() { patCount = {}; lastPat = {}; let x = 60; while (x < MAIN_LEN - 105) { spawnGroupAt(x); x += spacing(curD()) * rand(0.85, 1.15); } clearDynamic(); return patCount; },
+    blockAhead(d) { addPane({ s: sC + d, u: 0, v: 1.4, w: RAM_LEN, h: 2 * RAM_R, thick: 1.1 }); },
     breakTeeth() { gears.forEach(x => x.gears.forEach(g => g.teeth.forEach(t => t.alive && breakTooth(g, t, t.A.clone())))); },
     breakThick() { const p = panes.filter(x => x.alive && x.thick && x.s > sC).sort((a, b) => a.s - b.s)[0]; if (!p) return false; damagePane(p, 0.3, 0.2, new THREE.Vector3().copy(p.T).multiplyScalar(30)); return true; }, openHall: d => openHallAround(sC + d), spawnAt: d => spawnGroupAt(sC + d), ramTh: () => rams.map(r => +r.th.toFixed(3)).join(), ramState2: () => rams.map(r => [+(r.s - sC).toFixed(1), r.glass ? 'g' : 'w', r.side, r.chains.filter(c => c.alive).length]), paneKinds: () => panes.map(p => (p.cross ? 'x' : 'b') + (p.thick ? 'T' : '') + (Array.isArray(p.tilt) ? '3' : p.tilt ? '2' : '') + (p.turn ? 'P' : '')).join(),
     barState: () => lbars.map(x => ({ s: +(x.s - sC).toFixed(1), axis: x.axis, cost: x.cost, bars: x.bars.map(b => b.orient + b.n + (b.alive ? '' : 'x')).join() })), breakBars() { lbars.forEach(x => x.bars.forEach(b => b.alive && breakBar(b, b.wp.clone()))); },

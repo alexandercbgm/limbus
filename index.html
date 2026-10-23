@@ -830,7 +830,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           float ang = atan(dot(q, ay), dot(q, ax));
           float rays = pow(0.5 + 0.5 * sin(ang * 14.0 + t * 0.2), 6.0) * 0.6 + pow(0.5 + 0.5 * sin(ang * 5.0 - t * 0.13), 4.0) * 0.4;
           float fall = exp(-acos(clamp(dot(n, sd), -1.0, 1.0)) * 1.6);
-          c += fxc * rays * fall * amt * 0.9 + vec3(1.0) * (pow(sdot, 200.0) * 2.5 + pow(sdot, 10.0) * 0.5) * amt;
+          // in the Light the vault above is a deep blue night of stars and a pale Milky Way, white only down by the horizon and round the sun
+          float dome = smoothstep(0.0, 0.35, h) * smoothstep(0.3, 0.75, lum) * amt * (1.0 - smoothstep(0.5, 0.85, fall));
+          c = mix(c, mix(vec3(0.07, 0.09, 0.24), vec3(0.2, 0.26, 0.55), smoothstep(0.35, 0.0, h)), dome * 0.94);
+          c += galaxy(n, vec3(0.45, 0.55, 0.95), dome * 1.1);
+          c += (fxc * rays * fall * 0.9 + vec3(1.0) * pow(sdot, 10.0) * 0.5) * amt * (1.0 - 0.75 * dome) + vec3(1.0) * pow(sdot, 200.0) * 2.5 * amt; // the rays fade over the stars
         }
         gl_FragColor = vec4(c, 1.0); }`,
   }));

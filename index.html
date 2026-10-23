@@ -304,7 +304,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         <span><i style="background:#d0642a"></i><span data-en="Linea Tao · the way of Tao">Linea Tao · путь Дао</span></span>
         <span><i style="background:#2f9a72"></i><span data-en="Linea Summa · the upper line">Linea Summa · верхний путь</span></span>
         <span><i style="background:#1d6f8f"></i><span data-en="Linea Ima · the lower line">Linea Ima · нижний путь</span></span>
-        <span><i style="background:#7a4fa3"></i><span data-en="Rami · dead-end branches">Rami · тупиковые ветки</span></span>
+        <span><i style="background:#a68bd6"></i><span data-en="Rami · dead-end branches">Rami · тупиковые ветки</span></span>
       </div>
       <div class="map-tools">
         <button class="ibtn snd" id="mapMute" type="button" aria-pressed="false" aria-label="Звук" title="Звук" data-en-aria="Sound" data-en-title="Sound">
@@ -5124,13 +5124,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // two lines out of Vitrum: Linea Ima, low through Rubinus to Speculum, and Linea Summa, the upper arc to Abyssus, where Linea Tao goes on to Lux
   const ARC = ["vitrum", "labyrinthus", "tao"], ARC_HUBS = ["vitrum", "tao"];
   const LINE_TAO = "#d0642a"; // Linea Tao, Tao through Nox to Lux
-  const HUB_RING = { vitrum: "#2f9a72", tao: LINE_TAO, initium: "#1d6f8f", rubinus: "#1d6f8f", speculum: "#1d6f8f" }; // where a dead-end branch leaves, the station is purple inside its line's ring
-  const LINE_MAIN = "#1d6f8f", LINE_ARC = "#2f9a72", LINE_TR = "#b8892b", LINE_BR = "#7a4fa3", INK = "#10242e", MUTED = "#8a9ba3";
+  const HUB_RING = { vitrum: "#2f9a72", tao: LINE_TAO, initium: "#a68bd6", rubinus: "#a68bd6", speculum: "#a68bd6" }; // where a dead-end branch leaves, the ring is the branches' lilac
+  const LINE_MAIN = "#1d6f8f", LINE_ARC = "#2f9a72", LINE_TR = "#b8892b", LINE_BR = "#a68bd6", INK = "#10242e", MUTED = "#8a9ba3";
   // one glyph per station, drawn in a 16-unit box around the station center
   const GLYPHS = {
     initium: "M-4.5 7.5V-7.5M-4.5 -7H6.5L3.5 -3.5L6.5 0H-4.5",      // a start flag: the beginning
     thesaurus: "M0 -7L6 -1.5L0 7L-6 -1.5ZM-6 -1.5H6M-2.5 -1.5L0 7L2.5 -1.5", // a cut gem
-    vitrum: "M0 -7L6.5 5H-6.5ZM0 -7V5M-3 -1L3 5",                       // a prism
+    vitrum: "M-6.5 -6.5H6.5V6.5H-6.5ZM-1.5 -6.5L1 -1.5L-2 1.5L0.5 6.5M1 -1.5L6.5 0", // a cracked pane
     rubinus: "M-3.5 -7.5H3.5L5.5 -5.5V5.5L3.5 7.5H-3.5L-5.5 5.5V-5.5ZM-2 -4.5H2L3 -3.5V3.5L2 4.5H-2L-3 3.5V-3.5ZM-3.5 -7.5L-2 -4.5M3.5 -7.5L2 -4.5M5.5 -5.5L3 -3.5M5.5 5.5L3 3.5M3.5 7.5L2 4.5M-3.5 7.5L-2 4.5M-5.5 5.5L-3 3.5M-5.5 -5.5L-3 -3.5", // a step-cut ruby
     tao: "M0 -7A7 7 0 1 1 0 7A7 7 0 1 1 0 -7M0 -7A3.5 3.5 0 0 1 0 0A3.5 3.5 0 0 0 0 7M0 -3.5V-3.4M0 3.4V3.5", // yin and yang
     armamentarium: "M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5", // crossed barrels
@@ -5206,7 +5206,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const hub = !!HUB_RING[lv.id]; // where two lines meet, or a dead-end branch leaves
       const dark = st === "done" || st === "avail", lit = dark || st === "open";
       const fill = dark ? INK : lit ? "#ffffff" : "#e6ecee"; // done stations (and an opened depot) are dark, open ones white
-      const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (["initium", "rubinus", "speculum"].includes(lv.id) ? LINE_BR : ["abyssus", "lux"].includes(lv.id) ? LINE_TAO : ARC.includes(lv.id) && lv.id !== "vitrum" ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
+      const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (["abyssus", "lux"].includes(lv.id) ? LINE_TAO : ARC.includes(lv.id) && lv.id !== "vitrum" ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
       const glyph = dark ? "#ffffff" : lit ? INK : MUTED;
       const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 32, p.y - 9, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
       L[0] += p.dx || 0; L[1] += p.dy || 0; // a station may nudge its label

@@ -7,7 +7,7 @@ const fs = require('fs');
 const OUT = process.env.OUT, THREE_JS = process.env.THREE;
 // Each shot is taken on a straight run (just past a turn), the way ahead cleared, with a few of the level's own sights set
 // down at middle distance: enough to tell the level by, not so many that the frame is crowded.
-// (r.quiet() stops the ride setting down more ahead; r.noCrystals() takes the crystals away)
+// (r.quiet() stops the ride setting down more ahead; r.noCrystals() takes the crystals away; r.decorVis(k, false) hides a kind of floating decor)
 // at: the s to stand at (or 'hall', a little way into a hall of Labyrinthus or Carcer); put: what to set down ahead of the cart
 const SCENE = {
   initium: { at: 262, put: r => { r.glassBar('sides', 30); r.glassBar('center', 46); r.crystalAhead(34, -1.2, 2.6); } },
@@ -17,9 +17,9 @@ const SCENE = {
   hortus: { at: 262, put: r => { r.bough(24, 1); r.bough(36, -1); } },
   speculum: { at: 272, put: r => { r.prisms(36, 2); r.crystalAhead(24, -1.4, 2.6); } },
   abyssus: { at: 292, put: r => { r.gearsAt(40, true); r.crystalAhead(24, 0.8, 2.4); } },
-  lux: { at: 532, altL: -0.2, put: r => { r.quiet(); r.spinner(14, -1, 1); r.spinner(20, 1, -1); r.lblock(28, 'h'); r.noCrystals(); } }, // glass walls open on the sky
+  lux: { at: 532, altL: -0.2, put: r => { r.quiet(); r.decorVis('prism', false); r.spinner(10, -1, 1); r.spinner(20, 1, -1); r.lblock(28, 'h'); r.noCrystals(); } }, // glass walls open on the sky, no shards before the sun
   rubinus: { at: 292, put: r => { r.quiet(); Math.random(); r.glassBar('grams', 9); r.paneAhead(8, 2.9, 3.4, 1.4, 1.4); r.paneAhead(12, 2.6, 1.5, 1.6, 1.6); r.noCrystals(); } }, // a glass ram on the left, panes on the right
-  tao: { at: 282, put: r => { for (let i = 0; i < 4; i++) Math.random(); r.rams(9); r.hammer(14, 1, 1, 2); } }, // the log near, on the left; hammers on the right
+  tao: { at: 282, put: r => { for (let i = 0; i < 4; i++) Math.random(); r.rams(9); r.hammer(14, 1, 1, 2); } }, // the log near, on the left; hammers on the right, on their pier
   carcer: { at: 'hall', put: r => { r.carcer('grate1', 24); r.carcer('top', 40); } },
 };
 // SCENES='{"tao":{"at":282,"put":"r => { ... }"}}' tries other scenes, without touching the ones above
@@ -54,6 +54,7 @@ if (process.env.SCENES) for (const [id, sc] of Object.entries(JSON.parse(process
       }, SCENE[id].put.toString());
       await pg.waitForTimeout(300);
       await pg.locator('canvas').first().screenshot({ path: `${OUT}/${id}_${tag}.png` });
+      await pg.evaluate(() => { for (const k of ['prism', 'block', 'coin', 'bush']) window.__rails.decorVis(k, true); }); // a scene may have hidden the floating decor
     }
   }
   console.log('errs', JSON.stringify(errs));

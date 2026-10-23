@@ -18,10 +18,11 @@ const FEAT = {
   carcer: r => { r.jump(240); r.bars(22); },
 };
 // set down once the cart has run on, just before the shot, so they stand where they are asked to
+// (the way ahead is first cleared where the cart stands, so nothing else gets into the shot)
 const LATE = {
-  abyssus: r => { r.gearsAt(30, true); }, // Nox: a pair of gears over the bridge
-  lux: r => { r.gate(30, 'iris'); r.spinner(16, 1, 1); },
-  tao: r => { r.gate(34, 'taiji'); r.rams(22); },
+  abyssus: r => { r.jump(r.branchInfo().sC); r.gearsAt(36, true); }, // Nox: a pair of gears over the bridge
+  lux: r => { r.jump(r.branchInfo().sC); r.gate(34, 'iris'); r.spinner(20, 1, 1); },
+  tao: r => { r.jump(r.branchInfo().sC); r.gate(36, 'taiji'); r.hammer(20, -1, 1, 2); },
 };
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader'] });

@@ -1340,7 +1340,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       }
       if (dec.arch && !open && !dec.hw) {
         if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
-        else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY).scale(SV.set(RING_SX, RING_SY, 1))); // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
+        else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY).scale(SV.set(RING_SX, RING_SY, RING_SX))); // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
         else if (STYLE.arch === "tri") { const tr = triAt(s); for (let e = 0; e < 3; e++) { const A = tr[e], B = tr[(e + 1) % 3], L = Math.hypot(B[0] - A[0], B[1] - A[1]);
           I.tribar.setMatrixAt(n.tribar++, placeM(M, s, (A[0] + B[0]) / 2, (A[1] + B[1]) / 2).multiply(M2.makeRotationZ(Math.atan2(B[1] - A[1], B[0] - A[0]))).scale(SV.set(L + 0.2, 1, 1))); } }
         else if (STYLE.arch !== "none") { put("post", s, -W + 0.1, H / 2); put("post", s, W - 0.1, H / 2); put("beam", s, 0, H - 0.18); put("sill", s, 0, 0.025); }
@@ -1732,6 +1732,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     spawnGroupAt(s);
     for (const set of gears) for (const g of set.gears) if (g.s > sC) clearZone(g.s - 2.4, g.s + 2.4); // and nothing in a gear's way
     for (const dr of doors) if (!dr.open) clearDoorZone(dr);
+    for (const g of [...gates, ...doors]) if (g.s > sC) { // and nothing a pattern reached past a gate with
+      clearZone(g.s + 0.3, g.s + GATE_CLEAR);
+      gears = gears.filter(x => x.gears.some(gr => gr.s > g.s && gr.s < g.s + GATE_CLEAR) ? (x.gears.forEach(gr => { scene.remove(gr.root); scene.remove(gr.pin.root); }), false) : true);
+      boughs = boughs.filter(b => b.s > g.s + 0.3 && b.s < g.s + GATE_CLEAR ? (scene.remove(b.root), false) : true);
+    }
   }
   let spawnGroupKind = null; // a test may ask for one pattern
   // a level's signature traps must not hang on the luck of the draw: LEVEL.every names how many metres at most may pass
@@ -1741,6 +1746,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     // Carcer's doors come up as the track reaches them, and nothing else is set down right at one
     while (doorPlan.length && doorPlan[0].s < s + 12) spawnDoor(doorPlan.shift());
     if (doors.some(dr => Math.abs(dr.s - s) < 9)) return;
+    if ([...gates, ...doors].some(g => s > g.s - 1 && s < g.s + GATE_CLEAR)) return; // just past a gate nothing is set down: the gate hid it till the cart was on it
     const hall = LEVEL.halls && inHall(s);
     const d = curD(), prog = sC / MAIN_LEN;
     let pat = spawnGroupKind || pickPattern(clamp(d + 0.12 * prog, 0, 1), hall);
@@ -3331,7 +3337,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   let gates = [];
   // Leaves are dark glass: enough balls shatter one, but it takes more than hitting the buttons does.
   let lastGateS = -1e9;
-  const GATE_H = 4.0, IRIS_R = 2.3, IRIS_V = 2.0, GATE_D = 0.06, GATE_COST = 5, GATE_GAP = 80, SLOT_W = 0.36;
+  const GATE_H = 4.0, IRIS_R = 2.3, IRIS_V = 2.0, GATE_D = 0.06, GATE_COST = 5, GATE_GAP = 80, SLOT_W = 0.36, GATE_CLEAR = 15; // GATE_CLEAR: the empty run past a gate
   const slotMat = new THREE.MeshBasicMaterial({ color: 0x020306 }), slotGeo = new THREE.BoxGeometry(1, 0.03, SLOT_W), slotLipGeo = new THREE.BoxGeometry(1, 0.06, 0.06);
   const doorMat = new THREE.MeshStandardMaterial({ color: 0x0c1420, emissive: 0x0a1830, emissiveIntensity: 0.4, roughness: 0.08, metalness: 0.4, transparent: true, opacity: 0.62, depthWrite: false, side: THREE.DoubleSide });
   const buttonMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.8, roughness: 0.4, side: THREE.DoubleSide }); // a cup shows its inside too

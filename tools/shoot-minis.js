@@ -16,11 +16,13 @@ const SCENE = {
   hortus: { at: 262, put: r => { r.bough(24, 1); r.bough(36, -1); } },
   speculum: { at: 272, put: r => { r.prisms(36, 2); r.crystalAhead(24, -1.4, 2.6); } },
   abyssus: { at: 292, put: r => { r.gearsAt(40, true); r.crystalAhead(24, 0.8, 2.4); } },
-  lux: { at: 302, put: r => { r.spinner(24, 1, 1); r.lhang(38, 'gate'); } },
-  rubinus: { at: 292, put: r => { r.gate(38); r.crystalAhead(24, 1.4, 2.4); } },
-  tao: { at: 282, put: r => { r.hammer(34, -1, 1, 2); r.gate(48, 'taiji'); r.crystalAhead(24, 1.2, 2.4); } },
+  lux: { at: 302, put: r => { r.gate(40, 'iris'); } },
+  rubinus: { at: 292, put: r => { r.gate(36); } },
+  tao: { at: 532, put: r => { r.gate(38, 'taiji'); } }, // where the yin-yang sign hangs in the sky ahead
   carcer: { at: 'hall', put: r => { r.carcer('grate1', 24); r.carcer('top', 40); } },
 };
+// SCENES='{"tao":{"at":282,"put":"r => { ... }"}}' tries other scenes, without touching the ones above
+if (process.env.SCENES) for (const [id, sc] of Object.entries(JSON.parse(process.env.SCENES))) SCENE[id] = { at: sc.at, put: sc.put };
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader'] });
   const pg = await b.newPage({ viewport: { width: 960, height: 540 } });

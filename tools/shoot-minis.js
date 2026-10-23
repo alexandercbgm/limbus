@@ -11,11 +11,17 @@ const FEAT = {
   labyrinthus: r => { r.jump(296); },
   hortus: r => { r.jump(300); r.bough(20, 1); },
   speculum: r => { r.jump(300); r.crystalAhead(14, 1.6, 2.6); },
-  abyssus: r => { r.jump(300); r.gate(22, 'v'); },
-  lux: r => { r.jump(300); r.spinner(16, 1, 1); r.lblock(24, 'h'); },
+  abyssus: r => { r.jump(420); },
+  lux: r => { r.jump(300); },
   rubinus: r => { r.jump(240); },
   tao: r => { r.jump(240); },
   carcer: r => { r.jump(240); r.bars(22); },
+};
+// set down once the cart has run on, just before the shot, so they stand where they are asked to
+const LATE = {
+  abyssus: r => { r.gearsAt(30, true); }, // Nox: a pair of gears over the bridge
+  lux: r => { r.gate(30, 'iris'); r.spinner(16, 1, 1); },
+  tao: r => { r.gate(34, 'taiji'); r.rams(22); },
 };
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader'] });
@@ -25,13 +31,14 @@ const FEAT = {
   await pg.route('https://fonts.**', r => r.abort());
   await pg.goto('http://127.0.0.1:8766/index.html#all');
   await pg.waitForTimeout(800);
-  for (const id of Object.keys(FEAT)) {
+  for (const id of (process.env.ONLY ? process.env.ONLY.split(',') : Object.keys(FEAT))) {
     for (const [alt, tag] of [[0.5, 'L'], [-0.95, 'D']]) {
       await pg.evaluate(id => window.__rails.level(id), id);
       await pg.waitForTimeout(3600);
       await pg.evaluate(([id, alt, f]) => { const r = window.__rails; r.setBalls(80); r.setAlt(alt); (new Function('r', 'return (' + f + ')(r)'))(r); }, [id, alt, FEAT[id].toString()]);
       await pg.addStyleTag({ content: 'body > *:not(canvas) { visibility: hidden !important; }' });
       for (let i = 0; i < 16; i++) { await pg.waitForTimeout(100); await pg.evaluate(a => { window.__rails.setAlt(a); window.__rails.setBalls(80); }, alt); }
+      if (LATE[id]) { await pg.evaluate(f => (new Function('r', 'return (' + f + ')(r)'))(window.__rails), LATE[id].toString()); await pg.waitForTimeout(300); }
       await pg.locator('canvas').first().screenshot({ path: `${OUT}/${id}_${tag}.png` });
     }
   }

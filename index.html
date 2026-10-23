@@ -5124,7 +5124,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // two lines out of Vitrum: Linea Ima, low through Rubinus to Speculum, and Linea Summa, the upper arc to Abyssus, where Linea Tao goes on to Lux
   const ARC = ["vitrum", "labyrinthus", "tao"], ARC_HUBS = ["vitrum", "tao"];
   const LINE_TAO = "#d0642a"; // Linea Tao, Tao through Nox to Lux
-  const HUB_RING = { vitrum: "#2f9a72", tao: LINE_TAO, initium: "#7a4fa3", rubinus: "#7a4fa3", speculum: "#7a4fa3" }; // where a dead-end branch leaves, the ring is purple
+  const HUB_RING = { vitrum: "#2f9a72", tao: LINE_TAO, initium: "#1d6f8f", rubinus: "#1d6f8f", speculum: "#1d6f8f" }; // where a dead-end branch leaves, the station is purple inside its line's ring
   const LINE_MAIN = "#1d6f8f", LINE_ARC = "#2f9a72", LINE_TR = "#b8892b", LINE_BR = "#7a4fa3", INK = "#10242e", MUTED = "#8a9ba3";
   // one glyph per station, drawn in a 16-unit box around the station center
   const GLYPHS = {
@@ -5206,7 +5206,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const hub = !!HUB_RING[lv.id]; // where two lines meet, or a dead-end branch leaves
       const dark = st === "done" || st === "avail", lit = dark || st === "open";
       const fill = dark ? INK : lit ? "#ffffff" : "#e6ecee"; // done stations (and an opened depot) are dark, open ones white
-      const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (["abyssus", "lux"].includes(lv.id) ? LINE_TAO : ARC.includes(lv.id) && lv.id !== "vitrum" ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
+      const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (["initium", "rubinus", "speculum"].includes(lv.id) ? LINE_BR : ["abyssus", "lux"].includes(lv.id) ? LINE_TAO : ARC.includes(lv.id) && lv.id !== "vitrum" ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
       const glyph = dark ? "#ffffff" : lit ? INK : MUTED;
       const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 32, p.y - 9, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
       L[0] += p.dx || 0; L[1] += p.dy || 0; // a station may nudge its label

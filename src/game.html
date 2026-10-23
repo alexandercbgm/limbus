@@ -1152,7 +1152,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     pyrL: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(-Math.PI / 2), spikeMat, 90), // pyramid out of the left wall, pointing +u
     pyrR: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(Math.PI / 2), spikeMat, 90),
     gwall: inst(new THREE.BoxGeometry(0.08, H, SL + 0.03), glassWallMat, 280),
-    hex: inst(hexFrameGeo(4.9, 0.27), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
+    hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
     prism: inst(new THREE.OctahedronGeometry(0.75, 0), prismMat, 260),
     ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus and Hortus, squeezed to fit (RING_SX, RING_SY)

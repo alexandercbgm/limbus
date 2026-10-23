@@ -48,6 +48,7 @@ page = page.replace(THREE_TAG, "<script>" + three + "</script>")
 TELEGRAM = "--telegram" in sys.argv
 if TELEGRAM:
     page = page.replace("<script>", '<script src="https://telegram.org/js/telegram-web-app.js"></script>\n<script>', 1)
+    page = page.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n<script>document.documentElement.classList.add("tgbuild")</script>\n', 1)
 for track in [] if "--no-music" in sys.argv or TELEGRAM else sorted((root / "music").glob("*.mp3")):
     raw, kind = embedded(track)
     data = base64.b64encode(raw).decode("ascii")

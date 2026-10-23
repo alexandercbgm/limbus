@@ -2753,14 +2753,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const used = set.prisms.reduce((a, p) => a + p.mirrors.length, 0), maxK = nn === 2 && i === 0 ? 2 : Math.min(3, 4 - used);
         if (maxK < 1) break;
         let pr = planPrism(set, maxK);
-        if (!pr && set.mirror) { set.mirror = null; pr = planPrism(set, maxK); } // no room for the mirror image: a free one
-        if (!pr) continue; set.prisms.push(pr);
-        if (i === 0 && nn === 2 && Math.random() < 0.6) { set.mirror = pr.ids; set.endId = pr.endId; set.lens = pr.mirrors.map(m => m.len); } // the second, the first's mirror image
+        if (!pr) break; set.prisms.push(pr);
+        if (i === 0 && nn === 2) { set.mirror = pr.ids; set.endId = pr.endId; set.lens = pr.mirrors.map(m => m.len); } // a pair is always symmetric: the second, the first's mirror image
         else set.mirror = null;
       }
       set.mirror = null;
       const asPlanned = set.prisms.every(pr => { const a = tracePrism(set, pr).segs, b = tracePrism(set, pr, true).segs; return a.length === b.length && a.every((sg, j) => sg.every((x, q) => Math.abs(x - b[j][q]) < 1e-3)); });
-      if (set.prisms.length && asPlanned) break;
+      if (set.prisms.length === nn && asPlanned) break; // a pair that cannot be made symmetric is laid out again; at last one prism alone
       set.prisms = [];
     }
     if (!set.prisms.length) { scene.remove(set.root); return null; }
@@ -3040,9 +3039,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const targetOn = new THREE.MeshBasicMaterial({ color: 0xff8a2a }), targetOff = new THREE.MeshBasicMaterial({ color: 0x4a545c });
   const targetGeo = new THREE.RingGeometry(0.28, 0.42, 28), targetDotGeo = new THREE.CircleGeometry(0.12, 20), eyeGeo = new THREE.TorusGeometry(0.16, 0.05, 8, 18);
   // Speculum's tall gate, as at the threshold of the other world: two pale leaves twice a man high in a portal, light at
-  // the seam, steam drifting about its foot like low cloud. Each leaf bears a target twice the size of Carcer's, circling
-  // on the leaf, the two the opposite ways, twice as fast as the vanes on Abyssus's gates; hit a target and its leaf opens.
-  const LEAF_T = 10.4, TALL_R = 1.15, TG_HIT = 0.84, TALL_TV = 3.6; // targets circle at a height to shoot at // above the walls: Speculum is open to the sky
+  // the seam, steam drifting about its foot like low cloud. Each leaf bears a target twice the size of Carcer's, running up
+  // and down its middle, the two the opposite ways, a third slower than twice Abyssus's vanes; hit one, it turns turquoise
+  // and its leaf opens.
+  const LEAF_T = 10.4, TALL_A = 1.6, TG_HIT = 0.84, TALL_TV = 3.6; // targets run up and down about a height to shoot at
+  const targetHitMat = new THREE.MeshBasicMaterial({ color: 0x3fe6d4 }); // above the walls: Speculum is open to the sky
   const tallLeafGeo = new THREE.BoxGeometry(DOOR_W, LEAF_T, 0.16).translate(DOOR_W / 2, LEAF_T / 2, 0);
   const tallPostGeo = new THREE.BoxGeometry(1.2, LEAF_T + 1.6, 0.7), tallLintelGeo = new THREE.BoxGeometry(2 * W + 2.6, 0.7, 0.7), tallSeamGeo = new THREE.PlaneGeometry(0.16, LEAF_T);
   const tallLeafMat = new THREE.MeshStandardMaterial({ color: 0xeef2fa, roughness: 0.18, metalness: 0.75, emissive: 0x7c88a8, emissiveIntensity: 0.35 });
@@ -3068,7 +3069,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const sd of [-1, 1]) { const p = new THREE.Mesh(tallPostGeo, tallFrameMat); p.position.set(sd * (W + 0.5), (LEAF_T + 1.6) / 2, -0.1); root.add(p); outline(tallPostGeo, p); }
       const lin = new THREE.Mesh(tallLintelGeo, tallFrameMat); lin.position.set(0, LEAF_T + 0.6, -0.1); root.add(lin); outline(tallLintelGeo, lin);
       const seam = new THREE.Mesh(tallSeamGeo, seamMat); seam.position.set(0, LEAF_T / 2, -0.12); root.add(seam); // light from beyond, through the seam
-      const w = 2 * (1.5 + 2.5 * gateLevel()); // twice the vanes' turn
+      const w = 2 * (1.5 + 2.5 * gateLevel()) * 2 / 3; // twice the vanes' turn, less a third
       for (const sd of [-1, 1]) {
         const hinge = new THREE.Group(); hinge.position.x = sd * DOOR_W; hinge.rotation.y = sd < 0 ? 0 : Math.PI; root.add(hinge);
         hinge.add(new THREE.Mesh(tallLeafGeo, tallLeafMat)); outline(tallLeafGeo, hinge);
@@ -3106,8 +3107,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   function doorLeafHit(dr, lf, at, vel, onT) {
     if (dr.bolted || lf.opening || (dr.kind === "tall" && !onT)) { Sound.knock(); chips(at, doorMatC, 4, vel); return; } // barred, or off a tall leaf's target: a ball only knocks
-    if (dr.kind === "tall") lf.tgG.visible = false;
-    lf.opening = true; lf.tg.forEach(m => { m.material = targetOff; }); Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); chips(at, doorMatC, 6, vel); addScore(15);
+    if (dr.kind === "tall") lf.tg.forEach(m => { m.material = targetHitMat; }); // a hit target turns turquoise and stops
+    lf.opening = true; if (dr.kind !== "tall") lf.tg.forEach(m => { m.material = targetOff; }); Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); chips(at, doorMatC, 6, vel); addScore(15);
     if (dr.leaves.every(l => l.opening)) { dr.open = true; balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); }
   }
   // what a point (world) touches on a door: a chain, the bolt, a leaf, or nothing; in the door's own frame for leaves
@@ -3140,8 +3141,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         for (const c of dr.chains) c.mesh.visible = false;
       }
       if (dr.kind === "tall") {
-        for (const lf of dr.leaves) { // the targets circle on their leaves; where each is now, in the door's frame
-          lf.a += lf.w * dt; const x = DOOR_W / 2 + TALL_R * Math.cos(lf.a), y = TALL_TV + TALL_R * Math.sin(lf.a);
+        for (const lf of dr.leaves) { // the targets run up and down the middle of their leaves, the two the opposite ways; where each is, in the door's frame
+          if (!lf.opening) lf.a += Math.abs(lf.w) * dt; const x = DOOR_W / 2, y = TALL_TV + TALL_A * Math.sign(lf.w) * Math.sin(lf.a);
           lf.tgG.position.x = x; lf.tgG.position.y = y; lf.tx = lf.sd * (DOOR_W - x); lf.ty = y;
         }
         for (const sp of dr.steam) { const d = sp.userData, q = time * 0.35 + d.ph; sp.position.set(d.u + Math.sin(q) * 0.6, d.v + Math.sin(q * 1.3) * 0.15, d.z + Math.cos(q * 0.8) * 0.4); sp.scale.setScalar(d.sc * (1 + 0.12 * Math.sin(q * 1.7))); }
@@ -3897,8 +3898,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         feats: ["A triangular profile that turns and changes", "Gates with doors on counterweights", "Finale Tessera: a ruby mosaic"] },
       tao: { ru: "The Way", desc: "The way from Speculum to Lux through round moon gates. Ink and rice paper: in the Light white with a scarlet seal, in the Dark black ink with a jade glow. Mist drifts over the track and a yin-yang sign slowly turns.",
         feats: ["Yin-yang gates: buttons part the halves", "Rams on chains beside the track and hammer mills", "Finale Taiji: yin and yang in turn"] },
-      speculum: { ru: "Mirror Across the way prisms gather light into beams that hovering mirrors bounce into a web: break a prism or a mirror to get through. Tall gates in drifting steam open to hits on the targets circling their leaves; monoliths hang on chains.", desc: "Mirror halls. Behind the glass walls the corridor repeats, and beside each real crystal its reflection may hang. A reflection gives no balls, and a shot at it costs a ball.",
-        feats: ["Mirror walls: the corridor runs off into reflections", "False crystals: a reflection flickers and spins the other way", "Prisms and mirrors: beams of light in a web across the way", "Tall gates with circling targets", "Finale Reflexio: targets in pairs"] },
+      speculum: { ru: "Mirror Across the way prisms gather light into beams that hovering mirrors bounce into a web: break a prism or a mirror to get through. Tall gates in drifting steam open to hits on the targets running up and down their leaves; monoliths hang on chains.", desc: "Mirror halls. Behind the glass walls the corridor repeats, and beside each real crystal its reflection may hang. A reflection gives no balls, and a shot at it costs a ball.",
+        feats: ["Mirror walls: the corridor runs off into reflections", "False crystals: a reflection flickers and spins the other way", "Prisms and mirrors: beams of light in a web across the way", "Tall gates with running targets", "Finale Reflexio: targets in pairs"] },
       abyssus: { ru: "Abyss", desc: "A narrow bridge over the abyss, with no walls or ceiling. Steel gates rise across the bridge, with cup anemometers spinning over the frame: hit them all and the leaves slide apart. Glass and shades rise from the void below. The Dark pulls harder here.",
         feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
       carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang steel grates on chains, floating laser bars and grids, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
@@ -5256,7 +5257,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     paneAhead(d, u, v, w, h) { addPane({ s: sC + d, u, v, w, h, tag: 'T' }); }, tagAlive: () => panes.some(p => p.alive && p.tag === 'T'),
     ballAt(d, u, v, iron) { frameAt(sC + d); const m = new THREE.Mesh(ballGeo, iron ? ironBallMat : ballMat); m.position.copy(_P).addScaledVector(_R, u).addScaledVector(_U, v); scene.add(m); ballsArr.push({ mesh: m, v: _T.clone().multiplyScalar(44), p0: m.position.clone(), life: 0, hit: false, vol: 1, iron }); },
     shootAt(d, u, v) { const from = camera.position.clone(); frameAt(sC + d); const t = _P.clone().addScaledVector(_R, u).addScaledVector(_U, v); launch(from, t.sub(from).normalize(), 1); }, panesAlive: () => panes.filter(p => p.alive && p.s > sC).length,
-    prismAudit(n) { let bad = 0, total = 0, mir = 0; for (let i = 0; i < n; i++) { const set = addPrisms(sC + 40 + i * 0.01); if (!set) continue; mir = Math.max(mir, set.prisms.reduce((a, p) => a + p.mirrors.length, 0)); for (const pr of set.prisms) { total++; const t = tracePrism(set, pr); const own = tracePrism(set, pr, true); if (t.segs.length !== own.segs.length || t.segs.some((sg, j) => sg.some((x, q) => Math.abs(x - own.segs[j][q]) > 1e-3))) bad++; } scene.remove(set.root); prismSets.pop(); } return { bad, total, mir }; },
+    prismAudit(n) { let bad = 0, total = 0, mir = 0, pairs = 0, sym = 0; for (let i = 0; i < n; i++) { const set = addPrisms(sC + 40 + i * 0.01); if (!set) continue; mir = Math.max(mir, set.prisms.reduce((a, p) => a + p.mirrors.length, 0)); if (set.prisms.length === 2) { pairs++; const [a, b] = set.prisms; if (Math.abs(a.u + b.u) < 1e-6 && Math.abs(a.v - b.v) < 1e-6 && a.mirrors.every((m, i) => b.mirrors[i] && Math.abs(m.u + b.mirrors[i].u) < 1e-6)) sym++; } for (const pr of set.prisms) { total++; const t = tracePrism(set, pr); const own = tracePrism(set, pr, true); if (t.segs.length !== own.segs.length || t.segs.some((sg, j) => sg.some((x, q) => Math.abs(x - own.segs[j][q]) > 1e-3))) bad++; } scene.remove(set.root); prismSets.pop(); } return { bad, total, mir, pairs, sym }; },
     prismLive: () => prismSets.map(x => ({ s: +(x.s - sC).toFixed(1), p: x.prisms.map(p => [p.alive, (p.segs || []).length, +(p.segs || []).reduce((a, q) => a + Math.hypot(q[2] - q[0], q[3] - q[1]), 0).toFixed(2), p.beams.filter(b => b.visible).length]) })),
     prisms(d, n) { return !!addPrisms(sC + d, n); }, prismState: () => prismSets.map(x => ({ s: +(x.s - sC).toFixed(1), cost: x.cost, prisms: x.prisms.map(p => [p.alive, p.mirrors.length, (p.segs || []).length]) })), breakMirrors() { prismSets.forEach(x => x.prisms.forEach(p => p.mirrors.forEach(m => m.alive && breakMirror(x, m, m.wp.clone())))); }, breakPrisms() { prismSets.forEach(x => x.prisms.forEach(p => p.alive && breakPrism(x, p, p.wp.clone()))); },
     breakThick() { const p = panes.find(x => x.alive && x.thick); if (!p) return false; damagePane(p, 0.3, 0.2, new THREE.Vector3().copy(p.T).multiplyScalar(30)); return true; }, openHall: d => openHallAround(sC + d), spawnAt: d => spawnGroupAt(sC + d), ramTh: () => rams.map(r => +r.th.toFixed(3)).join(), ramState2: () => rams.map(r => [+(r.s - sC).toFixed(1), r.glass ? 'g' : 'w', r.side, r.chains.filter(c => c.alive).length]), paneKinds: () => panes.map(p => (p.cross ? 'x' : 'b') + (p.thick ? 'T' : '') + (Array.isArray(p.tilt) ? '3' : p.tilt ? '2' : '') + (p.turn ? 'P' : '')).join(),

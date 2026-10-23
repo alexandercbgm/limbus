@@ -949,7 +949,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
     return new THREE.CanvasTexture(c);
   }
-  const floorTex = texPair(4, 1, false), wallTex = texPair(1, 3, true), blockTex = texPair(2, 2, true);
+  const floorTex = texPair(4, 1, false), wallTex = texPair(1, 3, true), blockTex = texPair(1, 1, true); // floating blocks: only the edge, glowing in the Dark
   const glowTex = glowTexture();
 
   // ---------- materials (recolored every frame from the palette) ----------

@@ -966,6 +966,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // the sodium lamps buzz and now and then fail for a moment
   let flickT = 0, flickV = 1;
   function lampFlicker() { if (time > flickT) { flickT = time + (Math.random() < 0.15 ? rand(0.04, 0.12) : rand(0.3, 2.4)); flickV = Math.random() < 0.2 ? rand(0.05, 0.4) : rand(0.9, 1.3); } return flickV * (0.95 + 0.05 * Math.sin(time * 120)); }
+  // a hexagon of square bar: r is the circumradius at the bar's middle, w its side; corners on ±u, flat top and bottom
+  function hexFrameGeo(r, w) {
+    const ring = (R, sh) => { for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; sh[k ? "lineTo" : "moveTo"](Math.cos(a) * R, Math.sin(a) * R); } return sh; };
+    const d = w / 2 / Math.cos(Math.PI / 6), sh = ring(r + d, new THREE.Shape());
+    sh.holes.push(ring(r - d, new THREE.Path()));
+    return new THREE.ExtrudeGeometry(sh, { depth: w, bevelEnabled: false }).translate(0, 0, -w / 2);
+  }
   const frameMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.25 });
   const safetyMat = new THREE.MeshBasicMaterial({ color: 0xff3a1a }); // Carcer: the red line along a hall's floor
   const wireMat = new THREE.MeshStandardMaterial({ color: 0x9aa2a8, roughness: 0.35, metalness: 0.9 });
@@ -1151,8 +1158,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     pyrL: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(-Math.PI / 2), spikeMat, 90), // pyramid out of the left wall, pointing +u
     pyrR: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(Math.PI / 2), spikeMat, 90),
     gwall: inst(new THREE.BoxGeometry(0.08, H, SL + 0.03), glassWallMat, 280),
-    hex: inst(new THREE.TorusGeometry(4.9, 0.17, 4, 6), frameMat, 90),
-    tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames // hexagonal vault with a flat edge on the floor
+    hex: inst(hexFrameGeo(4.9, 0.34), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
+    tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
     prism: inst(new THREE.OctahedronGeometry(0.75, 0), prismMat, 260),
     ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus and Hortus, squeezed to fit (RING_SX, RING_SY)
     coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),

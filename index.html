@@ -285,7 +285,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate) { visibility: hidden; } /* nothi
   #over .stats, #win .stats { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 4px 12px; margin: 8px 0 10px; }
   #over .stat b, #win .stat b { font-size: 17px; } #over .stat span, #win .stat span { font-size: 9.5px; }
   #pause .btns, #over .btns { grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; margin-top: 8px !important; }
-  #win .btns { grid-template-columns: 1fr 1fr; gap: 6px 8px; margin-top: 8px; }
+  #win .btns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; margin-top: 8px; } #win .btns > * { min-width: 0; overflow: hidden; }
   #win .stats { grid-template-columns: repeat(6, minmax(0, 1fr)); } #win .stat span { font-size: 8.5px; line-height: 1.15; letter-spacing: 0.04em; }
   #win .panel.end .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 4px 0 4px; gap: 2px 10px; } #win .panel.end h1 { font-size: 17px; } #win .panel.end { padding-block: 8px; } #win .panel.end #winNote { margin: 0; }
   #win .panel.end .journey { max-height: calc(100dvh - 60px - var(--safe-top, 0px)); overflow-y: auto; } /* the journey scrolls on its own, the rest stays */
@@ -4430,6 +4430,10 @@ html.tgbuild:not(.tgready) body > :not(.rotate) { visibility: hidden; } /* nothi
       $("againBtn").textContent = againText();
       journey(firstFinish);
       $("win").hidden = false;
+      requestAnimationFrame(() => ["nextBtn", "nextBtn2"].forEach(id => { // a long name that won't fit its button is cut short: Lab.
+        const nb = $(id), nx = byId(nb.dataset.id || ""); if (nb.hidden || !nx || nb.scrollWidth <= nb.clientWidth) return;
+        const sh = nx.latin.slice(0, 3) + "."; nb.textContent = T(`Дальше: ${sh}`, `Next: ${sh}`);
+      }));
     } else {
       const pc = Math.floor(Math.min(1, sC / END_S) * 100);
       $("retryBtn").textContent = againText();

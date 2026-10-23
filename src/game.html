@@ -168,6 +168,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .how .panel { width: min(640px, 100%); }
 .how .panel p { font-size: 14px; margin-top: 8px; }
 .how .rules { margin: 16px 0 18px; }
+/* on a low screen held sideways the help is two pages, turned with a button */
+.how .pg-nav { display: none; }
+.how.paged .pg-nav { display: block; }
+.how.paged.pg1 [data-pg="2"], .how.paged.pg2 [data-pg="1"] { display: none; }
+.how.paged .btns { grid-template-columns: auto 1fr; } .how.paged.pg1 .btns { grid-template-columns: 1fr; }
+.how.paged.pg2 h1 { display: none; } .how.paged .panel p { font-size: 12px; line-height: 1.38; } .how.paged .rules { margin: 8px 0 10px; }
 
 .m-side { display: grid; gap: 8px; justify-items: end; }
 /* Telegram: the scheme's buttons on top, off the scheme; under them the bank and the cannons side by side */
@@ -230,7 +236,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   .map-card { padding: 8px 6px; }
   .map-title { top: 10px; left: 12px; gap: 4px; font-size: 9.5px; }
   .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))); width: 100%; } /* the whole scheme on one screen */
-  .overlay { padding-block: 8px; }
+  .overlay { padding-block: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 8px) calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 8px); }
+  /* the Light–Dark scale sits low on the right, clear of the pause and sound buttons over it */
+  .meter { top: auto; bottom: calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 10px); transform: none; }
+  .meter .track { height: clamp(60px, calc(100dvh - 200px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))), 220px); }
   .panel { padding: 16px 18px; }
   .panel h1 { font-size: 22px; margin-bottom: 6px; }
   .how .panel { width: min(760px, 100%); } .how .panel h1 { margin-bottom: 4px; } .how .panel p { font-size: 12.5px; line-height: 1.42; }
@@ -351,16 +360,20 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 <section class="overlay how" id="how" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="howTitle">
     <h1 id="howTitle" data-en="How to play">Как играть</h1>
-    <p data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it. Space fires at the centre.">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь. Пробел стреляет в центр.</p>
-    <p data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and blue crystals come often, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystal imps and red decoys, and fewer blue crystals, yet each one there gives almost twice the balls and banks two crystals."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, голубые кристаллы попадаются часто, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы-бесы и красные ловушки, а голубых кристаллов меньше — зато каждый даёт почти вдвое больше шаров и два кристалла в запас.</p>
-    <p data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons and upgrades at Armamentarium. Later stations hold more crystals, and tougher glass. Two lines leave Vitrum: the lower through Rubinus to Speculum, the upper through Labyrinthus to Tao, from where the Way of Tao leads through Nox to Lux.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки, пушки и улучшения в Armamentarium. Дальше по линии кристаллов больше, но и стекло прочнее. Из Vitrum расходятся две линии: нижняя через Rubinus к Speculum, верхняя через Labyrinthus к Tao, откуда путь Дао ведёт через Nox к Lux.</p>
-    <ul class="rules">
+    <p data-pg="1" data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it. Space fires at the centre.">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь. Пробел стреляет в центр.</p>
+    <p data-pg="2" data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and blue crystals come often, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystal imps and red decoys, and fewer blue crystals, yet each one there gives almost twice the balls and banks two crystals."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, голубые кристаллы попадаются часто, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы-бесы и красные ловушки, а голубых кристаллов меньше — зато каждый даёт почти вдвое больше шаров и два кристалла в запас.</p>
+    <p data-pg="2" data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons and upgrades at Armamentarium. Later stations hold more crystals, and tougher glass. Two lines leave Vitrum: the lower through Rubinus to Speculum, the upper through Labyrinthus to Tao, from where the Way of Tao leads through Nox to Lux.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки, пушки и улучшения в Armamentarium. Дальше по линии кристаллов больше, но и стекло прочнее. Из Vitrum расходятся две линии: нижняя через Rubinus к Speculum, верхняя через Labyrinthus к Tao, откуда путь Дао ведёт через Nox к Lux.</p>
+    <ul class="rules" data-pg="1">
       <li><b>−1</b><span data-en="ball a shot">шар за выстрел</span></li>
       <li><b>+4/+7</b><span data-en="a blue crystal, for every ball that hits it; +7 in the Dark">голубой кристалл за каждый попавший шар, во Тьме +7</span></li>
       <li><b>−6</b><span data-en="crashing into glass or a spike">удар о стекло или шип</span></li>
       <li><b>−3</b><span data-en="a red crystal or a black-red crystal imp">красный кристалл или чёрно-красный кристалл-бес</span></li>
     </ul>
-    <button class="cta" id="howClose" type="button" data-en="Got it">Понятно</button>
+    <div class="btns">
+      <button class="cta pg-nav" id="howNext" type="button" data-pg="1" data-en="Next →">Дальше →</button>
+      <button class="ghost pg-nav" id="howPrev" type="button" data-pg="2" data-en="← Back">← Назад</button>
+      <button class="cta" id="howClose" type="button" data-pg="2" data-en="Got it">Понятно</button>
+    </div>
   </div>
 </section>
 
@@ -5527,7 +5540,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   }
   document.querySelectorAll(".snd").forEach(b => b.addEventListener("click", () => { Sound.setMuted(!Sound.muted); syncMute(); }));
   $("langBtn").addEventListener("click", () => setLang(LANG === "ru" ? "en" : "ru"));
-  $("howBtn").addEventListener("click", () => { $("how").hidden = false; $("howClose").focus(); });
+  const howPage = n => { const h = $("how"), paged = matchMedia("(orientation: landscape) and (max-height: 430px)").matches;
+    h.classList.toggle("paged", paged); h.classList.toggle("pg1", n === 1); h.classList.toggle("pg2", n === 2); h.scrollTop = 0; };
+  $("howBtn").addEventListener("click", () => { $("how").hidden = false; howPage(1); ($("how").classList.contains("paged") ? $("howNext") : $("howClose")).focus(); });
+  $("howNext").addEventListener("click", () => { howPage(2); $("howClose").focus(); });
+  $("howPrev").addEventListener("click", () => { howPage(1); $("howNext").focus(); });
   $("howClose").addEventListener("click", () => { $("how").hidden = true; });
   $("how").addEventListener("click", e => { if (e.target === $("how")) $("how").hidden = true; });
 

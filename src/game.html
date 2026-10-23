@@ -2523,7 +2523,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // how far a beam from (u, v) along (du, dv) runs before it meets a wall, the floor or the vault
   function beamReach(u, v, du, dv, max, s) {
     const hall = s !== undefined && LEVEL.halls && inHall(s), ww = hall ? HALL_W : SW, wh = hall ? HALL_H : SH; // in a hall, its own walls and vault
-    const u0 = STYLE.bridge ? -60 : -ww + 0.04, u1 = -u0, v0 = 0.03, v1 = STYLE.bridge ? 60 : wh - 0.04; // a beam runs on till it meets something
+    // a beam runs on till it meets something: where a wall or the roof is missing, it shines on out into the open
+    const dk = s !== undefined ? decor.get(Math.floor(s / SL)) : null, open = STYLE.bridge;
+    const u0 = open || (dk && !dk.wl) ? -60 : -ww + 0.04, u1 = open || (dk && !dk.wr) ? 60 : ww - 0.04, v0 = 0.03, v1 = open || (dk && !dk.ceil) ? 60 : wh - 0.04;
     let tm = max;
     if (du > 1e-6) tm = Math.min(tm, (u1 - u) / du); else if (du < -1e-6) tm = Math.min(tm, (u0 - u) / du);
     if (dv > 1e-6) tm = Math.min(tm, (v1 - v) / dv); else if (dv < -1e-6) tm = Math.min(tm, (v0 - v) / dv);
@@ -2866,7 +2868,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const c of sp.cones) {
         const a = sp.a + c.i * Math.PI / 2 + Math.PI / 2, du = Math.cos(a), dv = Math.sin(a); // the arm's local +y, turned
         c.du = du; c.dv = dv;
-        c.len = beamReach(sp.hu + du * CONE_OUT, sp.hv + dv * CONE_OUT, du, dv, MILL_L); setBeamLen(c.beam, c.alive ? c.len : 0);
+        c.len = beamReach(sp.hu + du * CONE_OUT, sp.hv + dv * CONE_OUT, du, dv, MILL_L, sp.s); setBeamLen(c.beam, c.alive ? c.len : 0);
         c.wp.set(du * (CONE_IN + CONE_OUT) / 2, dv * (CONE_IN + CONE_OUT) / 2, 0).applyMatrix4(sp.root.matrix);
         // a cone that would reach into the wall is still drawn; its beam just has no length
       }
@@ -2967,17 +2969,19 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     for (let i = 0; i < N; i++) { const a = i * 2, b = a + 2, e = 2 * (N + 1) + i * 2, f = e + 2; // inner (two faces) to the cutting line (one)
       idx.push(e, a + 1, f, f, a + 1, b + 1, e + 1, f + 1, a + 1, f + 1, b + 1, a + 1); }
     g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3)); g.setIndex(idx); g.computeVertexNormals(); return g; })();
-  const HM_PIER = 3.4, hmPostGeo = new THREE.BoxGeometry(0.34, HM_V + 2, 0.34), hmAxleGeo = new THREE.BoxGeometry(1.6, 0.3, 0.3), hmHeadGeo = new THREE.BoxGeometry(1.5, 0.85, 1.0), hmCapGeo = new THREE.BoxGeometry(1.58, 0.16, 1.08);
+  const HM_PIER = 3.4, HM_BACK = 1.0, hmArmGeo = new THREE.BoxGeometry(0.3, 0.3, 1.0 - 0.3), hmPostGeo = new THREE.BoxGeometry(0.34, HM_V + 2, 0.34), hmAxleGeo = new THREE.BoxGeometry(1.6, 0.3, 0.3), hmHeadGeo = new THREE.BoxGeometry(1.5, 0.85, 1.0), hmCapGeo = new THREE.BoxGeometry(1.58, 0.16, 1.08);
   // axe (Carcer): a headsman's mill on a stone pillar behind it, four single-bitted axes or two double-bitted ones
   function addHammerMill(s, side, dir, count = 2, axe = false) {
     if (!axe) for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc[side < 0 ? "wl" : "wr"] = false; dc.arch = false; dc.pyr = null; }
-    const root = new THREE.Group(); root.matrixAutoUpdate = false; root.add(new THREE.Mesh(hmHubGeo, frameMat));
+    const root = new THREE.Group(); root.matrixAutoUpdate = false; root.add(new THREE.Mesh(hmHubGeo, axe ? frameMat : steelMat)); // the hub the handles turn on, in steel
     if (axe) { // the pillar stands behind the mill, so the axes sweep clear of it
       const pl = new THREE.Mesh(pillarGeo, blockMat); pl.position.set(0, HALL_H / 2 - 3.7, -1.0); root.add(pl);
       const ax = new THREE.Mesh(hmAxleGeo, frameMat); ax.rotation.y = Math.PI / 2; ax.scale.x = 0.7; ax.position.z = -0.5; root.add(ax);
     } else { // the axle runs out past the wall, clear of the heads' sweep, and a post takes it down into the embankment, like a bridge's pier
-      const axle = new THREE.Mesh(hmAxleGeo, frameMat); axle.scale.x = HM_PIER / 1.6; axle.position.x = side * HM_PIER / 2; root.add(axle);
-      const post = new THREE.Mesh(hmPostGeo, frameMat); post.position.set(side * HM_PIER, 0.15 - (HM_V + 2) / 2, 0); root.add(post);
+      // the pier stands behind the plane the hammers turn in, parallel to it; an arm comes out of it toward the cart to the hub
+      const beam = new THREE.Mesh(hmAxleGeo, frameMat); beam.scale.x = HM_PIER / 1.6; beam.position.set(side * HM_PIER / 2, 0, -HM_BACK); root.add(beam);
+      const post = new THREE.Mesh(hmPostGeo, frameMat); post.position.set(side * HM_PIER, 0.15 - (HM_V + 2) / 2, -HM_BACK); root.add(post);
+      const arm = new THREE.Mesh(hmArmGeo, frameMat); arm.position.z = -HM_BACK / 2 - 0.15; root.add(arm);
     }
     const rotor = new THREE.Group(); root.add(rotor);
     const step = TAU / count, arms = Array.from({ length: count }, (_, i) => {
@@ -4857,7 +4861,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         const bu = hg.u0 + hg.body.position.x, bv = hg.top + hg.body.position.y, rz = hg.body.rotation.z, c = Math.cos(rz), sn2 = Math.sin(rz);
         for (const em of hg.emitters) {
           const ax = bu + em.x * c + hg.h / 2 * sn2, ay = bv + em.x * sn2 - hg.h / 2 * c;
-          em.len = beamReach(ax, ay, sn2, -c, 12); setBeamLen(em.beam, em.alive ? em.len : 0);
+          em.len = beamReach(ax, ay, sn2, -c, 12, hg.s); setBeamLen(em.beam, em.alive ? em.len : 0);
           if (em.alive && state === "play" && !hg.lasHit && Math.abs(hg.s - sC) < 0.6 && beamHitsCart(ax, ay, ax + em.len * sn2, ay - em.len * c)) { hg.lasHit = true; laserHit(); }
         }
       }

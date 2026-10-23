@@ -2328,7 +2328,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       g.fillStyle = col; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "700 32px 'JetBrains Mono', monospace"; g.fillText(word, cx, h - 28);
     }, 512, 256));
   }
-  const sidePlateGeo = new THREE.PlaneGeometry(2.8, 1.4);
+  const sidePlateGeo = new THREE.PlaneGeometry(3.7, 1.85);
   const signTexes = {};
   function signTex(kind) {
     const key = kind + LANG, [bar, head, sub] = SIGNS[kind];
@@ -2356,9 +2356,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const swS = f.s - 30, vis = swS > sC - 4 && swS - sC < AHEAD - 6;
       f.sw.visible = vis;
       if (vis) { setObj(f.sw, swS, 0, 4.4); f.wp.setFromMatrixPosition(f.sw.matrix); }
-      for (const pl of f.plates) { // the side the arrow points to is lit, the other dim
-        pl.mesh.visible = vis; if (!vis) continue;
-        placeM(pl.mesh.matrix, swS, -pl.side * 2.4, 4.4); pl.mesh.matrixWorldNeedsUpdate = true; // a fork's side +1 turns left
+      for (const pl of f.plates) { // well ahead of the switch, either side of the way; the side the arrow points to is lit, the other dim
+        const ps = swS - 14; pl.mesh.visible = ps > sC - 4 && ps - sC < AHEAD - 6; if (!pl.mesh.visible) continue;
+        placeM(pl.mesh.matrix, ps, -pl.side * 2.3, 4.8); pl.mesh.matrixWorldNeedsUpdate = true; // a fork's side +1 turns left
         pl.mesh.material.opacity += ((pl.side === f.sign ? 1 : 0.35) - pl.mesh.material.opacity) * Math.min(1, dt * 10);
       }
       // the arrow points along the branch taken: the plaque is mirrored for a left turn
@@ -3758,7 +3758,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       forks: [330, 720, 1110],
       pats: { rotor: [1.1, 1.5, 1.7], rotor2: [0.6, 1, 1.3], grams: [1, 1.4, 1.6], shutter: [0, 1.5, 2.5], slider: [1, 2, 2], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], sides: [1, 0.6, 0], bonus: [1, 0.3, 0], triple: [0.6, 1, 0.8] },
       turns: [[120, 50, 40], [220, 50, -40], [480, 60, 60], [600, 50, -50], [880, 60, -60], [980, 50, 50], [1250, 60, 45], [1360, 50, -45]],
-      desc: "Замкнутые изумрудные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Одна ветка богатая, другая тихая, а невыбранная заканчивается тупиком. В коридорах вращаются массивные стеклянные кресты, а в открытых залах качаются на цепях стеклянные блоки.",
+      desc: "Замкнутые изумрудные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Богатая ветка (бирюзовые кристаллы) даёт вдвое больше кристаллов, но там кресты и блоки; тихая (белое солнце) — только стёкла, и она тянет к Свету. В коридорах вращаются массивные стеклянные кресты, а в открытых залах качаются на цепях стеклянные блоки.",
       feats: ["Три развилки: стрелку переводят выстрелом", "Вращающиеся стеклянные крестовины", "Финал Portae: стеклянные врата с ключами"],
       req: { after: "vitrum" }, map: { x: 410, y: 190, label: "t" } },
     { id: "hortus", num: "III·a", latin: "Hortus", ru: "Сад", line: "branch", playable: true, music: "glass_horizon", len: 900, pal: PAL_HORTI, finale: "vindemia",
@@ -3835,7 +3835,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         feats: ["Monoliths on chains and pendulums across the track", "Turning glass bars, crosses and their sequences", "Finale Ruina: falling boulders"] },
       armamentarium: { ru: "Armoury", desc: "A dead-end depot by Vitrum station. Here crystals buy new cannons and upgrades for the cart.",
         feats: ["The Triplex, Gemini and Lumen cannons", "Upgrades: a bigger reserve, a second wind, more bounty from crystals", "What you buy stays yours; switch cannons in the menu"] },
-      labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. One branch is rich, the other quiet, and the one not taken ends in a dead end. Solid glass crosses turn in the corridors, and in the open halls glass blocks swing on chains.",
+      labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. The rich branch (turquoise crystals) gives twice the crystals but holds crosses and blocks; the quiet one (a white sun) has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors, and in the open halls glass blocks swing on chains.",
         feats: ["Three forks: flip the switch with a shot", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       hortus: { ru: "Garden", desc: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it.",
         feats: ["Lashing boughs with crystals", "After a ride Gemini costs half at the depot", "Finale Vindemia: the harvest"] },

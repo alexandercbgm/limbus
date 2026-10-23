@@ -17,13 +17,13 @@ const SCENE = {
   hortus: { at: 262, put: r => { r.bough(24, 1); r.bough(36, -1); } },
   speculum: { at: 272, put: r => { r.prisms(36, 2); r.crystalAhead(24, -1.4, 2.6); } },
   abyssus: { at: 292, put: r => { r.gearsAt(40, true); r.crystalAhead(24, 0.8, 2.4); } },
-  lux: { at: 532, put: r => { r.quiet(); r.spinner(14, -1, 1); r.spinner(20, 1, -1); r.lblock(28, 'h'); } }, // glass walls open on the sky
-  rubinus: { at: 292, put: r => { r.quiet(); r.glassBar('grams2', 11); r.noCrystals(); } }, // a pair, swinging as one
-  tao: { at: 282, put: r => { for (let i = 0; i < 9; i++) Math.random(); r.rams(12); r.hammer(14, 1, 1, 2); } }, // the log on the left, clear of the middle
+  lux: { at: 532, altL: -0.2, put: r => { r.quiet(); r.spinner(14, -1, 1); r.spinner(20, 1, -1); r.lblock(28, 'h'); } }, // glass walls open on the sky
+  rubinus: { at: 292, put: r => { r.quiet(); r.glassBar('grams', 11); r.rotor(15); r.noCrystals(); } }, // a glass ram, and a cross turning past it
+  tao: { at: 282, put: r => { for (let i = 0; i < 4; i++) Math.random(); r.rams(9); r.hammer(14, 1, 1, 2); } }, // the log near, on the left; hammers on the right
   carcer: { at: 'hall', put: r => { r.carcer('grate1', 24); r.carcer('top', 40); } },
 };
 // SCENES='{"tao":{"at":282,"put":"r => { ... }"}}' tries other scenes, without touching the ones above
-if (process.env.SCENES) for (const [id, sc] of Object.entries(JSON.parse(process.env.SCENES))) SCENE[id] = { at: sc.at, put: sc.put };
+if (process.env.SCENES) for (const [id, sc] of Object.entries(JSON.parse(process.env.SCENES))) SCENE[id] = { at: sc.at, put: sc.put, altL: sc.altL };
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader'] });
   const pg = await b.newPage({ viewport: { width: 960, height: 540 } });
@@ -33,7 +33,7 @@ if (process.env.SCENES) for (const [id, sc] of Object.entries(JSON.parse(process
   await pg.goto('http://127.0.0.1:8766/index.html#all');
   await pg.waitForTimeout(800);
   for (const id of (process.env.ONLY ? process.env.ONLY.split(',') : Object.keys(SCENE))) {
-    for (const [alt, tag] of [[0.5, 'L'], [-0.95, 'D']]) {
+    for (const [alt, tag] of [[SCENE[id].altL ?? 0.5, 'L'], [-0.95, 'D']]) { // altL: a light shot less deep in the Light, where the white would wash out
       await pg.evaluate(id => window.__rails.level(id), id);
       await pg.waitForTimeout(3000);
       let at = SCENE[id].at;

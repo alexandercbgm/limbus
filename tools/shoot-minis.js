@@ -19,10 +19,10 @@ const FEAT = {
 };
 // set down once the cart has run on, just before the shot, so they stand where they are asked to
 // (the way ahead is first cleared where the cart stands, so nothing else gets into the shot)
-const LATE = {
-  abyssus: r => { r.jump(r.branchInfo().sC); r.gearsAt(36, true); }, // Nox: a pair of gears over the bridge
-  lux: r => { r.jump(r.branchInfo().sC); r.gate(34, 'iris'); r.spinner(20, 1, 1); },
-  tao: r => { r.jump(r.branchInfo().sC); r.gate(36, 'taiji'); r.hammer(20, -1, 1, 2); },
+const LATE = { // on a straight run, the way ahead cleared: the level itself down the track
+  abyssus: r => { r.jump(292); },
+  lux: r => { r.jump(302); r.crystalAhead(40, 0, 2.4); },
+  tao: r => { r.jump(284); r.crystalAhead(40, 0, 2.4); },
 };
 (async () => {
   const b = await chromium.launch({ args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader'] });

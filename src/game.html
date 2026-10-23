@@ -141,7 +141,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .m-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
 .logo { font-family: var(--display); font-weight: 700; font-size: clamp(40px, 11vw, 76px); letter-spacing: 0.22em; line-height: 1; margin: 0; }
 .logo span { color: #1d6f8f; }
-.tagline { margin: 8px 0 0; color: #4c6470; font-size: 14px; }
 /* the bank is a readout, not a button: a pale plate with dark text */
 .bank { font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 4px; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; display: flex; gap: 8px; align-items: center; }
 .bank b { font-size: 18px; color: #1287b5; font-variant-numeric: tabular-nums; }
@@ -226,7 +225,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   .menu-in { gap: 10px; padding-block: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 10px) calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 12px); max-width: none; }
   .m-head { align-items: center; flex-wrap: nowrap; }
   .logo { font-size: 30px; }
-  .tagline { display: none; }
   .m-side { grid-auto-flow: column; align-items: center; }
   .bank { padding: 7px 10px; font-size: 12px; } .bank b { font-size: 15px; }
   .map-card { padding: 8px 6px; }
@@ -309,7 +307,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 <div class="titlecard" id="titlecard" hidden></div>
 
 <div class="rotate" id="rotate" hidden>
-  <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="15" y="5" width="18" height="38" rx="3"/><path d="M21 38h6"/></svg>
+  <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="15" y="5" width="18" height="38" rx="3"/><path d="M21 10h6"/></svg>
   <div data-en="Turn your phone sideways">Поверните телефон горизонтально</div>
   <button type="button" id="rotateSkip" data-en="Play upright">Играть вертикально</button>
 </div>
@@ -318,7 +316,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     <header class="m-head">
       <div>
         <h1 class="logo">LIMB<span>U</span>S</h1>
-        <p class="tagline" data-en="Rails between the Light and the Dark. Pick a station on the scheme.">Рельсы между Светом и Тьмой. Выберите станцию на схеме.</p>
       </div>
       <div class="m-side">
         <div class="bank" title="Кристаллы, собранные на пройденных уровнях. Ими платят за проезд по веткам и оружие." data-en-title="Crystals gathered on finished levels. They pay branch fares and buy cannons.">◆ <b id="bank">0</b> <span data-en="crystals in the bank">кристаллов в запасе</span></div>

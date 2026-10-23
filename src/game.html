@@ -330,7 +330,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     <h1 id="howTitle" data-en="How to play">Как играть</h1>
     <p data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it; Space fires at the centre.">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь; пробел стреляет в центр.</p>
     <p data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and blue crystals come often, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystal imps and red decoys, and fewer blue crystals, yet each one there gives almost twice the balls and banks two crystals."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, голубые кристаллы попадаются часто, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы-бесы и красные ловушки, а голубых кристаллов меньше — зато каждый даёт почти вдвое больше шаров и два кристалла в запас.</p>
-    <p data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons and upgrades at Armamentarium. Later stations hold more crystals, and tougher glass. Two lines lead to Abyssus, one is enough; Lux can also be reached through Tao.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки, пушки и улучшения в Armamentarium. Дальше по линии кристаллов больше, но и стекло прочнее. К Abyssus ведут две линии, хватит одной; к Lux можно доехать и через Tao.</p>
+    <p data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons and upgrades at Armamentarium. Later stations hold more crystals, and tougher glass. Two lines leave Vitrum: the lower through Rubinus to Speculum, the upper through Labyrinthus to Abyssus, from where the Way of Tao leads to Lux.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки, пушки и улучшения в Armamentarium. Дальше по линии кристаллов больше, но и стекло прочнее. Из Vitrum расходятся две линии: нижняя через Rubinus к Speculum, верхняя через Labyrinthus к Abyssus, откуда путь Tao ведёт к Lux.</p>
     <ul class="rules">
       <li><b>−1</b><span data-en="ball a shot">шар за выстрел</span></li>
       <li><b>+4/+7</b><span data-en="a blue crystal, for every ball that hits it; +7 in the Dark">голубой кристалл за каждый попавший шар, во Тьме +7</span></li>
@@ -3954,9 +3954,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       req: { after: "initium" }, map: { x: 270, y: 330, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
-      desc: "Тупиковый склад при станции Vitrum. Здесь за кристаллы ставят на вагонетку новые пушки и улучшения.",
+      desc: "Тупиковый склад за Садом (Hortus). Здесь за кристаллы ставят на вагонетку новые пушки и улучшения.",
       feats: ["Пушки Triplex, Gemini и Lumen", "Улучшения: запас шаров, второе дыхание, щедрость кристаллов", "Купленное остаётся навсегда; пушку можно сменить в меню"],
-      req: { after: "vitrum", toll: 15 }, map: { x: 385, y: 440, label: "t", dy: -5 } },
+      req: { after: "hortus", toll: 15 }, map: { x: 385, y: 440, label: "t", dy: -5 } },
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.2,
       forks: [330, 720, 1110],
@@ -3979,7 +3979,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         grams: [0.7, 1, 1.2] }, // and glass blocks on chains, as in Labyrinthus
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 45], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
-      desc: "Обходной путь от Vitrum к Abyssus сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат противовесы на цепях: собейте груз, и его дверца отъедет. Поперёк пути вращаются массивные стеклянные кресты и качаются на цепях стеклянные блоки.",
+      desc: "Нижний путь от Vitrum к Speculum сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат противовесы на цепях: собейте груз, и его дверца отъедет. Поперёк пути вращаются массивные стеклянные кресты и качаются на цепях стеклянные блоки.",
       feats: ["Треугольный профиль, который поворачивается и меняется", "Ворота с дверцами на противовесах", "Финал Tessera: мозаика из рубинов"],
       req: { after: "vitrum" }, map: { x: 500, y: 330, label: "t" } }, // midway between Vitrum and Abyssus
     { id: "tao", num: "IV·a", latin: "Tao", ru: "Дао", playable: true, music: "translucent_corridor", len: 1500, pal: PAL_TAO, finale: "taiji",
@@ -3989,9 +3989,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         center: [2, 2, 1.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], bough: [0.8, 1, 1], double: [0, 1, 1.5], reinf: [0, 0.6, 1.5], imps: [0, 0.6, 2] },
       turns: [[100, 60, 45], [220, 60, -55], [340, 50, 45], [460, 70, -70], [600, 50, 50], [710, 60, -50], [830, 50, 45],
         [950, 70, -65], [1090, 50, 50], [1190, 60, -50], [1310, 50, 40], [1400, 50, -35]],
-      desc: "Путь от Speculum к Lux сквозь круглые лунные врата. Тушь и рисовая бумага: в Свете белое с алой печатью, во Тьме чёрная тушь с нефритовым свечением. Над путём плывёт туман и медленно вращается знак инь-ян.",
+      desc: "Путь от Abyssus к Lux сквозь круглые лунные врата. Тушь и рисовая бумага: в Свете белое с алой печатью, во Тьме чёрная тушь с нефритовым свечением. Над путём плывёт туман и медленно вращается знак инь-ян.",
       feats: ["Ворота инь-ян: кнопки раздвигают половины", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
-      req: { after: "speculum" }, map: { x: 770, y: 190, label: "t" } },
+      req: { after: "abyssus" }, map: { x: 770, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "luminous_path", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45,
       pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], prisms: [0.9, 1.3, 1.6],
@@ -4000,7 +4000,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],
       desc: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар. Поперёк пути призмы собирают свет в лучи, а парящие зеркала отражают их в сетку: разбейте призму или зеркало, чтобы проехать. Высокие ворота в клубах пара открываются попаданием в бегущие по створкам мишени; висят и монолиты на цепях.",
       feats: ["Зеркальные стены: коридор уходит в отражения", "Ложные кристаллы: отражение мерцает и вращается в обратную сторону", "Призмы и зеркала: лучи света сеткой поперёк пути", "Высокие ворота с бегущими мишенями", "Финал Reflexio: мишени парами"],
-      req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
+      req: { after: "rubinus" }, map: { x: 730, y: 330, label: "t", dx: 12 } },
     { id: "abyssus", num: "V", latin: "Abyssus", ru: "Бездна", playable: true, music: "through_the_glass_corridor", len: 1500, pal: PAL_ABYSSUS, finale: "rota",
       style: { arch: "none", blocks: "cube", glassWalls: false, bridge: true }, crystalMul: 1.45, armor: 1, driftMul: 1.5, gateKinds: ["v"],
       pats: { doors: [1.5, 2, 2], rise: [1, 2, 2.5], shades: [0, 1.2, 2.5], center: [1.6, 1.6, 1.2], slider: [0.8, 1.5, 1.5], double: [0, 0.8, 1.6], triple: [0.8, 1.2, 0.8], sides: [1.6, 0.6, 0], bonus: [2, 0.5, 0], reinf: [0, 0.5, 1.6], imps: [0, 0, 0],
@@ -4010,7 +4010,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
       desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота, над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее. Над мостом вращаются лазерные мельницы и парят планки с тремя лазерами, огромные шестерни опускают зубья на рельсы — сбейте те, что на пути, — и парят стеклянные блоки.",
       feats: ["Ворота из тёмного стекла: откройте их вертушками", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
-      req: { after: "speculum", or: "rubinus" }, map: { x: 730, y: 330, label: "t", dx: 12 } },
+      req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 1200, pal: PAL_CARCER, finale: "custodes",
       // corridors only link the halls; the halls, wider and higher, hold the traps
       style: { arch: "square", blocks: "cube", glassWalls: false }, halls: true, crystalMul: 2.0, armor: 1, driftMul: 1.2, lightMul: 2.0, speedMul: 0.88, spaceMul: 1.4, thorns: { from: 0.45, mul: 0.8 }, decoyMul: 0.5,
@@ -4021,7 +4021,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35], [860, 50, -45], [980, 60, 50], [1090, 50, -40]],
       desc: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах стальные решётки на цепях, парящие лазерные балки и сетки и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
       feats: ["Залы с решётками на цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Custodes с сейфом"],
-      req: { after: "abyssus", fare: 30 }, map: { x: 825, y: 440, label: "t", dy: -5 } },
+      req: { after: "speculum", fare: 30 }, map: { x: 825, y: 440, label: "t", dy: -5 } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 1600, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "prism", glassWalls: true }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
       gateKinds: ["iris"], gateButton: "dome",
@@ -4030,7 +4030,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         [980, 70, -75], [1120, 50, 50], [1230, 60, -55], [1350, 50, 45], [1450, 60, -50]],
       desc: "Конечная. Белые залы со стеклянными стенами. Путь стерегут красные лазеры: вертушки в разрывах стен, парящие блоки, балки на цепях. Луч через вагонетку стоит 3 шара. Переборки с диафрагмой открываются кнопками. Подъём к Свету здесь самый тяжёлый.",
       feats: ["Красные лазеры: вертушки, блоки, балки на цепях", "Переборки с диафрагмой и кнопками", "Финал Triumphus: суперигры пройденных станций по очереди"],
-      req: { after: "abyssus", or: "tao" }, map: { x: 910, y: 330, label: "t", dx: 12 } }, // above and to the right, clear of the Tao line
+      req: { after: "tao" }, map: { x: 910, y: 330, label: "t", dx: 12 } }, // above and to the right, clear of the Tao line
   ];
   // ---------- English: the level, cannon and finale texts; Russian is what the tables above hold ----------
   const EN = {
@@ -4041,19 +4041,19 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         feats: ["2.2 times the crystals", "A short ride, about a minute", "Finale Pluvia: a rain of crystals"] },
       vitrum: { ru: "Glass", desc: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, alone and in sequences.",
         feats: ["Monoliths on chains and pendulums across the track", "Turning glass bars, crosses and their sequences", "Finale Ruina: falling boulders"] },
-      armamentarium: { ru: "Armoury", desc: "A dead-end depot by Vitrum station. Here crystals buy new cannons and upgrades for the cart.",
+      armamentarium: { ru: "Armoury", desc: "A dead-end depot beyond the Garden (Hortus). Here crystals buy new cannons and upgrades for the cart.",
         feats: ["The Triplex, Gemini and Lumen cannons", "Upgrades: a bigger reserve, a second wind, more bounty from crystals", "What you buy stays yours; switch cannons in the menu"] },
       labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. The rich branch (turquoise crystals) gives twice the crystals but holds crosses and blocks; the quiet one (a white sun) has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors, and in the open halls glass blocks swing on chains.",
         feats: ["Three forks: flip the switch with a shot", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       hortus: { ru: "Garden", desc: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it.",
         feats: ["Lashing boughs with crystals", "After a ride Gemini costs half at the depot", "Finale Vindemia: the harvest"] },
-      rubinus: { ru: "Ruby Solid glass crosses turn across the way and glass blocks swing on chains.", desc: "A detour from Vitrum to Abyssus through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by counterweights on chains: shoot a weight down and its door slides away.",
+      rubinus: { ru: "Ruby", desc: "The lower way from Vitrum to Speculum through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by counterweights on chains: shoot a weight down and its door slides away. Solid glass crosses turn across the way and glass blocks swing on chains.",
         feats: ["A triangular profile that turns and changes", "Gates with doors on counterweights", "Finale Tessera: a ruby mosaic"] },
-      tao: { ru: "The Way", desc: "The way from Speculum to Lux through round moon gates. Ink and rice paper: in the Light white with a scarlet seal, in the Dark black ink with a jade glow. Mist drifts over the track and a yin-yang sign slowly turns.",
+      tao: { ru: "The Way", desc: "The way from Abyssus to Lux through round moon gates. Ink and rice paper: in the Light white with a scarlet seal, in the Dark black ink with a jade glow. Mist drifts over the track and a yin-yang sign slowly turns.",
         feats: ["Yin-yang gates: buttons part the halves", "Rams on chains beside the track and hammer mills", "Finale Taiji: yin and yang in turn"] },
-      speculum: { ru: "Mirror Across the way prisms gather light into beams that hovering mirrors bounce into a web: break a prism or a mirror to get through. Tall gates in drifting steam open to hits on the targets running up and down their leaves; monoliths hang on chains.", desc: "Mirror halls. Behind the glass walls the corridor repeats, and beside each real crystal its reflection may hang. A reflection gives no balls, and a shot at it costs a ball.",
+      speculum: { ru: "Mirror", desc: "Mirror halls. Behind the glass walls the corridor repeats, and beside each real crystal its reflection may hang. A reflection gives no balls, and a shot at it costs a ball. Across the way prisms gather light into beams that hovering mirrors bounce into a web: break a prism or a mirror to get through. Tall gates in drifting steam open to hits on the targets running up and down their leaves; monoliths hang on chains.",
         feats: ["Mirror walls: the corridor runs off into reflections", "False crystals: a reflection flickers and spins the other way", "Prisms and mirrors: beams of light in a web across the way", "Tall gates with running targets", "Finale Reflexio: targets in pairs"] },
-      abyssus: { ru: "Abyss Over the bridge laser mills turn and bars of three lasers hover, great gears bring their teeth down over the rails (shoot off the ones in the way), and glass blocks float.", desc: "A narrow bridge over the abyss, with no walls or ceiling. Steel gates rise across the bridge, with cup anemometers spinning over the frame: hit them all and the leaves slide apart. Glass and shades rise from the void below. The Dark pulls harder here.",
+      abyssus: { ru: "Abyss", desc: "A narrow bridge over the abyss, with no walls or ceiling. Steel gates rise across the bridge, with cup anemometers spinning over the frame: hit them all and the leaves slide apart. Glass and shades rise from the void below. The Dark pulls harder here. Over the bridge laser mills turn and bars of three lasers hover, great gears bring their teeth down over the rails (shoot off the ones in the way), and glass blocks float.",
         feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
       carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang steel grates on chains, floating laser bars and grids, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
         feats: ["Halls of grates on chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Custodes with a strongroom"] },
@@ -4107,14 +4107,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     try { localStorage.setItem("limbus-lang", l); } catch (e) { /* storage unavailable */ }
     applyLang(); renderMap();
   }
-  const MAIN_LINE = ["initium", "vitrum", "labyrinthus", "speculum", "abyssus", "lux"];
+  const MAIN_LINE = ["initium", "vitrum", "labyrinthus", "abyssus"]; // Linea Summa ends at Abyssus; from there Linea Tao runs on to Lux
   // drawn lines of the scheme, as waypoints; the main line is drawn station to station
   const MAP_LINES = [
-    { kind: "line", to: "rubinus", pts: [[270, 330], [500, 330], [730, 330]] }, // a second line: Vitrum, Rubinus, Abyssus
-    { kind: "tao", to: "tao", pts: [[590, 190], [770, 190], [910, 330]] }, // Linea Tao: Speculum, Tao, Lux
+    { kind: "line", to: "rubinus", pts: [[270, 330], [500, 330], [730, 330]] }, // a second line: Vitrum, Rubinus, Speculum
+    { kind: "tao", to: "tao", pts: [[590, 190], [770, 190], [910, 330]] }, // Linea Tao: Abyssus, Tao, Lux
     // a dead-end branch: a short drop, a gentle slope, a short level run into its station (a long drop leaves room for the dead end's name over it; the slope is the same on every branch)
     { kind: "branch", to: "hortus", pts: [[90, 330], [90, 418], [116, 440], [185, 440]] },
-    { kind: "branch", to: "armamentarium", pts: [[270, 330], [270, 418], [296, 440], [385, 440]] },
+    { kind: "branch", to: "armamentarium", pts: [[185, 440], [385, 440]] }, // the depot lies on from the Garden
     { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 418], [526, 440], [615, 440]] },
     { kind: "branch", to: "carcer", pts: [[730, 330], [730, 418], [756, 440], [825, 440]] },
   ];
@@ -4132,12 +4132,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   const unlockAll = location.hash === "#all"; // for testing: open every built station
   // a station opens once the one before it is done; with req.or there is a second way in (Abyssus: from Crystallum)
   function isOpen(lv) { return unlockAll || !lv.req.after || !!progress.done[lv.req.after] || (lv.req.or && !!progress.done[lv.req.or]) || !!progress.open[lv.id]; }
-  // the stations a finished one leads on to, along any of the lines (Vitrum: Rubinus or Labyrinthus; Speculum: Abyssus
-  // or Tao); a dead end leads nowhere
+  // the stations a finished one leads on to, along any of the lines (Vitrum: Rubinus or Labyrinthus); a dead end leads nowhere
   function nextLevels(lv) {
     if (lv.line === "branch") return [];
     return LEVELS.filter(l => l.line !== "branch" && l.playable && (l.req.after === lv.id || l.req.or === lv.id))
-      .sort((a, b) => (a.id === "rubinus" || a.id === "abyssus" ? -1 : 0) - (b.id === "rubinus" || b.id === "abyssus" ? -1 : 0)); // Linea Ima first
+      .sort((a, b) => (a.id === "rubinus" || a.id === "speculum" ? -1 : 0) - (b.id === "rubinus" || b.id === "speculum" ? -1 : 0)); // Linea Ima first
   }
   // a ride on a branch costs its fare every time; with too few crystals the station sheet explains why
   function rideLevel(lv) {
@@ -5116,10 +5115,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   window.__perf = () => { const r = { dpr: renderer.getPixelRatio(), upd: +(perfAcc.upd / perfAcc.n).toFixed(2), rnd: +(perfAcc.rnd / perfAcc.n).toFixed(2), max: +perfAcc.max.toFixed(1), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, prog: renderer.info.programs.length, objs: scene.children.length, spikes: perfAcc.spikes.slice(0, 12).join(' ') }; Object.assign(perfAcc, { n: 0, upd: 0, rnd: 0, max: 0, spikes: [] }); return r; };
 
   // ---------- menu: metro scheme, station sheet, miniature ----------
-  // two lines from Vitrum to Abyssus: Linea Ima, low through Rubinus, and Linea Summa, the upper arc
-  const ARC = ["vitrum", "labyrinthus", "speculum", "abyssus"], ARC_HUBS = ["vitrum", "abyssus", "speculum", "lux"];
-  const LINE_TAO = "#d0642a"; // Linea Tao, Speculum to Lux
-  const HUB_RING = { vitrum: "#2f9a72", abyssus: "#2f9a72", speculum: LINE_TAO, lux: LINE_TAO };
+  // two lines out of Vitrum: Linea Ima, low through Rubinus to Speculum, and Linea Summa, the upper arc to Abyssus, where Linea Tao goes on to Lux
+  const ARC = ["vitrum", "labyrinthus", "abyssus"], ARC_HUBS = ["vitrum", "abyssus"];
+  const LINE_TAO = "#d0642a"; // Linea Tao, Abyssus to Lux
+  const HUB_RING = { vitrum: "#2f9a72", abyssus: LINE_TAO };
   const LINE_MAIN = "#1d6f8f", LINE_ARC = "#2f9a72", LINE_TR = "#b8892b", LINE_BR = "#7a4fa3", INK = "#10242e", MUTED = "#8a9ba3";
   // one glyph per station, drawn in a 16-unit box around the station center
   const GLYPHS = {

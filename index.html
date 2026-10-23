@@ -174,6 +174,17 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 /* Telegram: the scheme's buttons on top, off the scheme; under them the bank and the cannons side by side */
 .tg .m-side { grid-template-columns: auto auto; grid-auto-flow: row; align-items: center; justify-content: end; }
 .tg .m-side .map-tools { position: static; grid-column: 1 / -1; grid-row: 1; justify-self: end; }
+/* on a low screen held sideways all of it goes in one row beside the logo, and the legend gives way to the scheme */
+@media (orientation: landscape) and (max-height: 380px) {
+  .tg .m-side { grid-template-columns: auto auto auto; gap: 6px; }
+  .tg .m-side .map-tools { grid-column: auto; grid-row: auto; gap: 5px; }
+  .tg .map-tools .ibtn { width: 34px; height: 34px; } .tg .map-tools .lang { width: auto; }
+  .tg .bank { white-space: nowrap; }
+  .tg .logo { font-size: 24px; }
+  .tg .bank { padding: 6px 9px; font-size: 11px; } .tg .bank b { font-size: 14px; }
+  .tg .map-title { display: none; }
+}
+@media (orientation: landscape) and (max-height: 380px) and (max-width: 720px) { .tg .bank span { display: none; } } /* only the diamond and the count */
 .arms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 /* the cannon buttons look like the bank beside them; the one on the cart is dark, its cost still turquoise */
 .arm { font: 700 12px var(--mono); padding: 8px 11px; border-radius: 4px; border: 0; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; cursor: pointer; }
@@ -221,7 +232,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   .map-card { padding: 8px 6px; }
   .map-title { top: 10px; left: 12px; gap: 4px; font-size: 9.5px; }
   .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))); width: 100%; } /* the whole scheme on one screen */
-  .tg .map-scroll #map { height: calc(100dvh - 124px - var(--safe-top, 0px) - var(--safe-bottom, 0px)); } /* in Telegram the head has two rows on the right */
   .overlay { padding-block: 8px; }
   .panel { padding: 16px 18px; }
   .panel h1 { font-size: 22px; margin-bottom: 6px; }
@@ -4320,7 +4330,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     $("hud").hidden = true; $("meter").hidden = true; $("combo").hidden = true; $("banner").hidden = true; $("titlecard").hidden = true;
     darkHud = false; document.body.classList.remove("dark"); vignetteEl.style.opacity = "0";
     $("menu").hidden = false;
-    renderMap();
+    renderMap(); if (window.__fitMap) requestAnimationFrame(window.__fitMap);
     resetWorld(false); // the rails keep rolling empty behind the menu
   }
   // Lux is the end of the game: its win screen congratulates, sums up the journey and says what is left to do
@@ -5482,7 +5492,18 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       const a = TG.safeAreaInset || {}, c = TG.contentSafeAreaInset || {}, st = document.documentElement.style;
       for (const k of ["top", "bottom", "left", "right"]) st.setProperty("--safe-" + k, ((a[k] || 0) + (c[k] || 0)) + "px");
     };
-    insets(); for (const ev of ["safeAreaChanged", "contentSafeAreaChanged", "fullscreenChanged", "viewportChanged"]) TG.onEvent(ev, insets);
+    // held sideways, the scheme takes just the height that is left under the head, measured, so the menu never scrolls
+    // (Telegram's WebView and its bars make the CSS viewport units unreliable)
+    const fitMap = () => {
+      const map = $("map"), menu = $("menu");
+      if (innerWidth <= innerHeight || menu.hidden) { map.style.height = ""; map.style.minWidth = ""; map.style.width = ""; return; }
+      map.style.minWidth = "0"; map.style.width = "100%"; map.style.height = "100px";
+      const room = menu.clientHeight - menu.firstElementChild.getBoundingClientRect().height; // what is left with the scheme 100 px high
+      map.style.height = Math.max(80, Math.floor(100 + room - 1)) + "px";
+    };
+    insets(); for (const ev of ["safeAreaChanged", "contentSafeAreaChanged", "fullscreenChanged", "viewportChanged"]) TG.onEvent(ev, () => { insets(); requestAnimationFrame(fitMap); });
+    addEventListener("resize", () => requestAnimationFrame(fitMap)); setTimeout(fitMap, 50); setTimeout(fitMap, 600);
+    window.__fitMap = fitMap;
     // on a phone the game is played sideways, as in the Android app: ask to turn it, then keep it so
     if (/^(android|ios)$/.test(TG.platform)) {
       $("rotate").hidden = false;

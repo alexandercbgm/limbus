@@ -214,6 +214,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   .map-card { padding: 8px 6px; }
   .map-title { top: 10px; left: 12px; gap: 4px; font-size: 9.5px; }
   .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))); width: 100%; } /* the whole scheme on one screen */
+  .tg .map-scroll #map { height: calc(100dvh - 124px - var(--safe-top, 0px) - var(--safe-bottom, 0px)); } /* in Telegram the head has two rows on the right */
   .overlay { padding-block: 8px; }
   .panel { padding: 16px 18px; }
   .panel h1 { font-size: 22px; margin-bottom: 6px; }

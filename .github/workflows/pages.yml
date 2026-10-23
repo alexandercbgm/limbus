@@ -15,10 +15,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15 # build.py re-encodes the tracks when the runner has ffmpeg, else copies them as they are
     steps:
       - uses: actions/checkout@v4
-      - name: Install ffmpeg (the tracks are re-encoded smaller)
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Build
         run: python3 build.py --telegram
       - uses: actions/configure-pages@v5

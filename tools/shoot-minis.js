@@ -7,6 +7,7 @@ const fs = require('fs');
 const OUT = process.env.OUT, THREE_JS = process.env.THREE;
 // Each shot is taken on a straight run (just past a turn), the way ahead cleared, with a few of the level's own sights set
 // down at middle distance: enough to tell the level by, not so many that the frame is crowded.
+// (r.quiet() stops the ride setting down more ahead; r.noCrystals() takes the crystals away)
 // at: the s to stand at (or 'hall', a little way into a hall of Labyrinthus or Carcer); put: what to set down ahead of the cart
 const SCENE = {
   initium: { at: 262, put: r => { r.glassBar('sides', 30); r.glassBar('center', 46); r.crystalAhead(34, -1.2, 2.6); } },
@@ -16,9 +17,9 @@ const SCENE = {
   hortus: { at: 262, put: r => { r.bough(24, 1); r.bough(36, -1); } },
   speculum: { at: 272, put: r => { r.prisms(36, 2); r.crystalAhead(24, -1.4, 2.6); } },
   abyssus: { at: 292, put: r => { r.gearsAt(40, true); r.crystalAhead(24, 0.8, 2.4); } },
-  lux: { at: 302, put: r => { r.gate(40, 'iris'); } },
-  rubinus: { at: 292, put: r => { r.gate(36); } },
-  tao: { at: 532, put: r => { r.gate(38, 'taiji'); } }, // where the yin-yang sign hangs in the sky ahead
+  lux: { at: 302, put: r => { r.quiet(); r.lhang(24, 'gate'); r.spinner(34, -1, 1); r.spinner(40, 1, -1); } },
+  rubinus: { at: 292, put: r => { r.quiet(); r.glassBar('grams', 22); r.noCrystals(); } },
+  tao: { at: 282, put: r => { r.rams(26); r.hammer(40, 1, 1, 2); } },
   carcer: { at: 'hall', put: r => { r.carcer('grate1', 24); r.carcer('top', 40); } },
 };
 // SCENES='{"tao":{"at":282,"put":"r => { ... }"}}' tries other scenes, without touching the ones above

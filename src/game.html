@@ -1152,7 +1152,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     pyrL: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(-Math.PI / 2), spikeMat, 90), // pyramid out of the left wall, pointing +u
     pyrR: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(Math.PI / 2), spikeMat, 90),
     gwall: inst(new THREE.BoxGeometry(0.08, H, SL + 0.03), glassWallMat, 280),
-    hex: inst(hexFrameGeo(4.9, 0.34), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
+    hex: inst(hexFrameGeo(4.9, 0.27), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
     prism: inst(new THREE.OctahedronGeometry(0.75, 0), prismMat, 260),
     ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus and Hortus, squeezed to fit (RING_SX, RING_SY)
@@ -2174,7 +2174,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     frameAt(hg.s); const fp = _P.clone(), fn = _U.clone();
     const n = Math.round(hg.w * hg.h * 9);
     for (let i = 0; i < n; i++) {
-      const m = new THREE.Mesh(chunkGeo, hg.bars ? ironMat : monoMat);
+      const m = new THREE.Mesh(chunkGeo, hg.bars ? ironMat : hg.laser ? laserBaseMat : monoMat);
       m.position.set(rand(-hg.w / 2, hg.w / 2), rand(-hg.h / 2, hg.h / 2), rand(-hg.d / 2, hg.d / 2)).applyMatrix4(hg.body.matrixWorld);
       m.rotation.set(rand(0, TAU), rand(0, TAU), rand(0, TAU)); m.scale.setScalar(rand(0.6, 1.4));
       scene.add(m);
@@ -4810,7 +4810,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (hg.falling) {
         hg.fallT += dt; hg.fv.y -= G * dt; hg.body.position.addScaledVector(hg.fv, dt);
         hg.body.rotation.z += dt * 0.6;
-        if (hg.fallT > 0.28) { hg.alive = false; burstSlab(hg); } // a short drop, then it bursts like a Rupert's drop
+        // a short drop, then it bursts like a Rupert's drop; a laser beam hangs high, so it bursts only on the floor
+        if (hg.laser ? (frameAt(hg.s), tmpV.copy(hg.body.position).sub(_P).dot(_U)) < hg.h / 2 + Math.abs(Math.sin(hg.body.rotation.z)) * hg.w / 2 || hg.fallT > 3 : hg.fallT > 0.28) { hg.alive = false; burstSlab(hg); }
         continue;
       }
       // pendulum: θ'' = −(g/arm)·sin θ, lightly damped

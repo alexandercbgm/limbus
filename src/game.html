@@ -1721,6 +1721,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     for (const dr of doors) if (!dr.open) clearDoorZone(dr);
   }
   let spawnGroupKind = null; // a test may ask for one pattern
+  // a level's signature traps must not hang on the luck of the draw: LEVEL.every names how many metres at most may pass
+  // without each; past that, the next group is that trap
+  let lastPat = {}, patCount = {};
   function spawnGroupAt(s) {
     // Carcer's doors come up as the track reaches them, and nothing else is set down right at one
     while (doorPlan.length && doorPlan[0].s < s + 12) spawnDoor(doorPlan.shift());
@@ -1731,7 +1734,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     if (spawnGroupKind === "grams2" || spawnGroupKind === "grams1") { addRams(s, spawnGroupKind === "grams2", true); return; }
     if (!spawnGroupKind && LEVEL.id === "labyrinthus" && openHallAround(s) && Math.random() < 0.8) pat = "grams";
     const brS = LEVEL.id === "labyrinthus" && !spawnGroupKind && branchAt(s); // the branches: crosses and blocks on the rich one, plain glass on the quiet
-    if (brS) { const opts = brS === "rich" ? ["rotor", "rotor2", "grams", "grams"] : ["center", "center", "sides", "triple"]; pat = opts[Math.floor(Math.random() * opts.length)]; } // an open hall is where the glass blocks swing
+    if (brS) { const opts = brS === "rich" ? ["rotor", "rotor2", "grams", "grams"] : ["center", "center", "sides", "triple"]; pat = opts[Math.floor(Math.random() * opts.length)]; }
+    if (!spawnGroupKind && !brS && !hall && LEVEL.every) for (const k in LEVEL.every) if (s - (lastPat[k] ?? 0) > LEVEL.every[k]) { pat = k; break; }
+    lastPat[pat] = s; patCount[pat] = (patCount[pat] || 0) + 1; // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
       case "center": addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break;
@@ -3996,6 +4001,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       style: { arch: "none", blocks: "cube", glassWalls: false, bridge: true }, crystalMul: 1.45, armor: 1, driftMul: 1.5, gateKinds: ["v"],
       pats: { doors: [1.5, 2, 2], rise: [1, 2, 2.5], shades: [0, 1.2, 2.5], center: [1.6, 1.6, 1.2], slider: [0.8, 1.5, 1.5], double: [0, 0.8, 1.6], triple: [0.8, 1.2, 0.8], sides: [1.6, 0.6, 0], bonus: [2, 0.5, 0], reinf: [0, 0.5, 1.6], imps: [0, 0, 0],
         abspin: [0.4, 0.8, 1], abbar: [0.4, 0.7, 0.9], gears: [0.5, 0.8, 1], fblocks: [0.6, 0.9, 1] }, // laser mills and bars, great gears, hovering glass blocks
+      every: { abbar: 170, gears: 220, abspin: 240, fblocks: 200 },
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 40], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
       desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота, над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее. Над мостом вращаются лазерные мельницы и парят планки с тремя лазерами, огромные шестерни опускают зубья на рельсы — сбейте те, что на пути, — и парят стеклянные блоки.",
@@ -4179,7 +4185,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   function resetWorld(spawn) {
     clearDynamic();
     sC = 0; alt = 0.35; pending = 0; altVel = 0; pitchC = 0; pitchTs = 0;
-    cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0;
+    cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0; lastPat = {};
     superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0; wheelsDone = 0; triStep = 0; wavesDone = 0; tessGrids = []; tessRow = 0; yyRow = 0; lastYY = -1;
     buildForks();
     computePath();
@@ -5421,6 +5427,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     gearScreen: () => gears.flatMap(x => x.gears.map(g => { const v = g.wp.clone().project(camera); const p = g.pin.wp ? g.pin.wp.clone().project(camera) : null; return [g.kind, +v.x.toFixed(2), +v.y.toFixed(2), +v.z.toFixed(3), p && +p.x.toFixed(2), p && +p.y.toFixed(2)]; })),
     gearDbg: () => gears.flatMap(x => x.gears.map(g => [g.kind, g.a, g.rotor.children.length, g.rotor.matrixWorld.elements.slice(12, 15).map(v => +v.toFixed(1)), g.root.matrix.elements.slice(12, 15).map(v => +v.toFixed(1))])),
     gearsAt(d, two) { addGears(sC + d, two); }, gearInfo: () => gears.map(x => x.gears.map(g => ({ s: +(g.s - sC).toFixed(1), cu: g.cu, kind: g.kind, vis: g.root.visible, par: !!g.root.parent, pin: +(g.pin.s - sC).toFixed(1), wp: g.wp.toArray().map(v => +v.toFixed(1)) }))), gearKinds(d, two) { const set = addGears(sC + d, two); const k = set.gears.map(g => g.kind).join('+'); set.gears.forEach(g => { scene.remove(g.root); scene.remove(g.pin.root); }); gears.pop(); return k; },
+    patRun() { patCount = {}; lastPat = {}; let x = 60; while (x < MAIN_LEN - 105) { spawnGroupAt(x); x += spacing(curD()) * rand(0.85, 1.15); } clearDynamic(); return patCount; },
     breakTeeth() { gears.forEach(x => x.gears.forEach(g => g.teeth.forEach(t => t.alive && breakTooth(g, t, t.A.clone())))); },
     breakThick() { const p = panes.filter(x => x.alive && x.thick && x.s > sC).sort((a, b) => a.s - b.s)[0]; if (!p) return false; damagePane(p, 0.3, 0.2, new THREE.Vector3().copy(p.T).multiplyScalar(30)); return true; }, openHall: d => openHallAround(sC + d), spawnAt: d => spawnGroupAt(sC + d), ramTh: () => rams.map(r => +r.th.toFixed(3)).join(), ramState2: () => rams.map(r => [+(r.s - sC).toFixed(1), r.glass ? 'g' : 'w', r.side, r.chains.filter(c => c.alive).length]), paneKinds: () => panes.map(p => (p.cross ? 'x' : 'b') + (p.thick ? 'T' : '') + (Array.isArray(p.tilt) ? '3' : p.tilt ? '2' : '') + (p.turn ? 'P' : '')).join(),
     barState: () => lbars.map(x => ({ s: +(x.s - sC).toFixed(1), axis: x.axis, cost: x.cost, bars: x.bars.map(b => b.orient + b.n + (b.alive ? '' : 'x')).join() })), breakBars() { lbars.forEach(x => x.bars.forEach(b => b.alive && breakBar(b, b.wp.clone()))); },

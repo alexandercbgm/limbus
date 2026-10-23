@@ -159,6 +159,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .map-tools .lang { width: auto; padding: 0 10px 0 8px; display: flex; gap: 6px; font: 700 12px var(--mono); color: #10242e; }
 .map-tools .globe { fill: none; }
 .how { z-index: 5; background: rgba(16, 36, 46, 0.28); }
+/* Telegram on a phone held upright: a prompt to turn it sideways, as the game is played */
+.rotate { position: fixed; inset: 0; z-index: 9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px;
+  background: #e9eced; color: #10242e; text-align: center; font: 600 16px var(--body); }
+.rotate svg { width: 84px; height: 84px; stroke: #10242e; fill: none; stroke-width: 1.6; animation: turn 2.4s ease-in-out infinite; }
+@keyframes turn { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
+.rotate button { font: 600 13px var(--body); padding: 10px 16px; border-radius: 4px; border: 1px solid #10242e; background: transparent; color: #10242e; }
+@media (orientation: landscape) { .rotate { display: none; } }
 .how .panel { width: min(640px, 100%); }
 .how .panel p { font-size: 14px; margin-top: 8px; }
 .how .rules { margin: 16px 0 18px; }
@@ -291,6 +298,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 <div class="banner" id="banner" hidden></div>
 <div class="titlecard" id="titlecard" hidden></div>
 
+<div class="rotate" id="rotate" hidden>
+  <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="15" y="5" width="18" height="38" rx="3"/><path d="M21 38h6"/></svg>
+  <div data-en="Turn your phone sideways">Поверните телефон горизонтально</div>
+  <button type="button" id="rotateSkip" data-en="Play upright">Играть вертикально</button>
+</div>
 <section class="menu" id="menu">
   <div class="menu-in">
     <header class="m-head">
@@ -5471,6 +5483,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       for (const k of ["top", "bottom", "left", "right"]) st.setProperty("--safe-" + k, ((a[k] || 0) + (c[k] || 0)) + "px");
     };
     insets(); for (const ev of ["safeAreaChanged", "contentSafeAreaChanged", "fullscreenChanged", "viewportChanged"]) TG.onEvent(ev, insets);
+    // on a phone the game is played sideways, as in the Android app: ask to turn it, then keep it so
+    if (/^(android|ios)$/.test(TG.platform)) {
+      $("rotate").hidden = false;
+      $("rotateSkip").addEventListener("click", () => { $("rotate").hidden = true; });
+      try { screen.orientation.lock("landscape").catch(() => {}); } catch (e) { /* the WebView won't turn it itself */ }
+      const keep = () => { if (innerWidth > innerHeight && TG.isVersionAtLeast("8.0") && TG.lockOrientation) TG.lockOrientation(); };
+      keep(); addEventListener("resize", keep);
+    }
     // Telegram's back button does what the Android one does; on the scheme with nothing open there is nowhere to go back to
     if (TG.isVersionAtLeast("6.1")) {
       TG.BackButton.onClick(() => window.__back());

@@ -164,9 +164,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .how .rules { margin: 16px 0 18px; }
 
 .m-side { display: grid; gap: 8px; justify-items: end; }
-/* Telegram: the bank and the cannons side by side, the scheme's buttons in a row under them, off the scheme */
+/* Telegram: the scheme's buttons on top, off the scheme; under them the bank and the cannons side by side */
 .tg .m-side { grid-template-columns: auto auto; grid-auto-flow: row; align-items: center; justify-content: end; }
-.tg .m-side .map-tools { position: static; grid-column: 1 / -1; justify-self: end; }
+.tg .m-side .map-tools { position: static; grid-column: 1 / -1; grid-row: 1; justify-self: end; }
 .arms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 /* the cannon buttons look like the bank beside them; the one on the cart is dark, its cost still turquoise */
 .arm { font: 700 12px var(--mono); padding: 8px 11px; border-radius: 4px; border: 0; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; cursor: pointer; }
@@ -5443,7 +5443,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // ---------- Telegram Mini App ----------
   if (TG) {
     TG.ready(); TG.expand();
-    document.body.classList.add("tg"); document.querySelector(".m-side").append(document.querySelector(".map-tools"));
+    document.body.classList.add("tg"); document.querySelector(".m-side").prepend(document.querySelector(".map-tools"));
     if (TG.isVersionAtLeast("7.7")) TG.disableVerticalSwipes(); // a swipe down to aim must not fold the app away
     if (TG.isVersionAtLeast("6.1")) { TG.setHeaderColor("#e9eced"); TG.setBackgroundColor("#e9eced"); }
     if (TG.isVersionAtLeast("8.0")) { // the whole screen from the start; a button on the scheme toggles it

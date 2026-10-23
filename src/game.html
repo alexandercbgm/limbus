@@ -1849,10 +1849,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         break;
       }
       // Labyrinthus: in an open hall, glass blocks like a pyramid's stones swing on chains, one or a pair end to end, as Tao's rams
-      case "grams": if (openHallAround(s) || branchAt(s) === "rich") { addRams(s, Math.random() < 0.5, true); break; } // elsewhere a cross instead
+      case "grams": if (LEVEL.id === "rubinus" || openHallAround(s) || branchAt(s) === "rich") { addRams(s, Math.random() < 0.5, true); break; } // elsewhere a cross instead
       // falls through
       case "rotor": {
-        const spin = rand(0.8, 1.3) * (Math.random() < 0.5 ? -1 : 1), a0 = rand(0, TAU), lab = LEVEL.id === "labyrinthus", sg = () => (Math.random() < 0.5 ? -1 : 1);
+        const spin = rand(0.8, 1.3) * (Math.random() < 0.5 ? -1 : 1), a0 = rand(0, TAU), lab = LEVEL.id === "labyrinthus" || LEVEL.id === "rubinus", sg = () => (Math.random() < 0.5 ? -1 : 1); // solid crosses
         // Labyrinthus's crosses are solid, as thick as an arm is wide: turning round, spinning like a propeller on a slowly
         // turning potter's wheel, or tumbling about two axes of their own, in all three planes. Vitrum's are flat: turning
         // round, or tumbling about an arm or a slant axis as they turn
@@ -2865,7 +2865,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
       if (glass) {
         body.add(new THREE.Mesh(gramGeo, glassMat)); body.add(new THREE.LineSegments(gramEdge, edgeMat));
         const inner = new THREE.LineSegments(gramEdge, edgeMat); inner.scale.setScalar(0.82); body.add(inner); // a second outline inside, so it shows against the pale hall
-        for (const z of [-0.85, 0.85]) { const post = new THREE.Mesh(gramPostGeo, frameMat); post.position.set(side * (RAM_LEN / 2 + 0.3), -(H - 0.1) / 2, z); root.add(post); } // either side of the swing
+        if (LEVEL.id === "labyrinthus") for (const z of [-0.85, 0.85]) { const post = new THREE.Mesh(gramPostGeo, frameMat); post.position.set(side * (RAM_LEN / 2 + 0.3), -(H - 0.1) / 2, z); root.add(post); } // either side of the swing
       } else {
         body.add(new THREE.Mesh(ramGeo, ramMat));
         for (const k of [-1, 1]) { const cap = new THREE.Mesh(ramCapGeo, frameMat); cap.position.x = k * RAM_LEN / 2; body.add(cap); }
@@ -3222,11 +3222,13 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     const order = nb === 0 ? [] : nb === 1 ? [0] : nb === 2 ? [3, 4] : [0, 1, 2];
     const g = { s, kind, k, root, leaves, buttons: [], pr: 0, opening: false, passed: false, dead: false, weights };
     leaves.forEach(lf => { lf.pr = 0; });
-    if (weights) for (const lf of leaves) { // a counterweight for each leaf, hanging beside the doorway; drop it and its leaf slides open
-      const x = lf.sd * (BRIDGE_W + 1.25), yTop = H - 0.15, yW = 2.9 + Math.random() * 0.8, grp = new THREE.Group(); root.add(grp);
-      const ch = makeChain(yTop - yW - 0.45); ch.position.set(x, yTop, 0.3); grp.add(ch);
-      const wt = new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, 0.3); grp.add(wt);
-      lf.wt = { x, yTop, yW, grp, ch, wt, vy: 0, down: false, wp: new THREE.Vector3(), A: new THREE.Vector3(), B: new THREE.Vector3() };
+    if (weights) for (const lf of leaves) { // a counterweight for each leaf on a black chain, hanging from a bracket out from the wall beside the doorway; drop it and its leaf slides open
+      const x = lf.sd * (BRIDGE_W + 1.25), yTop = H - 0.15, yW = 2.9 + Math.random() * 0.8, z = WT_Z, grp = new THREE.Group(); root.add(grp);
+      const arm = new THREE.Mesh(wtArmGeo, frameMat); arm.position.set(x, yTop + 0.08, z / 2); grp.add(arm);
+      const brace = new THREE.Mesh(wtBraceGeo, frameMat); brace.position.set(x, yTop - 0.45, z * 0.3); brace.rotation.x = -Math.atan2(0.9, z * 0.6); grp.add(brace); // a strut down to the wall
+      const ch = makeChain(yTop - yW - 0.45, 1, wtChainMat); ch.position.set(x, yTop, z); grp.add(ch);
+      const wt = new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt);
+      lf.wt = { x, z, yTop, yW, grp, ch, wt, vy: 0, down: false, wp: new THREE.Vector3(), A: new THREE.Vector3(), B: new THREE.Vector3() };
     }
     leaves.forEach(lf => { lf.hp = 2; }); // the first ball cracks a leaf, the second breaks it
     for (const o of order) {
@@ -3258,6 +3260,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   // a level may have doors of solid coloured stone instead of dark glass, so they read as doors against its walls
   const doorMats = {};
   const solidDoorMat = c => doorMats[c] || (doorMats[c] = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.35, roughness: 0.2, metalness: 0.4 }));
+  const WT_Z = 1.3, wtArmGeo = new THREE.BoxGeometry(0.16, 0.16, WT_Z + 0.1), wtBraceGeo = new THREE.BoxGeometry(0.1, 0.1, Math.hypot(0.9, WT_Z * 0.6));
+  const wtChainMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.45, metalness: 0.7 }); // the rubies hang on black chains
   const weightGeo = new THREE.OctahedronGeometry(0.45, 0), weightMat = new THREE.MeshStandardMaterial({ color: 0x8a0a20, emissive: 0xff1a40, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.4, flatShading: true });
   function dropWeight(g, lf) {
     const w = lf.wt; if (w.down) return;
@@ -3318,7 +3322,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
           if (w.down && w.wt.position.y > 0.45) { w.vy -= G * dt; w.wt.position.y = Math.max(0.45, w.wt.position.y + w.vy * dt); if (w.wt.position.y === 0.45) Sound.tone(70, 0.25, 0.2); }
           w.wt.rotation.y += dt * 0.6;
           w.wp.copy(w.wt.position).applyMatrix4(g.root.matrix);
-          w.A.set(w.x, w.yTop, 0.3).applyMatrix4(g.root.matrix); w.B.set(w.x, w.yW + 0.45, 0.3).applyMatrix4(g.root.matrix);
+          w.A.set(w.x, w.yTop, w.z).applyMatrix4(g.root.matrix); w.B.set(w.x, w.yW + 0.45, w.z).applyMatrix4(g.root.matrix);
         }
         else if (g.kind === "v") lf.m.position.set(0, GATE_H / 2 + lf.sd * (GATE_H / 4 + (GATE_H / 2 + 0.3) * p), 0);
         // each half moves far enough that its head and eye clear the doorway, and shrinks to stay behind the bulkhead
@@ -3765,10 +3769,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
       style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0x5a0012,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
-        shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0] },
+        shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0],
+        grams: [0.7, 1, 1.2] }, // and glass blocks on chains, as in Labyrinthus
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 45], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
-      desc: "Обходной путь от Vitrum к Abyssus сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат противовесы на цепях: собейте груз, и его дверца отъедет.",
+      desc: "Обходной путь от Vitrum к Abyssus сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат противовесы на цепях: собейте груз, и его дверца отъедет. Поперёк пути вращаются массивные стеклянные кресты и качаются на цепях стеклянные блоки.",
       feats: ["Треугольный профиль, который поворачивается и меняется", "Ворота с дверцами на противовесах", "Финал Tessera: мозаика из рубинов"],
       req: { after: "vitrum" }, map: { x: 500, y: 330, label: "t" } }, // midway between Vitrum and Abyssus
     { id: "tao", num: "IV·a", latin: "Tao", ru: "Дао", playable: true, music: "translucent_corridor", len: 1500, pal: PAL_TAO, finale: "taiji",
@@ -3833,7 +3838,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
         feats: ["Three forks: flip the switch with a shot", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       hortus: { ru: "Garden", desc: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it.",
         feats: ["Lashing boughs with crystals", "After a ride Gemini costs half at the depot", "Finale Vindemia: the harvest"] },
-      rubinus: { ru: "Ruby", desc: "A detour from Vitrum to Abyssus through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by counterweights on chains: shoot a weight down and its door slides away.",
+      rubinus: { ru: "Ruby Solid glass crosses turn across the way and glass blocks swing on chains.", desc: "A detour from Vitrum to Abyssus through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by counterweights on chains: shoot a weight down and its door slides away.",
         feats: ["A triangular profile that turns and changes", "Gates with doors on counterweights", "Finale Tessera: a ruby mosaic"] },
       tao: { ru: "The Way", desc: "The way from Speculum to Lux through round moon gates. Ink and rice paper: in the Light white with a scarlet seal, in the Dark black ink with a jade glow. Mist drifts over the track and a yin-yang sign slowly turns.",
         feats: ["Yin-yang gates: buttons part the halves", "Rams on chains beside the track and hammer mills", "Finale Taiji: yin and yang in turn"] },

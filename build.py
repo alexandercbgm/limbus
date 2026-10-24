@@ -71,6 +71,10 @@ for track in [] if "--no-music" in sys.argv or TELEGRAM else sorted((root / "mus
 for shot in sorted((root / "minis").glob("*.jpg")):
     data = base64.b64encode(shot.read_bytes()).decode("ascii")
     page += f'<img hidden alt="" id="mini-{shot.stem}" src="data:image/jpeg;base64,{data}">\n'
+# clips of a level that play in its sheet in place of the shot (minis/<level id>.mp4): inline in the one-file page, beside it in the Telegram build
+for clip in sorted((root / "minis").glob("*.mp4")):
+    src = f"minis/{clip.name}" if TELEGRAM else "data:video/mp4;base64," + base64.b64encode(clip.read_bytes()).decode("ascii")
+    page += f'<script type="text/plain" id="clip-{clip.stem}">{src}</script>\n'
 if TELEGRAM:
     out = root / "dist" / "telegram"
     shutil.rmtree(out, ignore_errors=True)

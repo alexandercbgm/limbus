@@ -225,8 +225,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .bank { font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 4px; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; display: flex; gap: 8px; align-items: center; }
 .bank b { font-size: 18px; color: #1287b5; font-variant-numeric: tabular-nums; }
 .map-card { position: relative; background: var(--frost); border: 1px solid var(--edge); border-radius: 6px; box-shadow: 0 18px 50px rgba(16, 36, 46, 0.12); padding: 14px 10px; }
-.map-title { position: absolute; top: 16px; left: 18px; z-index: 1; pointer-events: none; display: flex; flex-direction: column; gap: 7px; padding: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #4c6470; }
-.map-title i { display: inline-block; width: 22px; height: 5px; border-radius: 3px; vertical-align: middle; margin-right: 6px; }
 #map { display: block; width: 100%; height: auto; }
 .station { cursor: pointer; outline: none; }
 .station .hit { fill: transparent; }
@@ -272,7 +270,6 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   .tg .logo { font-size: 24px; }
   .tg .bank { padding: 6px 9px; font-size: 11px; } .tg .bank b { font-size: 14px; }
   .tg .bank, .tg .arm { height: 30px; }
-  .tg .map-title { top: 6px; left: 8px; gap: 2px; font-size: 7.5px; letter-spacing: 0.08em; } .tg .map-title i { width: 14px; height: 3px; } /* a smaller legend in the corner */
 }
 @media (orientation: landscape) and (max-height: 380px) and (max-width: 720px) { .tg .bank span { display: none; } } /* only the diamond and the count */
 .arms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
@@ -312,7 +309,20 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .reqs li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; font-size: 14px; line-height: 1.4; }
 .reqs .ok { color: #1c7a4a; font-weight: 700; } .reqs .no { color: #a33a2a; font-weight: 700; }
 .btns { display: grid; gap: 10px; }
-.btns.stars { grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; } /* Donum: three amounts side by side */
+/* the Dungeon's cannon, freed: a gold prize on the arrival */
+.prize { display: flex; align-items: center; gap: 14px; margin: 12px 0 4px; padding: 12px 14px; border-radius: 6px; color: #3a2a05;
+  background: linear-gradient(110deg, #f6e3a1 0%, #fff6d6 35%, #f1d47c 50%, #fff6d6 65%, #f6e3a1 100%); background-size: 250% 100%; animation: prize 2.6s linear infinite;
+  box-shadow: 0 0 0 1px #c9a02e, 0 6px 22px rgba(201, 160, 46, 0.35); }
+.prize svg { width: 46px; height: 46px; flex: none; fill: none; stroke: #6b4e08; stroke-width: 1.5; stroke-linecap: round; }
+.prize b { display: block; font-family: var(--display); font-size: 17px; letter-spacing: 0.04em; } .prize span { font-size: 13px; line-height: 1.35; }
+@keyframes prize { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+/* Emptio: the crystal packs */
+.pack h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .pack h3 small { margin-left: 0; color: #a07c18; }
+.pk-ico { width: 40px; height: 28px; flex: none; fill: none; stroke: #c9a02e; stroke-width: 1.4; stroke-linejoin: round; } .pk-ico text { fill: #a07c18; stroke: none; font-family: var(--display); }
+.pk-plus { font-size: 11.5px; color: #a07c18; }
+.redeem { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; margin-top: 4px; } .redeem p { grid-column: 1 / -1; margin: 0; font-size: 13px; color: #4c6470; }
+.redeem input { font: 700 15px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; padding: 9px 12px; border: 1px solid rgba(16,36,46,0.3); border-radius: 4px; background: #fff; color: #10242e; min-width: 0; }
+.redeem button { width: auto; padding: 10px 14px; font-size: 12px; }
 .ghost { width: 100%; font: 600 13px var(--body); padding: 12px 18px; border-radius: 4px; border: 1px solid #10242e; background: transparent; color: #10242e; cursor: pointer; }
 .cta:disabled { background: #8d9ba1; cursor: not-allowed; }
 /* phones and small tablets held sideways (16:9, 18:9, 20:9…): a compact menu and two-column station sheets */
@@ -325,7 +335,6 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   .bank, .arm { height: 32px; }
   .arms { flex-wrap: nowrap; } .arm { padding-inline: 9px; }
   .map-card { padding: 8px 6px; }
-  .map-title { top: 10px; left: 12px; gap: 4px; font-size: 9.5px; }
   .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))); width: 100%; } /* the whole scheme on one screen */
   .overlay { padding-block: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 8px) calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 8px); }
   /* the Light–Dark scale sits lower on the right, clear of the pause and sound buttons over it */
@@ -375,6 +384,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   #over .stat b, #win .stat b { font-size: 17px; } #over .stat span, #win .stat span { font-size: 9.5px; }
   #pause .btns, #over .btns { grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; margin-top: 8px !important; }
   #win .btns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; margin-top: 8px; } #win .btns > * { min-width: 0; overflow: hidden; }
+  .prize { margin: 6px 0 2px; padding: 6px 10px; gap: 10px; } .prize svg { width: 30px; height: 30px; } .prize b { font-size: 14px; } .prize span { font-size: 11px; line-height: 1.25; }
   #win .stats { grid-template-columns: repeat(6, minmax(0, 1fr)); } #win .stat span { font-size: 8.5px; line-height: 1.15; letter-spacing: 0.04em; }
   #win .panel.end .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 4px 0 4px; gap: 2px 10px; } #win .panel.end h1 { font-size: 17px; } #win .panel.end { padding-block: 8px; } #win .panel.end #winNote { margin: 0; }
   #win .panel.end .journey { max-height: calc(100dvh - 60px - var(--safe-top, 0px)); overflow-y: auto; } /* the journey scrolls on its own, the rest stays */
@@ -450,12 +460,6 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       </div>
     </header>
     <div class="map-card">
-      <div class="map-title">
-        <span><i style="background:#d0642a"></i><span data-en="Linea Tao · the way of Tao">Linea Tao · путь Дао</span></span>
-        <span><i style="background:#2f9a72"></i><span data-en="Linea Summa · the upper line">Linea Summa · верхний путь</span></span>
-        <span><i style="background:#1d6f8f"></i><span data-en="Linea Ima · the lower line">Linea Ima · нижний путь</span></span>
-        <span><i style="background:#a68bd6"></i><span data-en="Rami · dead-end branches">Rami · тупиковые ветки</span></span>
-      </div>
       <div class="map-tools">
         <button class="ibtn snd" id="mapMute" type="button" aria-pressed="false" aria-label="Звук" title="Звук" data-en-aria="Sound" data-en-title="Sound">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/>
@@ -556,6 +560,10 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     <p class="eyebrow" id="winEyebrow">Станция прибытия</p>
     <h1 id="winTitle">Вы доехали до Небес</h1>
     <p id="winNote" style="white-space: pre-line"></p>
+    <div class="prize" id="winPrize" hidden>
+      <svg viewBox="-12 -12 24 24" aria-hidden="true"><circle r="10.5"/><path d="M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5"/></svg>
+      <div><b data-en="The Ferrum cannon is free!">Пушка Ferrum освобождена!</b><span data-en="Its heavy iron ball goes through glass at one hit. Mount it on the cart at Armamentarium.">Тяжёлое железное ядро пробивает стекло с одного попадания. Поставьте её на вагонетку в Арсенале.</span></div>
+    </div>
     <div class="stats">
       <div class="stat"><span data-en="Score">Очки</span><b id="wScore">0</b></div>
       <div class="stat"><span data-en="Balls left">Осталось шаров</span><b id="wBalls">0</b></div>
@@ -4260,10 +4268,11 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       desc: "Конечная. Белые залы со стеклянными стенами. Путь стерегут красные лазеры: вертушки в разрывах стен, парящие блоки, балки на цепях. Луч через вагонетку стоит 3 шара. Переборки с диафрагмой открываются кнопками. Подъём к Свету здесь самый тяжёлый.",
       feats: ["Красные лазеры: вертушки, блоки, балки на цепях", "Переборки с диафрагмой и кнопками", "Финал Triumphus: суперигры пройденных станций по очереди"],
       req: { after: "abyssus" }, map: { x: 910, y: 320, label: "t", dx: 12 } }, // above and to the right, clear of the Tao line
-    // not a level: a thank-you to the author, in Telegram's Stars; a short gold branch off Initium, parallel to the arc
-    { id: "donum", num: "", latin: "Donum", ru: "Дар", line: "gift", gift: true, playable: false,
-      desc: "Limbus делает один человек. Если игра вам нравится — поддержите автора звёздами Telegram. В игре это ничего не меняет: просто спасибо.",
-      feats: [], req: {}, map: { x: 172, y: 244, label: "tr", dy: 8 } }, // its name up and to the right, under the legend
+    // not a level: the crystal shop, for whoever would rather not save up: crystals for Armamentarium, in Telegram's Stars
+    // (outside Telegram, one pack through the bot and a code); a gold branch off Initium, as long as the arc and parallel to it
+    { id: "emptio", num: "", latin: "Emptio", ru: "Купить", line: "gift", gift: true, playable: false,
+      desc: "Кристаллы для Арсенала — для тех, кто не хочет копить: сразу купить пушки и улучшения, играть на полную и пройти путь легче. В каждом наборе на четверть больше, чем нужно, — запас на будущие дополнения.",
+      feats: [], req: {}, map: { x: 230, y: 190, label: "t" } },
   ];
   // ---------- English: the level, cannon and finale texts; Russian is what the tables above hold ----------
   const EN = {
@@ -4290,7 +4299,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
         feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
       carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang steel grates on chains, floating laser bars and grids, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
         feats: ["Halls of grates on chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Custodes with a strongroom"] },
-      donum: { ru: "Gift", desc: "Limbus is made by one person. If you like the game, support the author with Telegram Stars. It changes nothing in the game: just a thank-you.", feats: [] },
+      emptio: { ru: "Buy", desc: "Crystals for Armamentarium, for those who would rather not save up: buy the cannons and upgrades at once, play at full strength and ride the way more easily. Every pack holds a quarter more than it needs: a reserve for future additions.", feats: [] },
       lux: { ru: "Light", desc: "The terminus. White halls with glass walls. Red lasers guard the way: spinners in gaps in the walls, floating blocks, beams on chains. A beam across the cart costs 3 balls. Iris bulkheads open with buttons. The climb to the Light is hardest here.",
         feats: ["Red lasers: spinners, blocks, beams on chains", "Iris bulkheads with buttons", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
     },
@@ -4351,7 +4360,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     { kind: "branch", to: "armamentarium", pts: [[185, 440], [385, 440]] }, // the depot lies on from the Garden
     { kind: "branch", to: "thesaurus", pts: [[500, 320], [500, 418], [526, 440], [615, 440]] },
     { kind: "branch", to: "carcer", pts: [[730, 320], [730, 418], [756, 440], [825, 440]] },
-    { kind: "gift", to: "donum", pts: [[90, 320], [172, 244]] }, // Donum: a short gold branch up from Initium, parallel to the arc
+    { kind: "gift", to: "emptio", pts: [[90, 320], [230, 190]] }, // Emptio: a gold branch up from Initium, as long as the arc and parallel to it
   ];
   const byId = id => LEVELS.find(l => l.id === id);
   const STORE = "limbus-progress-v1";
@@ -4546,8 +4555,8 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       $("winEyebrow").textContent = T(`Станция ${LEVEL.latin}`, `${LEVEL.latin} station`);
       $("winTitle").textContent = titles[zoneIdx(alt)];
       $("winNote").textContent = T(`Итог: ${total.toLocaleString("ru-RU")} (очки + 10 за каждый оставшийся шар)\nКристаллы ушли в запас: теперь их ${progress.bank}`,
-        `Total: ${total.toLocaleString("en-US")} (score + 10 for every ball left)\nThe crystals went to the bank: ${progress.bank}`) +
-        (freed ? T("\nИз Темницы вы вывезли пушку Ferrum: поставьте её на вагонетку на складе Armamentarium.", "\nYou brought the Ferrum cannon out of the Dungeon: mount it on the cart at the Armamentarium depot.") : "");
+        `Total: ${total.toLocaleString("en-US")} (score + 10 for every ball left)\nThe crystals went to the bank: ${progress.bank}`);
+      $("winPrize").hidden = !freed; if (freed) { Sound.crystal(6); setTimeout(() => Sound.crystal(6), 260); } // the Dungeon gives up its cannon: a prize on the arrival
       $("wScore").textContent = score.toLocaleString(T("ru-RU", "en-US"));
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;
@@ -5384,7 +5393,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   // two lines out of Vitrum: Linea Ima, low through Rubinus to Speculum, and Linea Summa, the upper arc to Abyssus, where Linea Tao goes on to Lux
   const ARC = ["vitrum", "labyrinthus", "tao"], ARC_HUBS = ["vitrum", "tao"];
   const LINE_TAO = "#d0642a"; // Linea Tao, Tao through Nox to Lux
-  const LINE_GOLD = "#c9a02e"; // Donum, the gift
+  const LINE_GOLD = "#c9a02e"; // Emptio, the crystal shop
   const HUB_RING = { vitrum: "#2f9a72", tao: LINE_TAO, initium: "#a68bd6", rubinus: "#a68bd6", speculum: "#a68bd6" }; // where a dead-end branch leaves, the ring is the branches' lilac
   const LINE_MAIN = "#1d6f8f", LINE_ARC = "#2f9a72", LINE_TR = "#b8892b", LINE_BR = "#a68bd6", INK = "#10242e", MUTED = "#8a9ba3";
   // one glyph per station, drawn in a 16-unit box around the station center
@@ -5394,7 +5403,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     vitrum: "M-6.5 -6.5H6.5V6.5H-6.5ZM-1.5 -6.5L1 -1.5L-2 1.5L0.5 6.5M1 -1.5L6.5 0", // a cracked pane
     rubinus: "M-3.5 -7.5H3.5L5.5 -5.5V5.5L3.5 7.5H-3.5L-5.5 5.5V-5.5ZM-2 -4.5H2L3 -3.5V3.5L2 4.5H-2L-3 3.5V-3.5ZM-3.5 -7.5L-2 -4.5M3.5 -7.5L2 -4.5M5.5 -5.5L3 -3.5M5.5 5.5L3 3.5M3.5 7.5L2 4.5M-3.5 7.5L-2 4.5M-5.5 5.5L-3 3.5M-5.5 -5.5L-3 -3.5", // a step-cut ruby
     tao: "M0 -7A7 7 0 1 1 0 7A7 7 0 1 1 0 -7M0 -7A3.5 3.5 0 0 1 0 0A3.5 3.5 0 0 0 0 7M0 -3.5V-3.4M0 3.4V3.5", // yin and yang
-    donum: "M0 -8L3.6 -5V5L0 8L-3.6 5V-5ZM0 -8V8M-3.6 -5L0 -2.8L3.6 -5M-3.6 5L0 2.8L3.6 5", // a crystal, as on the bot's picture
+    emptio: "M0 -8L3.6 -5V5L0 8L-3.6 5V-5ZM0 -8V8M-3.6 -5L0 -2.8L3.6 -5M-3.6 5L0 2.8L3.6 5", // a crystal, as on the bot's picture
     armamentarium: "M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5", // crossed barrels
     labyrinthus: "M-7 -7H7V7H-4V-4H4V4H-1",                             // a square maze
     hortus: "M0 7.5V-1.5M0 2C-4.5 2 -7 -1 -6.5 -5.5C-2.5 -5.5 0 -2.5 0 2M0 -1.5C4 -1.5 6.5 -4.5 6 -8C2.5 -8 0 -5.5 0 -1.5M-4 7.5H4", // a sprout with two leaves
@@ -5411,8 +5420,8 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     if (!lv.playable) return "build";
     return isOpen(lv) ? "open" : "closed";
   }
-  const STATUS_RU = { done: "пройдена", open: "открыта", opened: "открыт", gift: "поддержать", avail: "доступен", locked: "нажмите", closed: "закрыта", build: "строится" };
-  const STATUS_EN = { done: "done", open: "open", opened: "open", gift: "support", avail: "available", locked: "tap here", closed: "closed", build: "being built" };
+  const STATUS_RU = { done: "пройдена", open: "открыта", opened: "открыт", gift: "нажмите", avail: "доступен", locked: "нажмите", closed: "закрыта", build: "строится" };
+  const STATUS_EN = { done: "done", open: "open", opened: "open", gift: "tap here", avail: "available", locked: "tap here", closed: "closed", build: "being built" };
   const STATUS = st => T(STATUS_RU[st], STATUS_EN[st]);
   function renderArms() {
     const el = $("arms"); el.innerHTML = "";
@@ -5499,10 +5508,27 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   }
 
   let depotTab = "arma"; // the depot tab last shown
+  // the crystal packs at Emptio: each holds what it names at full price and a quarter more, for additions to come.
+  // Their prices in Stars are kept by the bot's server (bot/worker.js); these are what the cards show
+  const PK_GEM = "M0 -8L3.6 -5V5L0 8L-3.6 5V-5ZM0 -8V8M-3.6 -5L0 -2.8L3.6 -5M-3.6 5L0 2.8L3.6 5";
+  const pkIcon = (n, path = PK_GEM) => `<path d="${path}" transform="translate(${n > 1 ? -4.5 : 0} 0)"/>` + (n > 1 ? `<text x="6" y="4.5" font-size="11" font-weight="700">${["", "I", "II", "III"][n]}</text>` : "");
+  const PACKS = [
+    { id: "t1", tab: "up", stars: 40, crystals: 150, ru: "Арсенал I", en: "Armoury I", icon: `<path d="${PK_GEM}" transform="translate(-4.5 0)"/><text x="6" y="4.5" font-size="11" font-weight="700">I</text>`,
+      desc: ["Первый уровень всех трёх улучшений — Запас, Второе дыхание, Щедрость (120 ◆) — и вход на склад.", "The first level of all three upgrades, Reserve, Second wind and Bounty (120 ◆), and the depot's entry."] },
+    { id: "t2", tab: "up", stars: 70, crystals: 300, ru: "Арсенал II", en: "Armoury II", icon: pkIcon(2),
+      desc: ["Второй уровень всех трёх улучшений (240 ◆): +20 шаров на старте, второе дыхание с 20 шарами, +2 шара с попадания.", "The second level of all three upgrades (240 ◆): +20 balls at the start, a second wind with 20, +2 balls a hit."] },
+    { id: "t3", tab: "up", stars: 110, crystals: 515, ru: "Арсенал III", en: "Armoury III", icon: pkIcon(3),
+      desc: ["Третий, последний уровень всех трёх улучшений (410 ◆): +30 шаров на старте, второе дыхание с 30, +3 шара с попадания.", "The third and last level of all three upgrades (410 ◆): +30 balls at the start, a second wind with 30, +3 balls a hit."] },
+    { id: "guns", tab: "guns", stars: 90, crystals: 365, ru: "Пушки", en: "Cannons", icon: '<path d="M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5"/>',
+      desc: ["Triplex, Gemini и Lumen (290 ◆). Ferrum так не купить: его освобождают в Темнице.", "Triplex, Gemini and Lumen (290 ◆). Ferrum can't be bought: it is freed in the Dungeon."] },
+    { id: "all", tab: "guns", stars: 200, crystals: 1345, ru: "Всё сразу", en: "Everything", icon: `<path d="${PK_GEM}" transform="translate(-5 0) scale(0.8)"/><path d="${PK_GEM}" transform="translate(5 0) scale(0.8)"/><path d="${PK_GEM}" transform="translate(0 -1) scale(1.05)"/>`,
+      desc: ["Вход на склад, все пушки, кроме Ferrum, и все улучшения до третьего уровня (1075 ◆) — дешевле, чем по отдельности.", "The depot's entry, every cannon but Ferrum and every upgrade to the third level (1075 ◆), for less than apart."] },
+  ];
+  let shopTab = "up";
   function openSheet(lv, keep) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was
     const scroll = keep ? $("sheet").scrollTop : 0;
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
-    $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${st === "locked" ? T("вход платный", "paid entry") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
+    $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("кристаллы для Арсенала", "crystals for Armamentarium") : st === "locked" ? T("вход платный", "paid entry") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
     $("shName").innerHTML = `${esc(lv.latin)}<small>${esc(lv.ru)}</small>`;
     $("shDesc").textContent = lv.desc;
     $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead
@@ -5522,27 +5548,59 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       if (fn) b.addEventListener("click", fn); parent.appendChild(b); return b;
     };
     const reached = true; // nothing is closed now
-    if (lv.gift) { // Telegram Stars through the bot's server; outside Telegram, the way to the bot
-      if (TG && BOT_API && TG.isVersionAtLeast("6.1")) {
-        const row = document.createElement("div"); row.className = "btns stars";
-        for (const n of [50, 100, 250]) button(row, "cta", `⭐ ${n}`, async ev => {
+    if (lv.gift) {
+      const inTg = TG && BOT_API && TG.isVersionAtLeast("6.1");
+      const card = (pk, buy) => {
+        const c = document.createElement("div"); c.className = "wcard pack";
+        c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true">${pk.icon}</svg>${esc(T(pk.ru, pk.en))}<small>◆ ${pk.crystals}</small></h3><p>${esc(T(...pk.desc))}<br><span class="pk-plus">${T("+25% сверх нужного — запас на будущие дополнения", "+25% over what it needs: a reserve for future additions")}</span></p>`;
+        buy(c); extra.appendChild(c);
+      };
+      if (inTg) { // packs for Stars, on two tabs: the upgrades, and the cannons with everything at once
+        const tabs = document.createElement("div"); tabs.className = "tabs"; tabs.setAttribute("role", "tablist");
+        for (const [id, name, sub] of [["up", "Ingenia", T("улучшения", "upgrades")], ["guns", "Arma", T("пушки · всё сразу", "cannons · everything")]]) {
+          const t = document.createElement("button"); t.type = "button"; t.className = "tab"; t.setAttribute("role", "tab"); t.setAttribute("aria-selected", String(shopTab === id));
+          t.innerHTML = `${name}<small>${esc(sub)}</small>`; t.addEventListener("click", () => { if (shopTab !== id) { shopTab = id; openSheet(lv, true); } }); tabs.appendChild(t);
+        }
+        extra.appendChild(tabs);
+        for (const pk of PACKS.filter(p => p.tab === shopTab)) card(pk, c => button(c, "cta", `${pk.stars} ⭐`, async ev => {
           ev.target.disabled = true;
           try {
-            const r = await (await fetch(BOT_API + "/invoice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ amount: n, lang: LANG }) })).json();
+            const r = await (await fetch(BOT_API + "/invoice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ product: pk.id, lang: LANG }) })).json();
             if (!r.link) throw new Error(r.error || "no link");
-            TG.openInvoice(r.link, status => { if (status === "paid") { pop(T("Спасибо за поддержку!", "Thank you for the support!"), "info"); $("sheet").hidden = true; } });
+            TG.openInvoice(r.link, status => {
+              if (status !== "paid") return;
+              progress.bank += pk.crystals; saveProgress(); renderMap(); renderArms(); openSheet(lv, true);
+              pop(T(`+${pk.crystals} ◆ — спасибо!`, `+${pk.crystals} ◆ — thank you!`), "info");
+            });
           } catch (e) { pop(T("Не удалось связаться с ботом", "Couldn't reach the bot"), "info"); }
           ev.target.disabled = false;
+        }));
+      } else { // the APK and the page: one pack, paid in the bot, its code entered here
+        const all = PACKS.find(p => p.id === "all");
+        card(Object.assign({}, all, { ru: "Всё сразу · $3", en: "Everything · $3" }), c => button(c, "cta", T("Купить в Telegram", "Buy in Telegram"), async () => {
+          if (!BOT_API) return;
+          try {
+            const { username } = await (await fetch(BOT_API + "/bot")).json();
+            const url = `https://t.me/${username}?start=apk`;
+            if (location.protocol === "file:") location.href = url; else window.open(url, "_blank"); // the APK hands a link on to Telegram
+          } catch (e) { pop(T("Не удалось связаться с ботом", "Couldn't reach the bot"), "info"); }
+        }, !BOT_API));
+        const code = document.createElement("div"); code.className = "redeem";
+        code.innerHTML = `<p>${T("Бот пришлёт код после оплаты — введите его здесь:", "The bot sends a code once paid; enter it here:")}</p><input id="redeemCode" maxlength="12" autocomplete="off" spellcheck="false" placeholder="${T("Код", "Code")}">`;
+        button(code, "cta", T("Ввести код", "Redeem"), async ev => {
+          const v = $("redeemCode").value.trim().toUpperCase(); if (!v || !BOT_API) return;
+          ev.target.disabled = true;
+          try {
+            const r = await fetch(BOT_API + "/redeem", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: v }) });
+            const j = await r.json();
+            if (!r.ok || !j.crystals) throw new Error();
+            progress.bank += j.crystals; saveProgress(); renderMap(); renderArms(); openSheet(lv, true);
+            pop(T(`+${j.crystals} ◆ — спасибо!`, `+${j.crystals} ◆ — thank you!`), "info");
+          } catch (e) { pop(T("Код не подошёл", "That code didn't work"), "info"); }
+          ev.target.disabled = false;
         });
-        btns.appendChild(row);
-      } else if (BOT_API) button(btns, "cta", T("Поддержать в Telegram", "Support in Telegram"), async () => {
-        try {
-          const { username } = await (await fetch(BOT_API + "/bot")).json();
-          const url = `https://t.me/${username}?start=donate`;
-          if (location.protocol === "file:") location.href = url; else window.open(url, "_blank"); // the APK hands a link on to Telegram
-        } catch (e) { pop(T("Не удалось связаться с ботом", "Couldn't reach the bot"), "info"); }
-      });
-      else button(btns, "cta", T("Скоро", "Soon"), null, true);
+        extra.appendChild(code);
+      }
     } else if (lv.depot) {
       if (progress.open[lv.id]) {
         // two tabs: Arma, the cannons, and Ingenia, the upgrades; on a phone they stick to the top while the cards scroll

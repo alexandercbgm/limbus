@@ -5,14 +5,17 @@
 //   /stop             takes them off the news; /start puts them back
 //   /support, text    a message to the bot goes on to the owner; the owner replies to it in the bot's chat and the
 //                     reply goes back to the player, from the bot
-//   /donate           Telegram Stars: 50, 100 or 250, thanked in return; nothing is unlocked by it
+//   crystal packs     sold for Stars at the game's Emptio station: in Telegram the game asks /invoice for a pack and adds
+//                     its crystals when Telegram says it is paid; outside Telegram (the APK, the page) a ?start=apk link
+//                     brings the player here, the bot sells the one pack and sends a code the game redeems at /redeem
 //   /broadcast        owner only: "/broadcast vitrum Text…" sends every subscriber the level's picture, the text and a
 //                     Play button that opens that very level; it goes out ~45 a minute (a free Worker may make only
 //                     50 outside calls at a time), so a cron trigger carries it on; /stats, /cancel
 //   POST /hello       the game, opened in Telegram, says who is playing (checked against the bot's token), so players
 //                     who never wrote to the bot get the news too, once they have allowed it
-//   POST /invoice     the game asks for a Stars invoice link to show with Telegram.WebApp.openInvoice
-//   GET  /bot         the bot's username, for the game's Donum station outside Telegram
+//   POST /invoice     the game asks for a pack's Stars invoice link, to show with Telegram.WebApp.openInvoice
+//   POST /redeem      the APK or the page trades a code for its crystals, once
+//   GET  /bot         the bot's username, for the Emptio station outside Telegram
 //   GET  /setup       sets the bot's webhook, its commands and its menu button, once: /setup?key=WEBHOOK_SECRET
 //
 // Settings (Worker → Settings → Variables and Secrets):
@@ -23,6 +26,15 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
+// the crystal packs: the prices live here, not in the game. Each holds a quarter more than it names, for additions to come
+const PACKS = {
+  t1: { stars: 40, crystals: 150, ru: "Арсенал I", en: "Armoury I" },
+  t2: { stars: 70, crystals: 300, ru: "Арсенал II", en: "Armoury II" },
+  t3: { stars: 110, crystals: 515, ru: "Арсенал III", en: "Armoury III" },
+  guns: { stars: 90, crystals: 365, ru: "Пушки", en: "Cannons" },
+  all: { stars: 200, crystals: 1345, ru: "Всё сразу", en: "Everything" },
+  apk: { stars: 200, crystals: 1345, ru: "Всё сразу — код для игры", en: "Everything: a code for the game" }, // ~$3; outside Telegram
+};
 
 export default {
   async fetch(req, env, ctx) {
@@ -36,8 +48,9 @@ export default {
     }
     if (url.pathname === "/hello" && req.method === "POST") return cors(await hello(req, env));
     if (url.pathname === "/invoice" && req.method === "POST") return cors(await invoice(req, env));
+    if (url.pathname === "/redeem" && req.method === "POST") return cors(await redeem(req, env));
     if (url.pathname === "/setup") return setup(url, env);
-    if (url.pathname === "/bot") { const me = await tg(env, "getMe"); return cors(Response.json({ username: me.ok ? me.result.username : "" })); } // the game's Donum station links to the bot
+    if (url.pathname === "/bot") { const me = await tg(env, "getMe"); return cors(Response.json({ username: me.ok ? me.result.username : "" })); } // the Emptio station links to the bot from outside Telegram
     return new Response("Limbus bot");
   },
   // the cron trigger carries a broadcast on, a batch a minute
@@ -64,18 +77,20 @@ async function remember(env, user, sub = true) {
 
 async function onUpdate(u, env) {
   if (u.pre_checkout_query) return tg(env, "answerPreCheckoutQuery", { pre_checkout_query_id: u.pre_checkout_query.id, ok: true });
-  if (u.callback_query) {
-    const q = u.callback_query, m = /^don:(\d+)$/.exec(q.data || "");
-    await tg(env, "answerCallbackQuery", { callback_query_id: q.id });
-    if (m) return sendDonate(env, q.from, q.from.id, +m[1]);
-    return;
-  }
+  if (u.callback_query) return tg(env, "answerCallbackQuery", { callback_query_id: u.callback_query.id });
   const msg = u.message; if (!msg || !msg.from || msg.chat.type !== "private") return;
   const from = msg.from, chat = msg.chat.id, text = msg.text || "", owner = String(from.id) === String(env.OWNER_ID);
 
   if (msg.successful_payment) {
-    await tg(env, "sendMessage", { chat_id: chat, text: T(from, "Спасибо за поддержку! ⭐", "Thank you for the support! ⭐") });
-    return tg(env, "sendMessage", { chat_id: env.OWNER_ID, text: `⭐ ${msg.successful_payment.total_amount} — ${from.first_name || ""} ${from.username ? "@" + from.username : ""} (${from.id})` });
+    const sp = msg.successful_payment, pk = PACKS[sp.invoice_payload] || {};
+    if (sp.invoice_payload === "apk") { // bought outside the game: a code to enter in it
+      const code = Array.from(crypto.getRandomValues(new Uint8Array(8)), b => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 32]).join("");
+      await env.USERS.put("c:" + code, String(pk.crystals), { expirationTtl: 60 * 60 * 24 * 365 });
+      await tg(env, "sendMessage", { chat_id: chat, parse_mode: "HTML", text: T(from,
+        `Спасибо! Ваш код: <code>${code}</code>\nВ игре откройте станцию Emptio и введите его — придёт ◆ ${pk.crystals}. Код одноразовый.`,
+        `Thank you! Your code: <code>${code}</code>\nIn the game open the Emptio station and enter it for ◆ ${pk.crystals}. The code works once.`) });
+    } else await tg(env, "sendMessage", { chat_id: chat, text: T(from, `Спасибо! ◆ ${pk.crystals || ""} уже в игре.`, `Thank you! ◆ ${pk.crystals || ""} are in the game.`) });
+    return tg(env, "sendMessage", { chat_id: env.OWNER_ID, text: `⭐ ${sp.total_amount} · ${sp.invoice_payload} — ${from.first_name || ""} ${from.username ? "@" + from.username : ""} (${from.id})` });
   }
   // the owner answering a forwarded message: the reply goes back to that player
   if (owner && msg.reply_to_message) {
@@ -86,8 +101,11 @@ async function onUpdate(u, env) {
   switch (cmd.replace(/@.*/, "")) {
     case "/start": {
       await remember(env, from, true);
-      if (arg === "donate") return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Поддержать Limbus звёздами ⭐ (в игре это ничего не меняет — просто спасибо автору):", "Support Limbus with Stars ⭐ (it changes nothing in the game, just a thank-you):"),
-        reply_markup: { inline_keyboard: [[50, 100, 250].map(n => ({ text: `⭐ ${n}`, callback_data: `don:${n}` }))] } }); // from the game's Donum station
+      if (arg === "apk") { // from the Emptio station outside Telegram: the one pack, paid here, its code sent back
+        await tg(env, "sendMessage", { chat_id: chat, text: T(from, "Кристаллы для Арсенала: все пушки, кроме Ferrum, и все улучшения до третьего уровня, с запасом 25% на будущие дополнения. После оплаты придёт код — введите его в игре на станции Emptio.",
+          "Crystals for Armamentarium: every cannon but Ferrum and every upgrade to the third level, with 25% to spare for future additions. Once paid, a code comes: enter it in the game at the Emptio station.") });
+        return tg(env, "sendInvoice", { chat_id: chat, ...invoiceBody({ language_code: from.language_code }, "apk") });
+      }
       const level = /^[a-z]+$/.test(arg) ? arg : ""; // t.me/bot?start=vitrum
       return tg(env, "sendMessage", { chat_id: chat, reply_markup: playKb(env, from, level),
         text: T(from, "Limbus — рельсы между Светом и Тьмой. Жмите «Играть».\n\nНовости о новых уровнях будут приходить сюда; /stop — отписаться. Вопросы — просто напишите сообщение.",
@@ -99,9 +117,7 @@ async function onUpdate(u, env) {
       return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Вы отписаны от новостей. /start — подписаться снова.", "You are unsubscribed from the news. /start to subscribe again.") });
     case "/support":
       return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Напишите вопрос одним сообщением — я передам его автору, ответ придёт сюда.", "Write your question in a message: it goes to the author, and the answer comes here.") });
-    case "/donate":
-      return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Поддержать Limbus звёздами ⭐ (в игре это ничего не меняет — просто спасибо автору):", "Support Limbus with Stars ⭐ (it changes nothing in the game, just a thank-you):"),
-        reply_markup: { inline_keyboard: [[50, 100, 250].map(n => ({ text: `⭐ ${n}`, callback_data: `don:${n}` }))] } });
+    case "/buy": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Кристаллы для Арсенала — на станции Emptio в игре.", "Crystals for Armamentarium: at the Emptio station in the game."), reply_markup: playKb(env, from, "emptio") });
   }
   if (owner) switch (cmd) {
     case "/broadcast": return startBroadcast(env, chat, arg);
@@ -127,14 +143,22 @@ async function onUpdate(u, env) {
 }
 
 // ---------- Stars ----------
-const invoiceBody = (from, n) => ({ title: T(from, "Поддержать Limbus", "Support Limbus"), description: T(from, "Спасибо автору. В игре ничего не меняется.", "A thank-you to the author. Nothing changes in the game."),
-  payload: `donate:${n}`, currency: "XTR", prices: [{ label: "⭐", amount: n }] });
-const sendDonate = (env, from, chat, n) => tg(env, "sendInvoice", { chat_id: chat, ...invoiceBody(from, n) });
+const invoiceBody = (from, id) => { const pk = PACKS[id]; return { title: `Limbus · ${T(from, pk.ru, pk.en)}`,
+  description: T(from, `◆ ${pk.crystals} кристаллов для Арсенала (+25% — запас на будущие дополнения)`, `◆ ${pk.crystals} crystals for Armamentarium (+25%: a reserve for future additions)`),
+  payload: id, currency: "XTR", prices: [{ label: `◆ ${pk.crystals}`, amount: pk.stars }] }; };
 async function invoice(req, env) {
-  const { amount, lang } = await req.json().catch(() => ({}));
-  const n = [50, 100, 250].includes(+amount) ? +amount : 100;
-  const r = await tg(env, "createInvoiceLink", invoiceBody({ language_code: lang || "ru" }, n));
+  const { product, lang } = await req.json().catch(() => ({}));
+  if (!PACKS[product] || product === "apk") return Response.json({ error: "no such pack" }, { status: 400 });
+  const r = await tg(env, "createInvoiceLink", invoiceBody({ language_code: lang || "ru" }, product));
   return Response.json(r.ok ? { link: r.result } : { error: r.description }, { status: r.ok ? 200 : 500 });
+}
+// a code bought in the bot, traded once for its crystals
+async function redeem(req, env) {
+  const { code } = await req.json().catch(() => ({}));
+  const key = "c:" + String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12), n = await env.USERS.get(key);
+  if (!n) return Response.json({ error: "no such code" }, { status: 404 });
+  await env.USERS.delete(key);
+  return Response.json({ crystals: +n });
 }
 
 // ---------- the game says who is playing ----------
@@ -197,10 +221,10 @@ async function setup(url, env) {
   out.webhook = await tg(env, "setWebhook", { url: `${url.origin}/tg`, secret_token: env.WEBHOOK_SECRET, allowed_updates: ["message", "callback_query", "pre_checkout_query"] });
   out.commands = await tg(env, "setMyCommands", { commands: [
     { command: "play", description: "Играть" }, { command: "support", description: "Написать автору" },
-    { command: "donate", description: "Поддержать звёздами" }, { command: "stop", description: "Отписаться от новостей" }] });
+    { command: "buy", description: "Кристаллы для Арсенала" }, { command: "stop", description: "Отписаться от новостей" }] });
   out.commandsEn = await tg(env, "setMyCommands", { language_code: "en", commands: [
     { command: "play", description: "Play" }, { command: "support", description: "Write to the author" },
-    { command: "donate", description: "Support with Stars" }, { command: "stop", description: "Unsubscribe from the news" }] });
+    { command: "buy", description: "Crystals for Armamentarium" }, { command: "stop", description: "Unsubscribe from the news" }] });
   out.menu = await tg(env, "setChatMenuButton", { menu_button: { type: "web_app", text: "Играть", web_app: { url: env.GAME_URL } } });
   return Response.json(out, { headers: { "content-type": "application/json; charset=utf-8" } });
 }

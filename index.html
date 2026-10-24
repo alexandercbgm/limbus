@@ -5394,13 +5394,13 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   };
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function stationStatus(lv) {
-    if (lv.depot) return progress.open[lv.id] ? "avail" : "locked"; // an opened depot is dark, like a done station; before that its entry is paid
+    if (lv.depot) return !progress.open[lv.id] ? "locked" : progress.bought ? "avail" : "opened"; // grey till its entry is paid, white once open, dark once something is bought
     if (progress.done[lv.id]) return "done";
     if (!lv.playable) return "build";
     return isOpen(lv) ? "open" : "closed";
   }
-  const STATUS_RU = { done: "пройдена", open: "открыта", avail: "доступен", locked: "вход платный", closed: "закрыта", build: "строится" };
-  const STATUS_EN = { done: "done", open: "open", avail: "available", locked: "paid entry", closed: "closed", build: "being built" };
+  const STATUS_RU = { done: "пройдена", open: "открыта", opened: "открыт", avail: "доступен", locked: "вход платный", closed: "закрыта", build: "строится" };
+  const STATUS_EN = { done: "done", open: "open", opened: "open", avail: "available", locked: "paid entry", closed: "closed", build: "being built" };
   const STATUS = st => T(STATUS_RU[st], STATUS_EN[st]);
   function renderArms() {
     const el = $("arms"); el.innerHTML = "";
@@ -5455,7 +5455,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     for (const lv of LEVELS) {
       const p = lv.map, st = stationStatus(lv);
       const hub = !!HUB_RING[lv.id]; // where two lines meet, or a dead-end branch leaves
-      const dark = st === "done" || st === "avail", lit = dark || st === "open";
+      const dark = st === "done" || st === "avail", lit = dark || st === "open" || st === "opened";
       const fill = dark ? INK : lit ? "#ffffff" : "#e6ecee"; // done stations (and an opened depot) are dark, open ones white
       const stroke = lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (["abyssus", "lux"].includes(lv.id) ? LINE_TAO : ARC.includes(lv.id) && lv.id !== "vitrum" ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
       const glyph = dark ? "#ffffff" : lit ? INK : MUTED;
@@ -5475,7 +5475,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       out += `<path d="${GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
       out += `<text x="${L[0]}" y="${L[1]}" text-anchor="${L[2]}" font-family="Unbounded, 'Arial Black', sans-serif" font-weight="700" font-size="12.5" letter-spacing="0.6" fill="${INK}">${esc(lv.latin.toUpperCase())}</text>`;
       out += `<text x="${L[0]}" y="${L[1] + 17}" text-anchor="${L[2]}" font-family="Manrope, system-ui, sans-serif" font-size="12.5" fill="#4c6470">${esc(lv.ru)}</text>`;
-      out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "open" ? LINE_MAIN : "#7a8d95"}">${STATUS(st).toUpperCase()}</text>`;
+      out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "open" || st === "opened" ? LINE_MAIN : "#7a8d95"}">${STATUS(st).toUpperCase()}</text>`;
       out += `</g>`;
     }
     svg.innerHTML = out;

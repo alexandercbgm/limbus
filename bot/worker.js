@@ -5,6 +5,7 @@
 //   /stop             takes them off the news; /start puts them back
 //   /support, text    a message to the bot goes on to the owner; the owner replies to it in the bot's chat and the
 //                     reply goes back to the player, from the bot
+//                     (the owner can try it out: after their own /support his next message goes the player's way)
 //   crystal packs     sold for Stars at the game's Emptio station: in Telegram the game asks /invoice for a pack and adds
 //                     its crystals when Telegram says it is paid; outside Telegram (the APK, the page) a ?start=apk link
 //                     brings the player here, the bot sells the one pack and sends a code the game redeems at /redeem
@@ -116,6 +117,7 @@ async function onUpdate(u, env) {
       await remember(env, from, false);
       return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Вы отписаны от новостей. /start — подписаться снова.", "You are unsubscribed from the news. /start to subscribe again.") });
     case "/support":
+      if (owner) await env.USERS.put("selftest", "1", { expirationTtl: 600 }); // the owner trying it out: the next message goes the player's way
       return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Напишите вопрос одним сообщением — я передам его автору, ответ придёт сюда.", "Write your question in a message: it goes to the author, and the answer comes here.") });
     case "/buy": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Кристаллы для Арсенала — на станции Emptio в игре.", "Crystals for Armamentarium: at the Emptio station in the game."), reply_markup: playKb(env, from, "emptio") });
   }
@@ -131,7 +133,8 @@ async function onUpdate(u, env) {
   }
   if (cmd.startsWith("/")) return;
   // anything else is a message for the author
-  if (owner) return tg(env, "sendMessage", { chat_id: chat, text: "Чтобы ответить игроку, ответьте (Reply) на его пересланное сообщение." });
+  if (owner && !(await env.USERS.get("selftest"))) return tg(env, "sendMessage", { chat_id: chat, text: "Чтобы ответить игроку, ответьте (Reply) на его пересланное сообщение." });
+  if (owner) await env.USERS.delete("selftest");
   await remember(env, from, true);
   const f = await tg(env, "forwardMessage", { chat_id: env.OWNER_ID, from_chat_id: chat, message_id: msg.message_id });
   if (f.ok) {

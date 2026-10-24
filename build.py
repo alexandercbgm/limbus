@@ -17,6 +17,7 @@ so the first load is small and each track comes in with its level.
 """
 import base64
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -45,6 +46,14 @@ THREE_TAG = '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/t
 three = (root / "android" / "three.min.js").read_text(encoding="utf-8")
 assert THREE_TAG in page and "</script" not in three
 page = page.replace(THREE_TAG, "<script>" + three + "</script>")
+# the fonts go in inline as well (fonts/: latin and cyrillic woff2 from Google Fonts), so the APK and an offline copy
+# look as the page does online, instead of falling back to the system's fonts
+FONT_LINKS = re.compile(r'<link rel="preconnect" href="https://fonts\.g[^>]*>\n|<link rel="stylesheet" href="https://fonts\.googleapis\.com[^>]*>\n')
+faces = re.sub(r"url\(([^)]+)\)", lambda m: "url(data:font/woff2;base64," + base64.b64encode((root / "fonts" / m.group(1)).read_bytes()).decode("ascii") + ")",
+               (root / "fonts" / "fonts.css").read_text(encoding="utf-8"))
+assert len(FONT_LINKS.findall(page)) == 3
+page = FONT_LINKS.sub("", page, count=2)
+page = FONT_LINKS.sub("<style>" + faces + "</style>\n", page, count=1)
 TELEGRAM = "--telegram" in sys.argv
 if TELEGRAM:
     page = page.replace("<script>", '<script src="https://telegram.org/js/telegram-web-app.js"></script>\n<script>', 1)

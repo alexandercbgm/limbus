@@ -26,12 +26,12 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
-// the crystal packs: the prices live here, not in the game. Each holds a quarter more than it names, for additions to come
+// the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
-  t1: { stars: 40, crystals: 150, ru: "Арсенал I", en: "Armoury I" },
+  t1: { stars: 40, crystals: 170, ru: "Арсенал I", en: "Armoury I" },
   t2: { stars: 70, crystals: 300, ru: "Арсенал II", en: "Armoury II" },
   t3: { stars: 110, crystals: 515, ru: "Арсенал III", en: "Armoury III" },
-  guns: { stars: 90, crystals: 365, ru: "Пушки", en: "Cannons" },
+  guns: { stars: 90, crystals: 385, ru: "Пушки", en: "Cannons" },
   all: { stars: 200, crystals: 1345, ru: "Всё сразу", en: "Everything" },
   apk: { stars: 200, crystals: 1345, ru: "Всё сразу — код для игры", en: "Everything: a code for the game" }, // ~$3; outside Telegram
 };
@@ -102,8 +102,8 @@ async function onUpdate(u, env) {
     case "/start": {
       await remember(env, from, true);
       if (arg === "apk") { // from the Emptio station outside Telegram: the one pack, paid here, its code sent back
-        await tg(env, "sendMessage", { chat_id: chat, text: T(from, "Кристаллы для Арсенала: все пушки, кроме Ferrum, и все улучшения до третьего уровня, с запасом 25% на будущие дополнения. После оплаты придёт код — введите его в игре на станции Emptio.",
-          "Crystals for Armamentarium: every cannon but Ferrum and every upgrade to the third level, with 25% to spare for future additions. Once paid, a code comes: enter it in the game at the Emptio station.") });
+        await tg(env, "sendMessage", { chat_id: chat, text: T(from, "Кристаллы для Арсенала: вход на склад, все пушки (кроме Ferrum) и все улучшения до третьего уровня +25% бонус. После оплаты придёт код — введите его в игре на станции Emptio.",
+          "Crystals for Armamentarium: the depot's entry, every cannon (but Ferrum) and every upgrade to the third level, +25% bonus. Once paid, a code comes: enter it in the game at the Emptio station.") });
         return tg(env, "sendInvoice", { chat_id: chat, ...invoiceBody({ language_code: from.language_code }, "apk") });
       }
       const level = /^[a-z]+$/.test(arg) ? arg : ""; // t.me/bot?start=vitrum
@@ -143,8 +143,8 @@ async function onUpdate(u, env) {
 }
 
 // ---------- Stars ----------
-const invoiceBody = (from, id) => { const pk = PACKS[id]; return { title: `Limbus · ${T(from, pk.ru, pk.en)}`,
-  description: T(from, `◆ ${pk.crystals} кристаллов для Арсенала (+25% — запас на будущие дополнения)`, `◆ ${pk.crystals} crystals for Armamentarium (+25%: a reserve for future additions)`),
+const invoiceBody = (from, id) => { const pk = PACKS[id]; return { title: "Limbus",
+  description: T(from, `💎 ${pk.crystals} кристаллов для Арсенала +25% бонус.`, `💎 ${pk.crystals} crystals for Armamentarium +25% bonus.`),
   payload: id, currency: "XTR", prices: [{ label: `◆ ${pk.crystals}`, amount: pk.stars }] }; };
 async function invoice(req, env) {
   const { product, lang } = await req.json().catch(() => ({}));

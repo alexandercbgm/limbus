@@ -185,11 +185,14 @@ async function checkInitData(initData, token) {
 }
 
 // ---------- broadcast ----------
+// a level as the owner may name it in /broadcast: by its station's name (Nox) or by its id in the game (abyssus)
+const LEVEL_IDS = { initium: "initium", thesaurus: "thesaurus", vitrum: "vitrum", rubinus: "rubinus", labyrinthus: "labyrinthus", hortus: "hortus",
+  speculum: "speculum", tao: "tao", nox: "abyssus", abyssus: "abyssus", carcer: "carcer", lux: "lux" };
 async function startBroadcast(env, chat, arg) {
-  const m = /^([a-z]+)\s+([\s\S]+)$/.exec(arg.trim());
-  if (!m) return tg(env, "sendMessage", { chat_id: chat, text: "Формат: /broadcast <уровень> <текст>\nНапример: /broadcast vitrum Новый уровень уже на линии!\nУровни: initium vitrum labyrinthus hortus thesaurus rubinus speculum tao abyssus carcer lux" });
+  const m = /^(\S+)\s+([\s\S]+)$/.exec(arg.trim()), level = m && LEVEL_IDS[m[1].toLowerCase()];
+  if (!level) return tg(env, "sendMessage", { chat_id: chat, text: `${m ? `Нет уровня «${m[1]}». ` : ""}Формат: /broadcast <уровень> <текст>\nНапример: /broadcast vitrum Новый уровень уже на линии!\nУровни: initium thesaurus vitrum rubinus labyrinthus hortus speculum tao nox carcer lux` });
   if (await env.USERS.get("job")) return tg(env, "sendMessage", { chat_id: chat, text: "Уже идёт рассылка. /stats — сколько отправлено, /cancel — остановить." });
-  await env.USERS.put("job", JSON.stringify({ level: m[1], text: m[2], cursor: null, keys: [], sent: 0, failed: 0, by: chat }));
+  await env.USERS.put("job", JSON.stringify({ level, text: m[2], cursor: null, keys: [], sent: 0, failed: 0, by: chat }));
   await tg(env, "sendMessage", { chat_id: chat, text: `Рассылка началась: по ${PER_RUN} сообщений в минуту. /stats — ход, /cancel — остановить.` });
   return runBroadcast(env);
 }
@@ -207,12 +210,15 @@ async function runBroadcast(env) {
     const u = JSON.parse(await env.USERS.get(key) || "null"); budget--; // reads count against the limit too
     if (!u || !u.sub) continue;
     const from = { language_code: u.lang };
-    const r = await tg(env, "sendPhoto", { chat_id: id, photo: `${env.GAME_URL}minis/${job.level}.jpg`, caption: job.text, reply_markup: playKb(env, from, job.level) }); budget--;
-    if (r.ok) job.sent++; else { job.failed++; if (r.error_code === 403) await env.USERS.delete(key); } // blocked the bot: off the list
+    // the level's clip (silent, so Telegram plays it on a loop like a GIF); its picture if the clip won't go
+    const msg = { chat_id: id, caption: job.text, reply_markup: playKb(env, from, job.level) };
+    let r = await tg(env, "sendAnimation", { ...msg, animation: `${env.GAME_URL}minis/${job.level}.mp4` }); budget--;
+    if (!r.ok && r.error_code !== 403) { r = await tg(env, "sendPhoto", { ...msg, photo: `${env.GAME_URL}minis/${job.level}.jpg` }); budget--; }
+    if (r.ok) job.sent++; else { job.failed++; job.error = r.description || String(r.error_code); if (r.error_code === 403) await env.USERS.delete(key); } // blocked the bot: off the list
   }
   if (job.cursor === "done" && !job.keys.length) {
     await env.USERS.delete("job");
-    await tg(env, "sendMessage", { chat_id: job.by, text: `Рассылка закончена: отправлено ${job.sent}, ошибок ${job.failed}.` });
+    await tg(env, "sendMessage", { chat_id: job.by, text: `Рассылка закончена: отправлено ${job.sent}, ошибок ${job.failed}.${job.error ? `\nПоследняя ошибка: ${job.error}` : ""}` });
   } else await env.USERS.put("job", JSON.stringify(job));
 }
 

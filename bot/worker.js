@@ -102,8 +102,8 @@ async function onUpdate(u, env) {
     case "/start": {
       await remember(env, from, true);
       if (arg === "apk") { // from the Emptio station outside Telegram: the one pack, paid here, its code sent back
-        await tg(env, "sendMessage", { chat_id: chat, text: T(from, "Кристаллы для Арсенала: вход на склад, все пушки (кроме Ferrum) и все улучшения до третьего уровня +25% бонус. После оплаты придёт код — введите его в игре на станции Emptio.",
-          "Crystals for Armamentarium: the depot's entry, every cannon (but Ferrum) and every upgrade to the third level, +25% bonus. Once paid, a code comes: enter it in the game at the Emptio station.") });
+        await tg(env, "sendMessage", { chat_id: chat, text: T(from, "Кристаллы для Арсенала: вход на склад, все пушки (кроме Ferrum) и все улучшения до третьего уровня +25% бонус.\nПосле оплаты придёт код — введите его в игре на станции Emptio.",
+          "Crystals for Armamentarium: the depot's entry, every cannon (but Ferrum) and every upgrade to the third level, +25% bonus.\nOnce paid, a code comes: enter it in the game at the Emptio station.") });
         return tg(env, "sendInvoice", { chat_id: chat, ...invoiceBody({ language_code: from.language_code }, "apk") });
       }
       const level = /^[a-z]+$/.test(arg) ? arg : ""; // t.me/bot?start=vitrum

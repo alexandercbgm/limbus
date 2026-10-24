@@ -5411,8 +5411,8 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     if (!lv.playable) return "build";
     return isOpen(lv) ? "open" : "closed";
   }
-  const STATUS_RU = { done: "пройдена", open: "открыта", opened: "открыт", gift: "поддержать", avail: "доступен", locked: "вход платный", closed: "закрыта", build: "строится" };
-  const STATUS_EN = { done: "done", open: "open", opened: "open", gift: "support", avail: "available", locked: "paid entry", closed: "closed", build: "being built" };
+  const STATUS_RU = { done: "пройдена", open: "открыта", opened: "открыт", gift: "поддержать", avail: "доступен", locked: "нажмите", closed: "закрыта", build: "строится" };
+  const STATUS_EN = { done: "done", open: "open", opened: "open", gift: "support", avail: "available", locked: "tap here", closed: "closed", build: "being built" };
   const STATUS = st => T(STATUS_RU[st], STATUS_EN[st]);
   function renderArms() {
     const el = $("arms"); el.innerHTML = "";
@@ -5502,7 +5502,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   function openSheet(lv, keep) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was
     const scroll = keep ? $("sheet").scrollTop : 0;
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
-    $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${STATUS(st)}`;
+    $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${st === "locked" ? T("вход платный", "paid entry") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
     $("shName").innerHTML = `${esc(lv.latin)}<small>${esc(lv.ru)}</small>`;
     $("shDesc").textContent = lv.desc;
     $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead

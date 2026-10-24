@@ -4468,6 +4468,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       ["nextBtn", "nextBtn2"].forEach((id, i) => { const nb = $(id), nx = nxs[i]; nb.hidden = !nx; if (nx) { nb.dataset.id = nx.id; nb.textContent = `${nx.latin} →`; nb.setAttribute("aria-label", T(`Дальше: ${nx.latin}`, `Next: ${nx.latin}`)); } }); // the station's name and an arrow on
       $("againBtn").textContent = againText();
       journey(firstFinish);
+      if (window.__askNews) setTimeout(window.__askNews, 1500); // a moment after the arrival shows
       $("win").hidden = false;
       requestAnimationFrame(() => ["nextBtn", "nextBtn2"].forEach(id => { // a long name that won't fit its button is cut short: Lab.
         const nb = $(id), nx = byId(nb.dataset.id || ""); if (nb.hidden || !nx || nb.scrollWidth <= nb.clientWidth) return;
@@ -5559,6 +5560,18 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   const firstTap = () => { if (state === "menu" && !document.hidden) Sound.init(); };
   window.addEventListener("pointerdown", firstTap, true); window.addEventListener("keydown", firstTap, true);
   // ---------- Telegram Mini App ----------
+  // the bot's server (bot/worker.js), when the build knows its address: it learns who plays, for the news, once they allow it
+  const BOT_API = (window.LIMBUS_BOT_API || "").replace(/\/$/, "");
+  const hello = () => { if (BOT_API && TG) fetch(BOT_API + "/hello", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ initData: TG.initData }) }).catch(() => {}); };
+  // after the first finished ride, once: may the bot write to them (news of new levels, answers from support)?
+  window.__askNews = () => {
+    if (!BOT_API || !TG || !TG.isVersionAtLeast("6.9")) return;
+    const u = TG.initDataUnsafe && TG.initDataUnsafe.user;
+    if (u && u.allows_write_to_pm) return;
+    try { if (localStorage.getItem("limbus-news-asked")) return; localStorage.setItem("limbus-news-asked", "1"); } catch (e) { return; }
+    TG.requestWriteAccess(ok => { if (ok) hello(); });
+  };
+  if (TG && TG.initDataUnsafe && TG.initDataUnsafe.user && TG.initDataUnsafe.user.allows_write_to_pm) hello(); // already allowed: say who plays
   if (TG) {
     TG.ready(); TG.expand();
     document.body.classList.add("tg"); if (/^(android|ios)$/.test(TG.platform)) document.body.classList.add("tgphone");
@@ -5669,6 +5682,9 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   setLevel(LEVELS[0]);
   warmShaders();
   showMenu();
+  // a link to a level (the bot's Play button: ?level=vitrum; a t.me/…?startapp=vitrum link) opens that station's sheet
+  const deep = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) || new URLSearchParams(location.search).get("level");
+  if (deep && byId(deep)) openSheet(byId(deep));
   requestAnimationFrame(frame);
 })();
 </script>

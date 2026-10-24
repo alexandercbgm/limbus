@@ -58,6 +58,10 @@ TELEGRAM = "--telegram" in sys.argv
 if TELEGRAM:
     page = page.replace("<script>", '<script src="https://telegram.org/js/telegram-web-app.js"></script>\n<script>', 1)
     page = page.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n<script>document.documentElement.classList.add("tgbuild")</script>\n', 1)
+    # the bot's server (bot/worker.js), once it is deployed: its address in telegram/bot-api.txt
+    api = root / "telegram" / "bot-api.txt"
+    if api.exists() and api.read_text().strip():
+        page = page.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n<script>window.LIMBUS_BOT_API = "' + api.read_text().strip() + '"</script>\n', 1)
 for track in [] if "--no-music" in sys.argv or TELEGRAM else sorted((root / "music").glob("*.mp3")):
     raw, kind = embedded(track)
     data = base64.b64encode(raw).decode("ascii")
@@ -77,6 +81,7 @@ if TELEGRAM:
                             "-b:a", "96k", "-ar", "44100", str(out / "music" / track.name)], check=True)
         else:
             shutil.copy(track, out / "music" / track.name)
+    shutil.copytree(root / "minis", out / "minis") # the bot sends a level's picture with its news
     (out / ".nojekyll").write_text("")
     size = sum(f.stat().st_size for f in out.rglob("*") if f.is_file())
     print(f"dist/telegram: page {len(page) / 1e6:.1f} MB, {size / 1e6:.1f} MB in all")

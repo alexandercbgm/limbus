@@ -167,7 +167,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 @media (orientation: landscape) { .rotate { display: none; } }
 /* the Telegram build on a phone shows it from the first paint, before any script, so the upright menu never flashes */
 @media (orientation: portrait) and (pointer: coarse) { html.tgbuild:not(.rotskip) .rotate[hidden] { display: flex !important; } }
-html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rotate > * { visibility: hidden; } /* nothing shows, not the menu nor the tunnel behind it, till Telegram has opened the app at its full size */
+html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rotate > * { visibility: hidden; } html.tgbuild:not(.tgready) .rotate svg { animation: none; } /* the turn starts upright when it shows */ /* nothing shows, not the menu nor the tunnel behind it, till Telegram has opened the app at its full size */
 .how .panel { width: min(640px, 100%); }
 .how .panel p { font-size: 14px; margin-top: 8px; text-wrap: pretty; } /* no word left alone on the last line */
 .how .rules { margin: 16px 0 18px; }
@@ -1062,15 +1062,11 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   const reinfEdgeMat = new THREE.LineBasicMaterial({ color: 0xff6a3a, transparent: true, opacity: 0.95 });
   const crystalMat = new THREE.MeshStandardMaterial({ color: 0x4fd8ff, emissive: 0x1793c4, emissiveIntensity: 0.75, roughness: 0.2, metalness: 0.3, flatShading: true });
   const decoyMat = new THREE.MeshStandardMaterial({ color: 0x3a0606, emissive: 0xff1a0a, emissiveIntensity: 0.7, roughness: 0.3, metalness: 0.4, flatShading: true });
-  const impMat = new THREE.MeshStandardMaterial({ color: 0x0c0202, emissive: 0x9a0d04, emissiveIntensity: 0.6, roughness: 0.35, flatShading: true });
-  // a phone's bright screen burns these saturated glows out: on a touch screen (the APK, Telegram on a phone) they glow a third
-  // less and a shade softer, the blue toward sea-green, the reds toward ruby
-  const PHONE = matchMedia("(pointer: coarse)").matches;
-  if (PHONE) {
-    crystalMat.color.set(0x5ccbe6); crystalMat.emissive.set(0x1a7fa6); crystalMat.emissiveIntensity = 0.5;
-    decoyMat.emissive.set(0xd8241a); decoyMat.emissiveIntensity = 0.48;
-    impMat.emissive.set(0x861208); impMat.emissiveIntensity = 0.42;
-  }
+  const impMat = new THREE.MeshPhongMaterial({ color: 0x0b0b0e, specular: 0xb4bcc8, shininess: 90, flatShading: true }); // black metal: each facet flashes as it turns to the light
+  // softer than pure neon (a phone's bright screen burnt them out): the blue toward sea-green, the reds toward ruby;
+  // an imp's core is black metal that only catches the light, its cage and halo glow
+  crystalMat.color.set(0x5ccbe6); crystalMat.emissive.set(0x1a7fa6); crystalMat.emissiveIntensity = 0.5;
+  decoyMat.emissive.set(0xd8241a); decoyMat.emissiveIntensity = 0.48;
   const impEdgeMat = new THREE.LineBasicMaterial({ color: 0xff3a14 });
   const ballMat = new THREE.MeshStandardMaterial({ color: 0xdfe6ea, metalness: 0.6, roughness: 0.2 });
   const ironBallMat = new THREE.MeshStandardMaterial({ color: 0x3a3430, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 });
@@ -1081,7 +1077,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   const mirageMat = crystalMat.clone(); mirageMat.transparent = true; mirageMat.opacity = 0.6; mirageMat.depthWrite = false;
   const mirageGlow = blueGlow.clone(); mirageGlow.opacity = 0.32;
   const redGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a10, transparent: true, opacity: 0.6, depthWrite: false });
-  if (PHONE) { redGlow.opacity = 0.42; redGlow.color.set(0xe0281a); impEdgeMat.color.set(0xd8341c); blueGlow.opacity *= 0.7; } // and their halos and the imps' cages, on a phone
+  redGlow.opacity = 0.42; redGlow.color.set(0xe0281a); impEdgeMat.color.set(0xd8341c); blueGlow.opacity *= 0.7; // and their halos and the imps' cages
   const glassWallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, transparent: true, opacity: 0.3, roughness: 0.08, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide });
   const prismMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.72, roughness: 0.1, metalness: 0.25, flatShading: true });
   const sigilMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8 });

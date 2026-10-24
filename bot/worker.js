@@ -52,7 +52,7 @@ async function tg(env, method, body) {
 const ru = from => !from || !from.language_code || /^(ru|uk|be|kk)/.test(from.language_code);
 const T = (from, r, e) => ru(from) ? r : e;
 const gameUrl = (env, level) => env.GAME_URL + (level ? `?level=${encodeURIComponent(level)}` : "");
-const playKb = (env, from, level) => ({ inline_keyboard: [[{ text: T(from, "▶ Играть", "▶ Play"), web_app: { url: gameUrl(env, level) } }]] });
+const playKb = (env, from, level) => ({ inline_keyboard: [[{ text: T(from, "Играть", "Play"), web_app: { url: gameUrl(env, level) } }]] });
 
 async function remember(env, user, sub = true) {
   const key = "u:" + user.id, old = JSON.parse(await env.USERS.get(key) || "null");

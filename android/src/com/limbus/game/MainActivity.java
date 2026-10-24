@@ -1,6 +1,8 @@
 package com.limbus.game;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -8,6 +10,7 @@ import android.view.WindowManager;
 import android.webkit.ValueCallback;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 // The whole game is one page (assets/index.html); this activity shows it full screen, sideways, and keeps it awake.
 public class MainActivity extends Activity implements ValueCallback<String> {
@@ -26,6 +29,13 @@ public class MainActivity extends Activity implements ValueCallback<String> {
     s.setAllowFileAccessFromFileURLs(true); // the page reads its music files from assets/music
     web.setOverScrollMode(View.OVER_SCROLL_NEVER);
     web.setBackgroundColor(0xff000000);
+    web.setWebViewClient(new WebViewClient() { // a link out of the game (Donum's to the bot) opens in Telegram or the browser, not in here
+      @Override public boolean shouldOverrideUrlLoading(WebView v, String url) {
+        if (url.startsWith("file:")) return false;
+        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); } catch (Exception e) { /* nothing to open it */ }
+        return true;
+      }
+    });
     setContentView(web);
     web.loadUrl("file:///android_asset/index.html");
     hideBars();

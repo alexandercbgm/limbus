@@ -12,6 +12,7 @@
 //   POST /hello       the game, opened in Telegram, says who is playing (checked against the bot's token), so players
 //                     who never wrote to the bot get the news too, once they have allowed it
 //   POST /invoice     the game asks for a Stars invoice link to show with Telegram.WebApp.openInvoice
+//   GET  /bot         the bot's username, for the game's Donum station outside Telegram
 //   GET  /setup       sets the bot's webhook, its commands and its menu button, once: /setup?key=WEBHOOK_SECRET
 //
 // Settings (Worker → Settings → Variables and Secrets):
@@ -36,6 +37,7 @@ export default {
     if (url.pathname === "/hello" && req.method === "POST") return cors(await hello(req, env));
     if (url.pathname === "/invoice" && req.method === "POST") return cors(await invoice(req, env));
     if (url.pathname === "/setup") return setup(url, env);
+    if (url.pathname === "/bot") { const me = await tg(env, "getMe"); return cors(Response.json({ username: me.ok ? me.result.username : "" })); } // the game's Donum station links to the bot
     return new Response("Limbus bot");
   },
   // the cron trigger carries a broadcast on, a batch a minute
@@ -84,6 +86,8 @@ async function onUpdate(u, env) {
   switch (cmd.replace(/@.*/, "")) {
     case "/start": {
       await remember(env, from, true);
+      if (arg === "donate") return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Поддержать Limbus звёздами ⭐ (в игре это ничего не меняет — просто спасибо автору):", "Support Limbus with Stars ⭐ (it changes nothing in the game, just a thank-you):"),
+        reply_markup: { inline_keyboard: [[50, 100, 250].map(n => ({ text: `⭐ ${n}`, callback_data: `don:${n}` }))] } }); // from the game's Donum station
       const level = /^[a-z]+$/.test(arg) ? arg : ""; // t.me/bot?start=vitrum
       return tg(env, "sendMessage", { chat_id: chat, reply_markup: playKb(env, from, level),
         text: T(from, "Limbus — рельсы между Светом и Тьмой. Жмите «Играть».\n\nНовости о новых уровнях будут приходить сюда; /stop — отписаться. Вопросы — просто напишите сообщение.",

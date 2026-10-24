@@ -538,7 +538,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   <div class="panel">
     <p class="eyebrow" id="winEyebrow">Станция прибытия</p>
     <h1 id="winTitle">Вы доехали до Небес</h1>
-    <p id="winNote"></p>
+    <p id="winNote" style="white-space: pre-line"></p>
     <div class="stats">
       <div class="stat"><span data-en="Score">Очки</span><b id="wScore">0</b></div>
       <div class="stat"><span data-en="Balls left">Осталось шаров</span><b id="wBalls">0</b></div>
@@ -3932,6 +3932,14 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   }
   function showOverlay(id, html, ms) {
     const el = $(id); el.innerHTML = html; el.hidden = false;
+    // a long name in big spaced letters is shrunk till it fits the screen between its safe edges, and stays centred
+    const css = getComputedStyle(document.documentElement), room = innerWidth - 32 - (parseFloat(css.getPropertyValue("--safe-left")) || 0) - (parseFloat(css.getPropertyValue("--safe-right")) || 0);
+    for (const big of el.querySelectorAll(".tc-name, .bn-name")) {
+      big.style.fontSize = ""; big.style.whiteSpace = "nowrap"; big.style.display = "inline-block";
+      const w = big.getBoundingClientRect().width;
+      if (w > room) big.style.fontSize = Math.floor(parseFloat(getComputedStyle(big).fontSize) * room / w) + "px";
+      big.style.display = "";
+    }
     clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, ms);
   }
   function showTitle(lv) {
@@ -4512,9 +4520,9 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
         ["You rode into the Light", "You reached Heaven", "You got stuck in Purgatory", "You arrived in the Twilight", "The rails led into the Dark"]);
       $("winEyebrow").textContent = T(`Станция ${LEVEL.latin}`, `${LEVEL.latin} station`);
       $("winTitle").textContent = titles[zoneIdx(alt)];
-      $("winNote").textContent = T(`Итог: ${total.toLocaleString("ru-RU")} (очки + 10 за каждый оставшийся шар). Кристаллы ушли в запас: теперь их ${progress.bank}.`,
-        `Total: ${total.toLocaleString("en-US")} (score + 10 for every ball left). The crystals went to the bank: ${progress.bank} now.`) +
-        (freed ? T(" Из Темницы вы вывезли пушку Ferrum: поставьте её на вагонетку на складе Armamentarium.", " You brought the Ferrum cannon out of the Dungeon: mount it on the cart at the Armamentarium depot.") : "");
+      $("winNote").textContent = T(`Итог: ${total.toLocaleString("ru-RU")} (очки + 10 за каждый оставшийся шар)\nКристаллы ушли в запас: теперь их ${progress.bank}`,
+        `Total: ${total.toLocaleString("en-US")} (score + 10 for every ball left)\nThe crystals went to the bank: ${progress.bank}`) +
+        (freed ? T("\nИз Темницы вы вывезли пушку Ferrum: поставьте её на вагонетку на складе Armamentarium.", "\nYou brought the Ferrum cannon out of the Dungeon: mount it on the cart at the Armamentarium depot.") : "");
       $("wScore").textContent = score.toLocaleString(T("ru-RU", "en-US"));
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;

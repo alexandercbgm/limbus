@@ -240,8 +240,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 /* Telegram on a phone held upright: a prompt to turn it sideways, as the game is played */
 .rotate { position: fixed; inset: 0; z-index: 9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px;
   background: #e9eced; color: #10242e; text-align: center; font: 600 16px var(--body); }
-.rotate svg { width: 84px; height: 84px; stroke: #10242e; fill: none; stroke-width: 1.6; animation: turn 2.4s ease-in-out infinite; }
-@keyframes turn { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
+.rotate svg { width: 84px; height: 84px; stroke: #10242e; fill: none; stroke-width: 1.6; transform: rotate(0deg); animation: turn 3.2s ease-in-out infinite; }
+@keyframes turn { 0%, 25% { transform: rotate(0deg); } 50%, 75% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } } /* upright, turned, and smoothly back: no jump between rounds */
 .rotate button { font: 600 13px var(--body); padding: 10px 16px; border-radius: 4px; border: 1px solid #10242e; background: transparent; color: #10242e; }
 @media (orientation: landscape) { .rotate { display: none; } }
 /* the Telegram build on a phone shows it from the first paint, before any script, so the upright menu never flashes */

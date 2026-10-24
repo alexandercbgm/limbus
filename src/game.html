@@ -5476,6 +5476,8 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     const at = (x, y, d) => [vx + (x - vx) * d, vy + (y - vy) * d];
     // a built station shows real shots of its level (light on the left, dark on the right), embedded by build.py
     const shot = document.getElementById("mini-" + lv.id);
+    // the shots come after the script in the page: a sheet opened before they are parsed (a link to a level) waits for them
+    if (!shot && document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { if (!$("sheet").hidden) drawMini(lv); }, { once: true });
     if (shot && !shot.complete) shot.onload = () => { if (!$("sheet").hidden) drawMini(lv); };
     if (shot && shot.complete) g.drawImage(shot, 0, 0, Wc, Hc);
     else halves.forEach((P, side) => {

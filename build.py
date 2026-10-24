@@ -68,13 +68,15 @@ for track in [] if "--no-music" in sys.argv or TELEGRAM else sorted((root / "mus
     data = base64.b64encode(raw).decode("ascii")
     page += f'<script type="application/octet-stream" id="music-{track.stem}" data-type="{kind}">{data}</script>\n'
 # shots of each level for the station sheets (minis/<level id>.jpg, light half and dark half)
-for shot in sorted((root / "minis").glob("*.jpg")):
+for shot in sorted(f for f in (root / "minis").glob("*.jpg") if "." not in f.stem): # <id>.clip.jpg is a clip's first frame
     data = base64.b64encode(shot.read_bytes()).decode("ascii")
     page += f'<img hidden alt="" id="mini-{shot.stem}" src="data:image/jpeg;base64,{data}">\n'
 # clips of a level that play in its sheet in place of the shot (minis/<level id>.mp4): inline in the one-file page, beside it in the Telegram build
 for clip in sorted((root / "minis").glob("*.mp4")):
     src = f"minis/{clip.name}" if TELEGRAM else "data:video/mp4;base64," + base64.b64encode(clip.read_bytes()).decode("ascii")
-    page += f'<script type="text/plain" id="clip-{clip.stem}">{src}</script>\n'
+    poster = clip.with_suffix(".clip.jpg") # its first frame, shown at once while the clip starts
+    poster = f' data-poster="data:image/jpeg;base64,{base64.b64encode(poster.read_bytes()).decode("ascii")}"' if poster.exists() else ""
+    page += f'<script type="text/plain" id="clip-{clip.stem}"{poster}>{src}</script>\n'
 if TELEGRAM:
     out = root / "dist" / "telegram"
     shutil.rmtree(out, ignore_errors=True)

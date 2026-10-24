@@ -4053,7 +4053,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
         [880, 90, -100], [1040, 60, 60], [1150, 50, -40], [1240, 60, 55], [1350, 55, -35]],
       desc: "Знакомство с рельсами. Белые залы с квадратными арками, первые стёкла и первый спуск во Тьму.",
       feats: ["Квадратные арки, сплошные стены и парящие кубы", "Стекло, голубые кристаллы, во Тьме шипы и чёрно-красные кристаллы бесы", "Финал Iudicium: печати и множитель"],
-      req: {}, map: { x: 90, y: 330, label: "t" } },
+      req: {}, map: { x: 90, y: 320, label: "t" } },
     { id: "thesaurus", num: "I·a", latin: "Thesaurus", ru: "Сокровищница", line: "branch", playable: true, music: "luminous_glass", len: 900, pal: PAL_AURUM, finale: "pluvia",
       style: { arch: "ring", blocks: "coin", glassWalls: false }, crystalMul: 2.2, bankMul: 2, // bankMul: each crystal banks double, so the fare pays back
       pats: { wall: [0.4, 0.4, 0.4], double: [0, 0.3, 0.6], reinf: [0, 0.3, 1.2], shutter: [0, 0.5, 1], bonus: [4, 1, 0], sides: [4, 1.5, 0.5] },
@@ -4070,7 +4070,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
         [830, 70, 80], [960, 50, -55], [1060, 60, 60], [1180, 45, -45], [1260, 45, 45], [1380, 70, -70]],
       desc: "Призматические галереи над пустотой. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть. Поперёк пути вращаются стеклянные планки и кресты, поодиночке и вереницами.",
       feats: ["Монолиты на цепях и маятники поперёк пути", "Вращающиеся стеклянные планки, кресты и их вереницы", "Финал Ruina: обвал глыб"],
-      req: { after: "initium" }, map: { x: 270, y: 330, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
+      req: { after: "initium" }, map: { x: 270, y: 320, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
       desc: "Тупиковый склад за Садом (Hortus). Здесь за кристаллы ставят на вагонетку новые пушки и улучшения.",
@@ -4100,7 +4100,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
       desc: "Нижний путь от Vitrum к Speculum сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат противовесы на цепях: собейте груз, и его дверца отъедет. Поперёк пути вращаются массивные стеклянные кресты и качаются на цепях стеклянные блоки.",
       feats: ["Треугольный профиль, который поворачивается и меняется", "Ворота с дверцами на противовесах", "Финал Tessera: мозаика из рубинов"],
-      req: { after: "vitrum" }, map: { x: 500, y: 330, label: "t" } }, // midway between Vitrum and Abyssus
+      req: { after: "vitrum" }, map: { x: 500, y: 320, label: "t" } }, // midway between Vitrum and Abyssus
     { id: "tao", num: "V", latin: "Tao", ru: "Дао", playable: true, music: "translucent_corridor", len: 1500, pal: PAL_TAO, finale: "taiji",
       style: { arch: "ring", blocks: "cube", glassWalls: false }, crystalMul: 1.4, armor: 1,
       gateKinds: ["taiji"], gateButton: "dome",
@@ -4119,7 +4119,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],
       desc: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар. Поперёк пути призмы собирают свет в лучи, а парящие зеркала отражают их в сетку: разбейте призму или зеркало, чтобы проехать. Высокие ворота в клубах пара открываются попаданием в бегущие по створкам мишени; висят и монолиты на цепях.",
       feats: ["Зеркальные стены: коридор уходит в отражения", "Ложные кристаллы: отражение мерцает и вращается в обратную сторону", "Призмы и зеркала: лучи света сеткой поперёк пути", "Высокие ворота с бегущими мишенями", "Финал Reflexio: мишени парами"],
-      req: { after: "rubinus" }, map: { x: 730, y: 330, label: "t" } },
+      req: { after: "rubinus" }, map: { x: 730, y: 320, label: "t" } },
     { id: "abyssus", num: "V·b", latin: "Nox", ru: "Тьма", playable: true, music: "through_the_glass_corridor", len: 1500, pal: PAL_ABYSSUS, finale: "rota",
       style: { arch: "none", blocks: "cube", glassWalls: false, bridge: true }, crystalMul: 1.45, armor: 1, driftMul: 1.5, gateKinds: ["v"],
       pats: { doors: [1.5, 2, 2], rise: [1, 2, 2.5], shades: [0, 1.2, 2.5], center: [1.6, 1.6, 1.2], slider: [0.8, 1.5, 1.5], double: [0, 0.8, 1.6], triple: [0.8, 1.2, 0.8], sides: [1.6, 0.6, 0], bonus: [2, 0.5, 0], reinf: [0, 0.5, 1.6], imps: [0, 0, 0],
@@ -4149,7 +4149,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
         [980, 70, -75], [1120, 50, 50], [1230, 60, -55], [1350, 50, 45], [1450, 60, -50]],
       desc: "Конечная. Белые залы со стеклянными стенами. Путь стерегут красные лазеры: вертушки в разрывах стен, парящие блоки, балки на цепях. Луч через вагонетку стоит 3 шара. Переборки с диафрагмой открываются кнопками. Подъём к Свету здесь самый тяжёлый.",
       feats: ["Красные лазеры: вертушки, блоки, балки на цепях", "Переборки с диафрагмой и кнопками", "Финал Triumphus: суперигры пройденных станций по очереди"],
-      req: { after: "abyssus" }, map: { x: 910, y: 330, label: "t", dx: 12 } }, // above and to the right, clear of the Tao line
+      req: { after: "abyssus" }, map: { x: 910, y: 320, label: "t", dx: 12 } }, // above and to the right, clear of the Tao line
   ];
   // ---------- English: the level, cannon and finale texts; Russian is what the tables above hold ----------
   const EN = {
@@ -4229,13 +4229,13 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   const MAIN_LINE = ["initium", "vitrum", "labyrinthus", "tao"]; // Linea Summa ends at Tao; from there Linea Tao runs on through Nox to Lux
   // drawn lines of the scheme, as waypoints; the main line is drawn station to station
   const MAP_LINES = [
-    { kind: "line", to: "rubinus", pts: [[270, 330], [500, 330], [730, 330]] }, // a second line: Vitrum, Rubinus, Speculum
-    { kind: "tao", to: "abyssus", pts: [[590, 190], [770, 190], [910, 330]] }, // Linea Tao: Tao, Nox, Lux
+    { kind: "line", to: "rubinus", pts: [[270, 320], [500, 320], [730, 320]] }, // a second line: Vitrum, Rubinus, Speculum
+    { kind: "tao", to: "abyssus", pts: [[590, 190], [770, 190], [910, 320]] }, // Linea Tao: Tao, Nox, Lux
     // a dead-end branch: a short drop, a gentle slope, a short level run into its station (a long drop leaves room for the dead end's name over it; the slope is the same on every branch)
-    { kind: "branch", to: "hortus", pts: [[90, 330], [90, 418], [116, 440], [185, 440]] },
+    { kind: "branch", to: "hortus", pts: [[90, 320], [90, 418], [116, 440], [185, 440]] },
     { kind: "branch", to: "armamentarium", pts: [[185, 440], [385, 440]] }, // the depot lies on from the Garden
-    { kind: "branch", to: "thesaurus", pts: [[500, 330], [500, 418], [526, 440], [615, 440]] },
-    { kind: "branch", to: "carcer", pts: [[730, 330], [730, 418], [756, 440], [825, 440]] },
+    { kind: "branch", to: "thesaurus", pts: [[500, 320], [500, 418], [526, 440], [615, 440]] },
+    { kind: "branch", to: "carcer", pts: [[730, 320], [730, 418], [756, 440], [825, 440]] },
   ];
   const byId = id => LEVELS.find(l => l.id === id);
   const STORE = "limbus-progress-v1";

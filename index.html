@@ -223,7 +223,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .logo span { color: #1d6f8f; }
 /* the bank is a readout, not a button: a pale plate with dark text */
 .bank { font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 4px; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; display: flex; gap: 8px; align-items: center; }
-.bank b { font-size: 18px; color: #1287b5; font-variant-numeric: tabular-nums; }
+.bank b { font-size: inherit; color: #1287b5; font-variant-numeric: tabular-nums; }
 .map-card { position: relative; background: var(--frost); border: 1px solid var(--edge); border-radius: 6px; box-shadow: 0 18px 50px rgba(16, 36, 46, 0.12); padding: 14px 10px; }
 #map { display: block; width: 100%; height: auto; }
 .station { cursor: pointer; outline: none; }
@@ -268,13 +268,13 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   .tg .m-side { gap: 6px; }
   .tg .bank { white-space: nowrap; }
   .tg .logo { font-size: 24px; }
-  .tg .bank { padding: 6px 9px; font-size: 11px; } .tg .bank b { font-size: 14px; }
+  .tg .bank { padding: 6px 9px; font-size: 11px; } .tg .arm { font-size: 11px; }
   .tg .bank, .tg .arm { height: 30px; }
 }
 @media (orientation: landscape) and (max-height: 380px) and (max-width: 720px) { .tg .bank span { display: none; } } /* only the diamond and the count */
 .arms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 /* the cannon buttons look like the bank beside them; the one on the cart is dark, its cost still turquoise */
-.arm { font: 700 12px var(--mono); padding: 8px 11px; border-radius: 4px; border: 0; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; cursor: pointer; }
+.arm { font: 700 13px var(--mono); padding: 8px 11px; border-radius: 4px; border: 0; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; cursor: pointer; }
 .arm:hover { background: rgba(255, 255, 255, 0.85); }
 .arm[aria-pressed="true"] { background: #10242e; box-shadow: none; color: #f4fbfc; }
 .arm b { color: #1287b5; }
@@ -288,6 +288,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .wpn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; align-self: flex-end; margin-bottom: 4px; }
 .extra:empty, .feats:empty, .reqs:empty { display: none; }
 .extra { display: grid; gap: 10px; margin: 16px 0 0; }
+.extra:not(:empty) + .reqs:empty + .btns { margin-top: 16px; } /* the shop has no conditions: the back button kept off the code field */
 .tabs { position: sticky; top: 0; z-index: 1; display: flex; gap: 4px; padding: 4px; border-radius: 6px; background: rgba(226, 233, 236, 0.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .tab { flex: 1; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 4px; background: transparent; color: #4c6470; cursor: pointer;
   font: 700 13px var(--display); letter-spacing: 0.06em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
@@ -331,7 +332,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   .m-head { align-items: center; flex-wrap: nowrap; }
   .logo { font-size: 30px; }
   .m-side { grid-auto-flow: column; align-items: center; }
-  .bank { padding: 7px 10px; font-size: 12px; } .bank b { font-size: 15px; }
+  .bank { padding: 7px 10px; font-size: 12px; } .arm { font-size: 12px; }
   .bank, .arm { height: 32px; }
   .arms { flex-wrap: nowrap; } .arm { padding-inline: 9px; }
   .map-card { padding: 8px 6px; }
@@ -5514,16 +5515,16 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   const PK_GEM = "M0 -8L3.6 -5V5L0 8L-3.6 5V-5ZM0 -8V8M-3.6 -5L0 -2.8L3.6 -5M-3.6 5L0 2.8L3.6 5";
   const pkIcon = (n, path = PK_GEM) => `<path d="${path}" transform="translate(${n > 1 ? -4.5 : 0} 0)"/>` + (n > 1 ? `<text x="6" y="4.5" font-size="11" font-weight="700">${["", "I", "II", "III"][n]}</text>` : "");
   const PACKS = [
-    { id: "t1", tab: "up", stars: 40, crystals: 150, ru: "Арсенал I", en: "Armoury I", icon: `<path d="${PK_GEM}" transform="translate(-4.5 0)"/><text x="6" y="4.5" font-size="11" font-weight="700">I</text>`,
-      desc: ["Первый уровень всех трёх улучшений — Запас, Второе дыхание, Щедрость (120 ◆) — и вход на склад.", "The first level of all three upgrades, Reserve, Second wind and Bounty (120 ◆), and the depot's entry."] },
+    { id: "t1", tab: "up", stars: 40, crystals: 170, ru: "Арсенал I", en: "Armoury I", icon: `<path d="${PK_GEM}" transform="translate(-4.5 0)"/><text x="6" y="4.5" font-size="11" font-weight="700">I</text>`,
+      desc: ["Первый уровень всех трёх улучшений — вход на склад, +10 шаров на старте, второе дыхание с 10 шарами, +1 шар с попадания.", "The first level of all three upgrades: the depot's entry, +10 balls at the start, a second wind with 10, +1 ball a hit."] },
     { id: "t2", tab: "up", stars: 70, crystals: 300, ru: "Арсенал II", en: "Armoury II", icon: pkIcon(2),
-      desc: ["Второй уровень всех трёх улучшений (240 ◆): +20 шаров на старте, второе дыхание с 20 шарами, +2 шара с попадания.", "The second level of all three upgrades (240 ◆): +20 balls at the start, a second wind with 20, +2 balls a hit."] },
+      desc: ["Второй уровень всех трёх улучшений: +20 шаров на старте, второе дыхание с 20 шарами, +2 шара с попадания.", "The second level of all three upgrades: +20 balls at the start, a second wind with 20, +2 balls a hit."] },
     { id: "t3", tab: "up", stars: 110, crystals: 515, ru: "Арсенал III", en: "Armoury III", icon: pkIcon(3),
-      desc: ["Третий, последний уровень всех трёх улучшений (410 ◆): +30 шаров на старте, второе дыхание с 30, +3 шара с попадания.", "The third and last level of all three upgrades (410 ◆): +30 balls at the start, a second wind with 30, +3 balls a hit."] },
-    { id: "guns", tab: "guns", stars: 90, crystals: 365, ru: "Пушки", en: "Cannons", icon: '<path d="M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5"/>',
-      desc: ["Triplex, Gemini и Lumen (290 ◆). Ferrum так не купить: его освобождают в Темнице.", "Triplex, Gemini and Lumen (290 ◆). Ferrum can't be bought: it is freed in the Dungeon."] },
+      desc: ["Третий, последний уровень всех трёх улучшений: +30 шаров на старте, второе дыхание с 30 шарами, +3 шара с попадания.", "The third and last level of all three upgrades: +30 balls at the start, a second wind with 30, +3 balls a hit."] },
+    { id: "guns", tab: "guns", stars: 90, crystals: 385, ru: "Пушки", en: "Cannons", icon: '<path d="M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5"/>',
+      desc: ["Вход на склад, Triplex, Gemini и Lumen.\nFerrum так не купить — его освобождают в Темнице.", "The depot's entry, Triplex, Gemini and Lumen.\nFerrum can't be bought: it is freed in the Dungeon."] },
     { id: "all", tab: "guns", stars: 200, crystals: 1345, ru: "Всё сразу", en: "Everything", icon: `<path d="${PK_GEM}" transform="translate(-5 0) scale(0.8)"/><path d="${PK_GEM}" transform="translate(5 0) scale(0.8)"/><path d="${PK_GEM}" transform="translate(0 -1) scale(1.05)"/>`,
-      desc: ["Вход на склад, все пушки, кроме Ferrum, и все улучшения до третьего уровня (1075 ◆) — дешевле, чем по отдельности.", "The depot's entry, every cannon but Ferrum and every upgrade to the third level (1075 ◆), for less than apart."] },
+      desc: ["Вход на склад, все пушки (кроме Ferrum) и все улучшения до третьего уровня.", "The depot's entry, every cannon (but Ferrum) and every upgrade to the third level."] },
   ];
   let shopTab = "guns";
   function openSheet(lv, keep) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was
@@ -5553,7 +5554,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       const inTg = TG && BOT_API && TG.isVersionAtLeast("6.1");
       const card = (pk, buy) => {
         const c = document.createElement("div"); c.className = "wcard pack";
-        c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true">${pk.icon}</svg>${esc(T(pk.ru, pk.en))}<small>◆ ${pk.crystals}</small></h3><p>${esc(T(...pk.desc))}<br><span class="pk-plus">${T("+25% сверх нужного — запас на будущие дополнения", "+25% over what it needs: a reserve for future additions")}</span></p>`;
+        c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true">${pk.icon}</svg>${esc(T(pk.ru, pk.en))}<small>◆ ${pk.crystals}</small></h3><p>${esc(T(...pk.desc)).replace(/\n/g, "<br>")}<br><span class="pk-plus">${T("+25% бонус", "+25% bonus")}</span></p>`;
         buy(c); extra.appendChild(c);
       };
       if (inTg) { // packs for Stars, on two tabs: the upgrades, and the cannons with everything at once

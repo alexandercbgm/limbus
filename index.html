@@ -4271,7 +4271,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     // not a level: the crystal shop, for whoever would rather not save up: crystals for Armamentarium, in Telegram's Stars
     // (outside Telegram, one pack through the bot and a code); a gold branch off Initium, as long as the arc and parallel to it
     { id: "emptio", num: "", latin: "Emptio", ru: "Купить", line: "gift", gift: true, playable: false,
-      desc: "Кристаллы для Арсенала — для тех, кто не хочет копить: сразу купить пушки и улучшения, играть на полную и пройти путь легче. В каждом наборе на четверть больше, чем нужно, — запас на будущие дополнения.",
+      desc: "Кристаллы для Арсенала, чтобы сразу купить всё необходимое.",
       feats: [], req: {}, map: { x: 230, y: 190, label: "t" } },
   ];
   // ---------- English: the level, cannon and finale texts; Russian is what the tables above hold ----------
@@ -4299,7 +4299,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
         feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
       carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang steel grates on chains, floating laser bars and grids, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
         feats: ["Halls of grates on chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Custodes with a strongroom"] },
-      emptio: { ru: "Buy", desc: "Crystals for Armamentarium, for those who would rather not save up: buy the cannons and upgrades at once, play at full strength and ride the way more easily. Every pack holds a quarter more than it needs: a reserve for future additions.", feats: [] },
+      emptio: { ru: "Buy", desc: "Crystals for Armamentarium, to buy everything you need at once.", feats: [] },
       lux: { ru: "Light", desc: "The terminus. White halls with glass walls. Red lasers guard the way: spinners in gaps in the walls, floating blocks, beams on chains. A beam across the cart costs 3 balls. Iris bulkheads open with buttons. The climb to the Light is hardest here.",
         feats: ["Red lasers: spinners, blocks, beams on chains", "Iris bulkheads with buttons", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
     },
@@ -5491,7 +5491,8 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
       if ((lv.depot && !progress.bought) || lv.gift) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${lv.gift ? LINE_GOLD : LINE_BR}" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // rings round the depot till the first purchase
       if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
-      if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
+      if (hub && lv.id === "initium") out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/><path d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
+      else if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
       out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
       out += `<path d="${GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
       out += `<text x="${L[0]}" y="${L[1]}" text-anchor="${L[2]}" font-family="Unbounded, 'Arial Black', sans-serif" font-weight="700" font-size="12.5" letter-spacing="0.6" fill="${INK}">${esc(lv.latin.toUpperCase())}</text>`;
@@ -5524,7 +5525,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     { id: "all", tab: "guns", stars: 200, crystals: 1345, ru: "Всё сразу", en: "Everything", icon: `<path d="${PK_GEM}" transform="translate(-5 0) scale(0.8)"/><path d="${PK_GEM}" transform="translate(5 0) scale(0.8)"/><path d="${PK_GEM}" transform="translate(0 -1) scale(1.05)"/>`,
       desc: ["Вход на склад, все пушки, кроме Ferrum, и все улучшения до третьего уровня (1075 ◆) — дешевле, чем по отдельности.", "The depot's entry, every cannon but Ferrum and every upgrade to the third level (1075 ◆), for less than apart."] },
   ];
-  let shopTab = "up";
+  let shopTab = "guns";
   function openSheet(lv, keep) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was
     const scroll = keep ? $("sheet").scrollTop : 0;
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
@@ -5557,7 +5558,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       };
       if (inTg) { // packs for Stars, on two tabs: the upgrades, and the cannons with everything at once
         const tabs = document.createElement("div"); tabs.className = "tabs"; tabs.setAttribute("role", "tablist");
-        for (const [id, name, sub] of [["up", "Ingenia", T("улучшения", "upgrades")], ["guns", "Arma", T("пушки · всё сразу", "cannons · everything")]]) {
+        for (const [id, name, sub] of [["guns", "Arma", T("пушки · всё сразу", "cannons · everything")], ["up", "Ingenia", T("улучшения", "upgrades")]]) { // as at Armamentarium: the cannons first
           const t = document.createElement("button"); t.type = "button"; t.className = "tab"; t.setAttribute("role", "tab"); t.setAttribute("aria-selected", String(shopTab === id));
           t.innerHTML = `${name}<small>${esc(sub)}</small>`; t.addEventListener("click", () => { if (shopTab !== id) { shopTab = id; openSheet(lv, true); } }); tabs.appendChild(t);
         }

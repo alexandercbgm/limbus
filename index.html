@@ -139,7 +139,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   padding-block: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 28px) calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 28px);
   padding-left: max(16px, var(--safe-left, env(safe-area-inset-left, 0px))); padding-right: max(16px, var(--safe-right, env(safe-area-inset-right, 0px))); }
 .m-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
-.logo { font-family: var(--display); font-weight: 700; font-size: clamp(40px, 11vw, 76px); letter-spacing: 0.22em; line-height: 1; margin: 0; }
+.logo { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 7vw, 48px); letter-spacing: 0.22em; line-height: 1; margin: 0; }
 .logo span { color: #1d6f8f; }
 /* the bank is a readout, not a button: a pale plate with dark text */
 .bank { font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 4px; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; display: flex; gap: 8px; align-items: center; }
@@ -178,7 +178,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate) { visibility: hidden; } /* nothi
 .how.paged .btns { grid-template-columns: auto 1fr; } .how.paged.pg1 .btns { grid-template-columns: 1fr; }
 .how.paged.pg2 h1 { display: none; } .how.paged .panel p { font-size: 12px; line-height: 1.38; } .how.paged .rules { margin: 8px 0 10px; } .how.paged.pg2 .btns { margin-top: 14px; }
 
-.m-side { display: grid; gap: 8px; justify-items: end; }
+.m-side { display: grid; grid-auto-flow: column; gap: 8px; align-items: center; justify-items: end; } /* the bank and the cannons side by side */
 /* Telegram: the bank and the cannons side by side */
 .tg .m-side { grid-template-columns: auto auto; grid-auto-flow: row; align-items: center; justify-content: end; }
 /* a phone in Telegram: the Space line on a line of its own, and a station sheet the whole height of the screen, so nothing shows round it */
@@ -190,6 +190,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate) { visibility: hidden; } /* nothi
   .tg .bank { white-space: nowrap; }
   .tg .logo { font-size: 24px; }
   .tg .bank { padding: 6px 9px; font-size: 11px; } .tg .bank b { font-size: 14px; }
+  .tg .bank, .tg .arm { height: 30px; }
   .tg .map-title { display: none; }
 }
 @media (orientation: landscape) and (max-height: 380px) and (max-width: 720px) { .tg .bank span { display: none; } } /* only the diamond and the count */
@@ -200,6 +201,9 @@ html.tgbuild:not(.tgready) body > :not(.rotate) { visibility: hidden; } /* nothi
 .arm[aria-pressed="true"] { background: #10242e; box-shadow: none; color: #f4fbfc; }
 .arm b { color: #1287b5; }
 .arm[aria-pressed="true"] b { color: #4fc8f0; }
+/* the bank and the cannons stand the same height side by side */
+.bank, .arm { box-sizing: border-box; height: 38px; display: inline-flex; align-items: center; }
+.arm { gap: 0.4em; }
 .menu-in > * { min-width: 0; }
 .map-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .map-scroll #map { min-width: 920px; }
@@ -236,6 +240,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate) { visibility: hidden; } /* nothi
   .logo { font-size: 30px; }
   .m-side { grid-auto-flow: column; align-items: center; }
   .bank { padding: 7px 10px; font-size: 12px; } .bank b { font-size: 15px; }
+  .bank, .arm { height: 32px; }
   .map-card { padding: 8px 6px; }
   .map-title { top: 10px; left: 12px; gap: 4px; font-size: 9.5px; }
   .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))); width: 100%; } /* the whole scheme on one screen */

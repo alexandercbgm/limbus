@@ -5430,13 +5430,13 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   const pkIcon = (n, path = PK_GEM) => `<path d="${path}" transform="translate(${n > 1 ? -4.5 : 0} 0)"/>` + (n > 1 ? `<text x="6" y="4.5" font-size="11" font-weight="700">${["", "I", "II", "III"][n]}</text>` : "");
   const PACKS = [
     { id: "t1", tab: "up", stars: 40, crystals: 170, ru: "Арсенал I", en: "Armoury I", icon: `<path d="${PK_GEM}" transform="translate(-4.5 0)"/><text x="6" y="4.5" font-size="11" font-weight="700">I</text>`,
-      desc: ["Первый уровень всех трёх улучшений — вход на склад, +10 шаров на старте, второе дыхание с 10 шарами, +1 шар с попадания.", "The first level of all three upgrades: the depot's entry, +10 balls at the start, a second wind with 10, +1 ball a hit."] },
+      desc: ["Первый уровень всех трёх улучшений: вход на склад, +10 шаров на старте, второе дыхание с 10 шарами, +1 шар с попадания.", "The first level of all three upgrades: the depot's entry, +10 balls at the start, a second wind with 10, +1 ball a hit."] },
     { id: "t2", tab: "up", stars: 70, crystals: 300, ru: "Арсенал II", en: "Armoury II", icon: pkIcon(2),
       desc: ["Второй уровень всех трёх улучшений: +20 шаров на старте, второе дыхание с 20 шарами, +2 шара с попадания.", "The second level of all three upgrades: +20 balls at the start, a second wind with 20, +2 balls a hit."] },
     { id: "t3", tab: "up", stars: 110, crystals: 515, ru: "Арсенал III", en: "Armoury III", icon: pkIcon(3),
-      desc: ["Третий, последний уровень всех трёх улучшений: +30 шаров на старте, второе дыхание с 30 шарами, +3 шара с попадания.", "The third and last level of all three upgrades: +30 balls at the start, a second wind with 30, +3 balls a hit."] },
+      desc: ["Третий уровень всех трёх улучшений: +30 шаров на старте, второе дыхание с 30 шарами, +3 шара с попадания.", "The third level of all three upgrades: +30 balls at the start, a second wind with 30, +3 balls a hit."] },
     { id: "guns", tab: "guns", stars: 90, crystals: 385, ru: "Пушки", en: "Cannons", icon: '<path d="M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5"/>',
-      desc: ["Вход на склад, Triplex, Gemini и Lumen.\nFerrum так не купить — его освобождают в Темнице.", "The depot's entry, Triplex, Gemini and Lumen.\nFerrum can't be bought: it is freed in the Dungeon."] },
+      desc: ["Вход на склад, Triplex, Gemini и Lumen. Ferrum так не купить — его освобождают в Темнице.", "The depot's entry, Triplex, Gemini and Lumen. Ferrum can't be bought: it is freed in the Dungeon."] },
     { id: "all", tab: "guns", stars: 200, crystals: 1345, ru: "Всё сразу", en: "Everything", icon: `<path d="${PK_GEM}" transform="translate(-5 0) scale(0.8)"/><path d="${PK_GEM}" transform="translate(5 0) scale(0.8)"/><path d="${PK_GEM}" transform="translate(0 -1) scale(1.05)"/>`,
       desc: ["Вход на склад, все пушки (кроме Ferrum) и все улучшения до третьего уровня.", "The depot's entry, every cannon (but Ferrum) and every upgrade to the third level."] },
   ];
@@ -5468,7 +5468,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       const inTg = TG && BOT_API && TG.isVersionAtLeast("6.1");
       const card = (pk, buy) => {
         const c = document.createElement("div"); c.className = "wcard pack";
-        c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true">${pk.icon}</svg>${esc(T(pk.ru, pk.en))}<small>◆ ${pk.crystals}</small></h3><p>${esc(T(...pk.desc)).replace(/\n/g, "<br>")}<br><span class="pk-plus">${T("+25% бонус", "+25% bonus")}</span></p>`;
+        c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true">${pk.icon}</svg>${esc(T(pk.ru, pk.en))}<small>◆ ${pk.crystals}</small></h3><p>${esc(T(...pk.desc))}<br><span class="pk-plus">${T("+25% бонус", "+25% bonus")}</span></p>`;
         buy(c); extra.appendChild(c);
       };
       if (inTg) { // packs for Stars, on two tabs: the upgrades, and the cannons with everything at once

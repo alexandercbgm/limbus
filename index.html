@@ -191,7 +191,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate) { visibility: hidden; } /* nothi
   .tg .logo { font-size: 24px; }
   .tg .bank { padding: 6px 9px; font-size: 11px; } .tg .bank b { font-size: 14px; }
   .tg .bank, .tg .arm { height: 30px; }
-  .tg .map-title { display: none; }
+  .tg .map-title { top: 6px; left: 8px; gap: 2px; font-size: 7.5px; letter-spacing: 0.08em; } .tg .map-title i { width: 14px; height: 3px; } /* a smaller legend in the corner */
 }
 @media (orientation: landscape) and (max-height: 380px) and (max-width: 720px) { .tg .bank span { display: none; } } /* only the diamond and the count */
 .arms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
@@ -241,6 +241,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate) { visibility: hidden; } /* nothi
   .m-side { grid-auto-flow: column; align-items: center; }
   .bank { padding: 7px 10px; font-size: 12px; } .bank b { font-size: 15px; }
   .bank, .arm { height: 32px; }
+  .arms { flex-wrap: nowrap; } .arm { padding-inline: 9px; }
   .map-card { padding: 8px 6px; }
   .map-title { top: 10px; left: 12px; gap: 4px; font-size: 9.5px; }
   .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))); width: 100%; } /* the whole scheme on one screen */

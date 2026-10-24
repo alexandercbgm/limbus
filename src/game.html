@@ -167,7 +167,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 @media (orientation: landscape) { .rotate { display: none; } }
 /* the Telegram build on a phone shows it from the first paint, before any script, so the upright menu never flashes */
 @media (orientation: portrait) and (pointer: coarse) { html.tgbuild:not(.rotskip) .rotate[hidden] { display: flex !important; } }
-html.tgbuild:not(.tgready) body > :not(.rotate) { visibility: hidden; } /* nothing shows, not the menu nor the tunnel behind it, till Telegram has opened the app at its full size */
+html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rotate > * { visibility: hidden; } /* nothing shows, not the menu nor the tunnel behind it, till Telegram has opened the app at its full size */
 .how .panel { width: min(640px, 100%); }
 .how .panel p { font-size: 14px; margin-top: 8px; text-wrap: pretty; } /* no word left alone on the last line */
 .how .rules { margin: 16px 0 18px; }

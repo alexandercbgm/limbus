@@ -15,7 +15,7 @@ const SCENE = {
   vitrum: { at: 428, put: r => { r.hanger(30, 'gate'); r.glassBar('barfan', 50); } },
   labyrinthus: { at: 'hall', put: r => { r.glassBar('grams', 30); r.crystalAhead(22, 1.8, 2.6); } },
   hortus: { at: 262, put: r => { r.bough(24, 1); r.bough(36, -1); } },
-  speculum: { at: 272, put: r => { r.quiet(); r.prisms(9, 2); r.noCrystals(); } }, // a pair of prisms and their beams at middle distance
+  speculum: { at: 272, put: r => { r.quiet(); r.prisms(12, 2); r.noCrystals(); } }, // a pair of prisms and their beams just past the first hexagon
   abyssus: { at: 292, put: r => { r.gearsAt(40, true); r.crystalAhead(24, 0.8, 2.4); } },
   lux: { at: 532, altL: 0.3, put: r => { r.quiet(); r.sunK(0.2); r.wallsBack(-5, 90, false); // the same walls, and no roof, in both halves, so they meet at the seam
     r.decorVis('prism', false); r.spinner(10, -1, 1); r.spinner(20, 1, -1); r.noCrystals(); } }, // glass walls open on the sky, no shards before the sun

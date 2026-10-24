@@ -2921,6 +2921,11 @@ html.tgbuild:not(.tgready) body > :not(.rotate) { visibility: hidden; } /* nothi
   const ML = new THREE.Vector3();
   const mirrorTouch = (m, q, r) => { ML.copy(q).applyMatrix4(m.inv); return Math.abs(ML.x) < m.len / 2 + r && Math.abs(ML.y) < 0.1 + r && Math.abs(ML.z) < MIR_D / 2 + r; };
   function updatePrisms() {
+    // added light on the pale halls of the Light swells into blots: there the glow round a beam and its two ends is held down
+    // toward the dark's look, the beam itself a little finer
+    const lk = clamp((alt + 0.3) / 1.0, 0, 1);
+    lightHaloMat.opacity = 0.28 * (1 - 0.45 * lk); lightGlowMat.opacity = 0.1 * (1 - 0.6 * lk);
+    lightSpotMat.opacity = 0.9 * (1 - 0.8 * lk); spPrismGlowMat.opacity = 0.85 * (1 - 0.75 * lk);
     for (const set of prismSets) {
       setObj(set.root, set.s, 0, 0); set.root.updateMatrixWorld(true);
       for (const pr of set.prisms) {

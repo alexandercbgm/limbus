@@ -287,7 +287,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   .sheet .feats { display: none; } /* the description says as much; the list would push the buttons off the screen */
   .credit { font-size: 7.5px; right: 9px; bottom: 5px; letter-spacing: 0.1em; }
   /* the pause, the end of a ride and the arrival: a smaller title, the figures in one row, the buttons side by side */
-  #pause .panel, #over .panel, #win .panel { padding: 12px 18px; }
+  #pause .panel, #over .panel, #win .panel, #nag .panel { padding: 12px 18px; } #nag h1 { font-size: 19px; } #nag .panel p { font-size: 12px; line-height: 1.38; } #nag .btns { grid-auto-flow: column; grid-auto-columns: 1fr; margin-top: 10px; }
   #pause h1, #over h1, #win h1 { font-size: 19px; margin-bottom: 4px; }
   #pause .panel p, #over .panel p, #win .panel p { font-size: 12px; line-height: 1.35; margin: 2px 0; }
   #over .stats, #win .stats { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 4px 12px; margin: 8px 0 10px; }
@@ -437,6 +437,18 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       <button class="cta" id="resumeBtn" type="button" data-en="Continue">Продолжить</button>
       <button class="ghost" id="pauseRetry" type="button">Ещё раз</button>
       <button class="ghost" id="pauseMenu" type="button" data-en="To the scheme">В меню</button>
+    </div>
+  </div>
+</section>
+
+<section class="overlay" id="nag" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="nagTitle">
+    <p class="eyebrow" data-en="Three tries in a row">Три попытки подряд</p>
+    <h1 id="nagTitle" data-en="Gather crystals, visit Armamentarium">Собирайте кристаллы и загляните в Арсенал</h1>
+    <p data-en="Crystals from every ride go to the bank, and Hortus and Thesaurus give the most. At Armamentarium they buy new cannons and upgrades: more balls at the start, stronger shots, a second wind. The way gets easier with them.">Кристаллы с каждого заезда уходят в запас, больше всего их на Hortus (Сад) и Thesaurus (Сокровищница). В Armamentarium (Арсенал) на них покупают новые пушки и улучшения: больше шаров на старте, сильнее выстрел, второе дыхание. С ними путь станет легче.</p>
+    <div class="btns">
+      <button class="cta" id="nagLater" type="button" data-en="Remind me later">Напомнить позже</button>
+      <button class="ghost" id="nagNever" type="button" data-en="Don't remind me">Не напоминать</button>
     </div>
   </div>
 </section>
@@ -4254,8 +4266,10 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     try {
       const p = JSON.parse(str || "{}");
       const weapons = Object.assign({ ballista: true }, p.weapons || {});
-      return { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {}, t: p.t || 0 };
-    } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {}, t: 0 }; }
+      return { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {}, t: p.t || 0,
+        // anything bought at Armamentarium (older saves: a cannon other than the free ones, or an upgrade); the run of failed rides; the reminder turned off
+        bought: p.bought || Object.keys(weapons).some(id => id !== "ballista" && id !== "ferrum") || Object.values(p.up || {}).some(v => v > 0), fails: p.fails || 0, noNag: !!p.noNag };
+    } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {}, t: 0, bought: false, fails: 0, noNag: false }; }
   }
   function loadProgress() { let str = null; try { str = localStorage.getItem(STORE); } catch (e) { /* storage unavailable */ } return parseProgress(str); }
   // in Telegram the progress is kept in the bot's cloud as well, so it follows the player from phone to computer
@@ -4272,9 +4286,8 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       if (p.t > (progress.t || 0)) { progress = p; try { localStorage.setItem(STORE, str); } catch (e) { /* storage unavailable */ } if (state === "menu") renderMap(); }
     });
   } catch (e) { /* the cloud is out of reach */ }
-  const unlockAll = location.hash === "#all"; // for testing: open every built station
   // a station opens once the one before it is done; with req.or there is a second way in (Abyssus: from Crystallum)
-  function isOpen(lv) { return unlockAll || !lv.req.after || !!progress.done[lv.req.after] || (lv.req.or && !!progress.done[lv.req.or]) || !!progress.open[lv.id]; }
+  function isOpen(lv) { return true; } // every station is open from the start; the lines only suggest an order (dead ends still cost their fare)
   // the stations a finished one leads on to, along any of the lines (Vitrum: Rubinus or Labyrinthus); a dead end leads nowhere
   function nextLevels(lv) {
     if (lv.line === "branch") return [];
@@ -4340,7 +4353,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   // the app goes to the background: the sound stops at once; back on the scheme it plays on
   window.__silence = () => { if (Sound.ctx && Sound.ctx.state === "running") Sound.ctx.suspend(); if (Sound.fallback) Sound.fallback.pause(); };
   window.__wake = () => { if (state === "menu") leavePause(); };
-  function hidePanels() { ["menu", "sheet", "over", "win", "pause", "how"].forEach(id => { $(id).hidden = true; }); }
+  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "pause", "how"].forEach(id => { $(id).hidden = true; }); }
   // pause: the world freezes (render only), the music stops until the run continues
   // the Android app's back button: returns true if the game used it
   window.__back = () => {
@@ -4348,6 +4361,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     if (!$("sheet").hidden) { $("sheet").hidden = true; return true; }
     if (state === "play") { pauseGame(); return true; }
     if (state === "paused") { $("pauseMenu").click(); return true; }
+    if (!$("nag").hidden) { $("nagLater").click(); return true; }
     if (!$("over").hidden || !$("win").hidden) { showMenu(); return true; }
     return false;
   };
@@ -4430,7 +4444,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       const total = score + balls * 10;
       const best = Math.max(progress.best[LEVEL.id] || 0, total);
       const firstFinish = LEVEL.id === "lux" && !progress.done.lux; // the first time the whole way is ridden
-      progress.best[LEVEL.id] = best; progress.done[LEVEL.id] = true; progress.bank += stats.crystals;
+      progress.fails = 0; progress.best[LEVEL.id] = best; progress.done[LEVEL.id] = true; progress.bank += stats.crystals;
       const freed = LEVEL.id === "carcer" && !progress.weapons.ferrum; // the dungeon gives up its cannon
       if (freed) progress.weapons.ferrum = true;
       saveProgress();
@@ -4470,7 +4484,9 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
         : T("Стреляйте по голубым кристаллам: они возвращают шары.", "Shoot the blue crystals: they give balls back.");
       $("oScore").textContent = score.toLocaleString(T("ru-RU", "en-US"));
       $("oBroken").textContent = stats.broken;
-      $("over").hidden = false;
+      // every third failed ride in a row, till something is bought at Armamentarium, a word about crystals and the depot first
+      progress.fails = (progress.fails || 0) + 1; saveProgress();
+      if (!progress.bought && !progress.noNag && progress.fails % 3 === 0) $("nag").hidden = false; else $("over").hidden = false;
     }
   }
 
@@ -5293,7 +5309,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   };
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function stationStatus(lv) {
-    if (lv.depot) return progress.open[lv.id] ? "avail" : progress.done[lv.req.after] ? "locked" : "closed"; // an opened depot is dark, like a done station
+    if (lv.depot) return progress.open[lv.id] ? "avail" : "locked"; // an opened depot is dark, like a done station; before that its entry is paid
     if (progress.done[lv.id]) return "done";
     if (!lv.playable) return "build";
     return isOpen(lv) ? "open" : "closed";
@@ -5367,6 +5383,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       }
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS(st)}">`;
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
+      if (lv.depot && !progress.bought) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_BR}" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // rings round the depot till the first purchase
       if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
       if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
       out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
@@ -5393,9 +5410,6 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     $("shDesc").textContent = lv.desc;
     $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead
     const reqs = [];
-    if (!req.after) reqs.push([true, T("Открыта с самого начала", "Open from the start")]);
-    else if (lv.line === "branch") reqs.push([!!progress.done[req.after], T(`Ветка от станции ${byId(req.after).latin}: сначала пройти её`, `A branch off ${byId(req.after).latin}: finish that station first`)]);
-    else reqs.push([!!progress.done[req.after] || (req.or && !!progress.done[req.or]), req.or ? T(`Пройти станцию ${byId(req.after).latin} или ${byId(req.or).latin}`, `Finish ${byId(req.after).latin} or ${byId(req.or).latin}`) : T(`Прямо: пройти станцию ${byId(req.after).latin}`, `Straight on: finish ${byId(req.after).latin}`)]);
     if (req.transfer) {
       const from = byId(req.transfer.from);
       reqs.push([!!progress.done[from.id] && bank >= req.transfer.cost, T(`Или пересадка с ${from.latin}: ◆ ${req.transfer.cost} кристаллов (в запасе ${bank})`, `Or change from ${from.latin}: ◆ ${req.transfer.cost} (${bank} in the bank)`)]);
@@ -5410,7 +5424,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; b.disabled = !!disabled;
       if (fn) b.addEventListener("click", fn); parent.appendChild(b); return b;
     };
-    const reached = !req.after || !!progress.done[req.after];
+    const reached = true; // nothing is closed now
     if (lv.depot) {
       if (progress.open[lv.id]) {
         // two tabs: Arma, the cannons, and Ingenia, the upgrades; on a phone they stick to the top while the cards scroll
@@ -5428,14 +5442,14 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
           card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${ballsWord(w.cost)} ${T("за выстрел", "a shot")}</small></h3><p>${esc(w.desc)}</p>`;
           if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? T("Стоит на вагонетке", "On the cart") : T("Поставить", "Mount"), () => { progress.weapon = id; saveProgress(); openSheet(lv, true); }, progress.weapon === id);
           else if (w.price === null) button(card, "ghost", T("Заперта в Темнице", "Locked in the Dungeon"), null, true);
-          else { const price = priceOf(id); button(card, "cta", price < w.price ? T(`Купить: ◆ ${price} (скидка из Сада)`, `Buy: ◆ ${price} (Garden discount)`) : T(`Купить: ◆ ${price}`, `Buy: ◆ ${price}`), () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
+          else { const price = priceOf(id); button(card, "cta", price < w.price ? T(`Купить: ◆ ${price} (скидка из Сада)`, `Buy: ◆ ${price} (Garden discount)`) : T(`Купить: ◆ ${price}`, `Buy: ◆ ${price}`), () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; progress.bought = true; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
           extra.appendChild(card);
         }
         else for (const id in UPGRADES) {
           const u = UPGRADES[id], lvl = upLevel(id), card = document.createElement("div"); card.className = "wcard";
           card.innerHTML = `<h3>${esc(u.name)}<small>${esc(T(u.ru, u.en))} · ${T("уровень", "level")} ${lvl}/3${lvl ? " · " + esc(u.now(lvl)) : ""}</small></h3><p>${esc(T(...u.desc))}</p>`;
           if (lvl >= 3) button(card, "ghost", T("Всё куплено", "Maxed out"), null, true);
-          else { const price = u.prices[lvl]; button(card, "cta", T(`Уровень ${lvl + 1}: ◆ ${price}`, `Level ${lvl + 1}: ◆ ${price}`), () => { progress.bank -= price; progress.up[id] = lvl + 1; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
+          else { const price = u.prices[lvl]; button(card, "cta", T(`Уровень ${lvl + 1}: ◆ ${price}`, `Level ${lvl + 1}: ◆ ${price}`), () => { progress.bank -= price; progress.up[id] = lvl + 1; progress.bought = true; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
           extra.appendChild(card);
         }
       } else if (reached && bank >= req.toll) button(btns, "cta", T(`Открыть склад: −${req.toll} ◆`, `Open the depot: −${req.toll} ◆`), () => { progress.bank -= req.toll; progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); });
@@ -5534,6 +5548,8 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   $("againBtn").addEventListener("click", () => rideLevel(LEVEL));
   ["nextBtn", "nextBtn2"].forEach(id => $(id).addEventListener("click", () => { const nx = byId($(id).dataset.id); if (nx && nx.playable) rideLevel(nx); }));
   ["overMenu", "winMenu"].forEach(id => $(id).addEventListener("click", showMenu));
+  $("nagLater").addEventListener("click", () => { $("nag").hidden = true; $("over").hidden = false; });
+  $("nagNever").addEventListener("click", () => { progress.noNag = true; saveProgress(); $("nag").hidden = true; $("over").hidden = false; });
   $("pauseBtn").addEventListener("click", pauseGame);
   $("resumeBtn").addEventListener("click", resumeGame);
   $("pauseRetry").addEventListener("click", () => { leavePause(); rideLevel(LEVEL); });

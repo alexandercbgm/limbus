@@ -107,9 +107,9 @@ Play Console → **Создать приложение**:
 Limbus: рельсы Света и Тьмы
 ```
 
-**Краткое описание** (67/80):
+**Краткое описание** (37/80):
 ```
-Рельсовый шутер между Светом и Тьмой: вы разбиваете стекло на пути.
+Рельсовый шутер между Светом и Тьмой.
 ```
 
 **Полное описание:**
@@ -134,9 +134,9 @@ Limbus — рельсовый шутер между Светом и Тьмой: 
 Limbus — Rails of Light & Dark
 ```
 
-**Short description** (80/80):
+**Short description** (46/80):
 ```
-A rail shooter between the Light and the Dark — you smash the glass in your way.
+A rail shooter between the Light and the Dark.
 ```
 
 **Full description:**

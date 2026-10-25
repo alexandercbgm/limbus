@@ -107,14 +107,14 @@ Play Console → **Создать приложение**:
 Limbus: рельсы Света и Тьмы
 ```
 
-**Краткое описание** (65/80):
+**Краткое описание** (67/80):
 ```
-Рельсовый шутер: разбивайте стекло на пути между Светом и Тьмой.
+Рельсовый шутер между Светом и Тьмой: вы разбиваете стекло на пути.
 ```
 
 **Полное описание:**
 ```
-Вагонетка с рельсотроном мчится сама. Вы стреляете стальными шарами по стеклу, пока не врезались в него.
+Limbus — рельсовый шутер между Светом и Тьмой: вагонетка мчится сама, а вы разбиваете стекло на пути. 11 уровней, и у каждого своя музыка и финал.
 
 Шары — это и патроны, и жизнь: голубые кристаллы дают новые, удары о стекло отнимают. Очки поднимают к Свету — мир светлеет, препятствий меньше, но подъём труден. Ошибки тянут во Тьму — шипы, бесы-кристаллы и красные приманки, зато каждый голубой кристалл там стоит почти вдвое больше.
 
@@ -122,36 +122,36 @@ Limbus: рельсы Света и Тьмы
 • У каждого уровня своя музыка, свои препятствия и свой финал на 20 секунд со своими правилами: печати, обвал, врата, мозаика, инь и ян, колесо кристаллов.
 • Тараны на цепях, молоты-мельницы, лазерные вертушки, шестерни, решётки и стражи-тени.
 • Арсенал: Triplex, Gemini, лазер Lumen и железный Ferrum, который освобождают в Темнице. Улучшения: запас шаров, второе дыхание, щедрость.
-• Без рекламы. Одна необязательная покупка — кристаллы для Арсенала; всё остальное зарабатывается в игре. Играется без интернета.
+• Без рекламы. Одна необязательная покупка — кристаллы для Арсенала, всё остальное зарабатывается в игре. Играется без интернета.
 
 Наденьте наушники: музыка здесь — половина игры.
 ```
 
 ### English
 
-**Title** (29/30):
+**Title** (30/30):
 ```
-Limbus: Rails of Light & Dark
+Limbus — Rails of Light & Dark
 ```
 
-**Short description** (75/80):
+**Short description** (80/80):
 ```
-A rail shooter: smash the glass in your way between the Light and the Dark.
+A rail shooter between the Light and the Dark — you smash the glass in your way.
 ```
 
 **Full description:**
 ```
-A cart with a railgun rushes on by itself. You fire steel balls at the glass before you crash into it.
+Limbus is a rail shooter between the Light and the Dark — the cart rushes on by itself, and you smash the glass in its way. 11 levels, each with its own music and finale.
 
-Balls are both ammunition and life: blue crystals give more, crashing into glass takes some away. Points lift you to the Light — the world brightens and obstacles thin out, but the climb is hard. Mistakes drag you into the Dark — spikes, crystal imps and red decoys, yet every blue crystal there is worth almost twice as much.
+Balls are both ammunition and life — blue crystals give more, crashing into glass takes some away. Points lift you to the Light — the world brightens and obstacles thin out, but the climb is hard. Mistakes drag you into the Dark — spikes, crystal imps and red decoys, yet every blue crystal there is worth almost twice as much.
 
-• 11 levels on a metro-like scheme: Glass, Labyrinth, Ruby, Mirror, Tao, Nox, Lux and the dead-end branches — the Garden, the Treasury and the Dungeon.
-• Every level has its own music, its own obstacles and its own 20-second finale with its own rules: seals, a collapse, gates, a mosaic, yin and yang, a wheel of crystals.
+• A metro-like scheme of 11 levels — Glass, Labyrinth, Ruby, Mirror, Tao, Nox, Lux and the dead-end branches of the Garden, the Treasury and the Dungeon.
+• Every level has its own music, its own obstacles and its own 20-second finale with its own rules — seals, a collapse, gates, a mosaic, yin and yang, a wheel of crystals.
 • Rams on chains, hammer mills, laser spinners, gears, grates and shade guards.
-• The Armoury: Triplex, Gemini, the Lumen laser and the iron Ferrum, freed in the Dungeon. Upgrades: more balls, a second wind, a bounty.
-• No ads. One optional purchase, crystals for the Armoury; everything else is earned in the game. Plays offline.
+• The Armoury — Triplex, Gemini, the Lumen laser and the iron Ferrum, freed in the Dungeon. Upgrades — more balls, a second wind, a bounty.
+• No ads. One optional purchase — crystals for the Armoury, everything else is earned in the game. Plays offline.
 
-Put on your headphones: the music is half the game.
+Put on your headphones — the music is half the game.
 ```
 
 ### Графика (лежит в `android/play/`)

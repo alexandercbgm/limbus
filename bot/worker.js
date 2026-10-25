@@ -73,7 +73,7 @@ const playKb = (env, from, level) => ({ inline_keyboard: [[{ text: T(from, "Иг
 async function remember(env, user, sub = true) {
   const key = "u:" + user.id, old = JSON.parse(await env.USERS.get(key) || "null");
   if (old && old.sub === sub) return; // nothing new: spare the KV's daily writes
-  await env.USERS.put(key, JSON.stringify({ name: user.first_name || "", lang: user.language_code || "", sub, t: Date.now(), ...(old && old.choice ? { choice: old.choice } : {}) }));
+  await env.USERS.put(key, JSON.stringify({ name: user.first_name || "", lang: user.language_code || "", sub, t: Date.now(), ...(old && old.choice ? { choice: old.choice } : {}), ...(old && Number.isInteger(old.clip) ? { clip: old.clip } : {}) }));
 }
 
 // a user as the bot speaks to them: the language they chose with /language over their Telegram's own
@@ -98,21 +98,34 @@ async function onButton(q, env) {
   return tg(env, "answerCallbackQuery", { callback_query_id: q.id });
 }
 // the greeting (/start, /play): a clip of the level it opens, or of a level at random, its text and the Play button
-async function greet(env, chat, from, arg) {
+// the words the bot and the Google Play listing share (android/GOOGLE_PLAY.md): what the game is, and where to tap
+const ABOUT = { ru: "Limbus — рельсовый шутер между Светом и Тьмой: вагонетка мчится сама, а вы разбиваете стекло на пути. 11 уровней, и у каждого своя музыка и финал.",
+  en: "Limbus is a rail shooter between the Light and the Dark — the cart rushes on by itself, and you smash the glass in its way. 11 levels, each with its own music and finale." };
+const NEWS = { ru: "Новости о новых уровнях будут приходить сюда.\nПоддержка: /support", en: "News of new levels will come here.\nSupport — /support" };
+// the greeting: on /start with Nox's clip (or the clip of the level a link names) and a word on the Play button below it;
+// on /play with the next level's clip in a round of them all, so each comes as often as the others
+async function greet(env, chat, from, arg, play) {
   const level = LEVEL_IDS[arg] || (arg === "emptio" ? arg : ""), all = [...new Set(Object.values(LEVEL_IDS))];
-  const clip = LEVEL_IDS[arg] || all[Math.floor(Math.random() * all.length)];
-  const hi = { chat_id: chat, reply_markup: playKb(env, from, level),
-    caption: T(from, "Limbus — рельсы между Светом и Тьмой. Вагонетка катится сама, вы стреляете по стеклу, пока не врезались в него.\n\nНовости о новых уровнях будут приходить сюда.\nПоддержка: /support",
-      "Limbus: rails between the Light and the Dark. The cart rolls on by itself; you fire at the glass before you crash into it.\n\nNews of new levels will come here.\nSupport: /support") };
-  await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, ru(from)) }); // the Play button by the input field, in their language
+  let clip = LEVEL_IDS[arg] || "abyssus";
+  if (play) {
+    const key = "u:" + from.id, rec = JSON.parse(await env.USERS.get(key) || "null");
+    const n = rec && Number.isInteger(rec.clip) ? (rec.clip + 1) % all.length : Math.floor(Math.random() * all.length);
+    clip = all[n];
+    if (rec) await env.USERS.put(key, JSON.stringify({ ...rec, clip: n }));
+  }
+  const r_ = ru(from), tap = play ? "" : "\n\n" + (r_ ? "Нажмите кнопку «Играть», и она откроет игру прямо в Telegram." : "Tap the Play button and it will open the game right in Telegram.");
+  const hi = { chat_id: chat, reply_markup: playKb(env, from, level), caption: (r_ ? ABOUT.ru : ABOUT.en) + tap + "\n\n" + (r_ ? NEWS.ru : NEWS.en) };
+  await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, r_) }); // the Play button by the input field, in their language
   const r = await sendClip(env, hi, clip);
   if (r.ok) return r;
   const { caption, ...rest } = hi; return tg(env, "sendMessage", { ...rest, text: caption }); // the clip won't go: the text alone
 }
 // a level's clip for the bot: 16:9 like the old pictures, with a silent sound track (so Telegram keeps it a video), sent as a video
 // because a desktop Telegram shows a GIF no wider than 320 points and a video as wide as a picture; a GIF if the video won't go
+const CLIP_VERSION = 2;
 async function sendClip(env, msg, id) {
-  const url = `${env.GAME_URL}minis/${id}.bot.mp4`;
+  // Telegram keeps a file it has fetched by its address, as the kind it was sent as: a new version is a new address
+  const url = `${env.GAME_URL}minis/${id}.bot.mp4?v=${CLIP_VERSION}`;
   const r = await tg(env, "sendVideo", { ...msg, video: url, width: 640, height: 360, supports_streaming: true });
   return r.ok || r.error_code === 403 ? r : tg(env, "sendAnimation", { ...msg, animation: url, width: 640, height: 360 });
 }
@@ -160,7 +173,7 @@ async function onUpdate(u, env) {
       }
       return greet(env, chat, from, arg);
     }
-    case "/play": return greet(env, chat, from, "");
+    case "/play": return greet(env, chat, from, "", true);
     case "/language": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Выберите язык:", "Choose a language:"),
       reply_markup: { inline_keyboard: [[{ text: "Русский", callback_data: "lang:ru" }, { text: "English", callback_data: "lang:en" }]] } });
     case "/stop":
@@ -280,8 +293,8 @@ async function setup(url, env) {
   out.webhook = await tg(env, "setWebhook", { url: `${url.origin}/tg`, secret_token: env.WEBHOOK_SECRET, allowed_updates: ["message", "callback_query", "pre_checkout_query"] });
   // English for everyone by default, Russian for Russian-speaking profiles (as the bot's own replies go)
   const RU = ["ru", "uk", "be", "kk"];
-  const DESC = { ru: "Limbus — рельсовый шутер между Светом и Тьмой: вагонетка мчится сама, вы разбиваете стекло на пути. 11 уровней, у каждого своя музыка и финал.\n\nНажмите «Старт» — и кнопка «Играть» откроет игру прямо в Telegram.",
-    en: "Limbus: a rail shooter between the Light and the Dark. The cart rushes on by itself; you smash the glass in its way. 11 levels, each with its own music and finale.\n\nTap Start, and the Play button opens the game right in Telegram." };
+  const DESC = { ru: ABOUT.ru + "\n\nНажмите «Старт», и кнопка «Играть» откроет игру прямо в Telegram.",
+    en: ABOUT.en + "\n\nTap Start and the Play button will open the game right in Telegram." };
   const SHORT = { ru: "Рельсовый шутер между Светом и Тьмой. Играйте прямо в Telegram.", en: "A rail shooter between the Light and the Dark. Play right in Telegram." };
   out.commands = await tg(env, "setMyCommands", { commands: commands(false) });
   out.description = await tg(env, "setMyDescription", { description: DESC.en });

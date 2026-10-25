@@ -305,13 +305,8 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .sheet .panel { width: min(520px, 100%); padding: 22px 22px 20px; }
 .mini { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 4px; margin: 0 0 16px; background: #dfe7ea; }
 video.mini { background: none; object-fit: contain; }
-/* a station's sheet comes out of a flash from the station tapped, as a train out of a tunnel into the light: the glare opens
-   from that point and the panel steps out of it, washed bright and soft at first, sharp by the end; half a second, the time
-   its clip takes to load and start */
-.exitflash { position: fixed; z-index: 4; width: 260vmax; height: 260vmax; border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%) scale(0);
-  background: radial-gradient(circle, #fff 0%, rgba(236, 249, 255, 0.97) 16%, rgba(170, 225, 248, 0.6) 34%, rgba(255, 255, 255, 0) 60%);
-  animation: exitflash 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
-@keyframes exitflash { 0% { transform: translate(-50%, -50%) scale(0); opacity: 1; } 45% { opacity: 0.95; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+/* a station's sheet steps out of a white veil that clears, growing a little into place: half a second, the time its clip
+   takes to load and start */
 .sheet .panel.enter { position: relative; animation: sheetenter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .sheet .panel.enter::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
   background: radial-gradient(ellipse at center, #fff 30%, #eaf8ff 100%); animation: sheetglare 0.5s ease-out forwards; } /* the glare it steps out of: a white veil that clears, cheap to draw */
@@ -5580,13 +5575,7 @@ video.mini { background: none; object-fit: contain; }
       : what === "unavailable" ? T("Google Play сейчас недоступен", "Google Play isn't available right now") : T("Покупка не прошла", "The purchase didn't go through"), "info");
     window.LimbusPlay.ready(); // the purchases Play has for us may come now
   }
-  function exitFlash(from) {
-    const x = from.clientX !== undefined ? from.clientX : from.left + from.width / 2, y = from.clientY !== undefined ? from.clientY : from.top + from.height / 2;
-    const f = document.createElement("div"); f.className = "exitflash"; f.style.left = x + "px"; f.style.top = y + "px";
-    document.body.appendChild(f); f.addEventListener("animationend", () => f.remove());
-    const panel = $("sheet").querySelector(".panel"); panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter");
-  }
-  function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: the tap on the scheme, for the flash
+  function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: the tap on the scheme, which shows it stepping in
     const scroll = keep ? $("sheet").scrollTop : 0;
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
     $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("кристаллы для Арсенала", "crystals for Armamentarium") : st === "locked" ? T("вход платный", "paid entry") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
@@ -5708,7 +5697,7 @@ video.mini { background: none; object-fit: contain; }
     if (!clip && !lv.depot && !lv.gift && document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { if (!$("sheet").hidden && document.getElementById("clip-" + lv.id)) openSheet(lv, true); }, { once: true }); // a link to a level opens its sheet before the clips are parsed
     if (!lv.depot && !lv.gift && !clip) drawMini(lv);
     $("sheet").hidden = false;
-    if (from && !reduceMotion) exitFlash(from);
+    if (from && !reduceMotion) { const panel = $("sheet").querySelector(".panel"); panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
     if (keep) $("sheet").scrollTop = scroll;
     else $("sheet").querySelector("button:not(:disabled)")?.focus();
   }

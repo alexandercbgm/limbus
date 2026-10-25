@@ -286,6 +286,7 @@ tools/
   shoot-minis.js           — shoots every level in the light and the dark (Playwright)
   compose-minis.py         — joins the shots into minis/<id>.jpg
   telegram-art.py          — draws the bot's avatar and cover
+  trailer.py               — cuts the trailers (16:9 and 9:16, Russian and English) from the level recordings
 .github/workflows/
   pages.yml                — builds the Telegram build and publishes it on Pages
 ```

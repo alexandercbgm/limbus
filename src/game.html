@@ -5440,6 +5440,7 @@ video.mini { background: none; object-fit: contain; } /* a wide clip in the shot
     svg.querySelectorAll(".station").forEach(g => {
       const open = () => openSheet(byId(g.dataset.id));
       g.addEventListener("click", open);
+      g.addEventListener("pointerdown", () => { if (document.getElementById("clip-" + g.dataset.id)) clipVid(g.dataset.id); }); // its clip starts loading as the finger lands, not as it lifts
       g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
     });
   }
@@ -5634,7 +5635,8 @@ video.mini { background: none; object-fit: contain; } /* a wide clip in the shot
   function stopClips() { clipWant = null; for (const k in clipVids) clipVids[k].pause(); }
   function hideClips() { clipWant = null; for (const k in clipVids) { clipVids[k].pause(); clipVids[k].hidden = true; } }
   // clips inside the page are readied ahead, while the scheme is looked at; a clip in a file beside it (the Telegram build) is
-  // fetched only when its sheet opens, so a player downloads only the clips they look at (its first frame covers the wait)
+  // fetched only from the moment its station is touched, so a player downloads only the clips they look at (its first frame
+  // covers the wait)
   window.addEventListener("load", () => document.querySelectorAll('script[id^="clip-"]').forEach(s => { if (s.textContent.trim().startsWith("data:")) clipVid(s.id.slice(5)); }));
   new MutationObserver(() => { if ($("sheet").hidden) stopClips(); }).observe($("sheet"), { attributes: true, attributeFilter: ["hidden"] }); // no clip playing behind the scheme
   function drawMini(lv) {

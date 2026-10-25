@@ -5506,7 +5506,7 @@ video.mini { background: none; object-fit: contain; }
     sh.addEventListener("animationend", e => { if (e.target === sh) done(); }, { once: true });
     setTimeout(done, 300); // and surely by then, should a web view hold the animation back
   }
-  function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: the tap on the scheme, which shows it stepping in
+  function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: opened from the scheme or by a link, so it steps in
     const scroll = keep ? $("sheet").scrollTop : 0;
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
     $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("кристаллы для Арсенала", "crystals for Armamentarium") : st === "locked" ? T("вход платный", "paid entry") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
@@ -5883,7 +5883,7 @@ video.mini { background: none; object-fit: contain; }
   const deep = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) || new URLSearchParams(location.search).get("level");
   // opened once the page is all there, its clips and shots too, so the sheet shows the clip and not a drawing standing in for it;
   // and with no keyboard ring round its first button, as nobody has touched a key
-  if (deep && byId(deep)) { const go = () => { openSheet(byId(deep)); document.activeElement?.blur(); }; if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go, { once: true }); else go(); }
+  if (deep && byId(deep)) { const go = () => { openSheet(byId(deep), false, true); document.activeElement?.blur(); }; if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go, { once: true }); else go(); }
   requestAnimationFrame(frame);
 })();
 </script>

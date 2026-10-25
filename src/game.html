@@ -5610,23 +5610,29 @@ video.mini { background: none; object-fit: contain; } /* a wide clip in the shot
   // A small hand-drawn view down the level's corridor: the left half in its light palette, the right half in its dark one.
   // a clip plays in a video of its own in the shot's place, seen, so no browser pauses it to spare the battery; its poster is
   // the clip's first frame, an image decoded with the page (poster-<id>), so the sheet never opens on a blank while it starts
-  const clipVids = {};
+  // Telegram's own web view on a computer may stop a clip that a tap started (as the menu's music starts with that tap):
+  // while its sheet is open the clip wants to play, and is started again when it stops, or as soon as it can play
+  const clipVids = {}; let clipWant = null;
+  const clipKick = (v, id) => { if (clipWant === id && v.paused && !$("sheet").hidden) v.play().catch(() => {}); };
   function clipVid(id) {
     if (clipVids[id]) return clipVids[id];
     const v = document.createElement("video"), poster = document.getElementById("poster-" + id);
     for (const a of ["muted", "loop", "playsinline", "disablepictureinpicture"]) v.setAttribute(a, ""); // as attributes too: iOS reads them before it plays
     v.muted = true; v.className = "mini clip"; v.hidden = true; v.preload = "auto"; v.setAttribute("aria-hidden", "true");
     if (poster) v.poster = poster.src;
+    for (const ev of ["canplay", "loadeddata"]) v.addEventListener(ev, () => clipKick(v, id));
+    v.addEventListener("pause", () => setTimeout(() => clipKick(v, id), 150));
     v.src = document.getElementById("clip-" + id).textContent.trim();
     $("mini").after(v); return (clipVids[id] = v);
   }
   function playClip(id) {
     const vid = clipVid(id);
-    for (const k in clipVids) if (k !== id) { clipVids[k].pause(); clipVids[k].hidden = true; }
-    vid.hidden = false; vid.play().catch(() => {});
+    clipWant = id; for (const k in clipVids) if (k !== id) { clipVids[k].pause(); clipVids[k].hidden = true; }
+    clipWant = id; vid.hidden = false; vid.play().catch(() => {});
+    setTimeout(() => clipKick(vid, id), 400); // and once more, after whatever else that tap set going
   }
-  function stopClips() { for (const k in clipVids) clipVids[k].pause(); }
-  function hideClips() { for (const k in clipVids) { clipVids[k].pause(); clipVids[k].hidden = true; } }
+  function stopClips() { clipWant = null; for (const k in clipVids) clipVids[k].pause(); }
+  function hideClips() { clipWant = null; for (const k in clipVids) { clipVids[k].pause(); clipVids[k].hidden = true; } }
   // clips inside the page are readied ahead, while the scheme is looked at; a clip in a file beside it (the Telegram build) is
   // fetched only when its sheet opens, so a player downloads only the clips they look at (its first frame covers the wait)
   window.addEventListener("load", () => document.querySelectorAll('script[id^="clip-"]').forEach(s => { if (s.textContent.trim().startsWith("data:")) clipVid(s.id.slice(5)); }));

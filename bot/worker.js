@@ -137,7 +137,8 @@ const LEVEL_INFO = {
 // the words the bot and the Google Play listing share (android/GOOGLE_PLAY.md): what the game is, and where to tap
 const ABOUT = { ru: "Limbus — рельсовый шутер между Светом и Тьмой: вагонетка мчится сама, а вы разбиваете стекло на пути. 11 уровней, и у каждого своя музыка и финал.",
   en: "Limbus is a rail shooter between the Light and the Dark — the cart rushes on by itself, and you smash the glass in its way. 11 levels, each with its own music and finale." };
-const TAP = { ru: "Нажмите кнопку «Играть», и она откроет игру прямо в Telegram.", en: "Tap the Play button and it will open the game right in Telegram." };
+// the empty chat's description, under which Telegram shows its own Start button ("СТАРТ" / "START")
+const TAP = { ru: "Нажмите кнопку «Старт», и она откроет игру прямо в Telegram.", en: "Tap the Start button and it will open the game right in Telegram." };
 const NEWS = { ru: "Новости о новых уровнях будут приходить сюда.\nПоддержка: /support", en: "News of new levels will come here.\nSupport — /support" };
 // the greeting (/start, /play, and a player come in through the game): a level's card, its clip, its name and description,
 // and the Play button opening that level. The level a link names (t.me/bot?start=nox), else the next in a round of them all,

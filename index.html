@@ -107,9 +107,9 @@
 body.dark { --ink: #f2e9e6; --muted: #c9b2ac; --gain: #7fd3ff; --hit: #ff6a4d; }
 html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; color: var(--ink); font-family: var(--body); }
 [hidden] { display: none !important; }
-/* a touch screen: no blue flash where a finger taps, and no keyboard ring round what the game focuses for a keyboard's sake */
+/* no blue flash where a finger taps, and no focus ring round the controls, whether they are tapped, clicked or reached by Tab */
 * { -webkit-tap-highlight-color: transparent; }
-@media (pointer: coarse) { :focus, :focus-visible { outline: none !important; } }
+:focus, :focus-visible { outline: none !important; }
 #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
 
 .hud {
@@ -176,7 +176,6 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
   padding: 15px 22px; border: 0; border-radius: 4px; background: #10242e; color: #f4fbfc; cursor: pointer;
 }
 .cta:hover { background: #1c3a48; }
-.cta:focus-visible, .mute:focus-visible, .ghost:focus-visible, .station:focus-visible { outline: 3px solid #1287b5; outline-offset: 3px; }
 .note { font-size: 12px; margin-top: 12px !important; }
 
 #flash { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
@@ -231,11 +230,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 #map { display: block; width: 100%; height: auto; }
 .station { cursor: pointer; outline: none; }
 .station .hit { fill: transparent; }
-.station:hover .ring, .station:focus-visible .ring { stroke-width: 7; }
+.station:hover .ring { stroke-width: 7; }
 .map-tools { position: absolute; top: 12px; right: 14px; z-index: 1; display: flex; gap: 8px; }
 .map-tools .ibtn { border: 1px solid rgba(16, 36, 46, 0.22); border-radius: 4px; background: rgba(255, 255, 255, 0.75); cursor: pointer; }
 .map-tools .ibtn:hover { background: #ffffff; }
-.map-tools .ibtn:focus-visible { outline: 3px solid #1287b5; outline-offset: 2px; }
 .map-tools .lang { width: auto; padding: 0 10px 0 8px; display: flex; gap: 6px; font: 700 12px var(--mono); color: #10242e; }
 .map-tools .globe { fill: none; }
 .credit { position: absolute; right: 14px; bottom: 9px; z-index: 1; pointer-events: none; font: 600 10px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: #8a9ba3; }
@@ -297,7 +295,6 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   font: 700 13px var(--display); letter-spacing: 0.06em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
 .tab small { font: 600 11px var(--body); letter-spacing: 0; opacity: 0.85; }
 .tab[aria-selected="true"] { background: #10242e; color: #f4fbfc; }
-.tab:focus-visible { outline: 3px solid #1287b5; outline-offset: 2px; }
 .wcard { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; padding: 12px; border: 1px solid rgba(16,36,46,0.18); border-radius: 4px; background: rgba(255,255,255,0.6); }
 .wcard h3 { margin: 0; font-family: var(--display); font-size: 14px; letter-spacing: 0.06em; }
 .wcard h3 small { font-family: var(--body); font-weight: 600; font-size: 12px; color: #4c6470; letter-spacing: 0; margin-left: 6px; }

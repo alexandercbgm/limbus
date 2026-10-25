@@ -107,10 +107,14 @@ async function onUpdate(u, env) {
           "Crystals for Armamentarium: the depot's entry, every cannon (but Ferrum) and every upgrade to the third level, +25% bonus.\nOnce paid, a code comes: enter it in the game at the Emptio station.") });
         return tg(env, "sendInvoice", { chat_id: chat, ...invoiceBody({ language_code: from.language_code }, "apk") });
       }
-      const level = /^[a-z]+$/.test(arg) ? arg : ""; // t.me/bot?start=vitrum
-      return tg(env, "sendMessage", { chat_id: chat, reply_markup: playKb(env, from, level),
-        text: T(from, "Limbus — рельсы между Светом и Тьмой. Жмите «Играть».\n\nНовости о новых уровнях будут приходить сюда; /stop — отписаться. Вопросы — просто напишите сообщение.",
-          "Limbus: rails between the Light and the Dark. Tap Play.\n\nNews of new levels will come here; /stop to unsubscribe. Questions? Just write a message.") });
+      const level = LEVEL_IDS[arg] || (arg === "emptio" ? arg : ""); // t.me/bot?start=vitrum
+      // the greeting comes with a clip of the level it opens (Initium's by default), as text alone if the clip won't go
+      const hi = { chat_id: chat, reply_markup: playKb(env, from, level),
+        caption: T(from, "Limbus — рельсы между Светом и Тьмой. Вагонетка катится сама, вы стреляете по стеклу, пока не врезались в него.\n\nЖмите «Играть».\n\nНовости о новых уровнях будут приходить сюда; /stop — отписаться. Вопросы — /support.",
+          "Limbus: rails between the Light and the Dark. The cart rolls on by itself; you fire at the glass before you crash into it.\n\nTap Play.\n\nNews of new levels will come here; /stop to unsubscribe. Questions: /support.") };
+      const r = await tg(env, "sendAnimation", { ...hi, animation: `${env.GAME_URL}minis/${LEVEL_IDS[arg] || "initium"}.mp4` });
+      if (r.ok) return r;
+      const { caption, ...rest } = hi; return tg(env, "sendMessage", { ...rest, text: caption });
     }
     case "/play": return tg(env, "sendMessage", { chat_id: chat, text: "Limbus", reply_markup: playKb(env, from) });
     case "/stop":
@@ -234,6 +238,11 @@ async function setup(url, env) {
   out.commandsEn = await tg(env, "setMyCommands", { language_code: "en", commands: [
     { command: "play", description: "Play" }, { command: "support", description: "Write to the author" },
     { command: "buy", description: "Crystals for Armamentarium" }, { command: "stop", description: "Unsubscribe from the news" }] });
+  // what an empty chat with the bot shows before Start, and the line under its name in search and in shared links
+  out.description = await tg(env, "setMyDescription", { description: "Limbus — рельсовый шутер между Светом и Тьмой: вагонетка мчится сама, вы разбиваете стекло на пути. 11 уровней, у каждого своя музыка и финал.\n\nНажмите «Старт» — и кнопка «Играть» откроет игру прямо в Telegram." });
+  out.descriptionEn = await tg(env, "setMyDescription", { language_code: "en", description: "Limbus: a rail shooter between the Light and the Dark. The cart rushes on by itself; you smash the glass in its way. 11 levels, each with its own music and finale.\n\nTap Start, and the Play button opens the game right in Telegram." });
+  out.short = await tg(env, "setMyShortDescription", { short_description: "Рельсовый шутер между Светом и Тьмой. Играйте прямо в Telegram." });
+  out.shortEn = await tg(env, "setMyShortDescription", { language_code: "en", short_description: "A rail shooter between the Light and the Dark. Play right in Telegram." });
   out.menu = await tg(env, "setChatMenuButton", { menu_button: { type: "web_app", text: "Играть", web_app: { url: env.GAME_URL } } });
   return Response.json(out, { headers: { "content-type": "application/json; charset=utf-8" } });
 }

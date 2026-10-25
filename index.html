@@ -107,6 +107,9 @@
 body.dark { --ink: #f2e9e6; --muted: #c9b2ac; --gain: #7fd3ff; --hit: #ff6a4d; }
 html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; color: var(--ink); font-family: var(--body); }
 [hidden] { display: none !important; }
+/* a touch screen: no blue flash where a finger taps, and no keyboard ring round what the game focuses for a keyboard's sake */
+* { -webkit-tap-highlight-color: transparent; }
+@media (pointer: coarse) { :focus, :focus-visible { outline: none !important; } }
 #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
 
 .hud {

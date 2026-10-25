@@ -302,6 +302,14 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .wcard button { grid-column: 2; grid-row: 1 / span 2; width: auto; padding: 10px 14px; font-size: 12px; }
 @media (max-width: 480px) { .wcard { grid-template-columns: 1fr; } .wcard button { grid-column: 1; grid-row: auto; } .m-side { justify-items: start; } .arms { justify-content: flex-start; } }
 .sheet { z-index: 5; background: rgba(16, 36, 46, 0.28); }
+/* the scheme behind a sheet dims as it opens and comes back as it closes, smoothly both ways */
+.sheet:not([hidden]) { animation: sheetdim 0.3s ease-out both; }
+.sheet.closing { animation: sheetundim 0.25s ease-in both; pointer-events: none; }
+.sheet.closing .panel { animation: sheetout 0.25s ease-in both; }
+@keyframes sheetdim { from { background-color: rgba(16, 36, 46, 0); } }
+@keyframes sheetundim { to { background-color: rgba(16, 36, 46, 0); } }
+@keyframes sheetout { to { opacity: 0; transform: scale(0.97); } }
+@media (prefers-reduced-motion: reduce) { .sheet:not([hidden]), .sheet.closing, .sheet.closing .panel { animation: none; } }
 .sheet .panel { width: min(520px, 100%); padding: 22px 22px 20px; }
 .mini { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 4px; margin: 0 0 16px; background: #dfe7ea; }
 video.mini { background: none; object-fit: contain; }
@@ -4476,12 +4484,12 @@ video.mini { background: none; object-fit: contain; }
   // the app goes to the background: the sound stops at once; back on the scheme it plays on
   window.__silence = () => { if (Sound.ctx && Sound.ctx.state === "running") Sound.ctx.suspend(); if (Sound.fallback) Sound.fallback.pause(); };
   window.__wake = () => { if (state === "menu") leavePause(); };
-  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "pause", "how"].forEach(id => { $(id).hidden = true; }); }
+  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "pause", "how"].forEach(id => { $(id).hidden = true; }); $("sheet").classList.remove("closing"); }
   // pause: the world freezes (render only), the music stops until the run continues
   // the Android app's back button: returns true if the game used it
   window.__back = () => {
     if (!$("how").hidden) { $("how").hidden = true; return true; }
-    if (!$("sheet").hidden) { $("sheet").hidden = true; return true; }
+    if (!$("sheet").hidden) { closeSheet(); return true; }
     if (state === "play") { pauseGame(); return true; }
     if (state === "paused") { $("pauseMenu").click(); return true; }
     if (!$("nag").hidden) { $("nagLater").click(); return true; }
@@ -5575,6 +5583,15 @@ video.mini { background: none; object-fit: contain; }
       : what === "unavailable" ? T("Google Play сейчас недоступен", "Google Play isn't available right now") : T("Покупка не прошла", "The purchase didn't go through"), "info");
     window.LimbusPlay.ready(); // the purchases Play has for us may come now
   }
+  // a sheet closes with the scheme coming back from behind it (.sheet.closing), then hides; opening one meanwhile cancels that
+  function closeSheet() {
+    const sh = $("sheet"); if (sh.hidden || sh.classList.contains("closing")) return;
+    if (reduceMotion) { sh.hidden = true; return; }
+    sh.querySelector(".panel").classList.remove("enter"); sh.classList.add("closing"); stopClips();
+    const done = () => { if (sh.classList.contains("closing")) { sh.classList.remove("closing"); sh.hidden = true; } };
+    sh.addEventListener("animationend", e => { if (e.target === sh) done(); }, { once: true });
+    setTimeout(done, 300); // and surely by then, should a web view hold the animation back
+  }
   function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: the tap on the scheme, which shows it stepping in
     const scroll = keep ? $("sheet").scrollTop : 0;
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
@@ -5689,14 +5706,14 @@ video.mini { background: none; object-fit: contain; }
     else if (isOpen(lv)) button(btns, "cta", st === "done" ? T("Проехать ещё раз", "Ride again") : T("Поехали", "Ride"), () => startLevel(lv));
     else if (req.transfer && progress.done[req.transfer.from] && bank >= req.transfer.cost) button(btns, "cta", T(`Пересадка: −${req.transfer.cost} ◆`, `Change: −${req.transfer.cost} ◆`), () => { progress.bank -= req.transfer.cost; progress.open[lv.id] = true; saveProgress(); startLevel(lv); });
     else button(btns, "cta", T("Пока закрыта", "Closed for now"), null, true);
-    button(btns, "ghost", T("Назад к схеме", "Back to the scheme"), () => { $("sheet").hidden = true; renderMap(); });
+    button(btns, "ghost", T("Назад к схеме", "Back to the scheme"), () => { closeSheet(); renderMap(); });
     // a station with a clip of its level (minis/<id>.mp4, embedded by build.py) plays it in place of the shot
     const clip = !lv.depot && !lv.gift && document.getElementById("clip-" + lv.id);
     $("mini").hidden = !!(lv.depot || lv.gift || clip); $("sheet").querySelector(".panel").classList.toggle("nomini", !!(lv.depot || lv.gift));
     if (clip) playClip(lv.id); else hideClips();
     if (!clip && !lv.depot && !lv.gift && document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { if (!$("sheet").hidden && document.getElementById("clip-" + lv.id)) openSheet(lv, true); }, { once: true }); // a link to a level opens its sheet before the clips are parsed
     if (!lv.depot && !lv.gift && !clip) drawMini(lv);
-    $("sheet").hidden = false;
+    $("sheet").classList.remove("closing"); $("sheet").hidden = false;
     if (from && !reduceMotion) { const panel = $("sheet").querySelector(".panel"); panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
     if (keep) $("sheet").scrollTop = scroll;
     else $("sheet").querySelector("button:not(:disabled)")?.focus();
@@ -5884,11 +5901,11 @@ video.mini { background: none; object-fit: contain; }
       }, 250);
     }
   }
-  $("sheet").addEventListener("click", e => { if (e.target === $("sheet")) $("sheet").hidden = true; });
+  $("sheet").addEventListener("click", e => { if (e.target === $("sheet")) closeSheet(); });
   window.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
     if (!$("how").hidden) $("how").hidden = true;
-    else if (!$("sheet").hidden) $("sheet").hidden = true;
+    else if (!$("sheet").hidden) closeSheet();
     else if (state === "play") pauseGame();
     else if (state === "paused") resumeGame();
   });

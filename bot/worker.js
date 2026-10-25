@@ -105,12 +105,17 @@ async function greet(env, chat, from, arg) {
     caption: T(from, "Limbus — рельсы между Светом и Тьмой. Вагонетка катится сама, вы стреляете по стеклу, пока не врезались в него.\n\nНовости о новых уровнях будут приходить сюда. Поддержка: /support.",
       "Limbus: rails between the Light and the Dark. The cart rolls on by itself; you fire at the glass before you crash into it.\n\nNews of new levels will come here. Support: /support.") };
   await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, ru(from)) }); // the Play button by the input field, in their language
-  const r = await tg(env, "sendAnimation", { ...hi, ...clipOf(env, clip) });
+  const r = await sendClip(env, hi, clip);
   if (r.ok) return r;
   const { caption, ...rest } = hi; return tg(env, "sendMessage", { ...rest, text: caption }); // the clip won't go: the text alone
 }
-// a level's clip for the bot: 16:9 like the old pictures, so Telegram shows it as wide; silent, so it loops like a GIF
-const clipOf = (env, id) => ({ animation: `${env.GAME_URL}minis/${id}.bot.mp4`, width: 640, height: 360 });
+// a level's clip for the bot: 16:9 like the old pictures, sent as a video (with a silent sound track, so Telegram keeps it one)
+// because a desktop Telegram shows a GIF no wider than 320 points and a video as wide as a picture; a GIF if the video won't go
+async function sendClip(env, msg, id) {
+  const url = `${env.GAME_URL}minis/${id}.bot.mp4`;
+  const r = await tg(env, "sendVideo", { ...msg, video: url, width: 640, height: 360, supports_streaming: true });
+  return r.ok || r.error_code === 403 ? r : tg(env, "sendAnimation", { ...msg, animation: url, width: 640, height: 360 });
+}
 
 async function onUpdate(u, env) {
   if (u.pre_checkout_query) return tg(env, "answerPreCheckoutQuery", { pre_checkout_query_id: u.pre_checkout_query.id, ok: true });
@@ -246,9 +251,9 @@ async function runBroadcast(env) {
     const u = JSON.parse(await env.USERS.get(key) || "null"); budget--; // reads count against the limit too
     if (!u || !u.sub) continue;
     const from = { language_code: u.choice || u.lang };
-    // the level's clip (silent, so Telegram plays it on a loop like a GIF); its picture if the clip won't go
+    // the level's clip; its picture if the clip won't go
     const msg = { chat_id: id, caption: job.text, reply_markup: playKb(env, from, job.level) };
-    let r = await tg(env, "sendAnimation", { ...msg, ...clipOf(env, job.level) }); budget--;
+    let r = await sendClip(env, msg, job.level); budget -= 2;
     if (!r.ok && r.error_code !== 403) { r = await tg(env, "sendPhoto", { ...msg, photo: `${env.GAME_URL}minis/${job.level}.jpg` }); budget--; }
     if (r.ok) job.sent++; else { job.failed++; job.error = r.description || String(r.error_code); if (r.error_code === 403) await env.USERS.delete(key); } // blocked the bot: off the list
   }

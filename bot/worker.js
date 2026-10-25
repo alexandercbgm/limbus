@@ -109,7 +109,7 @@ async function greet(env, chat, from, arg) {
   if (r.ok) return r;
   const { caption, ...rest } = hi; return tg(env, "sendMessage", { ...rest, text: caption }); // the clip won't go: the text alone
 }
-// a level's clip for the bot: 16:9 like the old pictures, sent as a video (with a silent sound track, so Telegram keeps it one)
+// a level's clip for the bot: 16:9 like the old pictures, with sound (the recording's own, or the level's track), sent as a video
 // because a desktop Telegram shows a GIF no wider than 320 points and a video as wide as a picture; a GIF if the video won't go
 async function sendClip(env, msg, id) {
   const url = `${env.GAME_URL}minis/${id}.bot.mp4`;

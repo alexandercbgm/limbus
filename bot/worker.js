@@ -73,14 +73,51 @@ const playKb = (env, from, level) => ({ inline_keyboard: [[{ text: T(from, "Иг
 async function remember(env, user, sub = true) {
   const key = "u:" + user.id, old = JSON.parse(await env.USERS.get(key) || "null");
   if (old && old.sub === sub) return; // nothing new: spare the KV's daily writes
-  await env.USERS.put(key, JSON.stringify({ name: user.first_name || "", lang: user.language_code || "", sub, t: Date.now() }));
+  await env.USERS.put(key, JSON.stringify({ name: user.first_name || "", lang: user.language_code || "", sub, t: Date.now(), ...(old && old.choice ? { choice: old.choice } : {}) }));
 }
+
+// a user as the bot speaks to them: the language they chose with /language over their Telegram's own
+async function speaker(env, user) {
+  const rec = JSON.parse(await env.USERS.get("u:" + user.id) || "null");
+  return rec && rec.choice ? { ...user, language_code: rec.choice } : user;
+}
+// the commands under the input field and the Play button beside it, in a language: for everyone by default, or for one chat
+const commands = r => r
+  ? [{ command: "play", description: "Играть" }, { command: "buy", description: "Кристаллы для Арсенала" }, { command: "support", description: "Написать автору" }, { command: "language", description: "Язык / Language" }]
+  : [{ command: "play", description: "Play" }, { command: "buy", description: "Crystals for Armamentarium" }, { command: "support", description: "Write to the author" }, { command: "language", description: "Language / Язык" }];
+const menuButton = (env, r) => ({ type: "web_app", text: r ? "Играть" : "Play", web_app: { url: env.GAME_URL } });
+async function onButton(q, env) {
+  const m = /^lang:(ru|en)$/.exec(q.data || "");
+  if (!m || !q.message) return tg(env, "answerCallbackQuery", { callback_query_id: q.id });
+  const key = "u:" + q.from.id, rec = JSON.parse(await env.USERS.get(key) || "null") || { name: q.from.first_name || "", lang: q.from.language_code || "", sub: true, t: Date.now() };
+  await env.USERS.put(key, JSON.stringify({ ...rec, choice: m[1] }));
+  const r = m[1] === "ru", chat = q.message.chat.id;
+  await tg(env, "setMyCommands", { commands: commands(r), scope: { type: "chat", chat_id: chat } });
+  await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, r) });
+  await tg(env, "editMessageText", { chat_id: chat, message_id: q.message.message_id, text: r ? "Язык: русский. /language — сменить." : "Language: English. /language to change it." });
+  return tg(env, "answerCallbackQuery", { callback_query_id: q.id });
+}
+// the greeting (/start, /play): a clip of the level it opens, or of a level at random, its text and the Play button
+async function greet(env, chat, from, arg) {
+  const level = LEVEL_IDS[arg] || (arg === "emptio" ? arg : ""), all = [...new Set(Object.values(LEVEL_IDS))];
+  const clip = LEVEL_IDS[arg] || all[Math.floor(Math.random() * all.length)];
+  const hi = { chat_id: chat, reply_markup: playKb(env, from, level),
+    caption: T(from, "Limbus — рельсы между Светом и Тьмой. Вагонетка катится сама, вы стреляете по стеклу, пока не врезались в него.\n\nНовости о новых уровнях будут приходить сюда. Поддержка: /support.",
+      "Limbus: rails between the Light and the Dark. The cart rolls on by itself; you fire at the glass before you crash into it.\n\nNews of new levels will come here. Support: /support.") };
+  await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, ru(from)) }); // the Play button by the input field, in their language
+  const r = await tg(env, "sendAnimation", { ...hi, ...clipOf(env, clip) });
+  if (r.ok) return r;
+  const { caption, ...rest } = hi; return tg(env, "sendMessage", { ...rest, text: caption }); // the clip won't go: the text alone
+}
+// a level's clip for the bot: 16:9 like the old pictures, so Telegram shows it as wide; silent, so it loops like a GIF
+const clipOf = (env, id) => ({ animation: `${env.GAME_URL}minis/${id}.bot.mp4`, width: 640, height: 360 });
 
 async function onUpdate(u, env) {
   if (u.pre_checkout_query) return tg(env, "answerPreCheckoutQuery", { pre_checkout_query_id: u.pre_checkout_query.id, ok: true });
-  if (u.callback_query) return tg(env, "answerCallbackQuery", { callback_query_id: u.callback_query.id });
+  if (u.callback_query) return onButton(u.callback_query, env);
   const msg = u.message; if (!msg || !msg.from || msg.chat.type !== "private") return;
-  const from = msg.from, chat = msg.chat.id, text = msg.text || "", owner = String(from.id) === String(env.OWNER_ID);
+  const chat = msg.chat.id, text = msg.text || "", owner = String(msg.from.id) === String(env.OWNER_ID);
+  const from = await speaker(env, msg.from); // in the language they chose with /language, else their Telegram's
 
   if (msg.successful_payment) {
     const sp = msg.successful_payment, pk = PACKS[sp.invoice_payload] || {};
@@ -107,16 +144,11 @@ async function onUpdate(u, env) {
           "Crystals for Armamentarium: the depot's entry, every cannon (but Ferrum) and every upgrade to the third level, +25% bonus.\nOnce paid, a code comes: enter it in the game at the Emptio station.") });
         return tg(env, "sendInvoice", { chat_id: chat, ...invoiceBody({ language_code: from.language_code }, "apk") });
       }
-      const level = LEVEL_IDS[arg] || (arg === "emptio" ? arg : ""); // t.me/bot?start=vitrum
-      // the greeting comes with a clip of the level it opens (Initium's by default), as text alone if the clip won't go
-      const hi = { chat_id: chat, reply_markup: playKb(env, from, level),
-        caption: T(from, "Limbus — рельсы между Светом и Тьмой. Вагонетка катится сама, вы стреляете по стеклу, пока не врезались в него.\n\nЖмите «Играть».\n\nНовости о новых уровнях будут приходить сюда; /stop — отписаться. Вопросы — /support.",
-          "Limbus: rails between the Light and the Dark. The cart rolls on by itself; you fire at the glass before you crash into it.\n\nTap Play.\n\nNews of new levels will come here; /stop to unsubscribe. Questions: /support.") };
-      const r = await tg(env, "sendAnimation", { ...hi, animation: `${env.GAME_URL}minis/${LEVEL_IDS[arg] || "initium"}.mp4` });
-      if (r.ok) return r;
-      const { caption, ...rest } = hi; return tg(env, "sendMessage", { ...rest, text: caption });
+      return greet(env, chat, from, arg);
     }
-    case "/play": return tg(env, "sendMessage", { chat_id: chat, text: "Limbus", reply_markup: playKb(env, from) });
+    case "/play": return greet(env, chat, from, "");
+    case "/language": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Выберите язык:", "Choose a language:"),
+      reply_markup: { inline_keyboard: [[{ text: "Русский", callback_data: "lang:ru" }, { text: "English", callback_data: "lang:en" }]] } });
     case "/stop":
       await remember(env, from, false);
       return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Вы отписаны от новостей. /start — подписаться снова.", "You are unsubscribed from the news. /start to subscribe again.") });
@@ -213,10 +245,10 @@ async function runBroadcast(env) {
     const key = job.keys.shift(), id = key.slice(2);
     const u = JSON.parse(await env.USERS.get(key) || "null"); budget--; // reads count against the limit too
     if (!u || !u.sub) continue;
-    const from = { language_code: u.lang };
+    const from = { language_code: u.choice || u.lang };
     // the level's clip (silent, so Telegram plays it on a loop like a GIF); its picture if the clip won't go
     const msg = { chat_id: id, caption: job.text, reply_markup: playKb(env, from, job.level) };
-    let r = await tg(env, "sendAnimation", { ...msg, animation: `${env.GAME_URL}minis/${job.level}.mp4` }); budget--;
+    let r = await tg(env, "sendAnimation", { ...msg, ...clipOf(env, job.level) }); budget--;
     if (!r.ok && r.error_code !== 403) { r = await tg(env, "sendPhoto", { ...msg, photo: `${env.GAME_URL}minis/${job.level}.jpg` }); budget--; }
     if (r.ok) job.sent++; else { job.failed++; job.error = r.description || String(r.error_code); if (r.error_code === 403) await env.USERS.delete(key); } // blocked the bot: off the list
   }
@@ -232,18 +264,21 @@ async function setup(url, env) {
   const out = {};
   // pending updates are kept: whoever wrote to the bot in the last day before this is not lost
   out.webhook = await tg(env, "setWebhook", { url: `${url.origin}/tg`, secret_token: env.WEBHOOK_SECRET, allowed_updates: ["message", "callback_query", "pre_checkout_query"] });
-  out.commands = await tg(env, "setMyCommands", { commands: [
-    { command: "play", description: "Играть" }, { command: "support", description: "Написать автору" },
-    { command: "buy", description: "Кристаллы для Арсенала" }, { command: "stop", description: "Отписаться от новостей" }] });
-  out.commandsEn = await tg(env, "setMyCommands", { language_code: "en", commands: [
-    { command: "play", description: "Play" }, { command: "support", description: "Write to the author" },
-    { command: "buy", description: "Crystals for Armamentarium" }, { command: "stop", description: "Unsubscribe from the news" }] });
-  // what an empty chat with the bot shows before Start, and the line under its name in search and in shared links
-  out.description = await tg(env, "setMyDescription", { description: "Limbus — рельсовый шутер между Светом и Тьмой: вагонетка мчится сама, вы разбиваете стекло на пути. 11 уровней, у каждого своя музыка и финал.\n\nНажмите «Старт» — и кнопка «Играть» откроет игру прямо в Telegram." });
-  out.descriptionEn = await tg(env, "setMyDescription", { language_code: "en", description: "Limbus: a rail shooter between the Light and the Dark. The cart rushes on by itself; you smash the glass in its way. 11 levels, each with its own music and finale.\n\nTap Start, and the Play button opens the game right in Telegram." });
-  out.short = await tg(env, "setMyShortDescription", { short_description: "Рельсовый шутер между Светом и Тьмой. Играйте прямо в Telegram." });
-  out.shortEn = await tg(env, "setMyShortDescription", { language_code: "en", short_description: "A rail shooter between the Light and the Dark. Play right in Telegram." });
-  out.menu = await tg(env, "setChatMenuButton", { menu_button: { type: "web_app", text: "Играть", web_app: { url: env.GAME_URL } } });
+  // English for everyone by default, Russian for Russian-speaking profiles (as the bot's own replies go)
+  const RU = ["ru", "uk", "be", "kk"];
+  const DESC = { ru: "Limbus — рельсовый шутер между Светом и Тьмой: вагонетка мчится сама, вы разбиваете стекло на пути. 11 уровней, у каждого своя музыка и финал.\n\nНажмите «Старт» — и кнопка «Играть» откроет игру прямо в Telegram.",
+    en: "Limbus: a rail shooter between the Light and the Dark. The cart rushes on by itself; you smash the glass in its way. 11 levels, each with its own music and finale.\n\nTap Start, and the Play button opens the game right in Telegram." };
+  const SHORT = { ru: "Рельсовый шутер между Светом и Тьмой. Играйте прямо в Telegram.", en: "A rail shooter between the Light and the Dark. Play right in Telegram." };
+  out.commands = await tg(env, "setMyCommands", { commands: commands(false) });
+  out.description = await tg(env, "setMyDescription", { description: DESC.en });
+  out.short = await tg(env, "setMyShortDescription", { short_description: SHORT.en });
+  for (const lc of RU) {
+    out["commands_" + lc] = await tg(env, "setMyCommands", { language_code: lc, commands: commands(true) });
+    out["description_" + lc] = await tg(env, "setMyDescription", { language_code: lc, description: DESC.ru });
+    out["short_" + lc] = await tg(env, "setMyShortDescription", { language_code: lc, short_description: SHORT.ru });
+  }
+  for (const lc of ["en"]) out["commands_" + lc] = await tg(env, "setMyCommands", { language_code: lc, commands: commands(false) }); // over the old Russian-default list
+  out.menu = await tg(env, "setChatMenuButton", { menu_button: menuButton(env, false) }); // a chat that has spoken to the bot gets its own, in its language
   return Response.json(out, { headers: { "content-type": "application/json; charset=utf-8" } });
 }
 

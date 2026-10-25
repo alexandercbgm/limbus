@@ -231,7 +231,7 @@ user's language and keeps the progress in the bot's cloud as well (the newer cop
 
 ```mermaid
 graph LR
-    U[Player] -- "/start /play /buy /support /stop" --> TGW[/tg webhook/]
+    U[Player] -- "/start /play /buy /support /language" --> TGW[/tg webhook/]
     O[Owner] -- "/broadcast level text · /stats · /cancel" --> TGW
     TGW --> W[Worker]
     G[Game] -- "/hello · /invoice · /redeem · /bot" --> W
@@ -260,7 +260,8 @@ src/
   game.html                — the whole game: scheme, sheets, levels, physics, sound, shop, Telegram glue
 music/                   — the level tracks, addressed by file stem (seer_vahl, perfect_alignment, …)
 minis/                   — per level: <id>.jpg (shot, light and dark halves, also the bot's news picture),
-                           <id>.mp4 (the clip in its sheet) and <id>.clip.jpg (the clip's first frame)
+                           <id>.mp4 (the clip in its sheet), <id>.clip.jpg (the clip's first frame) and
+                           <id>.bot.mp4 (a 16:9 cut of the clip for the bot's greeting and news)
 fonts/                   — Unbounded, Manrope, JetBrains Mono (SIL OFL), latin + cyrillic woff2, fonts.css
 android/
   build_apk.sh             — builds and signs limbus.apk without Gradle

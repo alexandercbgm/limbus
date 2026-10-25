@@ -139,21 +139,20 @@ const ABOUT = { ru: "Limbus — рельсовый шутер между Све�
   en: "Limbus is a rail shooter between the Light and the Dark — the cart rushes on by itself, and you smash the glass in its way. 11 levels, each with its own music and finale." };
 const TAP = { ru: "Нажмите кнопку «Играть», и она откроет игру прямо в Telegram.", en: "Tap the Play button and it will open the game right in Telegram." };
 const NEWS = { ru: "Новости о новых уровнях будут приходить сюда.\nПоддержка: /support", en: "News of new levels will come here.\nSupport — /support" };
-// the greeting: on /start with Nox's clip (or the clip of the level a link names) and a word on the Play button below it;
-// on /play with the next level's clip in a round of them all, so each comes as often as the others, and that level's name
-// and description in place of the game's
-async function greet(env, chat, from, arg, play) {
-  const level = LEVEL_IDS[arg] || (arg === "emptio" ? arg : ""), all = [...new Set(Object.values(LEVEL_IDS))];
-  let clip = LEVEL_IDS[arg] || "abyssus";
-  if (play) {
+// the greeting (/start, /play, and a player come in through the game): a level's card, its clip, its name and description,
+// and the Play button opening that level. The level a link names (t.me/bot?start=nox), else the next in a round of them all,
+// so each comes as often as the others. (What the bot is and where its support is: the empty chat's description, /setup.)
+async function greet(env, chat, from, arg) {
+  const all = [...new Set(Object.values(LEVEL_IDS))];
+  let clip = LEVEL_IDS[arg];
+  if (!clip) {
     const key = "u:" + from.id, rec = JSON.parse(await env.USERS.get(key) || "null");
     const n = rec && Number.isInteger(rec.clip) ? (rec.clip + 1) % all.length : Math.floor(Math.random() * all.length);
     clip = all[n];
     if (rec) await env.USERS.put(key, JSON.stringify({ ...rec, clip: n }));
   }
-  const r_ = ru(from), tap = play ? "" : "\n\n" + (r_ ? TAP.ru : TAP.en);
-  const lv = LEVEL_INFO[clip], about = play ? `${lv.latin} — ${r_ ? lv.ru : lv.en}\n\n${r_ ? lv.descRu : lv.descEn}` : r_ ? ABOUT.ru : ABOUT.en;
-  const hi = { chat_id: chat, reply_markup: playKb(env, from, play ? clip : level), caption: about + tap + "\n\n" + (r_ ? NEWS.ru : NEWS.en) };
+  const r_ = ru(from), lv = LEVEL_INFO[clip];
+  const hi = { chat_id: chat, reply_markup: playKb(env, from, clip), caption: `${lv.latin} — ${r_ ? lv.ru : lv.en}\n\n${r_ ? lv.descRu : lv.descEn}` };
   await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, r_) }); // the Play button by the input field, in their language
   const r = await sendClip(env, hi, clip);
   if (r.ok) return r;
@@ -212,7 +211,7 @@ async function onUpdate(u, env) {
       }
       return greet(env, chat, from, arg);
     }
-    case "/play": return greet(env, chat, from, "", true);
+    case "/play": return greet(env, chat, from, "");
     case "/language": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Выберите язык:", "Choose a language:"),
       reply_markup: { inline_keyboard: [[{ text: "Русский", callback_data: "lang:ru" }, { text: "English", callback_data: "lang:en" }]] } });
     case "/stop":

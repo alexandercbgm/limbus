@@ -231,7 +231,7 @@ video.mini { background: none; object-fit: contain; }
 .sheet .panel.enter::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
   background: radial-gradient(ellipse at center, #fff 30%, #eaf8ff 100%); animation: sheetglare 0.5s ease-out forwards; } /* the glare it steps out of: a white veil that clears, cheap to draw */
 @keyframes sheetenter { 0% { opacity: 0; transform: scale(0.94); } 30% { opacity: 1; } 100% { opacity: 1; transform: none; } }
-@keyframes sheetglare { 0%, 25% { opacity: 1; } 100% { opacity: 0; } } /* a wide clip in the shot's place: the sheet shows through above and below it */
+@keyframes sheetglare { 0%, 45% { opacity: 1; } 100% { opacity: 0; } } /* opaque for the first quarter second, while the clip starts */ /* a wide clip in the shot's place: the sheet shows through above and below it */
 .sheet h1 small { display: block; font-family: var(--body); font-weight: 600; font-size: 15px; letter-spacing: 0; color: #4c6470; margin-top: 4px; }
 .feats { margin: 12px 0 0; padding-left: 18px; color: #4c6470; line-height: 1.5; font-size: 14px; }
 .reqs { list-style: none; margin: 16px 0 18px; padding: 0; display: grid; gap: 8px; }
@@ -5642,10 +5642,10 @@ video.mini { background: none; object-fit: contain; }
   }
   function stopClips() { clipWant = null; for (const k in clipVids) clipVids[k].pause(); }
   function hideClips() { clipWant = null; for (const k in clipVids) { clipVids[k].pause(); clipVids[k].hidden = true; } }
-  // clips inside the page are readied ahead, while the scheme is looked at; a clip in a file beside it (the Telegram build) is
-  // fetched only from the moment its station is touched, so a player downloads only the clips they look at: the sheet's flash
-  // as it opens covers the time it takes
-  window.addEventListener("load", () => document.querySelectorAll('script[id^="clip-"]').forEach(s => { if (s.textContent.trim().startsWith("data:")) clipVid(s.id.slice(5)); }));
+  // every clip is readied ahead, once the page is up, while the scheme is looked at, and the sheet's white veil as it steps in
+  // covers the moment its clip takes to start (in the Telegram build the clips are files beside the page: about a dozen
+  // megabytes for all of them)
+  window.addEventListener("load", () => document.querySelectorAll('script[id^="clip-"]').forEach(s => clipVid(s.id.slice(5))));
   new MutationObserver(() => { if ($("sheet").hidden) stopClips(); }).observe($("sheet"), { attributes: true, attributeFilter: ["hidden"] }); // no clip playing behind the scheme
   function drawMini(lv) {
     const c = $("mini"), g = c.getContext("2d"), Wc = c.width, Hc = c.height, vx = Wc / 2, vy = Hc * 0.46;

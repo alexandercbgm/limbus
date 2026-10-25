@@ -215,7 +215,7 @@ async function onUpdate(u, env) {
       return greet(env, chat, from, arg);
     }
     case "/play": return greet(env, chat, from, "");
-    case "/version": return tg(env, "sendMessage", { chat_id: chat, text: `Limbus bot ${BOT_VERSION}` });
+    case "/version": return tg(env, "sendMessage", { chat_id: chat, text: `v${BOT_VERSION}` });
     case "/language": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Выберите язык:", "Choose a language:"),
       reply_markup: { inline_keyboard: [[{ text: "Русский", callback_data: "lang:ru" }, { text: "English", callback_data: "lang:en" }]] } });
     case "/stop":

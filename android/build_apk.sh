@@ -16,7 +16,7 @@ cp "$here/three.min.js" "$out/assets/"
 # the tracks as they are (192 kbps), not squeezed to fit an artifact; stored uncompressed so they stream from the APK
 mkdir -p "$out/assets/music" && cp "$root"/music/*.mp3 "$out/assets/music/"
 "$BT/aapt2" compile --dir "$here/res" -o "$out/res.zip"
-"$BT/aapt2" link -o "$out/base.apk" -I "$JAR" --manifest "$here/AndroidManifest.xml" -A "$out/assets" "$out/res.zip" --java "$out/gen" --auto-add-overlay -0 mp3 --version-code "$VERSION_CODE" --version-name "$VERSION_NAME"
+"$BT/aapt2" link -o "$out/base.apk" -I "$JAR" --manifest "$here/AndroidManifest.xml" -A "$out/assets" "$out/res.zip" --java "$out/gen" --auto-add-overlay -0 mp3 --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" --replace-version
 javac -g -source 8 -target 8 -nowarn -bootclasspath "$JAR" -classpath "$JAR" -d "$out/classes" $(find "$here/src" "$out/gen" -name '*.java') 2>&1 | grep -v "warning" || true
 "$BT/d8" --min-api 24 --lib "$JAR" --output "$out" $(find "$out/classes" -name '*.class')
 (cd "$out" && cp base.apk unsigned.apk && zip -q -u unsigned.apk classes.dex)

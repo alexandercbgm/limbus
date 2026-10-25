@@ -5654,6 +5654,8 @@ video.mini { background: none; object-fit: contain; }
   function playClip(id) {
     const vid = clipVid(id);
     clipWant = id; for (const k in clipVids) if (k !== id) { clipVids[k].pause(); clipVids[k].hidden = true; }
+    // from its first frame each time: the poster it shows meanwhile, and a key frame, so it starts without decoding its way to where it stopped
+    if (vid.currentTime > 0) vid.currentTime = 0;
     clipWant = id; vid.hidden = false; vid.play().catch(() => {});
     setTimeout(() => clipKick(vid, id), 400); // and once more, after whatever else that tap set going
   }

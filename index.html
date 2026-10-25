@@ -5940,7 +5940,8 @@ video.mini { background: none; object-fit: contain; } /* a wide clip in the shot
   showMenu();
   // a link to a level (the bot's Play button: ?level=vitrum; a t.me/…?startapp=vitrum link) opens that station's sheet
   const deep = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) || new URLSearchParams(location.search).get("level");
-  if (deep && byId(deep)) openSheet(byId(deep));
+  // opened once the page is all there, its clips and shots too, so the sheet shows the clip and not a drawing standing in for it
+  if (deep && byId(deep)) { const go = () => openSheet(byId(deep)); if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go, { once: true }); else go(); }
   requestAnimationFrame(frame);
 })();
 </script>

@@ -83,8 +83,8 @@ async function speaker(env, user) {
 }
 // the commands under the input field and the Play button beside it, in a language: for everyone by default, or for one chat
 const commands = r => r
-  ? [{ command: "play", description: "Играть" }, { command: "buy", description: "Кристаллы для Арсенала" }, { command: "support", description: "Написать автору" }, { command: "language", description: "Язык / Language" }]
-  : [{ command: "play", description: "Play" }, { command: "buy", description: "Crystals for Armamentarium" }, { command: "support", description: "Write to the author" }, { command: "language", description: "Language / Язык" }];
+  ? [{ command: "play", description: "Играть" }, { command: "buy", description: "Кристаллы для Арсенала" }, { command: "support", description: "Написать автору" }, { command: "language", description: "Язык" }]
+  : [{ command: "play", description: "Play" }, { command: "buy", description: "Crystals for Armamentarium" }, { command: "support", description: "Write to the author" }, { command: "language", description: "Language" }];
 const menuButton = (env, r) => ({ type: "web_app", text: r ? "Играть" : "Play", web_app: { url: env.GAME_URL } });
 async function onButton(q, env) {
   const m = /^lang:(ru|en)$/.exec(q.data || "");
@@ -98,12 +98,49 @@ async function onButton(q, env) {
   return tg(env, "answerCallbackQuery", { callback_query_id: q.id });
 }
 // the greeting (/start, /play): a clip of the level it opens, or of a level at random, its text and the Play button
+// each level as its sheet in the game names and describes it (src/game.html), for the greeting on /play
+const LEVEL_INFO = {
+  initium: { latin: "Initium", ru: "Начало", en: "Beginning",
+    descRu: "Знакомство с рельсами. Белые залы с квадратными арками, первые стёкла и первый спуск во Тьму.",
+    descEn: "Getting to know the rails. White halls with square arches, the first panes of glass and the first descent into the Dark." },
+  thesaurus: { latin: "Thesaurus", ru: "Сокровищница", en: "Treasury",
+    descRu: "Тупиковая ветка от Rubinus. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
+    descEn: "A dead-end branch off Rubinus. Golden halls with round arches and floating coins. Twice the usual crystals: the ride costs a fare, but you can come back with a profit." },
+  vitrum: { latin: "Vitrum", ru: "Стекло", en: "Glass",
+    descRu: "Призматические галереи над пустотой. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть. Поперёк пути вращаются стеклянные планки и кресты, поодиночке и вереницами.",
+    descEn: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, alone and in sequences." },
+  rubinus: { latin: "Rubinus", ru: "Рубин", en: "Ruby",
+    descRu: "Нижний путь от Vitrum к Speculum сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат противовесы на цепях: собейте груз, и его дверца отъедет. Поперёк пути вращаются массивные стеклянные кресты и качаются на цепях стеклянные блоки.",
+    descEn: "The lower way from Vitrum to Speculum through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by counterweights on chains: shoot a weight down and its door slides away. Solid glass crosses turn across the way and glass blocks swing on chains." },
+  labyrinthus: { latin: "Labyrinthus", ru: "Лабиринт", en: "Labyrinth",
+    descRu: "Замкнутые изумрудные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Богатая ветка (бирюзовые кристаллы) даёт вдвое больше кристаллов, но там кресты и блоки; тихая (белое солнце) — только стёкла, и она тянет к Свету. В коридорах вращаются массивные стеклянные кресты, а в открытых залах качаются на цепях стеклянные блоки.",
+    descEn: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. The rich branch (turquoise crystals) gives twice the crystals but holds crosses and blocks; the quiet one (a white sun) has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors, and in the open halls glass blocks swing on chains." },
+  hortus: { latin: "Hortus", ru: "Сад", en: "Garden",
+    descRu: "Тупиковая ветка от Initium с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
+    descEn: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it." },
+  speculum: { latin: "Speculum", ru: "Зеркало", en: "Mirror",
+    descRu: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар. Поперёк пути призмы собирают свет в лучи, а парящие зеркала отражают их в сетку: разбейте призму или зеркало, чтобы проехать. Высокие ворота в клубах пара открываются попаданием в бегущие по створкам мишени; висят и монолиты на цепях.",
+    descEn: "Mirror halls. Behind the glass walls the corridor repeats, and beside each real crystal its reflection may hang. A reflection gives no balls, and a shot at it costs a ball. Across the way prisms gather light into beams that hovering mirrors bounce into a web: break a prism or a mirror to get through. Tall gates in drifting steam open to hits on the targets running up and down their leaves; monoliths hang on chains." },
+  tao: { latin: "Tao", ru: "Дао", en: "The Way",
+    descRu: "Вершина верхней линии, откуда путь Дао уходит через Nox к Lux. Круглые лунные врата. Тушь и рисовая бумага: в Свете белое с алой печатью, во Тьме чёрная тушь с нефритовым свечением. Над путём плывёт туман и медленно вращается знак инь-ян.",
+    descEn: "The top of the upper line, from where the Way of Tao runs through Nox to Lux. Round moon gates. Ink and rice paper: in the Light white with a scarlet seal, in the Dark black ink with a jade glow. Mist drifts over the track and a yin-yang sign slowly turns." },
+  abyssus: { latin: "Nox", ru: "Тьма", en: "Dark",
+    descRu: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота, над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее. Над мостом вращаются лазерные мельницы и парят планки с тремя лазерами, огромные шестерни опускают зубья на рельсы — сбейте те, что на пути, — и парят стеклянные блоки.",
+    descEn: "A narrow bridge over the abyss, with no walls or ceiling. Steel gates rise across the bridge, with cup anemometers spinning over the frame: hit them all and the leaves slide apart. Glass and shades rise from the void below. The Dark pulls harder here. Over the bridge laser mills turn and bars of three lasers hover, great gears bring their teeth down over the rails (shoot off the ones in the way), and glass blocks float." },
+  carcer: { latin: "Carcer", ru: "Темница", en: "Dungeon",
+    descRu: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах стальные решётки на цепях, парящие лазерные балки и сетки и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
+    descEn: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang steel grates on chains, floating laser bars and grids, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell." },
+  lux: { latin: "Lux", ru: "Свет", en: "Light",
+    descRu: "Конечная. Белые залы со стеклянными стенами. Путь стерегут красные лазеры: вертушки в разрывах стен, парящие блоки, балки на цепях. Луч через вагонетку стоит 3 шара. Переборки с диафрагмой открываются кнопками. Подъём к Свету здесь самый тяжёлый.",
+    descEn: "The terminus. White halls with glass walls. Red lasers guard the way: spinners in gaps in the walls, floating blocks, beams on chains. A beam across the cart costs 3 balls. Iris bulkheads open with buttons. The climb to the Light is hardest here." },
+};
 // the words the bot and the Google Play listing share (android/GOOGLE_PLAY.md): what the game is, and where to tap
 const ABOUT = { ru: "Limbus — рельсовый шутер между Светом и Тьмой: вагонетка мчится сама, а вы разбиваете стекло на пути. 11 уровней, и у каждого своя музыка и финал.",
   en: "Limbus is a rail shooter between the Light and the Dark — the cart rushes on by itself, and you smash the glass in its way. 11 levels, each with its own music and finale." };
 const NEWS = { ru: "Новости о новых уровнях будут приходить сюда.\nПоддержка: /support", en: "News of new levels will come here.\nSupport — /support" };
 // the greeting: on /start with Nox's clip (or the clip of the level a link names) and a word on the Play button below it;
-// on /play with the next level's clip in a round of them all, so each comes as often as the others
+// on /play with the next level's clip in a round of them all, so each comes as often as the others, and that level's name
+// and description in place of the game's
 async function greet(env, chat, from, arg, play) {
   const level = LEVEL_IDS[arg] || (arg === "emptio" ? arg : ""), all = [...new Set(Object.values(LEVEL_IDS))];
   let clip = LEVEL_IDS[arg] || "abyssus";
@@ -114,7 +151,8 @@ async function greet(env, chat, from, arg, play) {
     if (rec) await env.USERS.put(key, JSON.stringify({ ...rec, clip: n }));
   }
   const r_ = ru(from), tap = play ? "" : "\n\n" + (r_ ? "Нажмите кнопку «Играть», и она откроет игру прямо в Telegram." : "Tap the Play button and it will open the game right in Telegram.");
-  const hi = { chat_id: chat, reply_markup: playKb(env, from, level), caption: (r_ ? ABOUT.ru : ABOUT.en) + tap + "\n\n" + (r_ ? NEWS.ru : NEWS.en) };
+  const lv = LEVEL_INFO[clip], about = play ? `${lv.latin} — ${r_ ? lv.ru : lv.en}\n${r_ ? lv.descRu : lv.descEn}` : r_ ? ABOUT.ru : ABOUT.en;
+  const hi = { chat_id: chat, reply_markup: playKb(env, from, play ? clip : level), caption: about + tap + "\n\n" + (r_ ? NEWS.ru : NEWS.en) };
   await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, r_) }); // the Play button by the input field, in their language
   const r = await sendClip(env, hi, clip);
   if (r.ok) return r;

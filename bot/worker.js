@@ -137,6 +137,7 @@ const LEVEL_INFO = {
 // the words the bot and the Google Play listing share (android/GOOGLE_PLAY.md): what the game is, and where to tap
 const ABOUT = { ru: "Limbus — рельсовый шутер между Светом и Тьмой: вагонетка мчится сама, а вы разбиваете стекло на пути. 11 уровней, и у каждого своя музыка и финал.",
   en: "Limbus is a rail shooter between the Light and the Dark — the cart rushes on by itself, and you smash the glass in its way. 11 levels, each with its own music and finale." };
+const TAP = { ru: "Нажмите кнопку «Играть», и она откроет игру прямо в Telegram.", en: "Tap the Play button and it will open the game right in Telegram." };
 const NEWS = { ru: "Новости о новых уровнях будут приходить сюда.\nПоддержка: /support", en: "News of new levels will come here.\nSupport — /support" };
 // the greeting: on /start with Nox's clip (or the clip of the level a link names) and a word on the Play button below it;
 // on /play with the next level's clip in a round of them all, so each comes as often as the others, and that level's name
@@ -150,7 +151,7 @@ async function greet(env, chat, from, arg, play) {
     clip = all[n];
     if (rec) await env.USERS.put(key, JSON.stringify({ ...rec, clip: n }));
   }
-  const r_ = ru(from), tap = play ? "" : "\n\n" + (r_ ? "Нажмите кнопку «Играть», и она откроет игру прямо в Telegram." : "Tap the Play button and it will open the game right in Telegram.");
+  const r_ = ru(from), tap = play ? "" : "\n\n" + (r_ ? TAP.ru : TAP.en);
   const lv = LEVEL_INFO[clip], about = play ? `${lv.latin} — ${r_ ? lv.ru : lv.en}\n\n${r_ ? lv.descRu : lv.descEn}` : r_ ? ABOUT.ru : ABOUT.en;
   const hi = { chat_id: chat, reply_markup: playKb(env, from, play ? clip : level), caption: about + tap + "\n\n" + (r_ ? NEWS.ru : NEWS.en) };
   await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, r_) }); // the Play button by the input field, in their language
@@ -192,10 +193,10 @@ async function onUpdate(u, env) {
     if (to) { await tg(env, "copyMessage", { chat_id: to, from_chat_id: chat, message_id: msg.message_id }); return tg(env, "sendMessage", { chat_id: chat, text: "✓ отправлено" }); }
   }
   // the player allowed the bot to write to them from the game: Telegram tells the bot with a service message, which is
-  // nobody's question; they go on the news list, and the Play button by the input field speaks their language
-  if (msg.write_access_allowed) {
+  // nobody's question; they go on the news list and get the greeting, as on /start
+  if (msg.write_access_allowed) { // they came in through the game, never pressed Start: they get the greeting all the same
     await remember(env, from, true);
-    return tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, ru(from)) });
+    return greet(env, chat, from, "");
   }
   // other service messages (a pinned message, a payment's refund and the like) are not messages for the author either
   const CONTENT = ["text", "photo", "video", "document", "voice", "audio", "sticker", "animation", "video_note", "location", "contact"];
@@ -331,8 +332,7 @@ async function setup(url, env) {
   out.webhook = await tg(env, "setWebhook", { url: `${url.origin}/tg`, secret_token: env.WEBHOOK_SECRET, allowed_updates: ["message", "callback_query", "pre_checkout_query"] });
   // English for everyone by default, Russian for Russian-speaking profiles (as the bot's own replies go)
   const RU = ["ru", "uk", "be", "kk"];
-  const DESC = { ru: ABOUT.ru + "\n\nНажмите «Старт», и кнопка «Играть» откроет игру прямо в Telegram.",
-    en: ABOUT.en + "\n\nTap Start and the Play button will open the game right in Telegram." };
+  const DESC = { ru: ABOUT.ru + "\n\n" + TAP.ru + "\n\n" + NEWS.ru, en: ABOUT.en + "\n\n" + TAP.en + "\n\n" + NEWS.en }; // the greeting's own words
   const SHORT = { ru: "Рельсовый шутер между Светом и Тьмой. Играйте прямо в Telegram.", en: "A rail shooter between the Light and the Dark. Play right in Telegram." };
   out.commands = await tg(env, "setMyCommands", { commands: commands(false) });
   out.description = await tg(env, "setMyDescription", { description: DESC.en });

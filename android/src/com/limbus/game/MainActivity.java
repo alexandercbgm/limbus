@@ -41,6 +41,8 @@ public class MainActivity extends Activity implements ValueCallback<String> {
       }
     });
     setContentView(web);
+    // the Google Play build carries Play's billing (play-src/PlayBilling.java), the APK has none: it is found by name
+    try { Class.forName("com.limbus.game.PlayBilling").getMethod("attach", Activity.class, WebView.class).invoke(null, this, web); } catch (Exception e) { /* not this build */ }
     web.loadUrl("file:///android_asset/index.html");
     hideBars();
     // Android 13+ hands back gestures to a callback (and 16 no longer calls onBackPressed at all)

@@ -55,9 +55,6 @@ assert len(FONT_LINKS.findall(page)) == 3
 page = FONT_LINKS.sub("", page, count=2)
 page = FONT_LINKS.sub("<style>" + faces + "</style>\n", page, count=1)
 TELEGRAM = "--telegram" in sys.argv
-# --play: the Google Play build (android/build_aab.sh), with no crystal shop: Play allows in-app sales through its own billing only
-if "--play" in sys.argv:
-    page = page.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n<script>window.LIMBUS_PLAY = true</script>\n', 1)
 # the bot's server (bot/worker.js), once it is deployed: its address in telegram/bot-api.txt, known to every build
 api = root / "telegram" / "bot-api.txt"
 if api.exists() and api.read_text().strip():

@@ -1,0 +1,35 @@
+plugins { id "com.android.application" version "8.13.2" }
+
+// the upload key (android/upload.jks) and its password (android/upload.properties), both kept out of git
+def uploadProps = new Properties()
+def uploadFile = file("../upload.properties")
+if (uploadFile.exists()) uploadFile.withInputStream { uploadProps.load(it) }
+
+android {
+  namespace "com.limbus.game"
+  compileSdk 36
+  defaultConfig {
+    applicationId "io.github.alexandercbgm.limbus"
+    minSdk 24
+    targetSdk 36
+    versionCode Integer.parseInt(System.getenv("VERSION_CODE") ?: "1")
+    versionName System.getenv("VERSION_NAME") ?: "1.0"
+  }
+  sourceSets {
+    main {
+      manifest.srcFile "../out-aab/AndroidManifest.xml" // the APK's manifest, less what Gradle sets itself (build_aab.sh)
+      java.srcDirs = ["../src", "../play-src"]
+      res.srcDirs = ["../res"]
+      assets.srcDirs = ["../out-aab/assets"]
+    }
+  }
+  signingConfigs {
+    upload { storeFile file("../upload.jks"); storePassword uploadProps.storePassword; keyAlias uploadProps.keyAlias ?: "upload"; keyPassword uploadProps.storePassword }
+  }
+  buildTypes { release { minifyEnabled false; signingConfig signingConfigs.upload } }
+  androidResources { noCompress "mp3" } // the tracks stream straight from the installed app
+  compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
+  lint { checkReleaseBuilds false }
+}
+
+dependencies { implementation "com.android.billingclient:billing:8.3.0" }

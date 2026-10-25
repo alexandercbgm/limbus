@@ -8,3 +8,5 @@ android/limbus.aab
 android/out-aab/
 android/upload.jks
 android/upload.properties
+android/play-gradle/build/
+android/play-gradle/.gradle/

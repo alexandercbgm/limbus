@@ -54,6 +54,9 @@ faces = re.sub(r"url\(([^)]+)\)", lambda m: "url(data:font/woff2;base64," + base
 assert len(FONT_LINKS.findall(page)) == 3
 page = FONT_LINKS.sub("", page, count=2)
 page = FONT_LINKS.sub("<style>" + faces + "</style>\n", page, count=1)
+# the game's version, one for every build (the page shows it under the scheme; the Android builds take it as versionName)
+VERSION = (root / "VERSION").read_text().strip()
+page = page.replace("__LIMBUS_VERSION__", VERSION)
 TELEGRAM = "--telegram" in sys.argv
 # the bot's server (bot/worker.js), once it is deployed: its address in telegram/bot-api.txt, known to every build
 api = root / "telegram" / "bot-api.txt"

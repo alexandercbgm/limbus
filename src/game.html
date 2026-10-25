@@ -157,6 +157,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .map-tools .lang { width: auto; padding: 0 10px 0 8px; display: flex; gap: 6px; font: 700 12px var(--mono); color: #10242e; }
 .map-tools .globe { fill: none; }
 .credit { position: absolute; right: 14px; bottom: 9px; z-index: 1; pointer-events: none; font: 600 10px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: #8a9ba3; }
+.credit.version { right: auto; left: 14px; text-transform: none; } /* the game's version (VERSION, put in by build.py), the same in every build */
 .how { z-index: 5; background: rgba(16, 36, 46, 0.28); }
 /* Telegram on a phone held upright: a prompt to turn it sideways, as the game is played */
 .rotate { position: fixed; inset: 0; z-index: 9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px;
@@ -315,7 +316,7 @@ video.mini { background: none; object-fit: contain; }
 @media (orientation: landscape) and (max-height: 430px) {
   .sheet .panel { padding: 10px 14px; column-gap: 14px; grid-template-columns: minmax(0, 34%) minmax(0, 1fr); }
   .sheet .feats { display: none; } /* the description says as much; the list would push the buttons off the screen */
-  .credit { font-size: 7.5px; right: 9px; bottom: 5px; letter-spacing: 0.1em; }
+  .credit { font-size: 7.5px; right: 9px; bottom: 5px; letter-spacing: 0.1em; } .credit.version { right: auto; left: 9px; }
   /* the pause, the end of a ride and the arrival: a smaller title, the figures in one row, the buttons side by side */
   #pause .panel, #over .panel, #win .panel, #nag .panel { padding: 12px 18px; } #nag h1 { font-size: 19px; } #nag .panel p { font-size: 12px; line-height: 1.38; } #nag .btns { grid-auto-flow: column; grid-auto-columns: 1fr; margin-top: 10px; }
   #pause h1, #over h1, #win h1 { font-size: 19px; margin-bottom: 4px; }
@@ -414,6 +415,7 @@ video.mini { background: none; object-fit: contain; }
           <span id="langTxt">En</span>
         </button>
       </div>
+      <div class="credit version">v__LIMBUS_VERSION__</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>

@@ -26,6 +26,8 @@
 //   GAME_URL        https://alexandercbgm.github.io/limbus/
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
+// the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
+const BOT_VERSION = "1.1.0";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -213,6 +215,7 @@ async function onUpdate(u, env) {
       return greet(env, chat, from, arg);
     }
     case "/play": return greet(env, chat, from, "");
+    case "/version": return tg(env, "sendMessage", { chat_id: chat, text: `Limbus bot ${BOT_VERSION}` });
     case "/language": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Выберите язык:", "Choose a language:"),
       reply_markup: { inline_keyboard: [[{ text: "Русский", callback_data: "lang:ru" }, { text: "English", callback_data: "lang:en" }]] } });
     case "/stop":

@@ -257,6 +257,8 @@ graph LR
 ```
 README.md
 build.py                 — builds index.html, dist/telegram/ and the APK's page (see "Builds")
+VERSION                  — the game's version, the same in every build: shown under the scheme, the Android builds'
+                           versionName (their versionCode made from it: 1.2.3 -> 10203); raise it for each release
 index.html               — the built single-file game
 src/
   game.html                — the whole game: scheme, sheets, levels, physics, sound, shop, Telegram glue

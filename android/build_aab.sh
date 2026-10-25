@@ -4,9 +4,13 @@
 # the billing library comes with dependencies of its own. Needs ANDROID_HOME (platforms;android-36), a JDK and Gradle.
 # The upload key is android/upload.jks, its password in android/upload.properties (both kept out of git: keep a copy safe,
 # Play wants every update signed with it). Made on the first run if there is none.
-# Every upload to Play needs a higher version code: VERSION_CODE=2 VERSION_NAME=1.1 android/build_aab.sh
+# Every upload to Play needs a higher version code: raise VERSION (1.0.4 -> 1.0.5), and the code follows from it
 set -euo pipefail
-here="$(cd "$(dirname "$0")" && pwd)"; root="$here/.."; out="$here/out-aab"
+here="$(cd "$(dirname "$0")" && pwd)"; root="$here/.."
+# the version is the game's own (VERSION), its code made from it: 1.2.3 -> 10203, always higher for a later version
+VERSION_NAME="${VERSION_NAME:-$(tr -d '[:space:]' < "$root/VERSION")}"
+VERSION_CODE="${VERSION_CODE:-$(echo "$VERSION_NAME" | awk -F. '{ print $1 * 10000 + $2 * 100 + $3 }')}"
+export VERSION_NAME VERSION_CODE; out="$here/out-aab"
 rm -rf "$out"; mkdir -p "$out/assets/music"
 python3 "$root/build.py" --no-music >/dev/null
 sed 's#https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js#three.min.js#' "$root/index.html" > "$out/assets/index.html"

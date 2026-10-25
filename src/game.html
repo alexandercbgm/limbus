@@ -208,7 +208,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .wpn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; align-self: flex-end; margin-bottom: 4px; }
 .extra:empty, .feats:empty, .reqs:empty { display: none; }
 .extra { display: grid; gap: 10px; margin: 16px 0 0; }
-.extra:not(:empty) + .reqs:empty + .btns { margin-top: 16px; } /* the shop has no conditions: the back button kept off the code field */
+.reqs:empty + .btns { margin-top: 18px; } /* a station with no conditions listed: the buttons as far below the text as they are below the conditions */
 .tabs { position: sticky; top: 0; z-index: 1; display: flex; gap: 4px; padding: 4px; border-radius: 6px; background: rgba(226, 233, 236, 0.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .tab { flex: 1; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 4px; background: transparent; color: #4c6470; cursor: pointer;
   font: 700 13px var(--display); letter-spacing: 0.06em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
@@ -290,7 +290,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   .sheet .eyebrow { margin-bottom: 6px; }
   .sheet .panel h1 { font-size: 20px; margin-bottom: 4px; } .sheet h1 small { font-size: 13px; margin-top: 2px; }
   .sheet .panel p, .sheet .feats, .sheet .reqs li { font-size: 12.5px; line-height: 1.42; }
-  .sheet .feats { margin-top: 8px; } .sheet .reqs { margin: 8px 0 10px; gap: 5px; }
+  .sheet .feats { margin-top: 8px; } .sheet .reqs { margin: 8px 0 10px; gap: 5px; } .sheet .reqs:empty + .btns { margin-top: 12px; }
   .sheet .cta, .sheet .ghost { padding-block: 10px; }
   .sheet .btns { gap: 7px; }
 }
@@ -320,7 +320,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   .sheet .eyebrow { display: none; } .sheet .panel { grid-template-columns: minmax(0, 30%) minmax(0, 1fr); }
   .sheet .eyebrow { margin-bottom: 2px; } .sheet .panel h1 { font-size: 18px; margin-bottom: 2px; }
   .sheet .panel p, .sheet .feats, .sheet .reqs li { font-size: 11.5px; line-height: 1.35; }
-  .sheet .feats { margin-top: 5px; } .sheet .reqs { margin: 6px 0 8px; gap: 3px; }
+  .sheet .feats { margin-top: 5px; } .sheet .reqs { margin: 6px 0 8px; gap: 3px; } .sheet .reqs:empty + .btns { margin-top: 8px; }
   .sheet .btns { grid-auto-flow: column; grid-auto-columns: 1fr; } .sheet .cta, .sheet .ghost { padding-block: 8px; }
   .sheet h1 small { display: inline; margin-left: 10px; }
 }
@@ -4213,7 +4213,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
         feats: ["Monoliths on chains and pendulums across the track", "Turning glass bars, crosses and their sequences", "Finale Ruina: falling boulders"] },
       armamentarium: { ru: "Armoury", desc: "A dead-end depot beyond the Garden (Hortus). Here crystals buy new cannons and upgrades for the cart.",
         feats: ["The Triplex, Gemini and Lumen cannons", "Upgrades: a bigger reserve, a second wind, more bounty from crystals", "What you buy stays yours; switch cannons in the menu"] },
-      labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains.",
+      labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow — a shot flips it, and the rails turn into the other branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains.",
         feats: ["Three forks: flip the switch with a shot", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       hortus: { ru: "Garden", desc: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it.",
         feats: ["Lashing boughs with crystals", "After a ride Gemini costs half at the depot", "Finale Vindemia: the harvest"] },

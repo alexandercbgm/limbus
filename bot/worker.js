@@ -114,7 +114,7 @@ const LEVEL_INFO = {
     descEn: "The lower way from Vitrum to Speculum through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by counterweights on chains: shoot a weight down and its door slides away. Solid glass crosses turn across the way and glass blocks swing on chains." },
   labyrinthus: { latin: "Labyrinthus", ru: "Лабиринт", en: "Labyrinth",
     descRu: "Замкнутые изумрудные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Богатая ветка с бирюзовыми кристаллами даёт вдвое больше кристаллов, но в ней кресты и блоки. Тихая ветка с белым солнцем — только со стёклами, и она тянет к Свету. В коридорах вращаются массивные стеклянные кресты. В открытых залах на цепях качаются стеклянные блоки.",
-    descEn: "Closed emerald corridors. Before each fork hangs a switch arrow: a shot flips it and the rails turn into the other branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains." },
+    descEn: "Closed emerald corridors. Before each fork hangs a switch arrow — a shot flips it, and the rails turn into the other branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains." },
   hortus: { latin: "Hortus", ru: "Сад", en: "Garden",
     descRu: "Тупиковая ветка от Initium с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
     descEn: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it." },
@@ -151,7 +151,7 @@ async function greet(env, chat, from, arg, play) {
     if (rec) await env.USERS.put(key, JSON.stringify({ ...rec, clip: n }));
   }
   const r_ = ru(from), tap = play ? "" : "\n\n" + (r_ ? "Нажмите кнопку «Играть», и она откроет игру прямо в Telegram." : "Tap the Play button and it will open the game right in Telegram.");
-  const lv = LEVEL_INFO[clip], about = play ? `${lv.latin} — ${r_ ? lv.ru : lv.en}\n${r_ ? lv.descRu : lv.descEn}` : r_ ? ABOUT.ru : ABOUT.en;
+  const lv = LEVEL_INFO[clip], about = play ? `${lv.latin} — ${r_ ? lv.ru : lv.en}\n\n${r_ ? lv.descRu : lv.descEn}` : r_ ? ABOUT.ru : ABOUT.en;
   const hi = { chat_id: chat, reply_markup: playKb(env, from, play ? clip : level), caption: about + tap + "\n\n" + (r_ ? NEWS.ru : NEWS.en) };
   await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, r_) }); // the Play button by the input field, in their language
   const r = await sendClip(env, hi, clip);

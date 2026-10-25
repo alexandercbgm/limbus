@@ -140,6 +140,15 @@ async function onUpdate(u, env) {
     const to = await env.USERS.get("m:" + msg.reply_to_message.message_id);
     if (to) { await tg(env, "copyMessage", { chat_id: to, from_chat_id: chat, message_id: msg.message_id }); return tg(env, "sendMessage", { chat_id: chat, text: "✓ отправлено" }); }
   }
+  // the player allowed the bot to write to them from the game: Telegram tells the bot with a service message, which is
+  // nobody's question; they go on the news list, and the Play button by the input field speaks their language
+  if (msg.write_access_allowed) {
+    await remember(env, from, true);
+    return tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, ru(from)) });
+  }
+  // other service messages (a pinned message, a payment's refund and the like) are not messages for the author either
+  const CONTENT = ["text", "photo", "video", "document", "voice", "audio", "sticker", "animation", "video_note", "location", "contact"];
+  if (!CONTENT.some(k => msg[k])) return;
   const [cmd, ...rest] = text.split(/\s+/); const arg = rest.join(" ");
   switch (cmd.replace(/@.*/, "")) {
     case "/start": {

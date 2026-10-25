@@ -102,8 +102,8 @@ async function greet(env, chat, from, arg) {
   const level = LEVEL_IDS[arg] || (arg === "emptio" ? arg : ""), all = [...new Set(Object.values(LEVEL_IDS))];
   const clip = LEVEL_IDS[arg] || all[Math.floor(Math.random() * all.length)];
   const hi = { chat_id: chat, reply_markup: playKb(env, from, level),
-    caption: T(from, "Limbus — рельсы между Светом и Тьмой. Вагонетка катится сама, вы стреляете по стеклу, пока не врезались в него.\n\nНовости о новых уровнях будут приходить сюда. Поддержка: /support.",
-      "Limbus: rails between the Light and the Dark. The cart rolls on by itself; you fire at the glass before you crash into it.\n\nNews of new levels will come here. Support: /support.") };
+    caption: T(from, "Limbus — рельсы между Светом и Тьмой. Вагонетка катится сама, вы стреляете по стеклу, пока не врезались в него.\n\nНовости о новых уровнях будут приходить сюда.\nПоддержка: /support",
+      "Limbus: rails between the Light and the Dark. The cart rolls on by itself; you fire at the glass before you crash into it.\n\nNews of new levels will come here.\nSupport: /support") };
   await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, ru(from)) }); // the Play button by the input field, in their language
   const r = await sendClip(env, hi, clip);
   if (r.ok) return r;

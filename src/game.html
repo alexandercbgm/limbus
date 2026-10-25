@@ -221,21 +221,24 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .wcard p { grid-column: 1; margin: 0; font-size: 13px; line-height: 1.4; color: #4c6470; }
 .wcard button { grid-column: 2; grid-row: 1 / span 2; width: auto; padding: 10px 14px; font-size: 12px; }
 @media (max-width: 480px) { .wcard { grid-template-columns: 1fr; } .wcard button { grid-column: 1; grid-row: auto; } .m-side { justify-items: start; } .arms { justify-content: flex-start; } }
-.sheet { z-index: 5; background: rgba(16, 36, 46, 0.28); }
-/* the scheme behind a sheet dims as it opens and comes back as it closes, smoothly both ways */
-.sheet:not([hidden]) { animation: sheetdim 0.3s ease-out both; }
-.sheet.closing { animation: sheetundim 0.25s ease-in both; pointer-events: none; }
+/* the scheme behind a sheet dims as it opens and comes back as it closes, smoothly both ways: a layer of its own whose opacity
+   alone changes, which the graphics card does by itself without the page being drawn again */
+.sheet { z-index: 5; background: none; }
+.sheet::before { content: ""; position: fixed; inset: 0; z-index: -1; background: rgba(16, 36, 46, 0.28); pointer-events: none; will-change: opacity; }
+.sheet:not([hidden])::before { animation: sheetdim 0.3s ease-out both; }
+.sheet.closing { pointer-events: none; }
+.sheet.closing::before { animation: sheetundim 0.25s ease-in both; }
 .sheet.closing .panel { animation: sheetout 0.25s ease-in both; }
-@keyframes sheetdim { from { background-color: rgba(16, 36, 46, 0); } }
-@keyframes sheetundim { to { background-color: rgba(16, 36, 46, 0); } }
+@keyframes sheetdim { from { opacity: 0; } }
+@keyframes sheetundim { to { opacity: 0; } }
 @keyframes sheetout { to { opacity: 0; transform: scale(0.97); } }
-@media (prefers-reduced-motion: reduce) { .sheet:not([hidden]), .sheet.closing, .sheet.closing .panel { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .sheet:not([hidden])::before, .sheet.closing::before, .sheet.closing .panel { animation: none; } }
 .sheet .panel { width: min(520px, 100%); padding: 22px 22px 20px; }
 .mini { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 4px; margin: 0 0 16px; background: #dfe7ea; }
 video.mini { background: none; object-fit: contain; }
 /* a station's sheet steps out of a white veil that clears, growing a little into place: half a second, the time its clip
    takes to load and start */
-.sheet .panel.enter { position: relative; animation: sheetenter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.sheet .panel.enter { position: relative; will-change: transform, opacity; animation: sheetenter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .sheet .panel.enter::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
   background: radial-gradient(ellipse at center, #fff 30%, #eaf8ff 100%); animation: sheetglare 0.5s ease-out forwards; } /* the glare it steps out of: a white veil that clears, cheap to draw */
 @keyframes sheetenter { 0% { opacity: 0; transform: scale(0.94); } 30% { opacity: 1; } 100% { opacity: 1; transform: none; } }
@@ -5314,6 +5317,7 @@ video.mini { background: none; object-fit: contain; }
     if (Math.floor(now / 1000) !== Math.floor(last / 1000)) freeGone(); // once a second
     last = now;
     if (state === "paused") { renderer.render(scene, camera); return; } // time stands still while paused
+    if (state === "menu" && !$("sheet").hidden && !$("sheet").classList.contains("closing")) return; // and behind a station's sheet: the frame stays as it was, and the sheet's glass blur and animation have the graphics card to themselves
     time += dt;
     const t0 = performance.now();
     if (state === "play") updatePlay(dt);
@@ -5503,7 +5507,7 @@ video.mini { background: none; object-fit: contain; }
     if (reduceMotion) { sh.hidden = true; return; }
     sh.querySelector(".panel").classList.remove("enter"); sh.classList.add("closing"); stopClips();
     const done = () => { if (sh.classList.contains("closing")) { sh.classList.remove("closing"); sh.hidden = true; } };
-    sh.addEventListener("animationend", e => { if (e.target === sh) done(); }, { once: true });
+    sh.querySelector(".panel").addEventListener("animationend", done, { once: true });
     setTimeout(done, 300); // and surely by then, should a web view hold the animation back
   }
   function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: opened from the scheme or by a link, so it steps in

@@ -32,6 +32,7 @@ graph TD
     BUILD -- "python3 build.py" --> PAGE[index.html<br/>one self-contained file]
     BUILD -- "--telegram" --> TG[dist/telegram/<br/>Mini App, music + clips beside it]
     BUILD -- "--no-music" --> APK[android/build_apk.sh<br/>limbus.apk]
+    BUILD -- "--no-music --play" --> AAB[android/build_aab.sh<br/>limbus.aab for Google Play]
 
     TG -- "GitHub Actions<br/>every push to main" --> PAGES[GitHub Pages]
     PAGES --> MINI[Telegram Mini App]
@@ -49,7 +50,7 @@ graph TD
 
     class SRC,BUILD core;
     class THREE,FONTS,MUSIC,MINIS asset;
-    class PAGE,TG,APK target;
+    class PAGE,TG,APK,AAB target;
     class PAGES,MINI,BOTAPI external;
     class WORKER,KV server;
 ```
@@ -217,9 +218,10 @@ sequenceDiagram
 | `python3 build.py --telegram` | `dist/telegram/` | beside it, 96 kbps | beside it | GitHub Pages → Telegram Mini App |
 | `python3 build.py --no-music` | `index.html` | `music/` at full quality | inline | inside the APK |
 | `ANDROID_HOME=… android/build_apk.sh` | `android/limbus.apk` | `assets/music/` | inline | Android phones |
+| `ANDROID_HOME=… android/build_aab.sh` | `android/limbus.aab` | `assets/music/` | inline | Google Play (no crystal shop) |
 
 three.js and the fonts are inlined into every build, so offline copies look and run as the page does online.
-The APK needs `platforms;android-34`, `build-tools;35.0.0` and a JDK (no Gradle); it is a full-screen landscape
+The APK and the bundle need `platforms;android-36`, `build-tools;36.0.0` and a JDK (no Gradle), the bundle bundletool as well; it is a full-screen landscape
 WebView that hands external links to the system.
 
 In Telegram the game goes full screen, keeps clear of Telegram's bar, answers its back button, starts in the
@@ -265,6 +267,9 @@ minis/                   — per level: <id>.jpg (shot, light and dark halves, a
 fonts/                   — Unbounded, Manrope, JetBrains Mono (SIL OFL), latin + cyrillic woff2, fonts.css
 android/
   build_apk.sh             — builds and signs limbus.apk without Gradle
+  build_aab.sh             — builds the Google Play bundle, signed with the upload key (kept out of git)
+  GOOGLE_PLAY.md           — everything for the Play Console: package name, forms, texts, graphics
+  play/                    — the store listing's icon, feature graphic and screenshots
   src/…/MainActivity.java  — the full-screen WebView
   three.min.js             — three.js r128, bundled so everything runs offline
 telegram/

@@ -6,7 +6,11 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 import android.webkit.ValueCallback;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -39,9 +43,18 @@ public class MainActivity extends Activity implements ValueCallback<String> {
     setContentView(web);
     web.loadUrl("file:///android_asset/index.html");
     hideBars();
+    // Android 13+ hands back gestures to a callback (and 16 no longer calls onBackPressed at all)
+    if (Build.VERSION.SDK_INT >= 33) getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+      new OnBackInvokedCallback() { @Override public void onBackInvoked() { back(); } });
   }
 
   private void hideBars() {
+    if (Build.VERSION.SDK_INT >= 30) { // the bars hidden, a swipe from the edge shows them for a moment
+      getWindow().setDecorFitsSystemWindows(false);
+      WindowInsetsController c = getWindow().getInsetsController();
+      if (c != null) { c.hide(WindowInsets.Type.systemBars()); c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE); }
+      return;
+    }
     getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN
       | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
   }
@@ -54,9 +67,9 @@ public class MainActivity extends Activity implements ValueCallback<String> {
 
   // back pauses the run, then goes to the scheme; on the scheme it leaves the app
   @Override
-  public void onBackPressed() {
-    web.evaluateJavascript("window.__back ? window.__back() : false", this);
-  }
+  public void onBackPressed() { back(); }
+
+  private void back() { web.evaluateJavascript("window.__back ? window.__back() : false", this); }
 
   @Override
   public void onReceiveValue(String used) { if (!"true".equals(used)) finish(); } // the game didn't need the back press

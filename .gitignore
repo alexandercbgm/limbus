@@ -4,3 +4,7 @@ android/limbus.apk
 android/limbus.keystore
 android/limbus.apk.idsig
 dist/
+android/limbus.aab
+android/out-aab/
+android/upload.jks
+android/upload.properties

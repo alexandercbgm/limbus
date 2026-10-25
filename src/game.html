@@ -4258,6 +4258,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     const tables = { levels: Object.fromEntries(LEVELS.map(l => [l.id, l])), weapons: WEAPONS, finales: FINALES };
     for (const t in EN) for (const id in EN[t]) {
       const obj = tables[t][id], key = t + "." + id;
+      if (!obj) continue; // a station this build leaves out (Emptio in the Play build)
       if (!RU_TEXT[key]) RU_TEXT[key] = Object.fromEntries(Object.keys(EN[t][id]).map(k => [k, obj[k]]));
       Object.assign(obj, LANG === "en" ? EN[t][id] : RU_TEXT[key]);
     }
@@ -4290,6 +4291,9 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
     { kind: "branch", to: "carcer", pts: [[730, 320], [730, 418], [756, 440], [825, 440]] },
     { kind: "gift", to: "emptio", pts: [[90, 320], [230, 190]] }, // Emptio: a gold branch up from Initium, as long as the arc and parallel to it
   ];
+  // the Google Play build (build.py --play) sells nothing: Play takes in-app payments through its own billing only, so Emptio,
+  // the crystal shop that pays through Telegram, is left off the scheme there
+  if (window.LIMBUS_PLAY) { LEVELS.splice(LEVELS.findIndex(l => l.gift), 1); MAP_LINES.splice(MAP_LINES.findIndex(l => l.kind === "gift"), 1); }
   const byId = id => LEVELS.find(l => l.id === id);
   const STORE = "limbus-progress-v1";
   function parseProgress(str) {
@@ -5427,7 +5431,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
       if ((lv.depot && !progress.bought) || lv.gift) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${lv.gift ? LINE_GOLD : LINE_BR}" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // rings round the depot till the first purchase
       if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
-      if (hub && lv.id === "initium") out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/><path d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
+      if (hub && lv.id === "initium" && byId("emptio")) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/><path d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
       else if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
       out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
       out += `<path d="${GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;

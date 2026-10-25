@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Builds android/limbus.apk: the game page (built by build.py) in a full-screen WebView, offline (three.js bundled).
-# Needs ANDROID_HOME with platforms;android-34 and build-tools;35.0.0, and a JDK. No Gradle.
+# Needs ANDROID_HOME with platforms;android-36 and build-tools;36.0.0, and a JDK. No Gradle. (Google Play takes the bundle: build_aab.sh.)
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"; root="$here/.."; out="$here/out"
-BT="$ANDROID_HOME/build-tools/35.0.0"; JAR="$ANDROID_HOME/platforms/android-34/android.jar"
+BT="$ANDROID_HOME/build-tools/36.0.0"; JAR="$ANDROID_HOME/platforms/android-36/android.jar"
 rm -rf "$out"; mkdir -p "$out/assets" "$out/classes" "$out/res"
 python3 "$root/build.py" --no-music >/dev/null
 # the page loads three.js from the bundled copy instead of the CDN

@@ -55,6 +55,9 @@ assert len(FONT_LINKS.findall(page)) == 3
 page = FONT_LINKS.sub("", page, count=2)
 page = FONT_LINKS.sub("<style>" + faces + "</style>\n", page, count=1)
 TELEGRAM = "--telegram" in sys.argv
+# --play: the Google Play build (android/build_aab.sh), with no crystal shop: Play allows in-app sales through its own billing only
+if "--play" in sys.argv:
+    page = page.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n<script>window.LIMBUS_PLAY = true</script>\n', 1)
 # the bot's server (bot/worker.js), once it is deployed: its address in telegram/bot-api.txt, known to every build
 api = root / "telegram" / "bot-api.txt"
 if api.exists() and api.read_text().strip():
@@ -90,6 +93,7 @@ if TELEGRAM:
         else:
             shutil.copy(track, out / "music" / track.name)
     shutil.copytree(root / "minis", out / "minis") # the bot sends a level's picture with its news
+    shutil.copy(root / "telegram" / "privacy.html", out / "privacy.html") # the privacy policy Google Play links to
     (out / ".nojekyll").write_text("")
     size = sum(f.stat().st_size for f in out.rglob("*") if f.is_file())
     print(f"dist/telegram: page {len(page) / 1e6:.1f} MB, {size / 1e6:.1f} MB in all")

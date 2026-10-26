@@ -28,8 +28,8 @@ MUSIC, MUSIC_AT = root / "music" / "translucent_path.mp3", 12.5  # its quiet ope
 LEVELS = [("initium", 3.0, "Initium", "Начало", "Beginning"), ("vitrum", 4.0, "Vitrum", "Стекло", "Glass"),
           ("labyrinthus", 5.0, "Labyrinthus", "Лабиринт", "Labyrinth"), ("rubinus", 4.0, "Rubinus", "Рубин", "Ruby"),
           ("hortus", 4.0, "Hortus", "Сад", "Garden"), ("thesaurus", 4.0, "Thesaurus", "Сокровищница", "Treasury"),
-          ("speculum", 5.0, "Speculum", "Зеркало", "Mirror"), ("tao", 3.0, "Tao", "Дао", "The Way"),
-          ("abyssus", 5.0, "Nox", "Тьма", "Dark"), ("carcer", 5.0, "Carcer", "Темница", "Dungeon"), ("lux", 4.0, "Lux", "Свет", "Light")]
+          ("speculum", 5.0, "Speculum", "Зеркало", "Mirror"), ("carcer", 5.0, "Carcer", "Темница", "Dungeon"),
+          ("tao", 3.0, "Tao", "Дао", "The Way"), ("abyssus", 5.0, "Nox", "Тьма", "Dark"), ("lux", 4.0, "Lux", "Свет", "Light")]
 WORDS = {"ru": {"tag": "Рельсы между Светом и Тьмой", "play": "Играйте в Telegram"},
          "en": {"tag": "Rails between the Light and the Dark", "play": "Play in Telegram"}}
 BOT = "@limbus_game_bot"

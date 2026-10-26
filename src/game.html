@@ -228,13 +228,14 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .sheet::before { content: ""; position: fixed; inset: 0; z-index: -1; background: rgba(16, 36, 46, 0.28); pointer-events: none; will-change: opacity; }
 .sheet:not([hidden])::before { animation: sheetdim 0.3s ease-out both; }
 .sheet.closing { pointer-events: none; }
-.sheet.closing::before { animation: sheetundim 0.25s ease-in both; }
-.sheet.closing .panel { animation: sheetout 0.25s ease-in both; }
+.sheet.closing::before { animation: sheetundim 0.16s ease-in both; }
+/* a short fade, on a layer of its own from the start, without the glass blur to be worked out again every frame (slow on Android) */
+.sheet.closing .panel { animation: sheetout 0.16s ease-in both; -webkit-backdrop-filter: none; backdrop-filter: none; }
 @keyframes sheetdim { from { opacity: 0; } }
 @keyframes sheetundim { to { opacity: 0; } }
-@keyframes sheetout { to { opacity: 0; transform: scale(0.97); } }
+@keyframes sheetout { to { opacity: 0; transform: scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .sheet:not([hidden])::before, .sheet.closing::before, .sheet.closing .panel { animation: none; } }
-.sheet .panel { width: min(520px, 100%); padding: 22px 22px 20px; }
+.sheet .panel { width: min(520px, 100%); padding: 22px 22px 20px; will-change: transform, opacity; }
 .mini { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 4px; margin: 0 0 16px; background: #dfe7ea; }
 video.mini { background: none; object-fit: contain; }
 /* a station's sheet steps out of a white veil that clears, growing a little into place: half a second, the time its clip
@@ -4318,8 +4319,9 @@ video.mini { background: none; object-fit: contain; }
       const weapons = Object.assign({ ballista: true }, p.weapons || {});
       return { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {}, t: p.t || 0,
         // anything bought at Armamentarium (older saves: a cannon other than the free ones, or an upgrade); the run of failed rides; the reminder turned off
-        bought: p.bought || Object.keys(weapons).some(id => id !== "ballista" && id !== "ferrum") || Object.values(p.up || {}).some(v => v > 0), fails: p.fails || 0, noNag: !!p.noNag, play: p.play || [] };
-    } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {}, t: 0, bought: false, fails: 0, noNag: false, play: [] }; }
+        bought: p.bought || Object.keys(weapons).some(id => id !== "ballista" && id !== "ferrum") || Object.values(p.up || {}).some(v => v > 0), fails: p.fails || 0, noNag: !!p.noNag, play: p.play || [],
+        rode: p.rode || Object.keys(p.done || {}).length > 0 }; // set off at least once (older saves: any level done)
+    } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {}, t: 0, bought: false, fails: 0, noNag: false, play: [], rode: false }; }
   }
   function loadProgress() { let str = null; try { str = localStorage.getItem(STORE); } catch (e) { /* storage unavailable */ } return parseProgress(str); }
   // in Telegram the progress is kept in the bot's cloud as well, so it follows the player from phone to computer
@@ -4437,6 +4439,7 @@ video.mini { background: none; object-fit: contain; }
   let secondWind = false; // Spiritus: one more go this ride
   const againText = () => LEVEL.req.fare ? T(`Ещё раз: −${LEVEL.req.fare} ◆`, `Again: −${LEVEL.req.fare} ◆`) : T("Ещё раз", "Again");
   function startLevel(lv) {
+    if (!progress.rode) { progress.rode = true; saveProgress(); } // the first ride: Initium's rings on the scheme are done with
     setLevel(lv);
     state = "play";
     resetWorld(true);
@@ -5319,7 +5322,7 @@ video.mini { background: none; object-fit: contain; }
     if (Math.floor(now / 1000) !== Math.floor(last / 1000)) freeGone(); // once a second
     last = now;
     if (state === "paused") { renderer.render(scene, camera); return; } // time stands still while paused
-    if (state === "menu" && !$("sheet").hidden && !$("sheet").classList.contains("closing")) return; // and behind a station's sheet: the frame stays as it was, and the sheet's glass blur and animation have the graphics card to themselves
+    if (state === "menu" && !$("sheet").hidden) return; // and behind a station's sheet, till it is quite gone: the frame stays as it was, and the sheet's glass blur and animations have the graphics card to themselves
     time += dt;
     const t0 = performance.now();
     if (state === "play") updatePlay(dt);
@@ -5404,7 +5407,7 @@ video.mini { background: none; object-fit: contain; }
     const pt = id => byId(id).map;
     const poly = pts => pts.map(([x, y]) => `${x},${y}`).join(" ");
     // a faint dot grid under the lines, like squared paper
-    let out = `<defs><pattern id="mapDots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.1" fill="${INK}" opacity="0.09"/></pattern></defs><rect x="0" y="100" width="1000" height="372" fill="url(#mapDots)"/>`;
+    let out = `<defs><linearGradient id="firstRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="${LINE_GOLD}"/><stop offset="0.5" stop-color="${LINE_BR}"/></linearGradient><pattern id="mapDots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.1" fill="${INK}" opacity="0.09"/></pattern></defs><rect x="0" y="100" width="1000" height="372" fill="url(#mapDots)"/>`;
     const casing = (shape, w) => shape.replace(/stroke="[^"]*"/, 'stroke="#ffffff"').replace(/stroke-width="([\d.]+)"/, (m, x) => `stroke-width="${+x + w}"`).replace(/ stroke-dasharray="[^"]*"| opacity="[^"]*"/g, "");
     // main line, station to station; unbuilt stretches are dotted
     for (let i = 0; i < MAIN_LINE.length - 1; i++) {
@@ -5431,30 +5434,31 @@ video.mini { background: none; object-fit: contain; }
         `<text text-anchor="middle" dy="4.5" font-family="JetBrains Mono, monospace" font-weight="700" font-size="11.5" fill="${INK}">${esc(txt)}</text></g>`;
     }
     for (const lv of LEVELS) {
-      const p = lv.map, st = stationStatus(lv);
+      const p = lv.map, st = stationStatus(lv), first = lv.id === "initium" && !progress.rode; // where a newcomer starts
       const hub = !!HUB_RING[lv.id]; // where two lines meet, or a dead-end branch leaves
       const dark = st === "done" || st === "avail", lit = dark || st === "open" || st === "opened" || st === "gift";
       const fill = dark ? INK : lit ? "#ffffff" : "#e6ecee"; // done stations (and an opened depot) are dark, open ones white
       const stroke = lv.gift ? LINE_GOLD : lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (["abyssus", "lux"].includes(lv.id) ? LINE_TAO : ARC.includes(lv.id) && lv.id !== "vitrum" ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
-      const glyph = dark ? "#ffffff" : lit ? INK : MUTED;
+      const glyph = dark ? "#ffffff" : lit ? INK : MUTED, tag = first ? T("нажмите", "tap here") : STATUS(st);
       const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 32, p.y - 9, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
       L[0] += p.dx || 0; L[1] += p.dy || 0; // a station may nudge its label
       if (L[2] !== "middle") { // a label beside the station keeps its edge there, but its lines are centred on each other
         const w = Math.max(textW("700 12.5px Unbounded, 'Arial Black', sans-serif", lv.latin.toUpperCase(), 0.6), textW("12.5px Manrope, system-ui, sans-serif", lv.ru, 0),
-          textW("700 9.5px 'JetBrains Mono', monospace", STATUS(st).toUpperCase(), 1));
+          textW("700 9.5px 'JetBrains Mono', monospace", tag.toUpperCase(), 1));
         L[0] += L[2] === "end" ? -w / 2 : w / 2; L[2] = "middle";
       }
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS(st)}">`;
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
       if ((lv.depot && !progress.bought) || lv.gift) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${lv.gift ? LINE_GOLD : LINE_BR}" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // rings round the depot till the first purchase
-      if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
+      if (first) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="url(#firstRing)" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // till the first ride, as round the depot
+      else if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
       if (hub && lv.id === "initium") out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/><path d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
       else if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
       out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
       out += `<path d="${GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
       out += `<text x="${L[0]}" y="${L[1]}" text-anchor="${L[2]}" font-family="Unbounded, 'Arial Black', sans-serif" font-weight="700" font-size="12.5" letter-spacing="0.6" fill="${INK}">${esc(lv.latin.toUpperCase())}</text>`;
       out += `<text x="${L[0]}" y="${L[1] + 17}" text-anchor="${L[2]}" font-family="Manrope, system-ui, sans-serif" font-size="12.5" fill="#4c6470">${esc(lv.ru)}</text>`;
-      out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "gift" ? LINE_GOLD : st === "open" || st === "opened" || st === "locked" ? LINE_MAIN : "#7a8d95"}">${STATUS(st).toUpperCase()}</text>`;
+      out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "gift" ? LINE_GOLD : st === "open" || st === "opened" || st === "locked" ? LINE_MAIN : "#7a8d95"}">${tag.toUpperCase()}</text>`;
       out += `</g>`;
     }
     svg.innerHTML = out;
@@ -5510,7 +5514,7 @@ video.mini { background: none; object-fit: contain; }
     sh.querySelector(".panel").classList.remove("enter"); sh.classList.add("closing"); stopClips();
     const done = () => { if (sh.classList.contains("closing")) { sh.classList.remove("closing"); sh.hidden = true; } };
     sh.querySelector(".panel").addEventListener("animationend", done, { once: true });
-    setTimeout(done, 300); // and surely by then, should a web view hold the animation back
+    setTimeout(done, 220); // and surely by then, should a web view hold the animation back
   }
   function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: opened from the scheme or by a link, so it steps in
     const scroll = keep ? $("sheet").scrollTop : 0;

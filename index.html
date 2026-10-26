@@ -308,15 +308,9 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .sheet { z-index: 5; background: none; }
 .sheet::before { content: ""; position: fixed; inset: 0; z-index: -1; background: rgba(16, 36, 46, 0.28); pointer-events: none; will-change: opacity; }
 .sheet:not([hidden])::before { animation: sheetdim 0.3s ease-out both; }
-.sheet.closing { pointer-events: none; }
-.sheet.closing::before { animation: sheetundim 0.16s ease-in both; }
-/* a short fade, on a layer of its own from the start, without the glass blur to be worked out again every frame (slow on Android) */
-.sheet.closing .panel { animation: sheetout 0.16s ease-in both; -webkit-backdrop-filter: none; backdrop-filter: none; }
 @keyframes sheetdim { from { opacity: 0; } }
-@keyframes sheetundim { to { opacity: 0; } }
-@keyframes sheetout { to { opacity: 0; transform: scale(0.98); } }
-@media (prefers-reduced-motion: reduce) { .sheet:not([hidden])::before, .sheet.closing::before, .sheet.closing .panel { animation: none; } }
-.sheet .panel { width: min(520px, 100%); padding: 22px 22px 20px; will-change: transform, opacity; }
+@media (prefers-reduced-motion: reduce) { .sheet:not([hidden])::before { animation: none; } }
+.sheet .panel { width: min(520px, 100%); padding: 22px 22px 20px; }
 .mini { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 4px; margin: 0 0 16px; background: #dfe7ea; }
 video.mini { background: none; object-fit: contain; }
 /* a station's sheet steps out of a white veil that clears, growing a little into place: half a second, the time its clip
@@ -500,7 +494,7 @@ video.mini { background: none; object-fit: contain; }
           <span id="langTxt">En</span>
         </button>
       </div>
-      <div class="credit version">v1.0.6</div>
+      <div class="credit version">v1.0.7</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -4513,7 +4507,7 @@ video.mini { background: none; object-fit: contain; }
   // the app goes to the background: the sound stops at once; back on the scheme it plays on
   window.__silence = () => { if (Sound.ctx && Sound.ctx.state === "running") Sound.ctx.suspend(); if (Sound.fallback) Sound.fallback.pause(); };
   window.__wake = () => { if (state === "menu") leavePause(); };
-  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "pause", "how"].forEach(id => { $(id).hidden = true; }); $("sheet").classList.remove("closing"); }
+  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "pause", "how"].forEach(id => { $(id).hidden = true; }); }
   // pause: the world freezes (render only), the music stops until the run continues
   // the Android app's back button: returns true if the game used it
   window.__back = () => {
@@ -5616,14 +5610,9 @@ video.mini { background: none; object-fit: contain; }
       : what === "unavailable" ? T("Google Play сейчас недоступен", "Google Play isn't available right now") : T("Покупка не прошла", "The purchase didn't go through"), "info");
     window.LimbusPlay.ready(); // the purchases Play has for us may come now
   }
-  // a sheet closes with the scheme coming back from behind it (.sheet.closing), then hides; opening one meanwhile cancels that
   function closeSheet() {
-    const sh = $("sheet"); if (sh.hidden || sh.classList.contains("closing")) return;
-    if (reduceMotion) { sh.hidden = true; return; }
-    sh.querySelector(".panel").classList.remove("enter"); sh.classList.add("closing"); stopClips();
-    const done = () => { if (sh.classList.contains("closing")) { sh.classList.remove("closing"); sh.hidden = true; } };
-    sh.querySelector(".panel").addEventListener("animationend", done, { once: true });
-    setTimeout(done, 220); // and surely by then, should a web view hold the animation back
+    const sh = $("sheet"); if (sh.hidden) return;
+    sh.querySelector(".panel").classList.remove("enter"); stopClips(); sh.hidden = true; // gone at once: a fade out was slow on Android
   }
   function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: opened from the scheme or by a link, so it steps in
     const scroll = keep ? $("sheet").scrollTop : 0;
@@ -5755,7 +5744,7 @@ video.mini { background: none; object-fit: contain; }
     if (clip) playClip(lv.id); else hideClips();
     if (!clip && !lv.depot && !lv.gift && document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { if (!$("sheet").hidden && document.getElementById("clip-" + lv.id)) openSheet(lv, true); }, { once: true }); // a link to a level opens its sheet before the clips are parsed
     if (!lv.depot && !lv.gift && !clip) drawMini(lv);
-    $("sheet").classList.remove("closing"); $("sheet").hidden = false;
+    $("sheet").hidden = false;
     if (from && !reduceMotion) { const panel = $("sheet").querySelector(".panel"); panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
     if (keep) $("sheet").scrollTop = scroll;
     else $("sheet").querySelector("button:not(:disabled)")?.focus();

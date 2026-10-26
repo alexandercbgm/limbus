@@ -30,8 +30,8 @@ LEVELS = [("initium", 3.0, "Initium", "Начало", "Beginning"), ("vitrum", 4
           ("hortus", 4.0, "Hortus", "Сад", "Garden"), ("thesaurus", 4.0, "Thesaurus", "Сокровищница", "Treasury"),
           ("speculum", 5.0, "Speculum", "Зеркало", "Mirror"), ("tao", 3.0, "Tao", "Дао", "The Way"),
           ("abyssus", 5.0, "Nox", "Тьма", "Dark"), ("carcer", 5.0, "Carcer", "Темница", "Dungeon"), ("lux", 4.0, "Lux", "Свет", "Light")]
-WORDS = {"ru": {"tag": "Рельсы между Светом и Тьмой", "play": "Играйте прямо в Telegram"},
-         "en": {"tag": "Rails between the Light and the Dark", "play": "Play right in Telegram"}}
+WORDS = {"ru": {"tag": "Рельсы между Светом и Тьмой", "play": "Играйте в Telegram"},
+         "en": {"tag": "Rails between the Light and the Dark", "play": "Play in Telegram"}}
 BOT = "@limbus_game_bot"
 SHAPES = {"h": (1920, 1080), "v": (1080, 1920)}
 

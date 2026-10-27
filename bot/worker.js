@@ -29,7 +29,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.3.0";
+const BOT_VERSION = "1.4.0";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -157,12 +157,23 @@ async function greet(env, chat, from, arg) {
     clip = all[n];
     if (rec) await env.USERS.put(key, JSON.stringify({ ...rec, clip: n }));
   }
-  const r_ = ru(from), lv = LEVEL_INFO[clip];
-  const hi = { chat_id: chat, reply_markup: playKb(env, from, clip), caption: `${lv.latin} — ${r_ ? lv.ru : lv.en}\n\n${r_ ? lv.descRu : lv.descEn}` };
-  await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, r_) }); // the Play button by the input field, in their language
+  const hi = { chat_id: chat, reply_markup: playKb(env, from, clip), caption: cardText(from, clip) };
+  await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, ru(from)) }); // the Play button by the input field, in their language
   const r = await sendClip(env, hi, clip);
-  if (r.ok) return r;
+  if (r.ok) { await env.USERS.put("k:" + from.id, JSON.stringify({ id: r.result.message_id, level: clip })); return r; } // the card the game keeps fresh (way)
   const { caption, ...rest } = hi; return tg(env, "sendMessage", { ...rest, text: caption }); // the clip won't go: the text alone
+}
+const cardText = (from, id) => { const lv = LEVEL_INFO[id], r_ = ru(from); return `${lv.latin} — ${r_ ? lv.ru : lv.en}\n\n${r_ ? lv.descRu : lv.descEn}`; };
+// the player's last level card, turned in place into the station they are now up to: its clip, name, description and Start
+// button. No new message and no notice: whenever they open the chat, its last card leads on
+async function freshCard(env, user, level) {
+  const card = JSON.parse(await env.USERS.get("k:" + user.id) || "null");
+  if (!card || card.level === level) return;
+  const from = await speaker(env, user);
+  const r = await tg(env, "editMessageMedia", { chat_id: user.id, message_id: card.id, reply_markup: playKb(env, from, level),
+    media: { type: "video", media: `${env.GAME_URL}minis/${level}.bot.mp4?v=${CLIP_VERSION}`, caption: cardText(from, level), width: 640, height: 360, supports_streaming: true } });
+  if (r.ok || /not modified/.test(r.description || "")) await env.USERS.put("k:" + user.id, JSON.stringify({ ...card, level }));
+  else await env.USERS.delete("k:" + user.id); // gone, or no longer editable: the next card the bot sends takes its place
 }
 // a level's clip for the bot: 16:9 like the old pictures, with a silent sound track (so Telegram keeps it a video), sent as a video
 // because a desktop Telegram shows a GIF no wider than 320 points and a video as wide as a picture; a GIF if the video won't go
@@ -304,7 +315,7 @@ async function way(req, env) {
   const { initData, level } = await req.json().catch(() => ({}));
   const user = await checkInitData(initData || "", env.BOT_TOKEN);
   if (!user || !WAY.includes(level)) return Response.json({ ok: false }, { status: 400 });
-  if (await env.USERS.get("w:" + user.id) !== level) await env.USERS.put("w:" + user.id, level);
+  if (await env.USERS.get("w:" + user.id) !== level) { await env.USERS.put("w:" + user.id, level); await freshCard(env, user, level); }
   return Response.json({ ok: true });
 }
 // Telegram signs the Mini App's initData with a key made from the bot's token: anything else is refused

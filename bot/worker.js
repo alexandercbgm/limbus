@@ -27,7 +27,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.1.0";
+const BOT_VERSION = "1.2.0";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -171,6 +171,18 @@ async function sendClip(env, msg, id) {
   return r.ok || r.error_code === 403 ? r : tg(env, "sendAnimation", { ...msg, animation: url, width: 640, height: 360 });
 }
 
+// the game's trailer (minis/trailer.<ru|en>.mp4, 1280x720, 40 s) in their language: fetched by Telegram from its address the
+// first time, then sent again by the file_id Telegram gave back, kept in KV (a new trailer is a new TRAILER_VERSION)
+const TRAILER_VERSION = 1;
+async function sendTrailer(env, chat, from) {
+  const lang = ru(from) ? "ru" : "en", key = `trailer:${lang}:${TRAILER_VERSION}`, known = await env.USERS.get(key);
+  const msg = { chat_id: chat, width: 1280, height: 720, duration: 40, supports_streaming: true };
+  if (known) { const r = await tg(env, "sendVideo", { ...msg, video: known }); if (r.ok) return r; }
+  const r = await tg(env, "sendVideo", { ...msg, video: `${env.GAME_URL}minis/trailer.${lang}.mp4?v=${TRAILER_VERSION}` });
+  if (r.ok && r.result.video) await env.USERS.put(key, r.result.video.file_id);
+  return r;
+}
+
 async function onUpdate(u, env) {
   if (u.pre_checkout_query) return tg(env, "answerPreCheckoutQuery", { pre_checkout_query_id: u.pre_checkout_query.id, ok: true });
   if (u.callback_query) return onButton(u.callback_query, env);
@@ -212,6 +224,7 @@ async function onUpdate(u, env) {
           "Crystals for Armamentarium: the depot's entry, every cannon (but Ferrum) and every upgrade to the third level, +25% bonus.\nOnce paid, a code comes: enter it in the game at the Emptio station.") });
         return tg(env, "sendInvoice", { chat_id: chat, ...invoiceBody({ language_code: from.language_code }, "apk") });
       }
+      await sendTrailer(env, chat, from); // the trailer first, then the level card with its Start button
       return greet(env, chat, from, arg);
     }
     case "/play": return greet(env, chat, from, "");

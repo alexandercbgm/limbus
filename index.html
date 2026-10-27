@@ -290,6 +290,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .bank, .arm { box-sizing: border-box; height: 38px; display: inline-flex; align-items: center; }
 .arm { gap: 0.4em; }
 .menu-in > * { min-width: 0; }
+.tgphone .menu-in { padding-top: calc(var(--safe-top, 0px) + 2px); } /* Telegram on a phone: the head right under its Close and ⋮ buttons, the scheme taller by as much */
 .map-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .map-scroll #map { min-width: 920px; }
 .wpn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; align-self: flex-end; margin-bottom: 4px; }
@@ -500,7 +501,7 @@ video.mini { background: none; object-fit: contain; }
           <span id="langTxt">En</span>
         </button>
       </div>
-      <div class="credit version">v1.0.14</div>
+      <div class="credit version">v1.0.15</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>

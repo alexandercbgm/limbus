@@ -213,6 +213,30 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forwards; } /* the page shows while three.js and the game still load: the menu waits for its scheme, to come in whole (and shows anyway after a while, should the script fail) */
 @keyframes mapwait { to { visibility: visible; } }
 .tgphone .menu-in { padding-top: var(--safe-top, 0px); } /* Telegram on a phone: the head right under its Close and ⋮ buttons, the scheme taller by as much */
+/* ---- the menu's finish: soft layered shadows instead of single hard ones, rounder corners, glass plates with a lit top edge ---- */
+.menu::before, .videobg .menu::before { background:
+  radial-gradient(120% 70% at 50% -10%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 60%),
+  linear-gradient(180deg, rgba(240, 246, 248, 0.74), rgba(228, 236, 240, 0.9)); }
+.logo { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7), 0 10px 30px rgba(16, 36, 46, 0.1); }
+.map-card { border-radius: 16px; border: 0; padding: 16px 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 252, 253, 0.88));
+  box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.06), 0 1px 2px rgba(16, 36, 46, 0.05),
+    0 8px 24px -6px rgba(16, 36, 46, 0.1), 0 32px 64px -24px rgba(16, 36, 46, 0.22); }
+/* the bank and the cannons: one family of glass chips; the cannons in one strip, the mounted one a dark pill in it */
+.bank { border-radius: 11px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.62));
+  box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.07), 0 2px 6px -2px rgba(16, 36, 46, 0.12); }
+.arms { gap: 2px; padding: 3px; height: 38px; box-sizing: border-box; flex-wrap: nowrap; border-radius: 11px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.55));
+  box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.07), 0 2px 6px -2px rgba(16, 36, 46, 0.12); }
+.arms .arm { height: 32px; border-radius: 8px; background: transparent; box-shadow: none; transition: background-color 0.15s, color 0.15s; }
+.arms .arm:hover { background: rgba(16, 36, 46, 0.05); }
+.arms .arm[aria-pressed="true"] { background: linear-gradient(180deg, #1b3846, #10242e); color: #f4fbfc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 6px -1px rgba(16, 36, 46, 0.35); }
+.map-tools .ibtn { border: 0; border-radius: 11px; background: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.8));
+  box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.08), 0 2px 6px -2px rgba(16, 36, 46, 0.14); transition: box-shadow 0.15s; }
+.map-tools .ibtn:hover { background: #ffffff; box-shadow: 0 0 0 1px rgba(16, 36, 46, 0.12), 0 4px 12px -4px rgba(16, 36, 46, 0.22); }
+.credit { color: #9fb0b7; letter-spacing: 0.16em; }
+@media (orientation: landscape) and (max-height: 380px) { .tg .arms { height: 30px; padding: 2px; } .tg .arms .arm { height: 26px; border-radius: 7px; } .tg .bank { border-radius: 9px; } }
 .map-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .map-scroll #map { min-width: 920px; }
 .wpn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; align-self: flex-end; margin-bottom: 4px; }
@@ -5433,7 +5457,7 @@ video.mini { background: none; object-fit: contain; }
     svg.setAttribute("viewBox", "0 100 1000 372"); // just the stations and their names; the legend and the buttons sit in the empty corners
     const pt = id => byId(id).map;
     const poly = pts => pts.map(([x, y]) => `${x},${y}`).join(" ");
-    let out = `<defs><linearGradient id="firstRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="${LINE_GOLD}"/><stop offset="0.5" stop-color="${LINE_BR}"/></linearGradient></defs>`;
+    let out = `<defs><filter id="lift" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1.6" stdDeviation="1.8" flood-color="${INK}" flood-opacity="0.22"/></filter><linearGradient id="firstRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="${LINE_GOLD}"/><stop offset="0.5" stop-color="${LINE_BR}"/></linearGradient></defs>`;
     const casing = (shape, w) => shape.replace(/stroke="[^"]*"/, 'stroke="#ffffff"').replace(/stroke-width="([\d.]+)"/, (m, x) => `stroke-width="${+x + w}"`).replace(/ stroke-dasharray="[^"]*"| opacity="[^"]*"/g, "");
     // main line, station to station; unbuilt stretches are dotted
     for (let i = 0; i < MAIN_LINE.length - 1; i++) {
@@ -5479,6 +5503,7 @@ video.mini { background: none; object-fit: contain; }
       if ((lv.depot && !progress.bought) || lv.gift) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${lv.gift ? LINE_GOLD : LINE_BR}" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // rings round the depot till the first purchase
       if (first) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="url(#firstRing)" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // till the first ride, as round the depot
       else if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
+      out += `<circle cx="${p.x}" cy="${p.y}" r="23" fill="#ffffff" filter="url(#lift)"/>`; // a soft shadow under the station, lifting it off the card
       if (hub && lv.id === "initium") out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/><path d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
       else if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
       out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring

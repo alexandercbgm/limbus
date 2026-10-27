@@ -500,7 +500,7 @@ video.mini { background: none; object-fit: contain; }
           <span id="langTxt">En</span>
         </button>
       </div>
-      <div class="credit version">v1.0.13</div>
+      <div class="credit version">v1.0.14</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -5900,6 +5900,11 @@ video.mini { background: none; object-fit: contain; }
   // browsers start sound only after a tap: the first one on the scheme starts its music
   const firstTap = () => { if (state === "menu" && !document.hidden) Sound.init(); };
   window.addEventListener("pointerdown", firstTap, true); window.addEventListener("keydown", firstTap, true);
+  // the Android app lets its page sound unasked (MainActivity: no gesture needed), so there the scheme's music starts at once
+  if (location.href.startsWith("file:///android_asset/")) {
+    const go = () => { if (state === "menu" && !document.hidden) Sound.init(); };
+    if (document.readyState === "complete") go(); else window.addEventListener("load", go, { once: true });
+  }
   // ---------- Telegram Mini App ----------
   // the bot's server (bot/worker.js), when the build knows its address: it learns who plays, for the news, once they allow it
   const BOT_API = (window.LIMBUS_BOT_API || "").replace(/\/$/, "");

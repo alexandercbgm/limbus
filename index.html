@@ -290,7 +290,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .bank, .arm { box-sizing: border-box; height: 38px; display: inline-flex; align-items: center; }
 .arm { gap: 0.4em; }
 .menu-in > * { min-width: 0; }
-.tgphone .menu-in { padding-top: calc(var(--safe-top, 0px) + 2px); } /* Telegram on a phone: the head right under its Close and ⋮ buttons, the scheme taller by as much */
+.tgphone .menu-in { padding-top: var(--safe-top, 0px); } /* Telegram on a phone: the head right under its Close and ⋮ buttons, the scheme taller by as much */
 .map-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .map-scroll #map { min-width: 920px; }
 .wpn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; align-self: flex-end; margin-bottom: 4px; }
@@ -501,7 +501,7 @@ video.mini { background: none; object-fit: contain; }
           <span id="langTxt">En</span>
         </button>
       </div>
-      <div class="credit version">v1.0.15</div>
+      <div class="credit version">v1.0.16</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -5517,8 +5517,7 @@ video.mini { background: none; object-fit: contain; }
     svg.setAttribute("viewBox", "0 100 1000 372"); // just the stations and their names; the legend and the buttons sit in the empty corners
     const pt = id => byId(id).map;
     const poly = pts => pts.map(([x, y]) => `${x},${y}`).join(" ");
-    // a faint dot grid under the lines, like squared paper
-    let out = `<defs><linearGradient id="firstRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="${LINE_GOLD}"/><stop offset="0.5" stop-color="${LINE_BR}"/></linearGradient><pattern id="mapDots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1.1" fill="${INK}" opacity="0.09"/></pattern></defs><rect x="0" y="100" width="1000" height="372" fill="url(#mapDots)"/>`;
+    let out = `<defs><linearGradient id="firstRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="${LINE_GOLD}"/><stop offset="0.5" stop-color="${LINE_BR}"/></linearGradient></defs>`;
     const casing = (shape, w) => shape.replace(/stroke="[^"]*"/, 'stroke="#ffffff"').replace(/stroke-width="([\d.]+)"/, (m, x) => `stroke-width="${+x + w}"`).replace(/ stroke-dasharray="[^"]*"| opacity="[^"]*"/g, "");
     // main line, station to station; unbuilt stretches are dotted
     for (let i = 0; i < MAIN_LINE.length - 1; i++) {

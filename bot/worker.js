@@ -29,7 +29,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.4.0";
+const BOT_VERSION = "1.4.1";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -172,8 +172,12 @@ async function freshCard(env, user, level) {
   const from = await speaker(env, user);
   const r = await tg(env, "editMessageMedia", { chat_id: user.id, message_id: card.id, reply_markup: playKb(env, from, level),
     media: { type: "video", media: `${env.GAME_URL}minis/${level}.bot.mp4?v=${CLIP_VERSION}`, caption: cardText(from, level), width: 640, height: 360, supports_streaming: true } });
-  if (r.ok || /not modified/.test(r.description || "")) await env.USERS.put("k:" + user.id, JSON.stringify({ ...card, level }));
-  else await env.USERS.delete("k:" + user.id); // gone, or no longer editable: the next card the bot sends takes its place
+  if (r.ok || /not modified/.test(r.description || "")) return env.USERS.put("k:" + user.id, JSON.stringify({ ...card, level }));
+  // deleted, or (should Telegram ever refuse an old message's edit) no longer editable: a new card in its place, without a sound
+  if (r.error_code === 403) return env.USERS.delete("k:" + user.id); // they blocked the bot
+  const n = await sendClip(env, { chat_id: user.id, disable_notification: true, reply_markup: playKb(env, from, level), caption: cardText(from, level) }, level);
+  if (n.ok) await env.USERS.put("k:" + user.id, JSON.stringify({ id: n.result.message_id, level }));
+  else await env.USERS.delete("k:" + user.id);
 }
 // a level's clip for the bot: 16:9 like the old pictures, with a silent sound track (so Telegram keeps it a video), sent as a video
 // because a desktop Telegram shows a GIF no wider than 320 points and a video as wide as a picture; a GIF if the video won't go

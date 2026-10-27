@@ -4377,13 +4377,14 @@ video.mini { background: none; object-fit: contain; }
     progress.t = Date.now(); const str = JSON.stringify(progress);
     try { localStorage.setItem(STORE, str); } catch (e) { /* storage unavailable */ }
     if (TG && TG.CloudStorage && TG.isVersionAtLeast("6.9")) try { TG.CloudStorage.setItem(STORE, str); } catch (e) { /* the cloud is out of reach */ }
+    if (window.__way) window.__way();
   }
   let progress = loadProgress();
   if (TG && TG.CloudStorage && TG.isVersionAtLeast("6.9")) try { // the newer of the two copies wins
     TG.CloudStorage.getItem(STORE, (err, str) => {
       if (err || !str) return;
       const p = parseProgress(str);
-      if (p.t > (progress.t || 0)) { progress = p; try { localStorage.setItem(STORE, str); } catch (e) { /* storage unavailable */ } if (state === "menu") renderMap(); }
+      if (p.t > (progress.t || 0)) { progress = p; try { localStorage.setItem(STORE, str); } catch (e) { /* storage unavailable */ } if (state === "menu") renderMap(); if (window.__way) window.__way(); }
     });
   } catch (e) { /* the cloud is out of reach */ }
   // a station opens once the one before it is done; with req.or there is a second way in (Abyssus: from Crystallum)
@@ -5859,6 +5860,15 @@ video.mini { background: none; object-fit: contain; }
     TG.requestWriteAccess(ok => { if (ok) hello(); });
   };
   if (TG && TG.initDataUnsafe && TG.initDataUnsafe.user && TG.initDataUnsafe.user.allows_write_to_pm) hello(); // already allowed: say who plays
+  // the station the player is up to on the way to the Light, told to the bot when it changes: /start offers that one
+  let waySent = null;
+  window.__way = () => {
+    if (!BOT_API || !TG || !TG.initData) return;
+    const next = WAY.find(id => !progress.done[id]) || "lux";
+    if (next === waySent) return; waySent = next;
+    fetch(BOT_API + "/way", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ initData: TG.initData, level: next }) }).catch(() => { waySent = null; });
+  };
+  window.__way();
   if (TG) {
     TG.ready(); TG.expand();
     document.body.classList.add("tg"); if (/^(android|ios)$/.test(TG.platform)) document.body.classList.add("tgphone");

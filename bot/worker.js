@@ -14,6 +14,8 @@
 //                     50 outside calls at a time), so a cron trigger carries it on; /stats, /cancel
 //   POST /hello       the game, opened in Telegram, says who is playing (checked against the bot's token), so players
 //                     who never wrote to the bot get the news too, once they have allowed it
+//   POST /way         the game, opened in Telegram, says which station the player is up to on the way from Initium to Lux:
+//                     /start offers that one
 //   POST /invoice     the game asks for a pack's Stars invoice link, to show with Telegram.WebApp.openInvoice
 //   POST /redeem      the APK or the page trades a code for its crystals, once
 //   GET  /bot         the bot's username, for the Emptio station outside Telegram
@@ -27,7 +29,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.2.0";
+const BOT_VERSION = "1.3.0";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -50,6 +52,7 @@ export default {
       return new Response("ok");
     }
     if (url.pathname === "/hello" && req.method === "POST") return cors(await hello(req, env));
+    if (url.pathname === "/way" && req.method === "POST") return cors(await way(req, env));
     if (url.pathname === "/invoice" && req.method === "POST") return cors(await invoice(req, env));
     if (url.pathname === "/redeem" && req.method === "POST") return cors(await redeem(req, env));
     if (url.pathname === "/setup") return setup(url, env);
@@ -75,7 +78,7 @@ const playKb = (env, from, level) => ({ inline_keyboard: [[{ text: T(from, "Иг
 async function remember(env, user, sub = true) {
   const key = "u:" + user.id, old = JSON.parse(await env.USERS.get(key) || "null");
   if (old && old.sub === sub) return; // nothing new: spare the KV's daily writes
-  await env.USERS.put(key, JSON.stringify({ name: user.first_name || "", lang: user.language_code || "", sub, t: Date.now(), ...(old && old.choice ? { choice: old.choice } : {}), ...(old && Number.isInteger(old.clip) ? { clip: old.clip } : {}) }));
+  await env.USERS.put(key, JSON.stringify({ ...(old || {}), name: user.first_name || "", lang: user.language_code || "", sub, t: Date.now() })); // what else it keeps (the language chosen, the last clip, the trailer seen) stays
 }
 
 // a user as the bot speaks to them: the language they chose with /language over their Telegram's own
@@ -224,10 +227,15 @@ async function onUpdate(u, env) {
           "Crystals for Armamentarium: the depot's entry, every cannon (but Ferrum) and every upgrade to the third level, +25% bonus.\nOnce paid, a code comes: enter it in the game at the Emptio station.") });
         return tg(env, "sendInvoice", { chat_id: chat, ...invoiceBody({ language_code: from.language_code }, "apk") });
       }
-      await sendTrailer(env, chat, from); // the trailer first, then the level card with its Start button
-      return greet(env, chat, from, arg);
+      const key = "u:" + from.id, rec = JSON.parse(await env.USERS.get(key) || "null");
+      if (!rec || !rec.trailer) { // the trailer once, on their first /start, before the level card with its Start button
+        const r = await sendTrailer(env, chat, from);
+        if (r.ok && rec) await env.USERS.put(key, JSON.stringify({ ...rec, trailer: true }));
+      }
+      // the station they are up to on the way to the Light, as the game last told (Initium for a newcomer); a link's own level first
+      return greet(env, chat, from, arg || await env.USERS.get("w:" + from.id) || "initium");
     }
-    case "/play": return greet(env, chat, from, "");
+    case "/play": return greet(env, chat, from, await env.USERS.get("w:" + from.id) || "initium"); // as /start: the station they are up to
     case "/version": return tg(env, "sendMessage", { chat_id: chat, text: `v${BOT_VERSION}` });
     case "/language": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Выберите язык:", "Choose a language:"),
       reply_markup: { inline_keyboard: [[{ text: "Русский", callback_data: "lang:ru" }, { text: "English", callback_data: "lang:en" }]] } });
@@ -289,6 +297,15 @@ async function hello(req, env) {
   if (!user) return Response.json({ ok: false }, { status: 403 });
   if (user.allows_write_to_pm) await remember(env, user, true);
   return Response.json({ ok: true, sub: !!user.allows_write_to_pm });
+}
+// the station the player is up to on the way from Initium to Lux, for /start: kept only when it changes (the game sends it so)
+const WAY = ["initium", "vitrum", "labyrinthus", "rubinus", "speculum", "tao", "abyssus", "lux"];
+async function way(req, env) {
+  const { initData, level } = await req.json().catch(() => ({}));
+  const user = await checkInitData(initData || "", env.BOT_TOKEN);
+  if (!user || !WAY.includes(level)) return Response.json({ ok: false }, { status: 400 });
+  if (await env.USERS.get("w:" + user.id) !== level) await env.USERS.put("w:" + user.id, level);
+  return Response.json({ ok: true });
 }
 // Telegram signs the Mini App's initData with a key made from the bot's token: anything else is refused
 async function checkInitData(initData, token) {

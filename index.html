@@ -220,7 +220,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .menu-in { max-width: 1000px; margin: 0 auto; box-sizing: border-box; display: grid; gap: 18px;
   padding-block: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 28px) calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 28px);
   padding-left: max(16px, var(--safe-left, env(safe-area-inset-left, 0px))); padding-right: max(16px, var(--safe-right, env(safe-area-inset-right, 0px))); }
-.m-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+.m-head { -webkit-user-select: none; user-select: none; display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
 .logo { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 7vw, 48px); letter-spacing: 0.22em; line-height: 1; margin: 0; }
 .logo span { color: #1d6f8f; }
 /* the bank is a readout, not a button: a pale plate with dark text */
@@ -228,10 +228,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .gem { display: inline-block; height: 1.15em; width: 0.6em; vertical-align: -0.2em; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; flex: none; }
 .bank b { font-size: inherit; color: #1287b5; font-variant-numeric: tabular-nums; }
 .map-card { position: relative; background: var(--frost); border: 1px solid var(--edge); border-radius: 6px; box-shadow: 0 18px 50px rgba(16, 36, 46, 0.12); padding: 14px 10px; }
-#map { display: block; width: 100%; height: auto; }
+#map { display: block; width: 100%; height: auto; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* a drag across the scheme selects no names */
 .station { cursor: pointer; outline: none; }
 .station .hit { fill: transparent; }
-.station:hover .ring { stroke-width: 7; }
+.station.hot .ring { stroke-width: 7; } /* under the pointer, on the station's circle itself (set from the script: a finger has no hover) */
 .map-tools { position: absolute; top: 12px; right: 14px; z-index: 1; display: flex; gap: 8px; }
 .map-tools .ibtn { border: 1px solid rgba(16, 36, 46, 0.22); border-radius: 4px; background: rgba(255, 255, 255, 0.75); cursor: pointer; }
 .map-tools .ibtn:hover { background: #ffffff; }
@@ -496,7 +496,7 @@ video.mini { background: none; object-fit: contain; }
           <span id="langTxt">En</span>
         </button>
       </div>
-      <div class="credit version">v1.0.8</div>
+      <div class="credit version">v1.0.9</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -5570,7 +5570,7 @@ video.mini { background: none; object-fit: contain; }
     svg.innerHTML = out;
     svg.querySelectorAll(".station").forEach(g => {
       const open = e => openSheet(byId(g.dataset.id), false, e && e.clientX !== undefined ? e : g.getBoundingClientRect());
-      g.addEventListener("click", open);
+      g.addEventListener("click", e => { if (mapPress === "off") { mapPress = null; return; } mapPress = null; open(e); }); // a press dragged off the station opens nothing
       g.addEventListener("pointerdown", () => { if (document.getElementById("clip-" + g.dataset.id)) clipVid(g.dataset.id); }); // its clip starts loading as the finger lands, not as it lifts
       g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
     });
@@ -5947,6 +5947,23 @@ video.mini { background: none; object-fit: contain; }
     else if (state === "paused") resumeGame();
   });
   let mapW = 0;
+  // a station swells while the pointer is on its circle, and only then: a finger has no hover, and its press would otherwise
+  // leave the station swollen; a press dragged off the station and let go elsewhere opens nothing
+  let mapPress = null;
+  const stationAt = (e, r) => {
+    const ctm = $("map").getScreenCTM(); if (!ctm) return null;
+    const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    return LEVELS.find(l => l.map && Math.hypot(pt.x - l.map.x, pt.y - l.map.y) <= r) || null;
+  };
+  const STATION_R = 24, STATION_HIT = 34; // the circle with its rim; the touch area round it
+  const hot = lv => $("map").querySelectorAll(".station").forEach(g => g.classList.toggle("hot", !!lv && g.dataset.id === lv.id));
+  $("map").addEventListener("pointerdown", e => { mapPress = stationAt(e, STATION_HIT); hot(stationAt(e, STATION_R)); });
+  $("map").addEventListener("pointermove", e => hot(e.pointerType === "mouse" || mapPress ? stationAt(e, STATION_R) : null));
+  $("map").addEventListener("pointerup", e => {
+    if (mapPress && stationAt(e, STATION_HIT) !== mapPress) mapPress = "off";
+    if (e.pointerType !== "mouse") hot(null);
+  });
+  for (const ev of ["pointerleave", "pointercancel"]) $("map").addEventListener(ev, () => hot(null));
   window.addEventListener("resize", () => { const w = $("map").parentElement.clientWidth; if (state === "menu" && Math.abs(w - mapW) > 40) renderMap(); });
   // two sound buttons, in the HUD and on the scheme, showing the same state
   function syncMute() {

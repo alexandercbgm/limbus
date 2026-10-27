@@ -326,6 +326,8 @@ video.mini { background: none; object-fit: contain; }
 .reqs li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: start; font-size: 14px; line-height: 1.4; }
 .reqs .ok { color: #1c7a4a; font-weight: 700; } .reqs .no { color: #a33a2a; font-weight: 700; }
 .btns { display: grid; gap: 10px; }
+/* the arrival: the way on above (one station: the whole width), again and back to the scheme side by side below */
+#win .btns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } #win .btns > * { min-width: 0; overflow: hidden; white-space: nowrap; } #win .btns > .wide { grid-column: 1 / -1; }
 .btnrow { display: flex; gap: 8px; } /* "not enough crystals" and the arrows beside it */
 .btnrow > .cta { width: auto; flex: 1 1 0; min-width: 0; padding-inline: 12px; }
 .btnrow > .go { flex: 0 0 auto; white-space: nowrap; }
@@ -494,7 +496,7 @@ video.mini { background: none; object-fit: contain; }
           <span id="langTxt">En</span>
         </button>
       </div>
-      <div class="credit version">v1.0.7</div>
+      <div class="credit version">v1.0.8</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -4620,6 +4622,7 @@ video.mini { background: none; object-fit: contain; }
       let nxs = nextLevels(LEVEL); // one button for each way on
       // at the end of a line (Speculum), the next open station not yet done, on whichever line it is
       if (!nxs.length && LEVEL.line !== "branch" && LEVEL.id !== "lux") nxs = LEVELS.filter(l => l.line !== "branch" && l.playable && !progress.done[l.id] && isOpen(l)).slice(0, 1);
+      $("nextBtn").classList.toggle("wide", nxs.length < 2);
       ["nextBtn", "nextBtn2"].forEach((id, i) => { const nb = $(id), nx = nxs[i]; nb.hidden = !nx; if (nx) { nb.dataset.id = nx.id; nb.textContent = `${nx.latin} →`; nb.setAttribute("aria-label", T(`Дальше: ${nx.latin}`, `Next: ${nx.latin}`)); } }); // the station's name and an arrow on
       $("againBtn").textContent = againText();
       journey(firstFinish);

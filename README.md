@@ -265,7 +265,8 @@ src/
 music/                   — the level tracks, addressed by file stem (seer_vahl, perfect_alignment, …)
 minis/                   — per level: <id>.jpg (shot, light and dark halves, also the bot's news picture),
                            <id>.mp4 (the clip in its sheet), <id>.clip.jpg (the clip's first frame) and
-                           <id>.bot.mp4 (a 16:9 cut of the clip for the bot's greeting and news)
+                           <id>.bot.mp4 (a 16:9 cut of the clip for the bot's greeting and news);
+                           menu.bg.mp4 and .jpg: the menu's background, a 3 s loop of the rails, blurred beforehand
 fonts/                   — Unbounded, Manrope, JetBrains Mono (SIL OFL), latin + cyrillic woff2, fonts.css
 android/
   build_apk.sh             — builds and signs limbus.apk without Gradle

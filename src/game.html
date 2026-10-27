@@ -137,6 +137,10 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .menu { position: fixed; inset: 0; z-index: 4; overflow-y: auto; color: #10242e;
   background: linear-gradient(180deg, rgba(240, 246, 248, 0.78), rgba(232, 238, 241, 0.9));
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+/* with the background loop (build.py: minis/menu.bg.mp4, blurred beforehand) the menu blurs nothing and the world behind it rests */
+.videobg .menu { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.videobg .menu::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(180deg, rgba(240, 246, 248, 0.78), rgba(232, 238, 241, 0.9)); }
+.menu > video.menubg { position: fixed; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .menu-in { max-width: 1000px; margin: 0 auto; box-sizing: border-box; display: grid; gap: 18px;
   padding-block: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 28px) calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 28px);
   padding-left: max(16px, var(--safe-left, env(safe-area-inset-left, 0px))); padding-right: max(16px, var(--safe-right, env(safe-area-inset-right, 0px))); }
@@ -230,7 +234,6 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .sheet:not([hidden])::before { animation: sheetdim 0.3s ease-out both; }
 @keyframes sheetdim { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .sheet:not([hidden])::before { animation: none; } }
-.android .sheet:not([hidden])::before { animation: none; } /* on Android the dimming is there at once, as the sheet is */
 .sheet .panel { width: min(520px, 100%); padding: 22px 22px 20px; }
 .mini { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 4px; margin: 0 0 16px; background: #dfe7ea; }
 video.mini { background: none; object-fit: contain; }
@@ -577,8 +580,6 @@ video.mini { background: none; object-fit: contain; }
     }));
   }
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const ANDROID = /Android/i.test(navigator.userAgent); // the app, Telegram or a browser there: a station's sheet comes and goes at once, its animations were slow
-  if (ANDROID) document.documentElement.classList.add("android");
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + (b - a) * Math.random();
@@ -5344,6 +5345,7 @@ video.mini { background: none; object-fit: contain; }
     if (Math.floor(now / 1000) !== Math.floor(last / 1000)) freeGone(); // once a second
     last = now;
     if (state === "paused") { renderer.render(scene, camera); return; } // time stands still while paused
+    if (state === "menu" && !$("menu").hidden && document.documentElement.classList.contains("videobg")) return; // behind the menu its loop plays instead: no 3D at all
     if (state === "menu" && !$("sheet").hidden) return; // and behind a station's sheet, till it is quite gone: the frame stays as it was, and the sheet's glass blur and animations have the graphics card to themselves
     time += dt;
     const t0 = performance.now();
@@ -5649,12 +5651,12 @@ video.mini { background: none; object-fit: contain; }
       } else if (reached && bank >= req.toll) button(btns, "cta", T(`Открыть склад: −${req.toll} ◆`, `Open the depot: −${req.toll} ◆`), () => { progress.bank -= req.toll; progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); });
       else short([byId("hortus"), byId("thesaurus")]); // the dead ends richest in crystals
     } else if (!lv.playable) button(btns, "cta", T("Станция строится", "Under construction"), null, true);
-    else if (isOpen(lv) && req.fare && bank >= req.fare) button(btns, "cta", T(`Поехали: −${req.fare} ◆`, `Ride: −${req.fare} ◆`), () => rideLevel(lv));
+    else if (isOpen(lv) && req.fare && bank >= req.fare) button(btns, "cta", T(`Начать: −${req.fare} ◆`, `Ride: −${req.fare} ◆`), () => rideLevel(lv));
     else if (isOpen(lv) && req.fare) { // the other rich dead end, if its fare is in the bank; else the way on along the line
       const other = ["hortus", "thesaurus"].map(byId).find(l => l !== lv && bank >= l.req.fare);
       short([other || byId(WAY.find(id => !progress.done[id]) || "lux")]);
     }
-    else if (isOpen(lv)) button(btns, "cta", st === "done" ? T("Проехать ещё раз", "Ride again") : T("Поехали", "Ride"), () => startLevel(lv));
+    else if (isOpen(lv)) button(btns, "cta", st === "done" ? T("Проехать ещё раз", "Ride again") : T("Начать", "Ride"), () => startLevel(lv));
     else if (req.transfer && progress.done[req.transfer.from] && bank >= req.transfer.cost) button(btns, "cta", T(`Пересадка: −${req.transfer.cost} ◆`, `Change: −${req.transfer.cost} ◆`), () => { progress.bank -= req.transfer.cost; progress.open[lv.id] = true; saveProgress(); startLevel(lv); });
     else button(btns, "cta", T("Пока закрыта", "Closed for now"), null, true);
     button(btns, "ghost", T("Назад к схеме", "Back to the scheme"), () => { closeSheet(); renderMap(); });
@@ -5665,7 +5667,7 @@ video.mini { background: none; object-fit: contain; }
     if (!clip && !lv.depot && !lv.gift && document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { if (!$("sheet").hidden && document.getElementById("clip-" + lv.id)) openSheet(lv, true); }, { once: true }); // a link to a level opens its sheet before the clips are parsed
     if (!lv.depot && !lv.gift && !clip) drawMini(lv);
     $("sheet").hidden = false;
-    if (from && !reduceMotion && !ANDROID) { const panel = $("sheet").querySelector(".panel"); panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
+    if (from && !reduceMotion) { const panel = $("sheet").querySelector(".panel"); panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
     if (keep) $("sheet").scrollTop = scroll;
     else $("sheet").querySelector("button:not(:disabled)")?.focus();
   }
@@ -5701,6 +5703,22 @@ video.mini { background: none; object-fit: contain; }
   // clips inside the page are readied ahead, while the scheme is looked at; a clip in a file beside it (the Telegram build) is
   // fetched only from the moment its station is touched, so a player downloads only the clips they look at, and the sheet's
   // white veil as it steps in covers the moment the clip takes to start
+  // the menu's background: a loop of the rails, blurred beforehand, playing while the menu is up (the page's last elements)
+  function menuBg() {
+    const src = document.getElementById("menubg"); if (!src) return;
+    const v = document.createElement("video");
+    for (const a of ["muted", "loop", "playsinline", "autoplay", "disablepictureinpicture"]) v.setAttribute(a, "");
+    v.muted = true; v.className = "menubg"; v.setAttribute("aria-hidden", "true");
+    const poster = document.getElementById("menubg-poster"); if (poster) v.poster = poster.src;
+    v.src = src.textContent.trim();
+    $("menu").prepend(v); document.documentElement.classList.add("videobg");
+    const kick = () => { if ($("menu").hidden) v.pause(); else if (v.paused) v.play().catch(() => {}); };
+    v.addEventListener("pause", () => setTimeout(kick, 200)); // a web view that stops it (as Telegram's may) gets it going again
+    addEventListener("pointerdown", kick); document.addEventListener("visibilitychange", () => { if (!document.hidden) kick(); });
+    new MutationObserver(kick).observe($("menu"), { attributes: true, attributeFilter: ["hidden"] });
+    kick();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", menuBg, { once: true }); else menuBg();
   window.addEventListener("load", () => document.querySelectorAll('script[id^="clip-"]').forEach(s => { if (s.textContent.trim().startsWith("data:")) clipVid(s.id.slice(5)); }));
   new MutationObserver(() => { if ($("sheet").hidden) stopClips(); }).observe($("sheet"), { attributes: true, attributeFilter: ["hidden"] }); // no clip playing behind the scheme
   function drawMini(lv) {

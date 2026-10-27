@@ -81,6 +81,12 @@ for clip in sorted(f for f in (root / "minis").glob("*.mp4") if "." not in f.ste
     poster = clip.with_suffix(".clip.jpg") # its first frame, decoded with the page and drawn at once while the clip starts
     if poster.exists():
         page += f'<img hidden alt="" id="poster-{clip.stem}" src="data:image/jpeg;base64,{base64.b64encode(poster.read_bytes()).decode("ascii")}">\n'
+# the scheme's background: a short loop of the rails, blurred beforehand (minis/menu.bg.mp4, small, inline in every build) and
+# its first frame, so the menu needs no live 3D behind it
+bg = root / "minis" / "menu.bg.mp4"
+if bg.exists():
+    page += f'<script type="text/plain" id="menubg">data:video/mp4;base64,{base64.b64encode(bg.read_bytes()).decode("ascii")}</script>\n'
+    page += f'<img hidden alt="" id="menubg-poster" src="data:image/jpeg;base64,{base64.b64encode(bg.with_suffix(".jpg").read_bytes()).decode("ascii")}">\n'
 if TELEGRAM:
     out = root / "dist" / "telegram"
     shutil.rmtree(out, ignore_errors=True)

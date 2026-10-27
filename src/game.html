@@ -5711,7 +5711,7 @@ video.mini { background: none; object-fit: contain; }
     v.muted = true; v.className = "menubg"; v.setAttribute("aria-hidden", "true");
     const poster = document.getElementById("menubg-poster"); if (poster) v.poster = poster.src;
     v.src = src.textContent.trim();
-    $("menu").prepend(v); document.documentElement.classList.add("videobg");
+    $("menu").append(v); document.documentElement.classList.add("videobg"); // last, out of the way of the menu's own layout (fitMap measures .menu-in)
     const kick = () => { if ($("menu").hidden) v.pause(); else if (v.paused) v.play().catch(() => {}); };
     v.addEventListener("pause", () => setTimeout(kick, 200)); // a web view that stops it (as Telegram's may) gets it going again
     addEventListener("pointerdown", kick); document.addEventListener("visibilitychange", () => { if (!document.hidden) kick(); });
@@ -5847,7 +5847,7 @@ video.mini { background: none; object-fit: contain; }
       const map = $("map"), menu = $("menu");
       if (innerWidth <= innerHeight || menu.hidden) { map.style.height = ""; map.style.minWidth = ""; map.style.width = ""; return; }
       map.style.minWidth = "0"; map.style.width = "100%"; map.style.height = "100px";
-      const room = menu.clientHeight - menu.firstElementChild.getBoundingClientRect().height; // what is left with the scheme 100 px high
+      const room = menu.clientHeight - menu.querySelector(".menu-in").getBoundingClientRect().height; // what is left with the scheme 100 px high
       map.style.height = Math.max(80, Math.floor(100 + room - 1)) + "px";
     };
     insets(); for (const ev of ["safeAreaChanged", "contentSafeAreaChanged", "fullscreenChanged", "viewportChanged"]) TG.onEvent(ev, () => { insets(); requestAnimationFrame(fitMap); });

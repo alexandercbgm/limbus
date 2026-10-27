@@ -230,6 +230,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .sheet:not([hidden])::before { animation: sheetdim 0.3s ease-out both; }
 @keyframes sheetdim { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .sheet:not([hidden])::before { animation: none; } }
+.android .sheet:not([hidden])::before { animation: none; } /* on Android the dimming is there at once, as the sheet is */
 .sheet .panel { width: min(520px, 100%); padding: 22px 22px 20px; }
 .mini { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 4px; margin: 0 0 16px; background: #dfe7ea; }
 video.mini { background: none; object-fit: contain; }
@@ -576,6 +577,8 @@ video.mini { background: none; object-fit: contain; }
     }));
   }
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ANDROID = /Android/i.test(navigator.userAgent); // the app, Telegram or a browser there: a station's sheet comes and goes at once, its animations were slow
+  if (ANDROID) document.documentElement.classList.add("android");
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const rand = (a, b) => a + (b - a) * Math.random();
@@ -5662,7 +5665,7 @@ video.mini { background: none; object-fit: contain; }
     if (!clip && !lv.depot && !lv.gift && document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { if (!$("sheet").hidden && document.getElementById("clip-" + lv.id)) openSheet(lv, true); }, { once: true }); // a link to a level opens its sheet before the clips are parsed
     if (!lv.depot && !lv.gift && !clip) drawMini(lv);
     $("sheet").hidden = false;
-    if (from && !reduceMotion) { const panel = $("sheet").querySelector(".panel"); panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
+    if (from && !reduceMotion && !ANDROID) { const panel = $("sheet").querySelector(".panel"); panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
     if (keep) $("sheet").scrollTop = scroll;
     else $("sheet").querySelector("button:not(:disabled)")?.focus();
   }

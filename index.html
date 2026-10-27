@@ -290,6 +290,8 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .bank, .arm { box-sizing: border-box; height: 38px; display: inline-flex; align-items: center; }
 .arm { gap: 0.4em; }
 .menu-in > * { min-width: 0; }
+html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forwards; } /* the page shows while three.js and the game still load: the menu waits for its scheme, to come in whole (and shows anyway after a while, should the script fail) */
+@keyframes mapwait { to { visibility: visible; } }
 .tgphone .menu-in { padding-top: var(--safe-top, 0px); } /* Telegram on a phone: the head right under its Close and ⋮ buttons, the scheme taller by as much */
 .map-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .map-scroll #map { min-width: 920px; }
@@ -501,7 +503,7 @@ video.mini { background: none; object-fit: contain; }
           <span id="langTxt">En</span>
         </button>
       </div>
-      <div class="credit version">v1.0.16</div>
+      <div class="credit version">v1.0.17</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -5572,7 +5574,7 @@ video.mini { background: none; object-fit: contain; }
       out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "gift" ? LINE_GOLD : st === "open" || st === "opened" || st === "locked" ? LINE_MAIN : "#7a8d95"}">${tag.toUpperCase()}</text>`;
       out += `</g>`;
     }
-    svg.innerHTML = out;
+    svg.innerHTML = out; document.documentElement.classList.add("mapready");
     svg.querySelectorAll(".station").forEach(g => {
       const open = e => openSheet(byId(g.dataset.id), false, e && e.clientX !== undefined ? e : g.getBoundingClientRect());
       g.addEventListener("click", e => { if (mapPress === "off") { mapPress = null; return; } mapPress = null; open(e); }); // a press dragged off the station opens nothing

@@ -10,6 +10,7 @@ itself, so neither shape shows black bars. Titles are drawn by Playwright in the
 SRC holds a recording per level, named by its id (initium.mp4, vitrum.mp4, ... abyssus.mp4 for Nox): 1280x720 screen
 recordings with the play in the middle 1280x496.
 """
+import concurrent.futures
 import json
 import os
 import pathlib
@@ -21,7 +22,7 @@ SRC, OUT = pathlib.Path(os.environ["SRC"]), pathlib.Path(os.environ["OUT"])
 OUT.mkdir(parents=True, exist_ok=True)
 work = pathlib.Path(tempfile.mkdtemp(prefix="trailer-"))
 BAND = "crop=1280:496:0:112"
-SEG, FADE, FPS = 3.0, 0.25, 30
+SEG, FADE, FPS = 3.0, 0.25, 60  # the recordings are 30 fps: the frames between are worked out (minterpolate), as for the game's clips
 MUSIC, MUSIC_AT = root / "music" / "translucent_path.mp3", 12.5  # its quiet opening under the title, the drop on the first level
 
 # the journey's order, each level's stretch of its recording (seconds in), and its names
@@ -93,14 +94,23 @@ def ff(*args):
     subprocess.run(["ffmpeg", "-v", "error", "-y", *args], check=True)
 
 
+def cut(src, start, dur):
+    """A stretch of a recording: its band of play, at 60 fps with the frames between worked out; made once, for every trailer."""
+    out = work / f"cut-{src.stem}-{start}-{dur}.mp4"
+    if not out.exists():
+        ff("-ss", str(start), "-t", str(dur), "-i", str(src), "-vf", f"{BAND},minterpolate=fps={FPS}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1",
+           "-an", "-c:v", "libx264", "-preset", "fast", "-crf", "12", str(out))
+    return out
+
+
 def segment(out, src, start, dur, shape, over, fg=True, dark=0.3):
     """A stretch of a recording in a shape: the band of play over its own blur, an overlay on top, faded in and out."""
     w, h = SHAPES[shape]
-    pic = (f"[0:v]{BAND},fps={FPS},split[a][b];[a]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},"
+    pic = (f"[0:v]fps={FPS},split[a][b];[a]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},"
            f"boxblur=40:3,eq=brightness={-dark:.2f}[bg];")
     pic += f"[b]scale={w}:-2[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[v];" if fg else "[b]nullsink;[bg]null[v];"
     pic += f"[v][1:v]overlay=0:0,fade=in:st=0:d={FADE},fade=out:st={dur - FADE}:d={FADE},format=yuv420p"
-    ff("-ss", str(start), "-t", str(dur), "-i", str(src), "-loop", "1", "-t", str(dur), "-i", str(over),
+    ff("-i", str(cut(src, start, dur)), "-loop", "1", "-t", str(dur), "-i", str(over),
        "-filter_complex", pic, "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-r", str(FPS), str(out))
 
 
@@ -121,6 +131,10 @@ def trailer(shape, lang):
 
 
 overlays()
+# the stretches every trailer shares, worked out to 60 fps side by side first: the slow part
+stretches = [(SRC / "lux.mp4", 1.0, 2.5), (SRC / "abyssus.mp4", 8.0, 4.0)] + [(SRC / f"{lv[0]}.mp4", lv[1], SEG) for lv in LEVELS]
+with concurrent.futures.ThreadPoolExecutor(4) as pool:
+    list(pool.map(lambda a: cut(*a), stretches))
 for shape in SHAPES:
     for lang in WORDS:
         trailer(shape, lang)

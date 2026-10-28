@@ -33,6 +33,8 @@ LEVELS = [("initium", 3.0, "Initium", "Начало", "Beginning"), ("vitrum", 4
 WORDS = {"ru": {"tag": "Рельсы между Светом и Тьмой", "play": "Играйте в Telegram"},
          "en": {"tag": "Rails between the Light and the Dark", "play": "Play in Telegram"}}
 BOT = "@limbus_game_bot"
+# the blurred copy behind the band is darkened, so the band stands out; the dark levels' copy is lifted instead, or it sinks to black
+BG_LIFT = {"carcer": 0.16, "tao": 0.12}
 SHAPES = {"h": (1920, 1080), "v": (1080, 1920)}
 
 CSS = f"""<link rel="stylesheet" href="file://{root}/fonts/fonts.css"><style>
@@ -95,7 +97,7 @@ def segment(out, src, start, dur, shape, over, fg=True, dark=0.3):
     """A stretch of a recording in a shape: the band of play over its own blur, an overlay on top, faded in and out."""
     w, h = SHAPES[shape]
     pic = (f"[0:v]{BAND},fps={FPS},split[a][b];[a]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},"
-           f"boxblur=40:3,eq=brightness=-{dark}[bg];")
+           f"boxblur=40:3,eq=brightness={-dark:.2f}[bg];")
     pic += f"[b]scale={w}:-2[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[v];" if fg else "[b]nullsink;[bg]null[v];"
     pic += f"[v][1:v]overlay=0:0,fade=in:st=0:d={FADE},fade=out:st={dur - FADE}:d={FADE},format=yuv420p"
     ff("-ss", str(start), "-t", str(dur), "-i", str(src), "-loop", "1", "-t", str(dur), "-i", str(over),
@@ -107,7 +109,7 @@ def trailer(shape, lang):
     parts.append(work / f"{shape}-{lang}-0.mp4"); segment(parts[-1], SRC / "lux.mp4", 1.0, 2.5, shape, work / f"{shape}-{lang}-title.png", fg=False, dark=0.4)
     for i, lv in enumerate(LEVELS):
         parts.append(work / f"{shape}-{lang}-{i + 1}.mp4")
-        segment(parts[-1], SRC / f"{lv[0]}.mp4", lv[1], SEG, shape, work / f"{shape}-{lang}-{lv[0]}.png")
+        segment(parts[-1], SRC / f"{lv[0]}.mp4", lv[1], SEG, shape, work / f"{shape}-{lang}-{lv[0]}.png", dark=-BG_LIFT.get(lv[0], -0.3))
     parts.append(work / f"{shape}-{lang}-end.mp4"); segment(parts[-1], SRC / "abyssus.mp4", 8.0, 4.0, shape, work / f"{shape}-{lang}-end.png", fg=False, dark=0.4)
     (work / f"{shape}-{lang}.txt").write_text("".join(f"file '{p}'\n" for p in parts))
     total = 2.5 + SEG * len(LEVELS) + 4.0

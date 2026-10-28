@@ -337,6 +337,7 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
 /* the scheme behind a sheet dims as it opens and comes back as it closes, smoothly both ways: a layer of its own whose opacity
    alone changes, which the graphics card does by itself without the page being drawn again */
 .sheet { z-index: 5; background: none; }
+.sheet.waiting { opacity: 0.01; pointer-events: none; } .sheet.waiting::before { animation: none; opacity: 0; } /* laid out unseen while its clip starts */
 .sheet::before { content: ""; position: fixed; inset: 0; z-index: -1; background: rgba(16, 36, 46, 0.28); pointer-events: none; will-change: opacity; }
 .sheet:not([hidden])::before { animation: sheetdim 0.3s ease-out both; }
 @keyframes sheetdim { from { opacity: 0; } }
@@ -527,7 +528,7 @@ video.mini { background: none; object-fit: contain; }
           <span id="langTxt">En</span>
         </button>
       </div>
-      <div class="credit version">v1.0.25</div>
+      <div class="credit version">v1.0.26</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -4543,7 +4544,7 @@ video.mini { background: none; object-fit: contain; }
   // the app goes to the background: the sound stops at once; back on the scheme it plays on
   window.__silence = () => { if (Sound.ctx && Sound.ctx.state === "running") Sound.ctx.suspend(); if (Sound.fallback) Sound.fallback.pause(); };
   window.__wake = () => { if (state === "menu") leavePause(); };
-  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "pause", "how"].forEach(id => { $(id).hidden = true; }); }
+  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "pause", "how"].forEach(id => { $(id).hidden = true; }); $("sheet").classList.remove("waiting"); }
   // pause: the world freezes (render only), the music stops until the run continues
   // the Android app's back button: returns true if the game used it
   window.__back = () => {
@@ -5650,7 +5651,7 @@ video.mini { background: none; object-fit: contain; }
   }
   function closeSheet() {
     const sh = $("sheet"); if (sh.hidden) return;
-    sh.querySelector(".panel").classList.remove("enter"); stopClips(); sh.hidden = true; // gone at once: a fade out was slow on Android
+    sh.querySelector(".panel").classList.remove("enter"); sh.classList.remove("waiting"); stopClips(); sh.hidden = true; // gone at once: a fade out was slow on Android
   }
   function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: opened from the scheme or by a link, so it steps in
     const scroll = keep ? $("sheet").scrollTop : 0;
@@ -5794,12 +5795,15 @@ video.mini { background: none; object-fit: contain; }
       if (keep) $("sheet").scrollTop = scroll;
       else $("sheet").querySelector("button:not(:disabled)")?.focus();
     };
-    // a sheet stepping in waits for its clip to be moving (a moment at most), so the clip comes in already playing
-    const vid = clip && from && !keep && clipVids[lv.id];
-    if (!vid || (!vid.paused && vid.currentTime > 0.03)) return show();
-    let shown = false; const once = () => { if (shown) return; shown = true; vid.removeEventListener("timeupdate", tick); show(); };
-    const tick = () => { if (vid.currentTime > 0.03) once(); };
-    vid.addEventListener("timeupdate", tick); setTimeout(once, 450);
+    // a sheet stepping in waits, laid out but unseen (a browser draws no frames of a video that is not laid out), till its
+    // clip has shown two frames of its own (a moment at most): the clip comes in already moving
+    const vid = clip && from && !keep && !reduceMotion && clipVids[lv.id];
+    if (!vid) return show();
+    const sh = $("sheet"); sh.classList.add("waiting"); sh.hidden = false;
+    let shown = false; const go = () => { if (shown || !sh.classList.contains("waiting")) return; shown = true; sh.classList.remove("waiting"); show(); }; // closed meanwhile: it stays closed
+    if (vid.requestVideoFrameCallback) { let n = 0; const f = () => { if (++n >= 2) go(); else vid.requestVideoFrameCallback(f); }; vid.requestVideoFrameCallback(f); }
+    else { const tick = () => { if (vid.currentTime > 0.05) { vid.removeEventListener("timeupdate", tick); go(); } }; vid.addEventListener("timeupdate", tick); }
+    setTimeout(go, 700);
   }
 
   // A small hand-drawn view down the level's corridor: the left half in its light palette, the right half in its dark one.

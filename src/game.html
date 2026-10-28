@@ -5520,7 +5520,7 @@ video.mini { background: none; object-fit: contain; }
     svg.querySelectorAll(".station").forEach(g => {
       const open = e => openSheet(byId(g.dataset.id), false, e && e.clientX !== undefined ? e : g.getBoundingClientRect());
       g.addEventListener("click", e => { if (mapPress === "off") { mapPress = null; return; } mapPress = null; open(e); }); // a press dragged off the station opens nothing
-      g.addEventListener("pointerdown", () => { if (document.getElementById("clip-" + g.dataset.id)) clipVid(g.dataset.id); }); // its clip starts loading as the finger lands, not as it lifts
+      g.addEventListener("pointerdown", () => { if (document.getElementById("clip-" + g.dataset.id)) primeClip(g.dataset.id); }); // its clip starts, unseen, as the finger lands, not as it lifts
       g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
     });
   }
@@ -5702,10 +5702,18 @@ video.mini { background: none; object-fit: contain; }
     if (clip) playClip(lv.id); else hideClips();
     if (!clip && !lv.depot && !lv.gift && document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { if (!$("sheet").hidden && document.getElementById("clip-" + lv.id)) openSheet(lv, true); }, { once: true }); // a link to a level opens its sheet before the clips are parsed
     if (!lv.depot && !lv.gift && !clip) drawMini(lv);
-    $("sheet").hidden = false;
-    if (from && !reduceMotion) { const panel = $("sheet").querySelector(".panel"); panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
-    if (keep) $("sheet").scrollTop = scroll;
-    else $("sheet").querySelector("button:not(:disabled)")?.focus();
+    const show = () => {
+      $("sheet").hidden = false;
+      if (from && !reduceMotion) { const panel = $("sheet").querySelector(".panel"); panel.classList.remove("enter"); void panel.offsetWidth; panel.classList.add("enter"); }
+      if (keep) $("sheet").scrollTop = scroll;
+      else $("sheet").querySelector("button:not(:disabled)")?.focus();
+    };
+    // a sheet stepping in waits for its clip to be moving (a moment at most), so the clip comes in already playing
+    const vid = clip && from && !keep && clipVids[lv.id];
+    if (!vid || (!vid.paused && vid.currentTime > 0.03)) return show();
+    let shown = false; const once = () => { if (shown) return; shown = true; vid.removeEventListener("timeupdate", tick); show(); };
+    const tick = () => { if (vid.currentTime > 0.03) once(); };
+    vid.addEventListener("timeupdate", tick); setTimeout(once, 450);
   }
 
   // A small hand-drawn view down the level's corridor: the left half in its light palette, the right half in its dark one.
@@ -5726,11 +5734,19 @@ video.mini { background: none; object-fit: contain; }
     v.src = document.getElementById("clip-" + id).textContent.trim();
     $("mini").after(v); return (clipVids[id] = v);
   }
+  // a press on a station starts its clip from the first frame while still hidden, so the sheet shows it already moving
+  function primeClip(id) {
+    const vid = clipVid(id);
+    if (vid.currentTime > 0) vid.currentTime = 0;
+    vid.primed = performance.now(); vid.play().catch(() => {});
+    return vid;
+  }
   function playClip(id) {
     const vid = clipVid(id);
     clipWant = id; for (const k in clipVids) if (k !== id) { clipVids[k].pause(); clipVids[k].hidden = true; }
-    // from its first frame each time: the poster it shows meanwhile, and a key frame, so it starts without decoding its way to where it stopped
-    if (vid.currentTime > 0) vid.currentTime = 0;
+    // from its first frame each time (a key frame, so it starts without decoding its way to where it stopped), unless the press
+    // on its station has just started it so
+    if (!(performance.now() - (vid.primed || 0) < 1500) && vid.currentTime > 0) vid.currentTime = 0;
     clipWant = id; vid.hidden = false; vid.play().catch(() => {});
     setTimeout(() => clipKick(vid, id), 400); // and once more, after whatever else that tap set going
   }

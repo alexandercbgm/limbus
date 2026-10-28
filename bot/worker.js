@@ -32,7 +32,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.5.0";
+const BOT_VERSION = "1.5.1";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -421,7 +421,7 @@ async function setup(url, env) {
   // English for everyone by default, Russian for Russian-speaking profiles (as the bot's own replies go)
   const RU = ["ru", "uk", "be", "kk"];
   const DESC = { ru: ABOUT.ru + "\n\n" + TAP.ru + "\n\n" + NEWS.ru, en: ABOUT.en + "\n\n" + TAP.en + "\n\n" + NEWS.en }; // the greeting's own words
-  const SHORT = { ru: "Рельсовый шутер между Светом и Тьмой. Играйте прямо в Telegram.", en: "A rail shooter between the Light and the Dark. Play right in Telegram." };
+  const SHORT = { ru: "Рельсовый шутер между Светом и Тьмой.", en: "A rail shooter between the Light and the Dark." };
   out.commands = await tg(env, "setMyCommands", { commands: commands(false) });
   out.description = await tg(env, "setMyDescription", { description: DESC.en });
   out.short = await tg(env, "setMyShortDescription", { short_description: SHORT.en });

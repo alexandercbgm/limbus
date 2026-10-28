@@ -32,7 +32,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.5.2";
+const BOT_VERSION = "1.5.3";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -190,7 +190,7 @@ async function freshCard(env, user, level) {
 }
 // a level's clip for the bot: 16:9 like the old pictures, with a silent sound track (so Telegram keeps it a video), sent as a video
 // because a desktop Telegram shows a GIF no wider than 320 points and a video as wide as a picture; a GIF if the video won't go
-const CLIP_VERSION = 2;
+const CLIP_VERSION = 3;
 async function sendClip(env, msg, id) {
   // Telegram keeps a file it has fetched by its address, as the kind it was sent as: a new version is a new address
   const url = `${env.GAME_URL}minis/${id}.bot.mp4?v=${CLIP_VERSION}`;

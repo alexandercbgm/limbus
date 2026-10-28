@@ -16,6 +16,9 @@
 //                     who never wrote to the bot get the news too, once they have allowed it
 //   POST /way         the game, opened in Telegram, says which station the player is up to on the way from Initium to Lux:
 //                     /start offers that one
+//   monthly           a player who has not been seen for a month (no game opened, nothing written) gets their /play card
+//                     once, the station they are up to with its Start button; once a day the cron goes round, unless
+//                     a broadcast is on
 //   POST /invoice     the game asks for a pack's Stars invoice link, to show with Telegram.WebApp.openInvoice
 //   POST /redeem      the APK or the page trades a code for its crystals, once
 //   GET  /bot         the bot's username, for the Emptio station outside Telegram
@@ -29,7 +32,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.4.1";
+const BOT_VERSION = "1.5.0";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -60,7 +63,7 @@ export default {
     return new Response("Limbus bot");
   },
   // the cron trigger carries a broadcast on, a batch a minute
-  async scheduled(ev, env, ctx) { ctx.waitUntil(runBroadcast(env)); },
+  async scheduled(ev, env, ctx) { ctx.waitUntil(runBroadcast(env).then(() => runReminders(env))); },
 };
 
 // ---------- Telegram ----------
@@ -81,6 +84,12 @@ async function remember(env, user, sub = true) {
   await env.USERS.put(key, JSON.stringify({ ...(old || {}), name: user.first_name || "", lang: user.language_code || "", sub, t: Date.now() })); // what else it keeps (the language chosen, the last clip, the trailer seen) stays
 }
 
+// the day a player was last seen (the game opened, a message): kept at most once a day, for the monthly reminder
+const DAY = 864e5;
+async function seen(env, id) {
+  const key = "u:" + id, rec = JSON.parse(await env.USERS.get(key) || "null");
+  if (rec && Math.floor((rec.seen || 0) / DAY) !== Math.floor(Date.now() / DAY)) await env.USERS.put(key, JSON.stringify({ ...rec, seen: Date.now() }));
+}
 // a user as the bot speaks to them: the language they chose with /language over their Telegram's own
 async function speaker(env, user) {
   const rec = JSON.parse(await env.USERS.get("u:" + user.id) || "null");
@@ -207,6 +216,7 @@ async function onUpdate(u, env) {
   const msg = u.message; if (!msg || !msg.from || msg.chat.type !== "private") return;
   const chat = msg.chat.id, text = msg.text || "", owner = String(msg.from.id) === String(env.OWNER_ID);
   const from = await speaker(env, msg.from); // in the language they chose with /language, else their Telegram's
+  await seen(env, msg.from.id);
 
   if (msg.successful_payment) {
     const sp = msg.successful_payment, pk = PACKS[sp.invoice_payload] || {};
@@ -310,7 +320,7 @@ async function hello(req, env) {
   const { initData } = await req.json().catch(() => ({}));
   const user = await checkInitData(initData || "", env.BOT_TOKEN);
   if (!user) return Response.json({ ok: false }, { status: 403 });
-  if (user.allows_write_to_pm) await remember(env, user, true);
+  if (user.allows_write_to_pm) { await remember(env, user, true); await seen(env, user.id); }
   return Response.json({ ok: true, sub: !!user.allows_write_to_pm });
 }
 // the station the player is up to on the way from Initium to Lux, for /start: kept only when it changes (the game sends it so)
@@ -345,6 +355,36 @@ async function startBroadcast(env, chat, arg) {
   await env.USERS.put("job", JSON.stringify({ level, text: m[2], cursor: null, keys: [], sent: 0, failed: 0, by: chat }));
   await tg(env, "sendMessage", { chat_id: chat, text: `Рассылка началась: по ${PER_RUN} сообщений в минуту. /stats — ход, /cancel — остановить.` });
   return runBroadcast(env);
+}
+// once a day, in the afternoon (UTC), a round of everyone: a month unseen and a month since the last reminder, their /play card
+const MONTH = 30 * DAY;
+async function runReminders(env) {
+  if (await env.USERS.get("job")) return; // a broadcast first
+  let job = JSON.parse(await env.USERS.get("remind") || "null");
+  if (!job) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (new Date().getUTCHours() < 15 || await env.USERS.get("remind:day") === today) return;
+    await env.USERS.put("remind:day", today);
+    job = { cursor: null, keys: [], sent: 0 };
+  }
+  let budget = PER_RUN - 5;
+  while (budget > 0) {
+    if (!job.keys.length) {
+      if (job.cursor === "done") break;
+      const l = await env.USERS.list({ prefix: "u:", cursor: job.cursor || undefined, limit: 200 }); budget--;
+      job.keys = l.keys.map(k => k.name); job.cursor = l.list_complete ? "done" : l.cursor;
+      if (!job.keys.length) continue;
+    }
+    const key = job.keys.shift(), id = key.slice(2), now = Date.now();
+    const u = JSON.parse(await env.USERS.get(key) || "null"); budget--;
+    if (!u || !u.sub || now - Math.max(u.seen || u.t || 0, u.reminded || 0) < MONTH) continue;
+    const from = { id, language_code: u.choice || u.lang }, level = await env.USERS.get("w:" + id) || "initium"; budget--;
+    const r = await sendClip(env, { chat_id: id, reply_markup: playKb(env, from, level), caption: cardText(from, level) }, level); budget -= 2;
+    if (r.ok) { job.sent++; await env.USERS.put(key, JSON.stringify({ ...u, reminded: now })); await env.USERS.put("k:" + id, JSON.stringify({ id: r.result.message_id, level })); budget -= 2; }
+    else if (r.error_code === 403) { await env.USERS.delete(key); budget--; } // blocked the bot: off the list
+  }
+  if (job.cursor === "done" && !job.keys.length) await env.USERS.delete("remind");
+  else await env.USERS.put("remind", JSON.stringify(job));
 }
 async function runBroadcast(env) {
   const job = JSON.parse(await env.USERS.get("job") || "null"); if (!job) return;

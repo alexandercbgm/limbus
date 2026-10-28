@@ -62,7 +62,7 @@ sells crystal packs for Telegram Stars and sends level news.
 
 ## The scheme
 
-Levels are stations on a metro-like map. Every station is open from the start; dead-end branches charge a fare
+Levels are stations on a metro-like map. A station opens once the one before it on its line is finished; dead-end branches charge a fare
 in crystals each ride, and the depot charges a one-time entry.
 
 ```mermaid

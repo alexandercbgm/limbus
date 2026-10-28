@@ -4389,7 +4389,9 @@ video.mini { background: none; object-fit: contain; }
   } catch (e) { /* the cloud is out of reach */ }
   // a station opens once the one before it is done; with req.or there is a second way in (Abyssus: from Crystallum)
   const WAY = ["initium", "vitrum", "labyrinthus", "rubinus", "speculum", "tao", "abyssus", "lux"]; // the way from the Beginning to the Light, in its order
-  function isOpen(lv) { return true; } // every station is open from the start; the lines only suggest an order (dead ends still cost their fare)
+  const unlockAll = location.hash === "#all"; // for testing: open every built station
+  // a station opens once the one before it on its line is finished (or the other way in, where two lines lead to it)
+  function isOpen(lv) { return unlockAll || !lv.req.after || !!progress.done[lv.req.after] || (lv.req.or && !!progress.done[lv.req.or]) || !!progress.open[lv.id]; }
   // the stations a finished one leads on to, along any of the lines (Vitrum: Rubinus or Labyrinthus); a dead end leads nowhere
   function nextLevels(lv) {
     if (lv.line === "branch") return [];
@@ -5427,7 +5429,7 @@ video.mini { background: none; object-fit: contain; }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function stationStatus(lv) {
     if (lv.gift) return "gift";
-    if (lv.depot) return !progress.open[lv.id] ? "locked" : progress.bought ? "avail" : "opened"; // grey till its entry is paid, white once open, dark once something is bought
+    if (lv.depot) return progress.open[lv.id] ? (progress.bought ? "avail" : "opened") : isOpen(lv) ? "locked" : "closed"; // closed till Hortus is finished, then grey till its entry is paid, white once open, dark once something is bought
     if (progress.done[lv.id]) return "done";
     if (!lv.playable) return "build";
     return isOpen(lv) ? "open" : "closed";
@@ -5501,7 +5503,7 @@ video.mini { background: none; object-fit: contain; }
       }
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS(st)}">`;
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
-      if ((lv.depot && !progress.bought) || lv.gift) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${lv.gift ? LINE_GOLD : LINE_BR}" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // rings round the depot till the first purchase
+      if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${lv.gift ? LINE_GOLD : LINE_BR}" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // rings round the depot till the first purchase
       if (first) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="url(#firstRing)" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // till the first ride, as round the depot
       else if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
       out += `<circle cx="${p.x}" cy="${p.y}" r="23" fill="#ffffff" filter="url(#lift)"/>`; // a soft shadow under the station, lifting it off the card
@@ -5572,6 +5574,11 @@ video.mini { background: none; object-fit: contain; }
     $("shDesc").textContent = lv.desc;
     $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead
     const reqs = [];
+    if (!lv.gift) {
+      if (!req.after) reqs.push([true, T("Открыта с самого начала", "Open from the start")]);
+      else if (lv.line === "branch") reqs.push([!!progress.done[req.after], T(`Ветка от станции ${byId(req.after).latin}: сначала пройти её`, `A branch off ${byId(req.after).latin}: finish that station first`)]);
+      else reqs.push([!!progress.done[req.after] || (req.or && !!progress.done[req.or]), req.or ? T(`Пройти станцию ${byId(req.after).latin} или ${byId(req.or).latin}`, `Finish ${byId(req.after).latin} or ${byId(req.or).latin}`) : T(`Прямо: пройти станцию ${byId(req.after).latin}`, `Straight on: finish ${byId(req.after).latin}`)]);
+    }
     if (req.transfer) {
       const from = byId(req.transfer.from);
       reqs.push([!!progress.done[from.id] && bank >= req.transfer.cost, T(`Или пересадка с ${from.latin}: ◆ ${req.transfer.cost} кристаллов (в запасе ${bank})`, `Or change from ${from.latin}: ◆ ${req.transfer.cost} (${bank} in the bank)`)]);
@@ -5586,7 +5593,7 @@ video.mini { background: none; object-fit: contain; }
       const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; b.disabled = !!disabled;
       if (fn) b.addEventListener("click", fn); parent.appendChild(b); return b;
     };
-    const reached = true; // nothing is closed now
+    const reached = isOpen(lv); // the station before it is finished
     const short = tos => { // "not enough crystals", narrowed, and in its row an arrow to each station that would earn them (its sheet)
       const row = document.createElement("div"); row.className = "btnrow"; btns.appendChild(row);
       button(row, "cta", T("Не хватает кристаллов", "Not enough crystals"), null, true);
@@ -5677,11 +5684,12 @@ video.mini { background: none; object-fit: contain; }
           extra.appendChild(card);
         }
       } else if (reached && bank >= req.toll) button(btns, "cta", T(`Открыть склад: −${req.toll} ◆`, `Open the depot: −${req.toll} ◆`), () => { progress.bank -= req.toll; progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); });
-      else short([byId("hortus"), byId("thesaurus")]); // the dead ends richest in crystals
+      else if (reached) { const rich = [byId("hortus"), byId("thesaurus")].filter(isOpen); short(rich.length ? rich : [byId(WAY.find(id => !progress.done[id]) || "lux")]); } // the dead ends richest in crystals
+      else button(btns, "cta", T("Пока закрыт", "Closed for now"), null, true);
     } else if (!lv.playable) button(btns, "cta", T("Станция строится", "Under construction"), null, true);
     else if (isOpen(lv) && req.fare && bank >= req.fare) button(btns, "cta", T(`Начать: −${req.fare} ◆`, `Ride: −${req.fare} ◆`), () => rideLevel(lv));
     else if (isOpen(lv) && req.fare) { // the other rich dead end, if its fare is in the bank; else the way on along the line
-      const other = ["hortus", "thesaurus"].map(byId).find(l => l !== lv && bank >= l.req.fare);
+      const other = ["hortus", "thesaurus"].map(byId).find(l => l !== lv && isOpen(l) && bank >= l.req.fare);
       short([other || byId(WAY.find(id => !progress.done[id]) || "lux")]);
     }
     else if (isOpen(lv)) button(btns, "cta", st === "done" ? T("Пройти ещё раз", "Ride again") : T("Начать", "Ride"), () => startLevel(lv));

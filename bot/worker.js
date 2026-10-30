@@ -35,7 +35,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.6.10";
+const BOT_VERSION = "1.6.11";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -284,9 +284,14 @@ async function onUpdate(u, env) {
   const CONTENT = ["text", "photo", "video", "document", "voice", "audio", "sticker", "animation", "video_note", "location", "contact"];
   if (!CONTENT.some(k => msg[k])) return;
   const [cmd, ...rest] = text.split(/\s+/); const arg = rest.join(" ");
+  const support = async () => { // /support, and the game's Support link (?start=support)
+    if (owner) await env.USERS.put("selftest", "1", { expirationTtl: 600 }); // the owner trying it out: the next message goes the player's way
+    return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Напишите вопрос одним сообщением — я передам его автору, ответ придёт сюда.", "Write your question in a message: it goes to the author, and the answer comes here.") });
+  };
   switch (cmd.replace(/@.*/, "")) {
     case "/start": {
       await remember(env, from, true);
+      if (arg === "support") return support(); // from the game's Support window
       if (arg === "apk") { // from the Emptio station outside Telegram: the one pack, paid here, its code sent back
         await tg(env, "sendMessage", { chat_id: chat, text: T(from, "Кристаллы для Арсенала: вход на склад, все пушки (кроме Ferrum) и все улучшения до третьего уровня +25% бонус.\nПосле оплаты придёт код — введите его в игре на станции Emptio.",
           "Crystals for Armamentarium: the depot's entry, every cannon (but Ferrum) and every upgrade to the third level, +25% bonus.\nOnce paid, a code comes: enter it in the game at the Emptio station.") });
@@ -308,9 +313,7 @@ async function onUpdate(u, env) {
     case "/stop":
       await remember(env, from, false);
       return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Вы отписаны от новостей. /start — подписаться снова.", "You are unsubscribed from the news. /start to subscribe again.") });
-    case "/support":
-      if (owner) await env.USERS.put("selftest", "1", { expirationTtl: 600 }); // the owner trying it out: the next message goes the player's way
-      return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Напишите вопрос одним сообщением — я передам его автору, ответ придёт сюда.", "Write your question in a message: it goes to the author, and the answer comes here.") });
+    case "/support": return support();
     case "/buy": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Кристаллы для Арсенала — на станции Emptio в игре.", "Crystals for Armamentarium: at the Emptio station in the game."), reply_markup: playKb(env, from, "emptio") });
   }
   if (owner) switch (cmd) {

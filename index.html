@@ -277,6 +277,13 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 @media (orientation: portrait) and (pointer: coarse) { html.tgbuild .rotate[hidden] { display: flex !important; } }
 html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rotate > * { visibility: hidden; } html.tgbuild:not(.tgready) .rotate svg { animation: none; } /* the turn starts upright when it shows */ /* nothing shows, not the menu nor the tunnel behind it, till Telegram has opened the app at its full size */
 .how .panel { width: min(640px, 100%); }
+.how.support .panel { width: min(460px, 100%); }
+.contacts { display: grid; gap: 10px; margin: 16px 0 18px; }
+.contact { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(16, 36, 46, 0.12); background: rgba(255, 255, 255, 0.6); color: inherit; text-decoration: none; font: 600 15px var(--body); }
+.contact:hover { border-color: rgba(18, 135, 181, 0.5); }
+.contact svg { width: 34px; height: 34px; flex: none; }
+.contact span { display: grid; gap: 2px; } .contact small { font: 400 13px var(--body); color: #4c6470; -webkit-user-select: text; user-select: text; }
+.night .contact { background: rgba(10, 20, 38, 0.75); border-color: rgba(120, 200, 255, 0.16); } .night .contact small { color: #8fb0c8; } .night .contact:hover { border-color: rgba(60, 201, 236, 0.55); }
 .how .panel p { font-size: 14px; margin-top: 8px; text-wrap: pretty; } /* no word left alone on the last line */
 .how .rules { margin: 16px 0 18px; }
 /* on a low screen held sideways the help is two pages, turned with a button */
@@ -672,9 +679,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             <span class="gp-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke-width="1.8"/><circle cx="12" cy="7.6" r="1.4" stroke="none"/><path d="M12 11v6.2" fill="none" stroke-width="2.2" stroke-linecap="round"/></svg><span data-en="How to play">Как играть</span></span>
             <span class="gp-go" aria-hidden="true">→</span>
           </button>
+          <button class="gp-row gp-link" id="supBtn" type="button">
+            <span class="gp-label"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 14v-2a7.5 7.5 0 0 1 15 0v2" fill="none"/><rect x="3.5" y="13" width="4" height="6" rx="1.6" fill="none"/><rect x="16.5" y="13" width="4" height="6" rx="1.6" fill="none"/><path d="M18.5 19c0 1.6-1.6 2.5-4 2.5h-1.5" fill="none"/></svg><span data-en="Support">Поддержка</span></span>
+            <span class="gp-go" aria-hidden="true">→</span>
+          </button>
         </div>
       </div>
-      <div class="credit version">v1.0.63</div>
+      <div class="credit version">v1.0.64</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -698,6 +709,24 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       <button class="ghost pg-nav" id="howPrev" type="button" data-pg="2" data-en="← Back">← Назад</button>
       <button class="cta" id="howClose" type="button" data-pg="2" data-en="Got it">Понятно</button>
     </div>
+  </div>
+</section>
+
+<section class="overlay how support" id="support" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="supTitle">
+    <h1 id="supTitle" data-en="Support">Поддержка</h1>
+    <p data-en="A question, a bug or an idea: write, the author answers.">Вопрос, ошибка или идея — напишите, автор ответит.</p>
+    <div class="contacts">
+      <a class="contact" id="supTg" href="https://t.me/limbus_game_bot?start=support" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#29a9eb"/><path d="M5.6 11.7l10.9-4.3c.5-.2 1 .1.8.9l-1.9 8.8c-.1.6-.5.8-1 .5l-2.9-2.1-1.4 1.4c-.2.2-.3.3-.6.3l.2-3 5.4-4.9c.2-.2 0-.3-.3-.1L8.1 13l-2.8-.9c-.6-.2-.6-.6.3-.9z" fill="#ffffff"/></svg>
+        <span>Telegram<small>@limbus_game_bot · /support</small></span>
+      </a>
+      <a class="contact" id="supMail" href="mailto:alexandercbgm@gmail.com">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#ffffff"/><path d="M19.6 12.2c0-.6-.1-1.1-.2-1.6H12v3h4.3a3.7 3.7 0 0 1-1.6 2.4v2h2.6c1.5-1.4 2.3-3.4 2.3-5.8z" fill="#4285f4"/><path d="M12 20c2.2 0 4-.7 5.3-1.9l-2.6-2c-.7.5-1.6.8-2.7.8-2.1 0-3.9-1.4-4.5-3.3H4.8v2.1A8 8 0 0 0 12 20z" fill="#34a853"/><path d="M7.5 13.6a4.8 4.8 0 0 1 0-3.1V8.4H4.8a8 8 0 0 0 0 7.2l2.7-2z" fill="#fbbc05"/><path d="M12 7.2c1.2 0 2.3.4 3.1 1.2l2.3-2.3A8 8 0 0 0 4.8 8.4l2.7 2.1C8.1 8.6 9.9 7.2 12 7.2z" fill="#ea4335"/></svg>
+        <span>Gmail<small>alexandercbgm@gmail.com</small></span>
+      </a>
+    </div>
+    <div class="btns"><button class="ghost" id="supClose" type="button" data-en="Close">Закрыть</button></div>
   </div>
 </section>
 
@@ -834,7 +863,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.63`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.64`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -4695,11 +4724,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the app goes to the background: the sound stops at once; back on the scheme it plays on
   window.__silence = () => { if (Sound.ctx && Sound.ctx.state === "running") Sound.ctx.suspend(); if (Sound.fallback) Sound.fallback.pause(); };
   window.__wake = () => { if (state === "menu") leavePause(); };
-  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "pause", "how"].forEach(id => { $(id).hidden = true; }); $("sheet").classList.remove("waiting"); }
+  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "pause", "how", "support"].forEach(id => { $(id).hidden = true; }); $("sheet").classList.remove("waiting"); }
   // pause: the world freezes (render only), the music stops until the run continues
   // the Android app's back button: returns true if the game used it
   window.__back = () => {
     if (!$("how").hidden) { $("how").hidden = true; return true; }
+    if (!$("support").hidden) { $("support").hidden = true; return true; }
     if (!$("sheet").hidden) { closeSheet(); return true; }
     if (state === "play") { pauseGame(); return true; }
     if (state === "paused") { $("pauseMenu").click(); return true; }
@@ -6236,7 +6266,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       TG.BackButton.onClick(() => window.__back());
       let shown = null, guard = null;
       setInterval(() => {
-        const need = state !== "menu" || !$("sheet").hidden || !$("how").hidden;
+        const need = state !== "menu" || !$("sheet").hidden || !$("how").hidden || !$("support").hidden;
         if (need !== shown) { shown = need; need ? TG.BackButton.show() : TG.BackButton.hide(); }
         const riding = state === "play" || state === "paused"; // closing mid-ride asks first
         if (riding !== guard && TG.isVersionAtLeast("6.2")) { guard = riding; riding ? TG.enableClosingConfirmation() : TG.disableClosingConfirmation(); }
@@ -6247,6 +6277,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   window.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
     if (!$("how").hidden) $("how").hidden = true;
+    else if (!$("support").hidden) $("support").hidden = true;
     else if (!$("sheet").hidden) closeSheet();
     else if (state === "play") pauseGame();
     else if (state === "paused") resumeGame();
@@ -6318,6 +6349,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   $("howNext").addEventListener("click", () => { howPage(2); $("howClose").focus(); });
   $("howPrev").addEventListener("click", () => { howPage(1); $("howNext").focus(); });
   $("howClose").addEventListener("click", () => { $("how").hidden = true; });
+  // Support: the bot (its /support carries a message to the author) and the author's mail
+  $("supBtn").addEventListener("click", () => { gearOpen(false); $("support").hidden = false; $("supClose").focus(); });
+  $("supClose").addEventListener("click", () => { $("support").hidden = true; });
+  $("support").addEventListener("click", e => { if (e.target === $("support")) $("support").hidden = true; });
+  $("supTg").addEventListener("click", e => { // in Telegram it opens there; from the APK (a file: page) the link is handed on to Telegram
+    const url = e.currentTarget.href;
+    if (TG && TG.openTelegramLink) { e.preventDefault(); TG.openTelegramLink(url); }
+    else if (location.protocol === "file:") { e.preventDefault(); location.href = url; }
+  });
+  $("supMail").addEventListener("click", () => { // a web view with no mail app opens nothing: the address is copied as well
+    try { navigator.clipboard.writeText("alexandercbgm@gmail.com").then(() => pop(T("Адрес скопирован", "Address copied"), "info"), () => {}); } catch (e) { /* no clipboard */ }
+  });
   $("how").addEventListener("click", e => { if (e.target === $("how")) $("how").hidden = true; });
 
   // test hook: lets an automated check jump the karma or the distance

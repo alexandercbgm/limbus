@@ -28,6 +28,8 @@
 body.dark { --ink: #f2e9e6; --muted: #c9b2ac; --gain: #7fd3ff; --hit: #ff6a4d; }
 html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; color: var(--ink); font-family: var(--body); }
 [hidden] { display: none !important; }
+/* nothing in the game is text to select or copy: a drag or a long press selects nothing anywhere; the code field stays typeable */
+body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } input, textarea { -webkit-user-select: text; user-select: text; }
 /* no blue flash where a finger taps, and no focus ring round the controls, whether they are tapped, clicked or reached by Tab */
 * { -webkit-tap-highlight-color: transparent; }
 :focus, :focus-visible { outline: none !important; }

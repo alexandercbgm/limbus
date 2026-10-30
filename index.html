@@ -655,7 +655,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.36</div>
+      <div class="credit version">v1.0.37</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -4392,7 +4392,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       turns: [[90, 50, 40], [200, 60, -60], [320, 50, 50], [430, 70, -80], [560, 50, 45], [660, 50, -45], [760, 50, 30]],
       desc: "Тупиковая ветка от Rubinus. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
       feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
-      req: { after: "rubinus", fare: 20 }, map: { x: 615, y: 440, label: "t", dy: -5 } },
+      req: { after: "rubinus", fare: 20 }, map: { x: 615, y: 440, label: "t" } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "perfect_alignment", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "prism", glassWalls: true }, crystalMul: 1.1,
       pats: { center: [1, 1, 0.7], wall: [0.5, 0.5, 0.5], triple: [0.5, 0.8, 0.5], double: [0, 0.4, 0.8], sides: [1.4, 0.5, 0], gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1],
@@ -4407,7 +4407,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
       desc: "Тупиковый склад за Садом (Hortus). Здесь за кристаллы ставят на вагонетку новые пушки и улучшения.",
       feats: ["Пушки Triplex, Gemini и Lumen", "Улучшения: запас шаров, второе дыхание, щедрость кристаллов", "Купленное остаётся навсегда; пушку можно сменить в меню"],
-      req: { after: "hortus", toll: 15 }, map: { x: 385, y: 440, label: "t", dy: -5 } },
+      req: { after: "hortus", toll: 15 }, map: { x: 385, y: 440, label: "t" } },
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.2,
       forks: [330, 720, 1110],
@@ -4422,7 +4422,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       turns: [[90, 50, 45], [200, 60, -60], [320, 50, 40], [430, 60, -55], [560, 50, 50], [660, 50, -45], [760, 50, 35]],
       desc: "Тупиковая ветка от Initium с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
-      req: { after: "initium", fare: 15 }, map: { x: 185, y: 440, label: "t", dy: -5 } }, // the first branch: Initium opens it
+      req: { after: "initium", fare: 15 }, map: { x: 185, y: 440, label: "t" } }, // the first branch: Initium opens it
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
       style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0x5a0012, gateIron: true,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
@@ -4472,7 +4472,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35], [860, 50, -45], [980, 60, 50], [1090, 50, -40]],
       desc: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах стальные решётки на цепях, парящие лазерные балки и сетки и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
       feats: ["Залы с решётками на цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Custodes с сейфом"],
-      req: { after: "speculum", fare: 30 }, map: { x: 825, y: 440, label: "t", dy: -5 } },
+      req: { after: "speculum", fare: 30 }, map: { x: 825, y: 440, label: "t" } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 1600, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "prism", glassWalls: true }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
       gateKinds: ["iris"], gateButton: "dome",
@@ -5733,7 +5733,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const fill = dark ? INK : lit ? "#ffffff" : "#e6ecee"; // done stations (and an opened depot) are dark, open ones white
       const stroke = lv.gift ? LINE_GOLD : lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (["abyssus", "lux"].includes(lv.id) ? LINE_TAO : ARC.includes(lv.id) && lv.id !== "vitrum" ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
       const glyph = dark ? "#ffffff" : lit ? INK : MUTED, tag = first ? T("нажмите", "tap here") : STATUS(st);
-      const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 62, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 32, p.y - 9, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
+      const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 67, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 32, p.y - 9, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];
       L[0] += p.dx || 0; L[1] += p.dy || 0; // a station may nudge its label
       if (L[2] !== "middle") { // a label beside the station keeps its edge there, but its lines are centred on each other
         const w = Math.max(textW("700 12.5px Unbounded, 'Arial Black', sans-serif", lv.latin.toUpperCase(), 0.6), textW("12.5px Manrope, system-ui, sans-serif", lv.ru, 0),

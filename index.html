@@ -528,7 +528,7 @@ video.mini { background: none; object-fit: contain; }
           <span id="langTxt">En</span>
         </button>
       </div>
-      <div class="credit version">v1.0.26</div>
+      <div class="credit version">v1.0.27</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -963,7 +963,7 @@ video.mini { background: none; object-fit: contain; }
 
   function resize() {
     const w = window.innerWidth, h = window.innerHeight;
-    renderer.setSize(w, h, false);
+    renderer.setSize(w, h, false); window.__redraw = true; // a resized canvas is blank till drawn again, even while the world stands still
     camera.aspect = w / h;
     camera.fov = w / h < 0.8 ? 86 : 70;
     camera.updateProjectionMatrix();
@@ -5461,7 +5461,9 @@ video.mini { background: none; object-fit: contain; }
     adaptResolution(now - last);
     if (Math.floor(now / 1000) !== Math.floor(last / 1000)) freeGone(); // once a second
     last = now;
-    if (state === "paused") { renderer.render(scene, camera); return; } // time stands still while paused
+    // paused, or a ride's result on screen: the world stands still and is not drawn again (the canvas keeps its last frame), so
+    // the panel's glass blur over it is worked out once, not every frame: the phone stays cool
+    if (state === "paused" || state === "win" || state === "over") { if (window.__redraw) { window.__redraw = false; renderSky(); renderer.render(scene, camera); } return; }
     if (state === "menu" && !$("menu").hidden && document.documentElement.classList.contains("videobg")) return; // behind the menu its loop plays instead: no 3D at all
     if (state === "menu" && !$("sheet").hidden) return; // and behind a station's sheet, till it is quite gone: the frame stays as it was, and the sheet's glass blur and animations have the graphics card to themselves
     time += dt;

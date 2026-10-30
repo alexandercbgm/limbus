@@ -35,7 +35,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.6.9";
+const BOT_VERSION = "1.6.10";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -228,18 +228,18 @@ async function sendTrailer(env, chat, from, ost) {
 }
 
 // the soundtrack: the menu's track, then the stations' along the main line, the lower line and the dead ends, left to right on
-// the scheme. The game's build puts each beside the game as ost/<name>.mp3, its own tag naming it "Limbus - <Name>" (build.py),
+// the scheme. The game's build puts each beside the game as ost/<name>.mp3, its own tag naming it <Name> by Limbus (build.py),
 // so the name holds whatever Telegram reads it from; a changed track wants a new OST_VERSION here. Fetched by Telegram from
 // their addresses the first time, then sent again by the file_ids it gave back, kept in KV. A Telegram album holds 10 at
 // most: the twelve go as two albums of six
-const OST_VERSION = 2;
+const OST_VERSION = 3;
 const OST = ["Menu", "Initium", "Vitrum", "Labyrinthus", "Tao", "Nox", "Lux", "Rubinus", "Speculum", "Hortus", "Thesaurus", "Carcer"];
 async function sendOst(env, chat, from) {
   const key = `ost:${OST_VERSION}`, known = JSON.parse(await env.USERS.get(key) || "null"), ids = [];
   const groups = [OST.slice(0, 6), OST.slice(6)];
   let r;
   for (const [g, list] of groups.entries()) {
-    const media = (byId) => list.map((name, i) => ({ type: "audio", media: byId ? known[g * 6 + i] : `${env.GAME_URL}ost/${name.toLowerCase()}.mp3?v=${OST_VERSION}`, title: `Limbus - ${name}`, performer: "Limbus",
+    const media = (byId) => list.map((name, i) => ({ type: "audio", media: byId ? known[g * 6 + i] : `${env.GAME_URL}ost/${name.toLowerCase()}.mp3?v=${OST_VERSION}`, title: name, performer: "Limbus", // Telegram shows them as "Limbus – Initium"
       ...(g === groups.length - 1 && i === list.length - 1 ? { caption: T(from, "Ещё раз: /ost", "Again: /ost") } : {}) }));
     r = known ? await tg(env, "sendMediaGroup", { chat_id: chat, media: media(true) }) : null;
     if (!r || !r.ok) r = await tg(env, "sendMediaGroup", { chat_id: chat, media: media(false) });

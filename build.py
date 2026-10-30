@@ -99,7 +99,7 @@ if TELEGRAM:
     for track in sorted((root / "music").glob("*.mp3")): # as they are (192 kbps): each comes in only with its level
         shutil.copy(track, out / "music" / track.name)
     shutil.copytree(root / "minis", out / "minis") # the bot sends a level's picture with its news
-    # the soundtrack the bot sends (/ost): each track again as ost/<name>.mp3, named in its own tag "Limbus - <name>" after the
+    # the soundtrack the bot sends (/ost): each track again as ost/<name>.mp3, named in its own tag <Name> by Limbus after the
     # station that plays it (its Latin name; the menu's is "Menu"), as the game pairs them
     src = (root / "src" / "game.html").read_text(encoding="utf-8")
     pairs = [("Menu", re.search(r'const MENU_TRACK = "([a-z_]+)"', src).group(1))] + re.findall(r'latin: "([A-Za-z]+)"[^\n]*?music: "([a-z_]+)"', src)
@@ -108,7 +108,7 @@ if TELEGRAM:
         data = (root / "music" / f"{stem}.mp3").read_bytes()
         if data[:3] == b"ID3": data = data[10 + sum(b << (7 * (3 - i)) for i, b in enumerate(data[6:10])):] # its own tag goes
         frame = lambda fid, text: fid.encode() + len(b"\x03" + text.encode()).to_bytes(4, "big") + b"\0\0" + b"\x03" + text.encode() # UTF-8, ID3v2.4
-        body = frame("TIT2", f"Limbus - {name}") + frame("TPE1", "Limbus") + frame("TALB", "Limbus OST")
+        body = frame("TIT2", name) + frame("TPE1", "Limbus") + frame("TALB", "Limbus OST")
         size = bytes((len(body) >> (7 * (3 - i))) & 0x7F for i in range(4))
         (out / "ost" / f"{name.lower()}.mp3").write_bytes(b"ID3\x04\0\0" + size + body + data)
     shutil.copy(root / "telegram" / "privacy.html", out / "privacy.html") # the privacy policy Google Play links to

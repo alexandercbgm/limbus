@@ -161,12 +161,14 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 /* rings spreading from stations: plain round boxes in a layer under the scheme, grown and faded on the graphics card alone
    (an SVG shape's transform is laid out again every frame; a box's is not) */
 .map-scroll { position: relative; } #map { position: relative; }
-.map-rings { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 1; } /* over the lines and their casing */
+.map-under { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 0; overflow: visible; } /* casings and shadows */
+.map-rings { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 1; } /* over the casings, under the lines and stations */
+.map-scroll #map { z-index: 2; }
 .map-rings i { --tilt: rotate(0deg); position: absolute; box-sizing: border-box; border-radius: 50%; border-style: solid; opacity: 0; will-change: transform, opacity; }
 .map-rings .out { animation: ringout 2.4s linear infinite; } .map-rings .breath { animation: ringpulse 2.4s linear infinite; }
 .map-rings .split { --tilt: rotate(-45deg); } /* gold above, lilac below: two borders each, turned an eighth */
-@keyframes ringout { from { transform: var(--tilt) scale(1); opacity: 0.8; } to { transform: var(--tilt) scale(1.667); opacity: 0; } } /* r 24 to 40 */
-@keyframes ringpulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.18); opacity: 0; } } /* r 24.5 to 29 and back */ /* under the pointer, on the station's circle itself (set from the script: a finger has no hover) */
+@keyframes ringout { from { transform: var(--tilt) scale(1); opacity: 0.8; } to { transform: var(--tilt) scale(1.818); opacity: 0; } } /* r 22 to 40 */
+@keyframes ringpulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.35); opacity: 0; } } /* r 20 to 27 and back */ /* under the pointer, on the station's circle itself (set from the script: a finger has no hover) */
 .map-tools { position: absolute; top: 12px; right: 14px; z-index: 1; display: flex; gap: 8px; }
 .map-tools .ibtn { border: 1px solid rgba(16, 36, 46, 0.22); border-radius: 4px; background: rgba(255, 255, 255, 0.75); cursor: pointer; }
 .map-tools .ibtn:hover { background: #ffffff; }
@@ -427,7 +429,7 @@ html.night, .night body { background: #03060d; }
   box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.16), 0 30px 80px -20px rgba(0, 0, 0, 0.8); }
 .night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; }
 .night #map circle[fill="#ffffff"], .night #map circle[fill="#fffaf0"], .night #map rect[fill="#fffaf0"] { fill: #0c1628; }
-.night #map circle.casing { fill: #08101e; }
+.night .map-under circle.casing { fill: #08101e; } .night .map-under [stroke="#ffffff"] { stroke: #08101e; }
 .night #map circle[fill="#e6ecee"] { fill: #18233a; }
 .night #map circle.ring[fill="#10242e"] { fill: #dff6ff; } /* a finished station: lit, as it is dark by day */
 .night #map path[stroke="#10242e"] { stroke: #dff6ff; } .night #map path[stroke="#ffffff"] { stroke: #0c1628; }
@@ -571,7 +573,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       </div>
       <div class="credit version">v__LIMBUS_VERSION__</div>
       <div class="credit">Claude Game Studio</div>
-      <div class="map-scroll"><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
+      <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
   </div>
 </section>
@@ -5583,7 +5585,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let mapRings = [];
   function placeRings() {
     const svg = $("map"), layer = $("mapRings"), ctm = svg.getScreenCTM(); if (!ctm) return;
-    const box = layer.getBoundingClientRect(), k = ctm.a;
+    const box = layer.getBoundingClientRect(), k = ctm.a, mb = svg.getBoundingClientRect(), und = $("mapUnder");
+    und.style.left = (mb.left - box.left) + "px"; und.style.top = (mb.top - box.top) + "px"; und.style.width = mb.width + "px"; und.style.height = mb.height + "px";
     layer.innerHTML = mapRings.map(g => {
       const x = ctm.e + g.x * k - box.left, y = ctm.f + g.y * ctm.d - box.top, r = g.r * k, b = Math.max(1, g.w * k);
       const split = g.stroke.startsWith("url("), color = split ? `${LINE_GOLD} ${LINE_GOLD} ${LINE_BR} ${LINE_BR}` : g.stroke;
@@ -5600,19 +5603,20 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const pt = id => byId(id).map;
     const poly = pts => pts.map(([x, y]) => `${x},${y}`).join(" ");
     let out = `<defs><linearGradient id="firstRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="${LINE_GOLD}"/><stop offset="0.5" stop-color="${LINE_BR}"/></linearGradient></defs>`;
+    let under = "", stationCasings = "";
     const casing = (shape, w) => shape.replace(/stroke="[^"]*"/, 'stroke="#ffffff"').replace(/stroke-width="([\d.]+)"/, (m, x) => `stroke-width="${+x + w}"`).replace(/ stroke-dasharray="[^"]*"| opacity="[^"]*"/g, "");
     // main line, station to station; unbuilt stretches are dotted
     for (let i = 0; i < MAIN_LINE.length - 1; i++) {
       const a = pt(MAIN_LINE[i]), b = pt(MAIN_LINE[i + 1]), built = byId(MAIN_LINE[i + 1]).playable;
       const onArc = ARC.includes(MAIN_LINE[i]) && ARC.includes(MAIN_LINE[i + 1]);
       const ln = `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${onArc ? LINE_ARC : LINE_MAIN}" stroke-width="8" stroke-linecap="round"${built ? "" : ' stroke-dasharray="1 13" opacity="0.6"'}/>`;
-      out += (built ? casing(ln, 5) : "") + ln; // a white casing, as on a metro map
+      if (built) under += casing(ln, 5); out += ln; // a white casing, as on a metro map, in the layer under the rest
     }
     // transfers and dead-end branches, each with its price on the longest segment
     for (const ln of MAP_LINES) {
       const to = byId(ln.to), color = ln.kind === "transfer" ? LINE_TR : ln.kind === "line" ? LINE_MAIN : ln.kind === "tao" ? LINE_TAO : ln.kind === "gift" ? LINE_GOLD : LINE_BR, built = to.playable || to.depot || to.gift;
       const pl = `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
-      out += (built ? casing(pl, 5) : "") + pl;
+      if (built) under += casing(pl, 5); out += pl;
       const cost = ln.kind === "transfer" ? to.req.transfer.cost : to.req.fare || to.req.toll;
       if (!cost || ln.kind === "branch") continue; // a dead end's fare is on its sheet, not on the line
       let best = 0, mx = 0, my = 0;
@@ -5627,7 +5631,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         `<text x="${5}" text-anchor="middle" dy="4.5" font-family="JetBrains Mono, monospace" font-weight="700" font-size="11.5" fill="${INK}">${esc(txt)}</text></g>`;
     }
     mapRings = []; // the rings spreading from stations, placed in their own layer once the scheme is drawn (placeRings)
-    const ring = (p, stroke, w, d) => { mapRings.push({ x: p.x, y: p.y, r: 24, w, stroke, d, kind: "out" }); return ""; };
+    const ring = (p, stroke, w, d) => { mapRings.push({ x: p.x, y: p.y, r: 22, w, stroke, d, kind: "out" }); return ""; };
     for (const lv of LEVELS) {
       const p = lv.map, st = stationStatus(lv), first = lv.id === "initium" && !progress.rode; // where a newcomer starts
       const hub = !!HUB_RING[lv.id]; // where two lines meet, or a dead-end branch leaves
@@ -5646,8 +5650,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
       if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += ring(p, lv.gift ? LINE_GOLD : LINE_BR, 2.5, d); // rings round the depot till the first purchase
       if (first) for (const d of [0, 1.2]) out += ring(p, "url(#firstRing)", 2.5, d); // till the first ride, as round the depot
-      else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 24.5, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
-      out += `<circle cx="${p.x}" cy="${p.y + 1.8}" r="27.2" fill="${INK}" opacity="0.06"/><circle cx="${p.x}" cy="${p.y + 1.2}" r="26" fill="${INK}" opacity="0.1"/><circle class="casing" cx="${p.x}" cy="${p.y}" r="25.5" fill="#ffffff"/>`; // the lines' white casing round the station too // a soft shadow under the station, lifting it off the card (drawn, not filtered: cheap to repaint)
+      else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 20, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
+      under += `<circle cx="${p.x}" cy="${p.y + 1.8}" r="27.2" fill="${INK}" opacity="0.06"/><circle cx="${p.x}" cy="${p.y + 1.2}" r="26" fill="${INK}" opacity="0.1"/>`; // its soft shadow
+      stationCasings += `<circle class="casing" cx="${p.x}" cy="${p.y}" r="25.5" fill="#ffffff"/>`; // the lines' casing round the station, one with theirs // a soft shadow under the station, lifting it off the card (drawn, not filtered: cheap to repaint)
       if (hub && lv.id === "initium") out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/><path d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
       else if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
       out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
@@ -5657,7 +5662,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "gift" ? LINE_GOLD : st === "open" || st === "opened" || st === "locked" ? LINE_MAIN : "#7a8d95"}">${tag.toUpperCase()}</text>`;
       out += `</g>`;
     }
-    svg.innerHTML = out; document.documentElement.classList.add("mapready"); placeRings();
+    svg.innerHTML = out; document.documentElement.classList.add("mapready");
+    // under the rings: the stations' shadows, then every casing, the lines' and the stations' as one, so none crosses another
+    const und = $("mapUnder"); und.setAttribute("viewBox", svg.getAttribute("viewBox")); und.innerHTML = under + stationCasings;
+    placeRings();
     svg.querySelectorAll(".station").forEach(g => {
       const open = e => openSheet(byId(g.dataset.id), false, e && e.clientX !== undefined ? e : g.getBoundingClientRect());
       g.addEventListener("click", e => { if (mapPress === "off") { mapPress = null; return; } mapPress = null; open(e); }); // a press dragged off the station opens nothing

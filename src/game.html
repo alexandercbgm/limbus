@@ -149,12 +149,12 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   padding-left: max(16px, var(--safe-left, env(safe-area-inset-left, 0px))); padding-right: max(16px, var(--safe-right, env(safe-area-inset-right, 0px))); }
 .m-head { -webkit-user-select: none; user-select: none; display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
 .logo { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 7vw, 48px); letter-spacing: 0.22em; line-height: 1; margin: 0; }
-.logo span { color: #1d6f8f; }
+.logo span { color: #1287b5; }
 /* the bank is a readout, not a button: a pale plate with dark text */
 .bank { font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 4px; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; display: flex; gap: 8px; align-items: center; }
 .star { display: inline-block; width: 1.1em; height: 1.1em; margin-left: 0.35em; vertical-align: -0.17em; fill: currentColor; }
 .gem { display: inline-block; height: 1.15em; width: 0.6em; vertical-align: -0.2em; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; flex: none; }
-.bank b { font-size: inherit; color: #1287b5; font-variant-numeric: tabular-nums; }
+.bank b { font-size: inherit; color: #0c6f99; font-variant-numeric: tabular-nums; }
 .map-card { position: relative; background: var(--frost); border: 1px solid var(--edge); border-radius: 6px; box-shadow: 0 18px 50px rgba(16, 36, 46, 0.12); padding: 14px 10px; }
 #map { display: block; width: 100%; height: auto; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* a drag across the scheme selects no names */
 .station { cursor: pointer; outline: none; }
@@ -223,7 +223,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .arm { font: 700 13px var(--mono); padding: 8px 11px; border-radius: 4px; border: 0; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; cursor: pointer; }
 .arm:hover { background: rgba(255, 255, 255, 0.85); }
 .arm[aria-pressed="true"] { background: #10242e; box-shadow: none; color: #f4fbfc; }
-.arm b { color: #1287b5; }
+.arm b { color: #0c6f99; }
 .arm[aria-pressed="true"] b { color: #4fc8f0; }
 /* the bank and the cannons stand the same height side by side */
 .bank, .arm { box-sizing: border-box; height: 38px; display: inline-flex; align-items: center; }

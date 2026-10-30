@@ -657,7 +657,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.45</div>
+      <div class="credit version">v1.0.46</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -3762,6 +3762,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const domeEdgeGeo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 40 }, (_, i) => new THREE.Vector3(Math.cos(i / 40 * TAU) * 0.97, Math.sin(i / 40 * TAU) * 0.97, 0)));
   const domeEdgeMat = new THREE.LineBasicMaterial({ color: 0xffffff }), domeGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xffa020, transparent: true, opacity: 0.28, depthWrite: false });
   const domeFaceMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.3, roughness: 0.35, metalness: 0.2 });
+  // a pressed one is one flat green whatever lights it and however far off it is (lit and fogged, it came out a different green each time)
+  const domePressedMat = new THREE.MeshBasicMaterial({ color: 0x40e890, fog: false });
   // one iris leaf: a wedge whose two edges curve the same way, a spiral arm, so the six of them meet edge to edge
   // the yin-yang iris: two halves split along the S, each with the other's eye; they turn all the time and
   // part sideways behind the bulkhead when the gate opens
@@ -3906,7 +3908,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function pressButton(bt) {
     if (bt.pressed) return;
-    bt.pressed = true; bt.alive = false; bt.cap.material = Array.isArray(bt.cap.material) ? [frameMat, pressedMat, frameMat] : pressedMat; if (bt.glow.material === domeGlow) bt.glow.visible = false; bt.glow.material = pressedGlow; bt.spin = 14; bt.prop.traverse(m => { if (m.isMesh) m.material = pressedMat; });
+    bt.pressed = true; bt.alive = false; bt.cap.material = Array.isArray(bt.cap.material) ? [frameMat, domePressedMat, frameMat] : pressedMat; if (bt.glow.material === domeGlow) bt.glow.visible = false; bt.glow.material = pressedGlow; bt.spin = 14; bt.prop.traverse(m => { if (m.isMesh) m.material = pressedMat; });
     Sound.clink(); Sound.tone(520, 0.1, 0.1, "square", 0, 880); addScore(10);
     const g = bt.gate;
     if (g.buttons.every(b => b.pressed)) { g.opening = true; balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); Sound.tone(180, 0.5, 0.12, "sawtooth", 0, 90); }

@@ -33,7 +33,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.6.0";
+const BOT_VERSION = "1.6.1";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -96,6 +96,15 @@ async function speaker(env, user) {
   const rec = JSON.parse(await env.USERS.get("u:" + user.id) || "null");
   return rec && rec.choice ? { ...user, language_code: rec.choice } : user;
 }
+// a player who chose a language with /language has the commands of their own chat, which /setup does not reach: a new list
+// (COMMANDS_VERSION) is set there again on their next message
+const COMMANDS_VERSION = 2;
+async function syncCommands(env, chat, id) {
+  const key = "u:" + id, rec = JSON.parse(await env.USERS.get(key) || "null");
+  if (!rec || !rec.choice || rec.cmds === COMMANDS_VERSION) return;
+  await tg(env, "setMyCommands", { commands: commands(rec.choice === "ru"), scope: { type: "chat", chat_id: chat } });
+  await env.USERS.put(key, JSON.stringify({ ...rec, cmds: COMMANDS_VERSION }));
+}
 // the commands under the input field and the Play button beside it, in a language: for everyone by default, or for one chat
 const commands = r => r
   ? [{ command: "play", description: "Играть" }, { command: "trailer", description: "Трейлер" }, { command: "ost", description: "Саундтрек" }, { command: "buy", description: "Кристаллы для Арсенала" }, { command: "support", description: "Написать автору" }, { command: "language", description: "Язык" }]
@@ -105,7 +114,7 @@ async function onButton(q, env) {
   const m = /^lang:(ru|en)$/.exec(q.data || "");
   if (!m || !q.message) return tg(env, "answerCallbackQuery", { callback_query_id: q.id });
   const key = "u:" + q.from.id, rec = JSON.parse(await env.USERS.get(key) || "null") || { name: q.from.first_name || "", lang: q.from.language_code || "", sub: true, t: Date.now() };
-  await env.USERS.put(key, JSON.stringify({ ...rec, choice: m[1] }));
+  await env.USERS.put(key, JSON.stringify({ ...rec, choice: m[1], cmds: COMMANDS_VERSION })); // the commands set just below
   const r = m[1] === "ru", chat = q.message.chat.id;
   await tg(env, "setMyCommands", { commands: commands(r), scope: { type: "chat", chat_id: chat } });
   await tg(env, "setChatMenuButton", { chat_id: chat, menu_button: menuButton(env, r) });
@@ -205,7 +214,7 @@ const TRAILER_VERSION = 3;
 async function sendTrailer(env, chat, from) {
   const lang = ru(from) ? "ru" : "en", key = `trailer:${lang}:${TRAILER_VERSION}`, known = await env.USERS.get(key);
   const msg = { chat_id: chat, width: 1280, height: 720, duration: 40, supports_streaming: true,
-    caption: T(from, "Трейлер Limbus. Посмотреть ещё раз — /trailer", "The Limbus trailer. Watch it again with /trailer") };
+    caption: T(from, "Посмотреть ещё раз /trailer", "Watch it again /trailer") };
   if (known) { const r = await tg(env, "sendVideo", { ...msg, video: known }); if (r.ok) return r; }
   const r = await tg(env, "sendVideo", { ...msg, video: `${env.GAME_URL}minis/trailer.${lang}.mp4?v=${TRAILER_VERSION}` });
   if (r.ok && r.result.video) await env.USERS.put(key, r.result.video.file_id);
@@ -227,7 +236,7 @@ async function sendOst(env, chat, from) {
   let r;
   for (const [g, list] of groups.entries()) {
     const media = (byId) => list.map(([name, stem], i) => ({ type: "audio", media: byId ? known[g * 6 + i] : `${env.GAME_URL}music/${stem}.mp3?v=${OST_VERSION}`, title: `Limbus - ${name}`, performer: "Limbus",
-      ...(g === groups.length - 1 && i === list.length - 1 ? { caption: T(from, "Саундтрек Limbus. Получить ещё раз — /ost", "The Limbus soundtrack. Get it again with /ost") } : {}) }));
+      ...(g === groups.length - 1 && i === list.length - 1 ? { caption: T(from, "Получить ещё раз /ost", "Get it again /ost") } : {}) }));
     r = known ? await tg(env, "sendMediaGroup", { chat_id: chat, media: media(true) }) : null;
     if (!r || !r.ok) r = await tg(env, "sendMediaGroup", { chat_id: chat, media: media(false) });
     if (!r.ok) return r;
@@ -243,7 +252,7 @@ async function onUpdate(u, env) {
   const msg = u.message; if (!msg || !msg.from || msg.chat.type !== "private") return;
   const chat = msg.chat.id, text = msg.text || "", owner = String(msg.from.id) === String(env.OWNER_ID);
   const from = await speaker(env, msg.from); // in the language they chose with /language, else their Telegram's
-  await seen(env, msg.from.id);
+  await seen(env, msg.from.id); await syncCommands(env, chat, msg.from.id);
 
   if (msg.successful_payment) {
     const sp = msg.successful_payment, pk = PACKS[sp.invoice_payload] || {};

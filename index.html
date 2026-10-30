@@ -236,7 +236,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .map-card { position: relative; background: var(--frost); border: 1px solid var(--edge); border-radius: 6px; box-shadow: 0 18px 50px rgba(16, 36, 46, 0.12); padding: 14px 10px; }
 #map { display: block; width: 100%; height: auto; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* a drag across the scheme selects no names */
 .station { cursor: pointer; outline: none; }
-.station .hit { fill: transparent; }
+.station .hit { fill: transparent; } .station text { pointer-events: none; } /* the circle answers a tap, its name does not */
 .station .ring, .station .hub { transform-box: view-box; }
 /* under the pointer a station's outer rim thickens outward only, its inside edge where it was: scaled by 1.04 with a wider
    stroke, so that edge stays put (a lone circle: 20.5 - 5/2 = 18 = 1.04 * (20.5 - 6.38/2); a transfer's rim: 19 = 1.04 * (21 - 5.46/2)) */
@@ -655,7 +655,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.37</div>
+      <div class="credit version">v1.0.38</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -5741,7 +5741,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         L[0] += L[2] === "end" ? -w / 2 : w / 2; L[2] = "middle";
       }
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS(st)}">`;
-      out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
+      out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="28"/>`;
       if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += ring(p, lv.gift ? LINE_GOLD : LINE_BR, 2.5, d); // rings round the depot till the first purchase
       if (first) for (const d of [0, 1.2]) out += ring(p, "url(#firstRing)", 2.5, d); // till the first ride, as round the depot
       else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 20, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
@@ -6207,7 +6207,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
     return LEVELS.find(l => l.map && Math.hypot(pt.x - l.map.x, pt.y - l.map.y) <= r) || null;
   };
-  const STATION_R = 24, STATION_HIT = 34; // the circle with its rim; the touch area round it
+  const STATION_R = 24, STATION_HIT = 28; // the circle with its rim; the touch area round it
   const hot = lv => $("map").querySelectorAll(".station").forEach(g => g.classList.toggle("hot", !!lv && g.dataset.id === lv.id));
   $("map").addEventListener("pointerdown", e => { mapPress = stationAt(e, STATION_HIT); hot(stationAt(e, STATION_R)); });
   $("map").addEventListener("pointermove", e => hot(e.pointerType === "mouse" || mapPress ? stationAt(e, STATION_R) : null));

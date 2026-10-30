@@ -24,6 +24,7 @@
 //   POST /redeem      the APK or the page trades a code for its crystals, once
 //   GET  /bot         the bot's username, for the Emptio station outside Telegram
 //   GET  /setup       sets the bot's webhook, its commands and its menu button, once: /setup?key=WEBHOOK_SECRET
+//                     (and, a batch a minute, the commands of the chats that chose a language with /language)
 //
 // Settings (Worker → Settings → Variables and Secrets):
 //   BOT_TOKEN       secret: the token from @BotFather
@@ -33,7 +34,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.6.1";
+const BOT_VERSION = "1.6.2";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -64,7 +65,7 @@ export default {
     return new Response("Limbus bot");
   },
   // the cron trigger carries a broadcast on, a batch a minute
-  async scheduled(ev, env, ctx) { ctx.waitUntil(runBroadcast(env).then(() => runReminders(env))); },
+  async scheduled(ev, env, ctx) { ctx.waitUntil(runCommands(env).then(busy => busy || runBroadcast(env).then(() => runReminders(env)))); }, // the commands first, a run to themselves
 };
 
 // ---------- Telegram ----------
@@ -96,9 +97,10 @@ async function speaker(env, user) {
   const rec = JSON.parse(await env.USERS.get("u:" + user.id) || "null");
   return rec && rec.choice ? { ...user, language_code: rec.choice } : user;
 }
-// a player who chose a language with /language has the commands of their own chat, which /setup does not reach: a new list
-// (COMMANDS_VERSION) is set there again on their next message
-const COMMANDS_VERSION = 2;
+// a player who chose a language with /language has the commands of their own chat, which setMyCommands for everyone does not
+// reach: /setup sets the new list (COMMANDS_VERSION) in each such chat, a batch a minute on the cron (runCommands), and a
+// player who writes first gets it on that message
+const COMMANDS_VERSION = 3;
 async function syncCommands(env, chat, id) {
   const key = "u:" + id, rec = JSON.parse(await env.USERS.get(key) || "null");
   if (!rec || !rec.choice || rec.cmds === COMMANDS_VERSION) return;
@@ -107,8 +109,8 @@ async function syncCommands(env, chat, id) {
 }
 // the commands under the input field and the Play button beside it, in a language: for everyone by default, or for one chat
 const commands = r => r
-  ? [{ command: "play", description: "Играть" }, { command: "trailer", description: "Трейлер" }, { command: "ost", description: "Саундтрек" }, { command: "buy", description: "Кристаллы для Арсенала" }, { command: "support", description: "Написать автору" }, { command: "language", description: "Язык" }]
-  : [{ command: "play", description: "Play" }, { command: "trailer", description: "Trailer" }, { command: "ost", description: "Soundtrack" }, { command: "buy", description: "Crystals for Armamentarium" }, { command: "support", description: "Write to the author" }, { command: "language", description: "Language" }];
+  ? [{ command: "play", description: "Играть" }, { command: "buy", description: "Кристаллы для Арсенала" }, { command: "support", description: "Написать автору" }, { command: "language", description: "Язык" }, { command: "trailer", description: "Трейлер" }, { command: "ost", description: "Саундтрек" }]
+  : [{ command: "play", description: "Play" }, { command: "buy", description: "Crystals for Armamentarium" }, { command: "support", description: "Write to the author" }, { command: "language", description: "Language" }, { command: "trailer", description: "Trailer" }, { command: "ost", description: "Soundtrack" }];
 const menuButton = (env, r) => ({ type: "web_app", text: r ? "Играть" : "Play", web_app: { url: env.GAME_URL } });
 async function onButton(q, env) {
   const m = /^lang:(ru|en)$/.exec(q.data || "");
@@ -236,7 +238,7 @@ async function sendOst(env, chat, from) {
   let r;
   for (const [g, list] of groups.entries()) {
     const media = (byId) => list.map(([name, stem], i) => ({ type: "audio", media: byId ? known[g * 6 + i] : `${env.GAME_URL}music/${stem}.mp3?v=${OST_VERSION}`, title: `Limbus - ${name}`, performer: "Limbus",
-      ...(g === groups.length - 1 && i === list.length - 1 ? { caption: T(from, "Получить ещё раз /ost", "Get it again /ost") } : {}) }));
+      ...(g === groups.length - 1 && i === list.length - 1 ? { caption: T(from, "Послушать ещё раз /ost", "Listen again /ost") } : {}) }));
     r = known ? await tg(env, "sendMediaGroup", { chat_id: chat, media: media(true) }) : null;
     if (!r || !r.ok) r = await tg(env, "sendMediaGroup", { chat_id: chat, media: media(false) });
     if (!r.ok) return r;
@@ -451,6 +453,26 @@ async function runBroadcast(env) {
   } else await env.USERS.put("job", JSON.stringify(job));
 }
 
+// the new commands in every chat that has its own (its language chosen with /language): started by /setup, carried on by the cron
+async function runCommands(env) {
+  const job = JSON.parse(await env.USERS.get("cmdjob") || "null"); if (!job) return false;
+  let budget = PER_RUN;
+  while (budget > 2) {
+    if (!job.keys.length) {
+      if (job.cursor === "done") break;
+      const l = await env.USERS.list({ prefix: "u:", cursor: job.cursor || undefined, limit: 200 }); budget--;
+      job.keys = l.keys.map(k => k.name); job.cursor = l.list_complete ? "done" : l.cursor;
+      if (!job.keys.length) continue;
+    }
+    const key = job.keys.shift(), rec = JSON.parse(await env.USERS.get(key) || "null"); budget--;
+    if (!rec || !rec.choice || rec.cmds === COMMANDS_VERSION) continue;
+    await tg(env, "setMyCommands", { commands: commands(rec.choice === "ru"), scope: { type: "chat", chat_id: key.slice(2) } });
+    await env.USERS.put(key, JSON.stringify({ ...rec, cmds: COMMANDS_VERSION })); budget -= 2;
+  }
+  if (job.cursor === "done" && !job.keys.length) await env.USERS.delete("cmdjob"); else await env.USERS.put("cmdjob", JSON.stringify(job));
+  return true;
+}
+
 // ---------- once: the webhook, the commands and the menu button ----------
 async function setup(url, env) {
   if (url.searchParams.get("key") !== env.WEBHOOK_SECRET) return new Response("key?", { status: 403 });
@@ -471,6 +493,7 @@ async function setup(url, env) {
   }
   for (const lc of ["en"]) out["commands_" + lc] = await tg(env, "setMyCommands", { language_code: lc, commands: commands(false) }); // over the old Russian-default list
   out.menu = await tg(env, "setChatMenuButton", { menu_button: menuButton(env, false) }); // a chat that has spoken to the bot gets its own, in its language
+  await env.USERS.put("cmdjob", JSON.stringify({ cursor: null, keys: [] })); out.chats = "the chats with a language of their own get the new commands over the next minutes";
   return Response.json(out, { headers: { "content-type": "application/json; charset=utf-8" } });
 }
 

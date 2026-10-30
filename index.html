@@ -658,7 +658,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.58</div>
+      <div class="credit version">v1.0.59</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -818,7 +818,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.58`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.59`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -4582,10 +4582,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     try {
       const p = JSON.parse(str || "{}");
       const weapons = Object.assign({ ballista: true }, p.weapons || {});
-      return { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {}, t: p.t || 0,
+      const r = { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {}, t: p.t || 0,
         // anything bought at Armamentarium (older saves: a cannon other than the free ones, or an upgrade); the run of failed rides; the reminder turned off
         bought: p.bought || Object.keys(weapons).some(id => id !== "ballista" && id !== "ferrum") || Object.values(p.up || {}).some(v => v > 0), fails: p.fails || 0, noNag: !!p.noNag, play: p.play || [],
         rode: p.rode || Object.keys(p.done || {}).length > 0 }; // set off at least once (older saves: any level done)
+      if (r.bought) r.open.armamentarium = true; // something bought there: its entry is paid (older saves bought before it had one)
+      return r;
     } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {}, t: 0, bought: false, fails: 0, noNag: false, play: [], rode: false }; }
   }
   function loadProgress() { let str = null; try { str = localStorage.getItem(STORE); } catch (e) { /* storage unavailable */ } return parseProgress(str); }

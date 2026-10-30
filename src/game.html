@@ -4496,10 +4496,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     try {
       const p = JSON.parse(str || "{}");
       const weapons = Object.assign({ ballista: true }, p.weapons || {});
-      return { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {}, t: p.t || 0,
+      const r = { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {}, t: p.t || 0,
         // anything bought at Armamentarium (older saves: a cannon other than the free ones, or an upgrade); the run of failed rides; the reminder turned off
         bought: p.bought || Object.keys(weapons).some(id => id !== "ballista" && id !== "ferrum") || Object.values(p.up || {}).some(v => v > 0), fails: p.fails || 0, noNag: !!p.noNag, play: p.play || [],
         rode: p.rode || Object.keys(p.done || {}).length > 0 }; // set off at least once (older saves: any level done)
+      if (r.bought) r.open.armamentarium = true; // something bought there: its entry is paid (older saves bought before it had one)
+      return r;
     } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {}, t: 0, bought: false, fails: 0, noNag: false, play: [], rode: false }; }
   }
   function loadProgress() { let str = null; try { str = localStorage.getItem(STORE); } catch (e) { /* storage unavailable */ } return parseProgress(str); }

@@ -155,7 +155,16 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 #map { display: block; width: 100%; height: auto; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* a drag across the scheme selects no names */
 .station { cursor: pointer; outline: none; }
 .station .hit { fill: transparent; }
-.station.hot .ring { stroke-width: 7; } /* under the pointer, on the station's circle itself (set from the script: a finger has no hover) */
+.station.hot .ring { stroke-width: 7; }
+/* rings spreading from stations: plain round boxes in a layer under the scheme, grown and faded on the graphics card alone
+   (an SVG shape's transform is laid out again every frame; a box's is not) */
+.map-scroll { position: relative; } #map { position: relative; }
+.map-rings { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+.map-rings i { --tilt: rotate(0deg); position: absolute; box-sizing: border-box; border-radius: 50%; border-style: solid; opacity: 0; will-change: transform, opacity; }
+.map-rings .out { animation: ringout 2.4s linear infinite; } .map-rings .breath { animation: ringpulse 2.4s linear infinite; }
+.map-rings .split { --tilt: rotate(-45deg); } /* gold above, lilac below: two borders each, turned an eighth */
+@keyframes ringout { from { transform: var(--tilt) scale(1); opacity: 0.8; } to { transform: var(--tilt) scale(1.818); opacity: 0; } } /* r 22 to 40 */
+@keyframes ringpulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.35); opacity: 0; } } /* r 20 to 27 and back */ /* under the pointer, on the station's circle itself (set from the script: a finger has no hover) */
 .map-tools { position: absolute; top: 12px; right: 14px; z-index: 1; display: flex; gap: 8px; }
 .map-tools .ibtn { border: 1px solid rgba(16, 36, 46, 0.22); border-radius: 4px; background: rgba(255, 255, 255, 0.75); cursor: pointer; }
 .map-tools .ibtn:hover { background: #ffffff; }
@@ -349,6 +358,8 @@ video.mini { background: none; object-fit: contain; }
 @media (orientation: landscape) and (max-height: 430px) {
   .sheet .panel { padding: 10px 14px; column-gap: 14px; grid-template-columns: minmax(0, 34%) minmax(0, 1fr); }
   .sheet .feats { display: none; } /* the description says as much; the list would push the buttons off the screen */
+  .sheet .btns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; } .sheet .btns > .btnrow, .sheet .btns > .btnrow + * { grid-column: 1 / -1; } /* the two buttons side by side */
+  .sheet .cta, .sheet .ghost { padding-block: 9px; } .sheet .reqs { margin: 6px 0 8px; } .sheet .reqs:empty + .btns { margin-top: 10px; }
   .credit { font-size: 7.5px; right: 9px; bottom: 5px; letter-spacing: 0.1em; } .credit.version { right: auto; left: 9px; }
   /* the pause, the end of a ride and the arrival: a smaller title, the figures in one row, the buttons side by side */
   #pause .panel, #over .panel, #win .panel, #nag .panel { padding: 12px 18px; } #nag h1 { font-size: 19px; } #nag .panel p { font-size: 12px; line-height: 1.38; } #nag .btns { grid-auto-flow: column; grid-auto-columns: 1fr; margin-top: 10px; }
@@ -365,12 +376,15 @@ video.mini { background: none; object-fit: contain; }
   #win .panel.end .btns { grid-template-columns: 1fr 1fr; }
   #pause .btns > *, #over .btns > *, #win .btns > * { padding-block: 9px; white-space: nowrap; }
 }
+@media (orientation: landscape) and (max-height: 380px) {
+  .sheet .eyebrow { display: none; } /* a phone's lowest screens: the station's kind is on the scheme already, the room goes to the text */
+}
 @media (orientation: landscape) and (max-height: 330px) {
   .sheet .panel p, .sheet .reqs li { font-size: 11px; line-height: 1.3; }
   .overlay.sheet { padding-block: calc(var(--safe-top, 0px) + 4px) 4px; }
-  .sheet .eyebrow { display: none; } .sheet .panel { grid-template-columns: minmax(0, 30%) minmax(0, 1fr); }
+  .sheet .eyebrow { display: none; } .sheet .panel { grid-template-columns: minmax(0, 27%) minmax(0, 1fr); }
   .sheet .eyebrow { margin-bottom: 2px; } .sheet .panel h1 { font-size: 18px; margin-bottom: 2px; }
-  .sheet .panel p, .sheet .feats, .sheet .reqs li { font-size: 11.5px; line-height: 1.35; }
+  .sheet .panel p, .sheet .feats, .sheet .reqs li { font-size: 11.5px; line-height: 1.3; }
   .sheet .feats { margin-top: 5px; } .sheet .reqs { margin: 6px 0 8px; gap: 3px; } .sheet .reqs:empty + .btns { margin-top: 8px; }
   .sheet .btns { grid-auto-flow: column; grid-auto-columns: 1fr; } .sheet .cta, .sheet .ghost { padding-block: 8px; }
   .sheet h1 small { display: inline; margin-left: 10px; }
@@ -450,7 +464,7 @@ video.mini { background: none; object-fit: contain; }
       </div>
       <div class="credit version">v__LIMBUS_VERSION__</div>
       <div class="credit">Claude Game Studio</div>
-      <div class="map-scroll"><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
+      <div class="map-scroll"><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
   </div>
 </section>
@@ -5352,10 +5366,12 @@ video.mini { background: none; object-fit: contain; }
     scene.add(g); renderer.compile(scene, camera); scene.remove(g); box.dispose();
     MATS = null;
   }
-  // resolution follows the frame rate: up to 3× pixels; under 45 fps it drops to 2×, under 30 fps to 1×
+  // resolution follows the frame rate: up to 3× pixels (2× on a phone); under 45 fps it drops to 2×, under 30 fps to 1×
   // (each after two slow stretches running), and climbs back a step on a fast screen with frames to spare
-  const DPR_MAX = Math.min(window.devicePixelRatio || 1, 3);
+  const SMALL = PHONE && Math.min(screen.width, screen.height) < 600; // a phone, not a tablet: on its small screen 2× pixels look as sharp as 3×, at under half the work (and heat)
+  const DPR_MAX = Math.min(window.devicePixelRatio || 1, SMALL ? 2 : 3);
   let dpr = DPR_MAX, fpsT = 0, fpsN = 0, slow45 = 0, slow30 = 0;
+  renderer.setPixelRatio(dpr);
   function adaptResolution(ms) {
     if (state !== "play") { fpsT = fpsN = slow45 = slow30 = 0; return; } // each run is judged on its own frames
     fpsT += ms; fpsN++;
@@ -5455,6 +5471,18 @@ video.mini { background: none; object-fit: contain; }
   const measure = document.createElement("canvas").getContext("2d");
   function textW(font, s, spacing) { measure.font = font; return measure.measureText(s).width + spacing * s.length; }
   if (document.fonts) document.fonts.ready.then(() => { if (state === "menu") renderMap(); }); // re-measure the labels once the fonts are in
+  // the rings in their layer, over their stations wherever the scheme is drawn and however large (again when it changes size)
+  let mapRings = [];
+  function placeRings() {
+    const svg = $("map"), layer = $("mapRings"), ctm = svg.getScreenCTM(); if (!ctm) return;
+    const box = layer.getBoundingClientRect(), k = ctm.a;
+    layer.innerHTML = mapRings.map(g => {
+      const x = ctm.e + g.x * k - box.left, y = ctm.f + g.y * ctm.d - box.top, r = g.r * k, b = Math.max(1, g.w * k);
+      const split = g.stroke.startsWith("url("), color = split ? `${LINE_GOLD} ${LINE_GOLD} ${LINE_BR} ${LINE_BR}` : g.stroke;
+      return `<i class="${g.kind}${split ? " split" : ""}" style="left:${(x - r).toFixed(1)}px;top:${(y - r).toFixed(1)}px;width:${(2 * r).toFixed(1)}px;height:${(2 * r).toFixed(1)}px;border-width:${b.toFixed(2)}px;border-color:${color};animation-delay:${g.d}s"></i>`;
+    }).join("");
+  }
+  if (window.ResizeObserver) new ResizeObserver(() => placeRings()).observe($("map"));
   function renderMap() {
     const svg = $("map");
     mapW = svg.parentElement.clientWidth;
@@ -5490,6 +5518,8 @@ video.mini { background: none; object-fit: contain; }
         `<path d="${GEM_PATH}" transform="translate(${-bw / 2 + 13} 0) scale(0.75)" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linejoin="round"/>` +
         `<text x="${5}" text-anchor="middle" dy="4.5" font-family="JetBrains Mono, monospace" font-weight="700" font-size="11.5" fill="${INK}">${esc(txt)}</text></g>`;
     }
+    mapRings = []; // the rings spreading from stations, placed in their own layer once the scheme is drawn (placeRings)
+    const ring = (p, stroke, w, d) => { mapRings.push({ x: p.x, y: p.y, r: 22, w, stroke, d, kind: "out" }); return ""; };
     for (const lv of LEVELS) {
       const p = lv.map, st = stationStatus(lv), first = lv.id === "initium" && !progress.rode; // where a newcomer starts
       const hub = !!HUB_RING[lv.id]; // where two lines meet, or a dead-end branch leaves
@@ -5506,9 +5536,9 @@ video.mini { background: none; object-fit: contain; }
       }
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS(st)}">`;
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
-      if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${lv.gift ? LINE_GOLD : LINE_BR}" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // rings round the depot till the first purchase
-      if (first) for (const d of [0, 1.2]) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="url(#firstRing)" stroke-width="2.5" opacity="0"><animate attributeName="r" values="22;40" dur="2.4s" begin="${d}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.8;0" dur="2.4s" begin="${d}s" repeatCount="indefinite"/></circle>`; // till the first ride, as round the depot
-      else if (st === "open" && lv.playable) out += `<circle cx="${p.x}" cy="${p.y}" r="24" fill="none" stroke="${LINE_MAIN}" stroke-width="2" opacity="0.5"><animate attributeName="r" values="20;27;20" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" repeatCount="indefinite"/></circle>`;
+      if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += ring(p, lv.gift ? LINE_GOLD : LINE_BR, 2.5, d); // rings round the depot till the first purchase
+      if (first) for (const d of [0, 1.2]) out += ring(p, "url(#firstRing)", 2.5, d); // till the first ride, as round the depot
+      else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 20, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
       out += `<circle cx="${p.x}" cy="${p.y}" r="23" fill="#ffffff" filter="url(#lift)"/>`; // a soft shadow under the station, lifting it off the card
       if (hub && lv.id === "initium") out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/><path d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
       else if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
@@ -5519,7 +5549,7 @@ video.mini { background: none; object-fit: contain; }
       out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "gift" ? LINE_GOLD : st === "open" || st === "opened" || st === "locked" ? LINE_MAIN : "#7a8d95"}">${tag.toUpperCase()}</text>`;
       out += `</g>`;
     }
-    svg.innerHTML = out; document.documentElement.classList.add("mapready");
+    svg.innerHTML = out; document.documentElement.classList.add("mapready"); placeRings();
     svg.querySelectorAll(".station").forEach(g => {
       const open = e => openSheet(byId(g.dataset.id), false, e && e.clientX !== undefined ? e : g.getBoundingClientRect());
       g.addEventListener("click", e => { if (mapPress === "off") { mapPress = null; return; } mapPress = null; open(e); }); // a press dragged off the station opens nothing
@@ -5577,7 +5607,7 @@ video.mini { background: none; object-fit: contain; }
     $("shDesc").textContent = lv.desc;
     $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead
     const reqs = [];
-    if (!lv.gift) {
+    if (!lv.gift && !isOpen(lv)) { // what opens it, while it is closed (once open, the line says nothing new)
       if (!req.after) reqs.push([true, T("Открыта с самого начала", "Open from the start")]);
       else if (lv.line === "branch") reqs.push([!!progress.done[req.after], T(`Ветка от станции ${byId(req.after).latin}: сначала пройти её`, `A branch off ${byId(req.after).latin}: finish that station first`)]);
       else reqs.push([!!progress.done[req.after] || (req.or && !!progress.done[req.or]), req.or ? T(`Пройти станцию ${byId(req.after).latin} или ${byId(req.or).latin}`, `Finish ${byId(req.after).latin} or ${byId(req.or).latin}`) : T(`Прямо: пройти станцию ${byId(req.after).latin}`, `Straight on: finish ${byId(req.after).latin}`)]);

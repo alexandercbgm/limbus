@@ -35,7 +35,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.6.4";
+const BOT_VERSION = "1.6.5";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -214,10 +214,11 @@ async function sendClip(env, msg, id) {
 // the game's trailer (minis/trailer.<ru|en>.mp4, 1280x720, 40 s) in their language: fetched by Telegram from its address the
 // first time, then sent again by the file_id Telegram gave back, kept in KV (a new trailer is a new TRAILER_VERSION)
 const TRAILER_VERSION = 3;
-const trailerCaption = from => T(from, "Посмотреть ещё раз: /trailer\nПослушать саундтрек: /ost", "Watch it again: /trailer\nListen to the soundtrack: /ost");
-async function sendTrailer(env, chat, from) {
+// the soundtrack's line only under the trailer /start sends, not under one asked for with /trailer
+const trailerCaption = (from, ost) => T(from, "Посмотреть ещё раз: /trailer", "Watch it again: /trailer") + (ost ? T(from, "\nПослушать саундтрек: /ost", "\nListen to the soundtrack: /ost") : "");
+async function sendTrailer(env, chat, from, ost) {
   const lang = ru(from) ? "ru" : "en", key = `trailer:${lang}:${TRAILER_VERSION}`, known = await env.USERS.get(key);
-  const msg = { chat_id: chat, width: 1280, height: 720, duration: 40, supports_streaming: true, caption: trailerCaption(from) };
+  const msg = { chat_id: chat, width: 1280, height: 720, duration: 40, supports_streaming: true, caption: trailerCaption(from, ost) };
   let r = known ? await tg(env, "sendVideo", { ...msg, video: known }) : null;
   if (!r || !r.ok) {
     r = await tg(env, "sendVideo", { ...msg, video: `${env.GAME_URL}minis/trailer.${lang}.mp4?v=${TRAILER_VERSION}` });
@@ -225,7 +226,7 @@ async function sendTrailer(env, chat, from) {
   }
   if (r.ok) { // which trailer this chat has, and where: /start looks for it there
     const ukey = "u:" + from.id, rec = JSON.parse(await env.USERS.get(ukey) || "null");
-    if (rec) await env.USERS.put(ukey, JSON.stringify({ ...rec, trailer: true, tv: TRAILER_VERSION, tm: r.result.message_id }));
+    if (rec) await env.USERS.put(ukey, JSON.stringify({ ...rec, trailer: true, tv: TRAILER_VERSION, tm: r.result.message_id, to: !!ost }));
   }
   return r;
 }
@@ -233,7 +234,7 @@ async function sendTrailer(env, chat, from) {
 // the trailer's caption to what it is answers "not modified" while it is there, "not found" once it is gone (a cleared chat)
 async function trailerThere(env, chat, from, rec) {
   if (!rec || rec.tv !== TRAILER_VERSION || !rec.tm) return false; // never sent, or an older trailer: the new one goes
-  const r = await tg(env, "editMessageCaption", { chat_id: chat, message_id: rec.tm, caption: trailerCaption(from) });
+  const r = await tg(env, "editMessageCaption", { chat_id: chat, message_id: rec.tm, caption: trailerCaption(from, rec.to) });
   return r.ok || /not modified/i.test(r.description || "");
 }
 
@@ -304,12 +305,12 @@ async function onUpdate(u, env) {
       }
       const rec = JSON.parse(await env.USERS.get("u:" + from.id) || "null");
       // the trailer, unless the current one is still up in the chat, before the level card with its Start button
-      if (!(await trailerThere(env, chat, from, rec))) await sendTrailer(env, chat, from);
+      if (!(await trailerThere(env, chat, from, rec))) await sendTrailer(env, chat, from, true);
       // the station they are up to on the way to the Light, as the game last told (Initium for a newcomer); a link's own level first
       return greet(env, chat, from, arg || await env.USERS.get("w:" + from.id) || "initium");
     }
     case "/play": return greet(env, chat, from, await env.USERS.get("w:" + from.id) || "initium"); // as /start: the station they are up to
-    case "/trailer": return sendTrailer(env, chat, from);
+    case "/trailer": return sendTrailer(env, chat, from, false);
     case "/ost": return sendOst(env, chat, from);
     case "/version": return tg(env, "sendMessage", { chat_id: chat, text: `v${BOT_VERSION}` });
     case "/language": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Выберите язык:", "Choose a language:"),

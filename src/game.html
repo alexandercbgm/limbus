@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Manrope:wght@400;600&family=JetBrains+Mono:wght@700&display=swap">
+<script>try { if (localStorage.getItem("limbus-theme") !== "day") document.documentElement.classList.add("night"); } catch (e) { document.documentElement.classList.add("night"); }</script>
 <style>
 /* Layout: full-bleed WebGL track; HUD pinned to the top edge; karma meter on the right edge; frosted panels centered for menus.
    The whole world recolors with the cart's karma, so the HUD flips between dark ink (light world) and light ink (dark world). */
@@ -395,6 +396,75 @@ video.mini { background: none; object-fit: contain; }
 .tc-num { font-family: var(--mono); font-size: 13px; letter-spacing: 0.3em; padding-left: 0.3em; }
 .tc-name { display: block; font-family: var(--display); font-weight: 700; font-size: clamp(34px, 10vw, 72px); letter-spacing: 0.24em; padding-left: 0.24em; margin: 6px 0; } /* the padding balances the spacing after the last letter, so short names sit centred */
 .tc-ru { font-size: 15px; letter-spacing: 0.08em; }
+
+/* ---- the gear's settings: a small card under the gear, in either theme ---- */
+.map-tools { align-items: flex-start; }
+.map-tools .ibtn svg.gear { fill: none; }
+.map-tools .ibtn.on { box-shadow: inset 0 0 0 1.5px #1d6f8f, 0 2px 6px -2px rgba(16, 36, 46, 0.14); }
+.gear-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: 3; min-width: 220px; padding: 6px; border-radius: 14px; display: grid; gap: 2px;
+  background: linear-gradient(180deg, #ffffff, #f4f9fb); color: #10242e;
+  box-shadow: 0 0 0 1px rgba(16, 36, 46, 0.08), 0 12px 32px -8px rgba(16, 36, 46, 0.28); animation: popin 0.14s ease-out; }
+@keyframes popin { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+.gp-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 6px 6px 6px 10px; min-height: 40px; box-sizing: border-box; border-radius: 9px; font: 600 13px var(--body); color: inherit; }
+.gp-label { display: inline-flex; align-items: center; gap: 8px; }
+.gp-label svg { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; } .gp-label svg.globe { fill: none; }
+.gp-link { width: 100%; border: 0; background: none; cursor: pointer; text-align: left; justify-content: flex-start; }
+.gp-link:hover { background: rgba(16, 36, 46, 0.05); } .gp-go { margin-left: auto; opacity: 0.45; padding-right: 6px; }
+.seg { display: inline-flex; padding: 2px; border-radius: 9px; background: rgba(16, 36, 46, 0.07); }
+.seg button { min-width: 40px; height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: #4c6470; font: 700 12px var(--mono); cursor: pointer; display: grid; place-items: center; }
+.seg button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.seg button[aria-pressed="true"] { background: #ffffff; color: #10242e; box-shadow: 0 1px 3px rgba(16, 36, 46, 0.18), 0 0 0 1px rgba(16, 36, 46, 0.06); }
+@media (orientation: landscape) and (max-height: 430px) { .gear-pop { top: calc(100% + 5px); min-width: 200px; padding: 4px; } .gp-row { min-height: 34px; padding-block: 3px; } .seg button { height: 26px; } }
+
+/* ---- night: the menu and the station sheets in dark glass and neon over a dark loop (minis/menu.night.mp4) ---- */
+html.night, .night body { background: #03060d; }
+.night .videobg .menu::before, .night.videobg .menu::before { background: radial-gradient(120% 80% at 50% 40%, rgba(3, 6, 13, 0) 40%, rgba(3, 6, 13, 0.55)); }
+.night .menu { color: #e6f4ff; }
+.night .logo { color: #eef8ff; text-shadow: 0 0 18px rgba(80, 200, 255, 0.5), 0 0 2px rgba(255, 255, 255, 0.5); }
+.night .logo span { color: #3cc9ec; }
+.night .map-card { background: linear-gradient(180deg, rgba(20, 34, 58, 0.78), rgba(8, 14, 28, 0.86));
+  box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.16), 0 30px 80px -20px rgba(0, 0, 0, 0.8); }
+.night #map line, .night #map polyline { filter: drop-shadow(0 0 4px currentColor); }
+.night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; }
+.night #map circle[fill="#ffffff"], .night #map circle[fill="#fffaf0"], .night #map rect[fill="#fffaf0"] { fill: #0c1628; }
+.night #map circle[fill="#e6ecee"] { fill: #18233a; }
+.night #map circle.ring[fill="#10242e"] { fill: #dff6ff; } /* a finished station: lit, as it is dark by day */
+.night #map path[stroke="#10242e"] { stroke: #dff6ff; } .night #map path[stroke="#ffffff"] { stroke: #0c1628; }
+.night #map text[fill="#10242e"] { fill: #eaf6ff; } .night #map text[fill="#4c6470"] { fill: #8fb0c8; }
+.night #map text[fill="#1d6f8f"] { fill: #4fd8f0; } .night #map text[fill="#7a8d95"] { fill: #6a86a0; }
+.night #map .ring { filter: drop-shadow(0 0 5px rgba(80, 200, 255, 0.45)); }
+.night .map-rings i { filter: drop-shadow(0 0 5px currentColor); }
+.night .bank, .night .arms, .night .map-tools .ibtn { background: rgba(14, 26, 46, 0.78); color: #dff3ff; box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2); }
+.night .map-tools .ibtn:hover { background: rgba(24, 40, 66, 0.9); }
+.night .map-tools .ibtn.on { box-shadow: inset 0 0 0 1.5px #3cc9ec, 0 0 12px rgba(60, 201, 236, 0.35); }
+.night .ibtn svg { fill: #dff3ff; stroke: #dff3ff; } .night .ibtn svg.gear, .night .gp-label svg.globe { fill: none; }
+.night .bank b, .night .arm b { color: #4fd8f0; } .night .arms .arm { color: #dff3ff; } .night .arms .arm:hover { background: rgba(160, 220, 255, 0.07); }
+.night .arms .arm[aria-pressed="true"] { background: #02060c; color: #e8fbff; box-shadow: inset 0 0 0 1.5px #3cc9ec, 0 0 12px rgba(60, 201, 236, 0.45); }
+.night .arms .arm[aria-pressed="true"] b { color: #3cc9ec; }
+.night .credit { color: #5d7890; }
+.night .gear-pop { background: linear-gradient(180deg, #13223c, #0a1426); color: #e6f4ff; box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.18), 0 0 0 1px rgba(120, 200, 255, 0.22), 0 16px 40px -8px rgba(0, 0, 0, 0.8); }
+.night .gp-link:hover { background: rgba(160, 220, 255, 0.07); }
+.night .seg { background: rgba(0, 0, 0, 0.35); } .night .seg button { color: #8fb0c8; }
+.night .seg button[aria-pressed="true"] { background: #02060c; color: #e8fbff; box-shadow: inset 0 0 0 1.5px #3cc9ec, 0 0 10px rgba(60, 201, 236, 0.35); }
+/* the sheets and the help */
+.night .sheet::before, .night .how { background: rgba(2, 6, 14, 0.55); }
+.night .sheet .panel, .night .how .panel { background: linear-gradient(180deg, rgba(18, 32, 56, 0.96), rgba(8, 14, 28, 0.97)); border: 0; color: #e6f4ff; border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 40px rgba(60, 201, 236, 0.1), 0 40px 90px -20px rgba(0, 0, 0, 0.85); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.night .sheet .panel .eyebrow, .night .how .eyebrow { color: #4fd8f0; }
+.night .sheet .panel h1, .night .how .panel h1 { color: #f2faff; text-shadow: 0 0 18px rgba(80, 200, 255, 0.3); } .night .sheet h1 small { color: #8fb0c8; }
+.night .sheet .panel p, .night .sheet .feats li, .night .sheet .reqs li, .night .how .panel p, .night .how li { color: #b9cfe0; }
+.night .sheet .reqs .ok { color: #4fd8f0; } .night .sheet .reqs .no { color: #ff5b7a; }
+.night .sheet .mini { box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.25), 0 0 24px rgba(60, 201, 236, 0.16); }
+.night .sheet .wcard { background: rgba(10, 20, 38, 0.75); box-shadow: inset 0 0 0 1px rgba(120, 200, 255, 0.16); color: #e6f4ff; }
+.night .sheet .wcard h3 { color: #e6f4ff; } .night .sheet .wcard h3 small { color: #8fb0c8; } .night .sheet .wcard p { color: #b9cfe0; }
+.night .sheet .tabs { background: rgba(10, 20, 38, 0.8); } .night .sheet .tab { color: #8fb0c8; }
+.night .sheet .tab[aria-selected="true"] { background: #02060c; color: #e8fbff; box-shadow: inset 0 0 0 1.5px #3cc9ec; }
+.night .sheet .cta:not(:disabled), .night .how .cta { background: #3cc9ec; color: #04121c; box-shadow: 0 0 22px rgba(60, 201, 236, 0.3); }
+.night .sheet .cta:not(:disabled):hover, .night .how .cta:hover { background: #5fd6f2; }
+.night .sheet .cta:disabled { background: rgba(120, 150, 175, 0.22); color: #7f97aa; }
+.night .sheet .ghost, .night .how .ghost { background: transparent; color: #cfe6f5; border-color: rgba(160, 220, 255, 0.35); }
+.night .how .rules li { border-top-color: #3cc9ec; color: #8fb0c8; } .night .how .rules b { color: #eaf6ff; }
+.night .sheet .redeem input { background: #02060c; color: #e6f4ff; border-color: rgba(120, 200, 255, 0.35); }
 </style>
 
 <canvas id="game" aria-label="Игровое поле: рельсы и стеклянные преграды" data-en-aria="The playfield: rails and glass obstacles"></canvas>
@@ -454,13 +524,28 @@ video.mini { background: none; object-fit: contain; }
             <path class="snd-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke-width="2" stroke-linecap="round"/>
             <path class="snd-off" d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
-        <button class="ibtn" id="howBtn" type="button" aria-label="Как играть" title="Как играть" data-en-aria="How to play" data-en-title="How to play">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke-width="1.8"/><circle cx="12" cy="7.6" r="1.4" stroke="none"/><path d="M12 11v6.2" fill="none" stroke-width="2.2" stroke-linecap="round"/></svg>
+        <button class="ibtn" id="gearBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="gearPop" aria-label="Настройки" title="Настройки" data-en-aria="Settings" data-en-title="Settings">
+          <svg class="gear" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2.8h3.4l.5 2.6 1.6.7 2.2-1.5 2.4 2.4-1.5 2.2.7 1.6 2.6.5v3.4l-2.6.5-.7 1.6 1.5 2.2-2.4 2.4-2.2-1.5-1.6.7-.5 2.6h-3.4l-.5-2.6-1.6-.7-2.2 1.5-2.4-2.4 1.5-2.2-.7-1.6-2.6-.5v-3.4l2.6-.5.7-1.6-1.5-2.2 2.4-2.4 2.2 1.5 1.6-.7z" fill="none" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" fill="none" stroke-width="1.6"/></svg>
         </button>
-        <button class="ibtn lang" id="langBtn" type="button" aria-label="Язык: русский" title="Язык" data-en-aria="Language: English" data-en-title="Language">
-          <svg class="globe" viewBox="0 0 24 24" aria-hidden="true" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.5 12h17M5.2 7.5h13.6M5.2 16.5h13.6"/></svg>
-          <span id="langTxt">En</span>
-        </button>
+        <div class="gear-pop" id="gearPop" role="group" aria-label="Настройки" data-en-aria="Settings" hidden>
+          <div class="gp-row">
+            <span class="gp-label"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="8.5" fill="none"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" stroke="none" fill="currentColor"/></svg><span data-en="Theme">Тема</span></span>
+            <div class="seg" role="group" aria-label="Тема" data-en-aria="Theme">
+              <button type="button" data-theme="day" aria-label="Светлая" title="Светлая" data-en-aria="Light" data-en-title="Light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg></button>
+              <button type="button" data-theme="night" aria-label="Тёмная" title="Тёмная" data-en-aria="Dark" data-en-title="Dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></svg></button>
+            </div>
+          </div>
+          <div class="gp-row">
+            <span class="gp-label"><svg class="globe" viewBox="0 0 24 24" aria-hidden="true" stroke-width="1.7"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.5 12h17M5.2 7.5h13.6M5.2 16.5h13.6"/></svg><span data-en="Language">Язык</span></span>
+            <div class="seg" role="group" aria-label="Язык" data-en-aria="Language">
+              <button type="button" data-lang="en">En</button><button type="button" data-lang="ru">Ru</button>
+            </div>
+          </div>
+          <button class="gp-row gp-link" id="howBtn" type="button">
+            <span class="gp-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke-width="1.8"/><circle cx="12" cy="7.6" r="1.4" stroke="none"/><path d="M12 11v6.2" fill="none" stroke-width="2.2" stroke-linecap="round"/></svg><span data-en="How to play">Как играть</span></span>
+            <span class="gp-go" aria-hidden="true">→</span>
+          </button>
+        </div>
       </div>
       <div class="credit version">v__LIMBUS_VERSION__</div>
       <div class="credit">Claude Game Studio</div>
@@ -4354,7 +4439,7 @@ video.mini { background: none; object-fit: contain; }
         if (prop === "innerHTML") el.innerHTML = v; else el.setAttribute(prop, v);
       });
     }
-    $("langTxt").textContent = LANG === "en" ? "En" : "Ru";
+    document.querySelectorAll("#gearPop [data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === LANG)));
     syncMute();
   }
   function setLang(l) {
@@ -5793,18 +5878,21 @@ video.mini { background: none; object-fit: contain; }
   // white veil as it steps in covers the moment the clip takes to start
   // the menu's background: a loop of the rails, blurred beforehand, playing while the menu is up (the page's last elements)
   function menuBg() {
+    const night = () => document.documentElement.classList.contains("night") && document.getElementById("menubg-night");
     const src = document.getElementById("menubg"); if (!src) return;
     const v = document.createElement("video");
     for (const a of ["muted", "loop", "playsinline", "autoplay", "disablepictureinpicture"]) v.setAttribute(a, "");
     v.muted = true; v.className = "menubg"; v.setAttribute("aria-hidden", "true");
-    const poster = document.getElementById("menubg-poster"); if (poster) v.poster = poster.src;
-    v.src = src.textContent.trim();
+    // the day's loop or the night's, and again whenever the theme changes
+    const pick = () => { const id = night() ? "menubg-night" : "menubg", p = document.getElementById(id + "-poster"), s = document.getElementById(id).textContent.trim();
+      if (v.dataset.id === id) return; v.dataset.id = id; if (p) v.poster = p.src; v.src = s; kick(); };
+    window.__menuBg = pick;
     $("menu").append(v); document.documentElement.classList.add("videobg"); // last, out of the way of the menu's own layout (fitMap measures .menu-in)
     const kick = () => { if ($("menu").hidden) v.pause(); else if (v.paused) v.play().catch(() => {}); };
     v.addEventListener("pause", () => setTimeout(kick, 200)); // a web view that stops it (as Telegram's may) gets it going again
     addEventListener("pointerdown", kick); document.addEventListener("visibilitychange", () => { if (!document.hidden) kick(); });
     new MutationObserver(kick).observe($("menu"), { attributes: true, attributeFilter: ["hidden"] });
-    kick();
+    pick();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", menuBg, { once: true }); else menuBg();
   window.addEventListener("load", () => document.querySelectorAll('script[id^="clip-"]').forEach(s => { if (s.textContent.trim().startsWith("data:")) clipVid(s.id.slice(5)); }));
@@ -6010,10 +6098,29 @@ video.mini { background: none; object-fit: contain; }
     });
   }
   document.querySelectorAll(".snd").forEach(b => b.addEventListener("click", () => { Sound.setMuted(!Sound.muted); syncMute(); }));
-  $("langBtn").addEventListener("click", () => setLang(LANG === "ru" ? "en" : "ru"));
+  // the settings under the gear: the theme, the language, the help. A tap outside, Escape or the gear again folds them away
+  const gear = $("gearBtn"), gearPopEl = $("gearPop");
+  const gearOpen = open => { gearPopEl.hidden = !open; gear.setAttribute("aria-expanded", String(open)); gear.classList.toggle("on", open); };
+  gear.addEventListener("click", () => gearOpen(gearPopEl.hidden));
+  document.addEventListener("pointerdown", e => { if (!gearPopEl.hidden && !gearPopEl.contains(e.target) && !gear.contains(e.target)) gearOpen(false); }, true);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !gearPopEl.hidden) { gearOpen(false); gear.focus(); } });
+  new MutationObserver(() => { if ($("menu").hidden) gearOpen(false); }).observe($("menu"), { attributes: true, attributeFilter: ["hidden"] });
+  gearPopEl.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => { if (b.dataset.lang !== LANG) setLang(b.dataset.lang); }));
+  gearPopEl.querySelectorAll("[data-theme]").forEach(b => b.addEventListener("click", () => setTheme(b.dataset.theme)));
+  function setTheme(t) {
+    document.documentElement.classList.toggle("night", t === "night");
+    try { localStorage.setItem("limbus-theme", t); } catch (e) { /* storage unavailable */ }
+    syncTheme(); if (window.__menuBg) window.__menuBg(); if (state === "menu") renderMap();
+  }
+  function syncTheme() {
+    const night = document.documentElement.classList.contains("night");
+    gearPopEl.querySelectorAll("[data-theme]").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.theme === "night") === night)));
+    if (TG && TG.isVersionAtLeast("6.1")) { const c = night ? "#03060d" : "#e9eced"; TG.setHeaderColor(c); TG.setBackgroundColor(c); }
+  }
+  syncTheme();
   const howPage = n => { const h = $("how"), paged = matchMedia("(orientation: landscape) and (max-height: 430px)").matches;
     h.classList.toggle("paged", paged); h.classList.toggle("pg1", n === 1); h.classList.toggle("pg2", n === 2); h.scrollTop = 0; };
-  $("howBtn").addEventListener("click", () => { $("how").hidden = false; howPage(1); ($("how").classList.contains("paged") ? $("howNext") : $("howClose")).focus(); });
+  $("howBtn").addEventListener("click", () => { gearOpen(false); $("how").hidden = false; howPage(1); ($("how").classList.contains("paged") ? $("howNext") : $("howClose")).focus(); });
   $("howNext").addEventListener("click", () => { howPage(2); $("howClose").focus(); });
   $("howPrev").addEventListener("click", () => { howPage(1); $("howNext").focus(); });
   $("howClose").addEventListener("click", () => { $("how").hidden = true; });

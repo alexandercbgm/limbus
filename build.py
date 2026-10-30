@@ -87,6 +87,10 @@ bg = root / "minis" / "menu.bg.mp4"
 if bg.exists():
     page += f'<script type="text/plain" id="menubg">data:video/mp4;base64,{base64.b64encode(bg.read_bytes()).decode("ascii")}</script>\n'
     page += f'<img hidden alt="" id="menubg-poster" src="data:image/jpeg;base64,{base64.b64encode(bg.with_suffix(".jpg").read_bytes()).decode("ascii")}">\n'
+night = root / "minis" / "menu.night.mp4" # the night theme's loop: a neon grid and glass shards flying out (tools/menu_night.js)
+if night.exists():
+    page += f'<script type="text/plain" id="menubg-night">data:video/mp4;base64,{base64.b64encode(night.read_bytes()).decode("ascii")}</script>\n'
+    page += f'<img hidden alt="" id="menubg-night-poster" src="data:image/jpeg;base64,{base64.b64encode(night.with_suffix(".jpg").read_bytes()).decode("ascii")}">\n'
 if TELEGRAM:
     out = root / "dist" / "telegram"
     shutil.rmtree(out, ignore_errors=True)

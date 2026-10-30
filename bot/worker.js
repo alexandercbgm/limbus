@@ -35,7 +35,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.6.6";
+const BOT_VERSION = "1.6.7";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -251,7 +251,7 @@ async function sendOst(env, chat, from) {
   let r;
   for (const [g, list] of groups.entries()) {
     const media = (byId) => list.map((name, i) => ({ type: "audio", media: byId ? known[g * 6 + i] : `${env.GAME_URL}ost/${name.toLowerCase()}.mp3?v=${OST_VERSION}`, title: `Limbus - ${name}`, performer: "Limbus",
-      ...(g === groups.length - 1 && i === list.length - 1 ? { caption: T(from, "Послушать ещё раз /ost", "Listen again /ost") } : {}) }));
+      ...(g === groups.length - 1 && i === list.length - 1 ? { caption: T(from, "Ещё раз: /ost", "Again: /ost") } : {}) }));
     r = known ? await tg(env, "sendMediaGroup", { chat_id: chat, media: media(true) }) : null;
     if (!r || !r.ok) r = await tg(env, "sendMediaGroup", { chat_id: chat, media: media(false) });
     if (!r.ok) return r;

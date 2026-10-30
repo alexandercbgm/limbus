@@ -160,7 +160,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .station.hot .ring { stroke-width: 7; }
 /* rings spreading from stations: plain round boxes in a layer under the scheme, grown and faded on the graphics card alone
    (an SVG shape's transform is laid out again every frame; a box's is not) */
-.map-scroll { position: relative; } #map { position: relative; }
+.map-scroll { position: relative; z-index: 0; } #map { position: relative; } /* its layers stack inside it, under the tools */
 .map-under { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 0; overflow: visible; } /* casings and shadows */
 .map-rings { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 1; } /* over the casings, under the lines and stations */
 .map-scroll #map { z-index: 2; }
@@ -862,9 +862,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
 
   // ---------- sound: synthesized effects + background track ----------
+  const MENU_TRACK = "ascent_through_glass";
   const Sound = {
     ctx: null, master: null, muted: (() => { try { return !!localStorage.getItem("limbus-muted"); } catch (e) { return false; } })(), noise: null, music: null, musicLP: null, musicGain: null, fallback: null,
-    buffers: {}, elements: {}, track: null, want: "ascent_through_glass", // the menu's own track (a level plays its own)
+    buffers: {}, elements: {}, track: null, at: 0, at0: 0, t0: 0, want: "ascent_through_glass", // the menu's own track (a level plays its own)
     init() {
       if (this.ctx) { if (this.ctx.state === "suspended") this.ctx.resume(); this.play(this.want); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -886,6 +887,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     async play(id) {
       this.want = id;
       if (!id || this.track === id) return;
+      // the menu's track is left where it was and picked up there when the menu comes back; a level's starts from its top
+      if (this.music && this.track === MENU_TRACK) this.at = (this.at0 + this.ctx.currentTime - this.t0) % this.music.buffer.duration;
       this.track = id;
       if (this.music) { try { this.music.stop(); } catch (e) { /* already stopped */ } this.music = null; }
       if (this.fallback) { this.fallback.pause(); this.fallback = null; }
@@ -896,13 +899,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const buf = this.buffers[id] || (this.buffers[id] = await this.ctx.decodeAudioData(bytes.buffer.slice(0)));
         if (this.track !== id) return;
         const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true;
-        src.connect(this.musicLP); src.start();
+        this.at0 = id === MENU_TRACK ? (this.at || 0) % buf.duration : 0; this.t0 = this.ctx.currentTime;
+        src.connect(this.musicLP); src.start(0, this.at0);
         this.music = src;
       } catch (e) {
         // no WebAudio decoding: play the track through a plain audio element instead (no karma filter then)
         const el = document.getElementById("music-" + id), type = (el && el.dataset.type) || "audio/mpeg"; // the media type build.py embedded
         const a = this.elements[id] || (this.elements[id] = new Audio(URL.createObjectURL(new Blob([bytes], { type }))));
-        a.loop = true; a.volume = this.muted ? 0 : 0.45; a.currentTime = 0; a.play().catch(() => {});
+        a.loop = true; a.volume = this.muted ? 0 : 0.45; if (id !== MENU_TRACK) a.currentTime = 0; a.play().catch(() => {});
         this.fallback = a;
       }
     },
@@ -5861,12 +5865,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // a sheet stepping in waits, laid out but unseen (a browser draws no frames of a video that is not laid out), till its
     // clip has shown two frames of its own (a moment at most): the clip comes in already moving
     const vid = clip && from && !keep && !reduceMotion && clipVids[lv.id];
-    if (!vid) return show();
+    if (!vid || vid.readyState < 3) return show(); // a clip not yet loaded: the sheet at once, the clip coming in as it can
     const sh = $("sheet"); sh.classList.add("waiting"); sh.hidden = false;
     let shown = false; const go = () => { if (shown || !sh.classList.contains("waiting")) return; shown = true; sh.classList.remove("waiting"); show(); }; // closed meanwhile: it stays closed
     if (vid.requestVideoFrameCallback) { let n = 0; const f = () => { if (++n >= 2) go(); else vid.requestVideoFrameCallback(f); }; vid.requestVideoFrameCallback(f); }
     else { const tick = () => { if (vid.currentTime > 0.05) { vid.removeEventListener("timeupdate", tick); go(); } }; vid.addEventListener("timeupdate", tick); }
-    setTimeout(go, 700);
+    setTimeout(go, 200);
   }
 
   // A small hand-drawn view down the level's corridor: the left half in its light palette, the right half in its dark one.
@@ -6159,7 +6163,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   $("how").addEventListener("click", e => { if (e.target === $("how")) $("how").hidden = true; });
 
   // test hook: lets an automated check jump the karma or the distance
-  window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, setAlt(a) { alt = a; },
+  window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, musicAt: () => Sound.at0, setAlt(a) { alt = a; },
     level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ fore: hangers.map(h => h.fore ? 1 : 0).join(), hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, noCrystals() { crystals.forEach(c => scene.remove(c.group)); crystals = []; }, quiet() { nextSpawn = 1e9; }, sunK(k) { skyUni.sunK.value = k; }, decorVis(k, v) { if (I[k]) I[k].visible = v; }, finish: () => endRun(true), tally(reset) { const t = crystalTally; if (reset) crystalTally = 0; return t; }, mainLen: () => MAIN_LEN, levelId: () => LEVEL.id, status: () => Object.fromEntries(LEVELS.map(l => [l.id, stationStatus(l)])), wallsBack(a, b, ceil) { for (let k = Math.floor((sC + a) / SL); k <= Math.floor((sC + b) / SL); k++) { const d = getDecor(k); d.wl = d.wr = true; if (ceil !== undefined) d.ceil = ceil; } }, ballCount: () => ballsArr.length, ramPos: () => rams.map(r => { r.body.updateMatrixWorld(true); frameAt(r.s); const p = new THREE.Vector3().setFromMatrixPosition(r.body.matrixWorld).sub(_P); return [+(r.s - sC).toFixed(1), +p.dot(_R).toFixed(2), +p.dot(_U).toFixed(2)]; }), pause: () => pauseGame(), crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, halls: () => [...decor.entries()].filter(([, d]) => d.hall).map(([k]) => k * SL), bars(ahead) { addHanger(sC + ahead, 'gate', false, true); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.map(s => s.cones.filter(c => c.alive).length), lblocks: lblocks.length, hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), rams(ahead, both) { addRams(sC + ahead, both); }, cutRam() { const r = rams.find(x => !x.falling); if (!r) return null; const c = r.chains.find(x => x.alive); breakRamChain(r, c, c.A.clone()); return r.chains.map(x => x.alive).join(); }, hammer(ahead, side = 1, dir = 1, n = 2, axe = false) { addHammerMill(sC + ahead, side, dir, n, axe); }, carcerPlan: () => ({ halls: HALLS.map(h => h.map(Math.round)), doors: doorPlan.map(d => [Math.round(d.s), d.kind]) }), carcer(kind, ahead, look) { const s = sC + ahead;
       if (/^n?(side|top|grid)$/.test(kind)) { const k = kind.replace(/^n/, ""); lastSet = addLaserBars(s, k === "side" ? "v" : k === "top" ? "h" : "grid", typeof look === "number" ? look : 0, kind[0] === "n"); } else if (kind === "axes2" || kind === "axes4") addHammerMill(s, 1, 1, kind === "axes2" ? 2 : 4, true);
       else if (kind === "flap" || kind === "bolt" || kind === "tall") spawnDoor({ s, kind }); else addHanger(s, kind === "grate1" ? "pendulum" : "gate", false, true, { look, wide: kind === "grate3" }); },

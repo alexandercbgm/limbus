@@ -732,7 +732,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3`); x.responseType = "arraybuffer";
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=__LIMBUS_VERSION__`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -886,7 +886,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
         this.noise = buf;
         this.musicLP = c.createBiquadFilter(); this.musicLP.type = "lowpass"; this.musicLP.frequency.value = 20000; this.musicLP.Q.value = 0.7;
-        this.musicGain = c.createGain(); this.musicGain.gain.value = 0.55;
+        this.musicGain = c.createGain(); this.musicGain.gain.value = 0.625; // the music at half the full volume (0.625 × the master's 0.8)
         this.musicLP.connect(this.musicGain); this.musicGain.connect(this.master);
       }
       this.play(this.want);
@@ -913,7 +913,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         // no WebAudio decoding: play the track through a plain audio element instead (no karma filter then)
         const el = document.getElementById("music-" + id), type = (el && el.dataset.type) || "audio/mpeg"; // the media type build.py embedded
         const a = this.elements[id] || (this.elements[id] = new Audio(URL.createObjectURL(new Blob([bytes], { type }))));
-        a.loop = true; a.volume = this.muted ? 0 : 0.45; if (id !== MENU_TRACK) a.currentTime = 0; a.play().catch(() => {});
+        a.loop = true; a.volume = this.muted ? 0 : 0.5; if (id !== MENU_TRACK) a.currentTime = 0; a.play().catch(() => {});
         this.fallback = a;
       }
     },
@@ -928,7 +928,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       this.muted = m;
       try { localStorage.setItem("limbus-muted", m ? "1" : ""); } catch (e) { /* storage unavailable */ }
       if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.8, this.ctx.currentTime, 0.05);
-      if (this.fallback) this.fallback.volume = m ? 0 : 0.45;
+      if (this.fallback) this.fallback.volume = m ? 0 : 0.5;
     },
     env(node, gain, dur, when) {
       const c = this.ctx, t = c.currentTime + (when || 0), g = c.createGain();

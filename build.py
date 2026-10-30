@@ -12,7 +12,7 @@ With --no-music the tracks are left out: the page then loads music/<stem>.mp3 ne
 (the Android app ships them as files).
 
 With --telegram it builds dist/telegram/, the Telegram Mini App served by GitHub Pages: the page without its music
-and with Telegram's telegram-web-app.js, the tracks beside it in music/ (re-encoded to 96 kbps when ffmpeg is there),
+and with Telegram's telegram-web-app.js, the tracks beside it in music/ as they are (192 kbps),
 so the first load is small and each track comes in with its level.
 """
 import base64
@@ -96,12 +96,8 @@ if TELEGRAM:
     shutil.rmtree(out, ignore_errors=True)
     (out / "music").mkdir(parents=True)
     (out / "index.html").write_text(page, encoding="utf-8")
-    for track in sorted((root / "music").glob("*.mp3")):
-        if ffmpeg:
-            subprocess.run([ffmpeg, "-loglevel", "error", "-y", "-i", str(track), "-map", "0:a", "-c:a", "libmp3lame",
-                            "-b:a", "96k", "-ar", "44100", str(out / "music" / track.name)], check=True)
-        else:
-            shutil.copy(track, out / "music" / track.name)
+    for track in sorted((root / "music").glob("*.mp3")): # as they are (192 kbps): each comes in only with its level
+        shutil.copy(track, out / "music" / track.name)
     shutil.copytree(root / "minis", out / "minis") # the bot sends a level's picture with its news
     shutil.copy(root / "telegram" / "privacy.html", out / "privacy.html") # the privacy policy Google Play links to
     (out / ".nojekyll").write_text("")

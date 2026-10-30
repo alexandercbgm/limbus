@@ -158,8 +158,8 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .station { cursor: pointer; outline: none; }
 .station .hit { fill: transparent; }
 .station.hot .ring { stroke-width: 7; }
-.station .hub { transform-box: view-box; } /* a transfer: its inner circle swells, and its outer rim, in front, grows out round it */
-.station.hot .hub { stroke-width: 5; transform: scale(1.1); } .station.hot .hub ~ .ring, .station.hot .ring:has(+ .hub) { stroke-width: 6.5; }
+.station .hub { transform-box: view-box; } /* a transfer's outer rim, in front, grows out round its inner circle */
+.station.hot .hub { stroke-width: 5; transform: scale(1.1); } .station.hot .ring:has(+ .hub) { stroke-width: 5; } /* a transfer: only its outer rim swells */
 /* rings spreading from stations: plain round boxes in a layer under the scheme, grown and faded on the graphics card alone
    (an SVG shape's transform is laid out again every frame; a box's is not) */
 .map-scroll { position: relative; z-index: 0; } #map { position: relative; } /* its layers stack inside it, under the tools */

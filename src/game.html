@@ -3421,10 +3421,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const targetGeo = new THREE.RingGeometry(0.28, 0.42, 28), targetDotGeo = new THREE.CircleGeometry(0.12, 20), eyeGeo = new THREE.TorusGeometry(0.16, 0.05, 8, 18);
   // Speculum's tall gate, as at the threshold of the other world: two pale leaves twice a man high in a portal, light at
   // the seam, steam drifting about its foot like low cloud. Each leaf bears a target twice the size of Carcer's, running up
-  // and down its middle, the two the opposite ways, a third slower than twice Abyssus's vanes; hit one, it turns turquoise
-  // and its leaf opens.
+  // and down its middle, the two the opposite ways, a third slower than twice Abyssus's vanes; hit one, it goes out, as
+  // Carcer's do, and its leaf opens.
   const LEAF_T = 10.4, TALL_A = 1.6, TG_HIT = 0.84, TALL_TV = 3.6; // targets run up and down about a height to shoot at
-  const targetHitMat = new THREE.MeshBasicMaterial({ color: 0x3fe6d4 }); // above the walls: Speculum is open to the sky
   const tallLeafGeo = new THREE.BoxGeometry(DOOR_W, LEAF_T, 0.16).translate(DOOR_W / 2, LEAF_T / 2, 0);
   const tallPostGeo = new THREE.BoxGeometry(1.2, LEAF_T + 1.6, 0.7), tallLintelGeo = new THREE.BoxGeometry(2 * W + 2.6, 0.7, 0.7), tallSeamGeo = new THREE.PlaneGeometry(0.16, LEAF_T);
   const tallLeafMat = new THREE.MeshStandardMaterial({ color: 0xeef2fa, roughness: 0.18, metalness: 0.75, emissive: 0x7c88a8, emissiveIntensity: 0.35 });
@@ -3488,8 +3487,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function doorLeafHit(dr, lf, at, vel, onT) {
     if (dr.bolted || lf.opening || (dr.kind === "tall" && !onT)) { Sound.knock(); chips(at, doorMatC, 4, vel); return; } // barred, or off a tall leaf's target: a ball only knocks
-    if (dr.kind === "tall") lf.tg.forEach(m => { m.material = targetHitMat; }); // a hit target turns turquoise and stops
-    lf.opening = true; if (dr.kind !== "tall") lf.tg.forEach(m => { m.material = targetOff; }); Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); chips(at, doorMatC, 6, vel); addScore(15);
+    lf.opening = true; lf.tg.forEach(m => { m.material = targetOff; }); Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); chips(at, doorMatC, 6, vel); addScore(15);
     if (dr.leaves.every(l => l.opening)) { dr.open = true; balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); }
   }
   // what a point (world) touches on a door: a chain, the bolt, a leaf, or nothing; in the door's own frame for leaves
@@ -3675,8 +3673,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const domeGeo = new THREE.CylinderGeometry(1, 1, 0.9, 28).rotateX(Math.PI / 2).translate(0, 0, 0.45), domeRimGeo = new THREE.TorusGeometry(1.22, 0.22, 10, 36);
   const domeEdgeGeo = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 40 }, (_, i) => new THREE.Vector3(Math.cos(i / 40 * TAU) * 0.97, Math.sin(i / 40 * TAU) * 0.97, 0)));
   const domeEdgeMat = new THREE.LineBasicMaterial({ color: 0xffffff }), domeGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xffa020, transparent: true, opacity: 0.28, depthWrite: false });
-  const domeFaceMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.3, roughness: 0.35, metalness: 0.2 });
-  // pressed, its face turns turquoise, as Speculum's targets do (targetHitMat)
+  // its face is Nox's vanes' yellow, and their mint once pressed (buttonMat, pressedMat), lit as they are
   // one iris leaf: a wedge whose two edges curve the same way, a spiral arm, so the six of them meet edge to edge
   // the yin-yang iris: two halves split along the S, each with the other's eye; they turn all the time and
   // part sideways behind the bulkhead when the gate opens
@@ -3784,7 +3781,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const sp = spots[o], grp = new THREE.Group(); root.add(grp);
       if (dome) { // a convex round button on the bulkhead
         // steel sides and a lit face, so it reads as a cylinder standing out of the wall
-        const rr = r * 0.36, cap = new THREE.Mesh(domeGeo, [frameMat, domeFaceMat, frameMat]); cap.scale.setScalar(rr); cap.userData.push = true; grp.add(cap);
+        const rr = r * 0.36, cap = new THREE.Mesh(domeGeo, [frameMat, buttonMat, frameMat]); cap.scale.setScalar(rr); cap.userData.push = true; grp.add(cap);
         const edge = new THREE.LineLoop(domeEdgeGeo, domeEdgeMat); edge.position.z = 0.9; cap.add(edge); // a bright line round the face's edge
         const rim = new THREE.Mesh(domeRimGeo, laserBaseMat); rim.scale.setScalar(rr); grp.add(rim);
         const glow = new THREE.Sprite(domeGlow); glow.scale.setScalar(r * 1.1); glow.position.z = 0.95 * rr; grp.add(glow);
@@ -3821,7 +3818,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function pressButton(bt) {
     if (bt.pressed) return;
-    bt.pressed = true; bt.alive = false; bt.cap.material = Array.isArray(bt.cap.material) ? [frameMat, targetHitMat, frameMat] : pressedMat; if (bt.glow.material === domeGlow) bt.glow.visible = false; bt.glow.material = pressedGlow; bt.spin = 14; bt.prop.traverse(m => { if (m.isMesh) m.material = pressedMat; });
+    bt.pressed = true; bt.alive = false; bt.cap.material = Array.isArray(bt.cap.material) ? [frameMat, pressedMat, frameMat] : pressedMat; if (bt.glow.material === domeGlow) bt.glow.visible = false; bt.glow.material = pressedGlow; bt.spin = 14; bt.prop.traverse(m => { if (m.isMesh) m.material = pressedMat; });
     Sound.clink(); Sound.tone(520, 0.1, 0.1, "square", 0, 880); addScore(10);
     const g = bt.gate;
     if (g.buttons.every(b => b.pressed)) { g.opening = true; balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); Sound.tone(180, 0.5, 0.12, "sawtooth", 0, 90); }

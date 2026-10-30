@@ -1072,7 +1072,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     vertexShader: "varying vec3 vP; void main(){ vP = (modelMatrix*vec4(position,1.0)).xyz - cameraPosition; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
     // each level's sky has its own effect (mode): 1 deep space (stars and the Milky Way), 2 silver silk: slow
     // sheets of quicksilver light, 3 lit clouds under a sun, 4 radiance: a sun of pure light with turning rays,
-    // 5 warm clouds with drifting gold dust. Whatever the mode, as the palette darkens the stars come out
+    // 5 warm clouds with drifting gold dust, 8 the lit clouds of a May day with a thunderstorm coming up as the Dark nears.
+    // Whatever the mode, as the palette darkens the stars come out
     // and a faint galaxy in the level's own colour shows through
     fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; uniform float mode; uniform float amt; uniform float sunK; uniform vec3 fxc; uniform float t; uniform float px; varying vec3 vP;
       float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
@@ -1109,7 +1110,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           vec3 pearl = mix(vec3(0.85, 0.9, 1.0), vec3(1.0, 0.92, 0.96), 0.5 + 0.5 * sin(f * 9.0 + t * 0.05));
           c = mix(c, mix(c, pearl, 0.6) * (0.4 + 0.9 * lum) + pearl * 0.15, sheen * amt * smoothstep(-0.2, 0.15, h));
           c += vec3(1.0) * (pow(sdot, 400.0) * 1.5 + pow(sdot, 16.0) * 0.25) * amt * (0.3 + 0.7 * lum);
-        } else if (m == 3.0 || m == 5.0) { // lit clouds: soft heaps whose sunward sides are bright
+        } else if (m == 3.0 || m == 5.0 || m == 8.0) { // lit clouds: soft heaps whose sunward sides are bright
           vec3 q = vec3(n.x * 1.6, n.y * 4.0, n.z * 1.6) / max(0.2, h + 0.2) * 0.55 + vec3(t * 0.006, 0.0, t * 0.004);
           float dn = fbm(q), d2 = fbm(q + sd * 0.12);
           float cov = smoothstep(0.45, 0.72, dn) * smoothstep(-0.02, 0.18, h);
@@ -1118,6 +1119,25 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           c = mix(c, cc, cov * amt);
           c += mix(vec3(1.0, 0.97, 0.9), fxc, 0.3) * (pow(sdot, 300.0) * 2.0 + pow(sdot, 12.0) * 0.35) * amt * (0.3 + 0.7 * lum) * (1.0 - cov * 0.7);
           if (m == 5.0) c += vec3(1.0, 0.85, 0.4) * starAt(n, 120.0, 0.96) * amt * (0.6 + 0.4 * sin(t * 3.0 + h3(floor(n * 120.0)) * 30.0));
+          if (m == 8.0) { // a May thunderstorm: in the Light a far bank of cloud low on the horizon, away from the sun; toward the
+            // Dark it comes on, higher, wider round the sky and darker, its lightning more often; the stars stay above it
+            float storm = 1.0 - smoothstep(0.12, 0.5, lum);
+            vec3 stD = normalize(vec3(-0.75, 0.0, -0.66)), na = normalize(vec3(n.x, 0.0, n.z) + 1e-5);
+            float az = dot(na, stD), span = mix(0.35, -0.5, storm), wing = smoothstep(span, span + 0.3, az);
+            float tw = smoothstep(0.32, 0.68, fbm(vec3(na.x * 1.7, 0.0, na.z * 1.7) + vec3(5.0, t * 0.004, 0.0))), fine = fbm(n * vec3(9.0, 13.0, 9.0) + vec3(t * 0.02, 0.0, 0.0)); // towers round the sky, billows on them
+            float topH = (mix(0.3, 0.62, storm) * (0.35 + 0.75 * tw) + 0.1 * (fine - 0.5)) * wing; // how high the cloud stands, its top heaped round
+            float body = smoothstep(topH + 0.015, topH - 0.03, h) * smoothstep(-0.08, 0.0, h) * wing;
+            vec3 dk = mix(mix(vec3(0.4, 0.45, 0.56), hor, 0.3), vec3(0.05, 0.06, 0.09), storm); // far off it is hazed blue-grey; near, black
+            vec3 rim = mix(vec3(1.0, 0.98, 0.95), vec3(0.3, 0.34, 0.44), storm) * (0.65 + 0.5 * lum);
+            vec3 cb = mix(dk * (0.6 + 0.8 * fine) * (0.75 + 0.5 * h / max(topH, 0.01)), rim, smoothstep(topH - 0.07, topH, h) * (1.0 - storm * 0.5)); // darker at its foot, its tops lit by the sun
+            float slot = floor(t * 1.3), ph = fract(t * 1.3); // now and then a flash somewhere in it, more often as it comes on
+            float fl = step(1.0 - (0.12 + 0.5 * storm), h3(vec3(slot, 3.1, 7.7))) * (exp(-ph * 14.0) + 0.7 * exp(-abs(ph - 0.12) * 40.0));
+            vec3 fd = normalize(stD + vec3(-stD.z, 0.0, stD.x) * (h3(vec3(slot, 1.3, 2.9)) * 2.0 - 1.0) * mix(0.5, 1.3, storm));
+            float near = exp(-(1.0 - max(dot(na, fd), 0.0)) * 110.0) * exp(-abs(h - topH * 0.55) * 9.0);
+            cb += vec3(0.8, 0.86, 1.0) * fl * near * (1.0 + 2.0 * storm);
+            c = mix(c, cb, body * amt);
+            c += vec3(0.45, 0.5, 0.65) * fl * storm * 0.08 * exp(-(1.0 - max(dot(na, fd), 0.0)) * 6.0); // the sky round it lit as well
+          }
         } else if (m == 7.0) { // ink wash: drifting bands of mist and a slowly turning yin-yang in place of the sun
           float mist = smoothstep(0.45, 0.8, fbm(vec3(n.x * 2.0, n.y * 7.0, n.z * 2.0) + vec3(t * 0.012, 0.0, t * 0.008))) * smoothstep(-0.1, 0.25, h) * (1.0 - smoothstep(0.35, 0.8, h));
           vec3 ink = mix(vec3(0.05), vec3(0.95, 0.93, 0.88), lum);
@@ -2042,6 +2062,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     drops.forEach(d => scene.remove(d.group)); drops = [];
     boughs.forEach(b => scene.remove(b.root)); boughs = [];
     gates.forEach(g => scene.remove(g.root)); gates = []; lastGateS = -1e9;
+    catas.forEach(c => { scene.remove(c.root); scene.remove(c.slab); if (c.shot) scene.remove(c.ball); }); catas = []; lastCataS = -1e9;
     rams.forEach(r => scene.remove(r.root)); rams = []; hmills.forEach(m => scene.remove(m.root)); hmills = []; doors.forEach(d => scene.remove(d.root)); doors = [];
     spinners.forEach(x => scene.remove(x.root)); spinners = []; lblocks.forEach(x => scene.remove(x.root)); lblocks = []; lbars.forEach(x => x.bars.forEach(b => scene.remove(b.root))); lbars = []; prismSets.forEach(x => scene.remove(x.root)); prismSets = []; gears.forEach(x => x.gears.forEach(g => { scene.remove(g.root); scene.remove(g.pin.root); })); gears = []; barBits.forEach(x => scene.remove(x.root)); barBits = [];
     wheels.forEach(w => scene.remove(w.ring)); wheels = [];
@@ -2095,6 +2116,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     while (doorPlan.length && doorPlan[0].s < s + 12) spawnDoor(doorPlan.shift());
     if (doors.some(dr => Math.abs(dr.s - s) < 9)) return;
     if ([...gates, ...doors].some(g => s > g.s - 1 && s < g.s + GATE_CLEAR)) return; // just past a gate nothing is set down: the gate hid it till the cart was on it
+    if (catas.some(c => s > c.cs - 6 && s < c.s + GATE_CLEAR)) return; // nor between a catapult and its glass, nor just past it
     const hall = LEVEL.halls && inHall(s);
     const d = curD(), prog = sC / MAIN_LEN;
     let pat = spawnGroupKind || pickPattern(clamp(d + 0.12 * prog, 0, 1), hall);
@@ -2154,6 +2176,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "lhang":
         if (s - lastHangerS > 60) { addHanger(s, Math.random() < 0.5 ? "pendulum" : "gate", true); lastHangerS = s; }
         else addLaserBlock(s, "v");
+        break;
+      case "catapult": // never two close together (on a bend too: the glass walls let the catapult and its glass be seen round it)
+        if (s - lastCataS > CATA_GAP) addCatapult(s); else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) });
         break;
       case "doors": // never two gates close together: there would be no time to open the second
         if (s - lastGateS > GATE_GAP) addGate(s); else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.0), h: rand(2.4, 2.9) });
@@ -3903,6 +3928,104 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
     lf.m.add(new THREE.LineSegments(geo, edgeMat));
   }
+  // ---------- Vitrum: glass catapults ----------
+  // Across the track a hexagon of thick glass fills a frame: balls only knock on it. Eight metres before it a catapult of
+  // glass stands at the side, a target on its front as on Carcer's doors: hit it, the target goes out, the arm swings over
+  // and throws its glowing shot at the glass, which bursts (+2 balls). Missed, the cart bursts it itself (−CATA_COST).
+  let catas = [], lastCataS = -1e9;
+  const CATA_COST = 4, CATA_GAP = 80, CATA_LEAD = 8, CATA_K = 1.35, CATA_TG = 0.75 * 1.35; // its toll, the least room between two, the catapult's lead on its glass, its size, its target's reach
+  const cataSlabGeo = (() => { // a hexagon just inside the frame's own, the cart's way through it
+    const sh = new THREE.Shape(); for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3, x = Math.cos(a) * 4.7, y = Math.sin(a) * 4.7; k ? sh.lineTo(x, y) : sh.moveTo(x, y); }
+    return new THREE.ExtrudeGeometry(sh, { depth: 0.5, bevelEnabled: false }).translate(0, 0, -0.25);
+  })();
+  // blue glass with bright blue edges: it stands out of Vitrum's white light as out of its night
+  const cataGlassMat = new THREE.MeshStandardMaterial({ color: 0x58b4f0, emissive: 0x1a6cc0, emissiveIntensity: 0.55, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide });
+  const cataEdgeMat = new THREE.LineBasicMaterial({ color: 0x2aa8ff });
+  const cataShotMat = new THREE.MeshBasicMaterial({ color: 0x40d8ff });
+  const cataBaseGeo = new THREE.BoxGeometry(1.5, 0.5, 1.7), cataPostGeo = new THREE.BoxGeometry(0.16, 1.5, 0.3), cataPlateGeo = new THREE.BoxGeometry(1.2, 1.2, 0.12);
+  const cataArmGeo = new THREE.BoxGeometry(0.18, 0.18, 3.0).translate(0, 0, 1.5), cataAxleGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.9, 12).rotateZ(Math.PI / 2);
+  const cataCupGeo = new THREE.SphereGeometry(0.34, 14, 8, 0, TAU, 0, Math.PI / 2).rotateX(Math.PI), cataShotGeo = new THREE.IcosahedronGeometry(0.28, 1);
+  const glassBox = (geo, parent) => { const m = new THREE.Mesh(geo, cataGlassMat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), cataEdgeMat)); parent.add(m); return m; };
+  function addCatapult(s) {
+    if (STYLE.arch && STYLE.arch !== "none") s = Math.round((s - 5) / 8) * 8 + 5; // the glass midway between two frames, the catapult a frame before
+    lastCataS = s;
+    const side = Math.random() < 0.5 ? -1 : 1, c = { s, cs: s - CATA_LEAD, side, fired: false, broken: false, passed: false, a: 0, shot: null, inv: new THREE.Matrix4(), twp: new THREE.Vector3() };
+    c.slab = new THREE.Group(); c.slab.matrixAutoUpdate = false; scene.add(c.slab);
+    const glass = glassBox(cataSlabGeo, c.slab); glass.position.y = HEX_V;
+    c.root = new THREE.Group(); c.root.matrixAutoUpdate = false; scene.add(c.root);
+    c.body = new THREE.Group(); c.body.scale.setScalar(CATA_K); c.root.add(c.body); // all of it a size larger than a man
+    glassBox(cataBaseGeo, c.body).position.set(0, 0.25, 0);
+    for (const x of [-0.5, 0.5]) glassBox(cataPostGeo, c.body).position.set(x, 1.25, 0);
+    const axle = new THREE.Mesh(cataAxleGeo, accentMat); axle.position.set(0, 1.95, 0); c.body.add(axle);
+    c.arm = new THREE.Group(); c.arm.position.set(0, 1.95, 0); c.body.add(c.arm); // the arm leans back toward the cart, the shot in its cup
+    glassBox(cataArmGeo, c.arm); const cup = new THREE.Mesh(cataCupGeo, cataGlassMat); cup.position.set(0, 0.2, 3.0); c.arm.add(cup);
+    c.ball = new THREE.Mesh(cataShotGeo, cataShotMat); c.ball.position.set(0, 0.34, 3.0); c.arm.add(c.ball);
+    // the target, on a glass plate before the base, facing the cart
+    // the target, on a glass plate at the base's corner nearer the track, facing the cart, clear of the arm
+    const plate = glassBox(cataPlateGeo, c.body); plate.position.set(-side * 0.95, 1.0, 0.9);
+    c.tg = doorTarget(c.body, -side * 0.95, 1.0, 0.98, true); c.tg.forEach(m => m.scale.setScalar(1.6));
+    c.armRest = 0.5; c.arm.rotation.x = c.armRest;
+    catas.push(c);
+    // nothing in the way between the catapult and its glass, nor just past it
+    clearZone(c.cs - 6, s + GATE_CLEAR);
+    return c;
+  }
+  function fireCatapult(c) {
+    if (c.fired) return;
+    c.fired = true; c.tg.forEach(m => { m.material = targetOff; });
+    Sound.tone(220, 0.25, 0.12, "sawtooth", 0, 110); Sound.clink(); addScore(10);
+  }
+  function burstCataSlab(c, byCart) {
+    c.broken = true; c.slab.updateMatrixWorld(true);
+    const ctr = new THREE.Vector3(0, HEX_V, 0).applyMatrix4(c.slab.matrixWorld);
+    for (let i = 0; i < 70; i++) {
+      const a = rand(0, TAU), r = Math.sqrt(Math.random()) * 4.4, m = new THREE.Mesh(chunkGeo, cataGlassMat);
+      m.position.set(Math.cos(a) * r, HEX_V + Math.sin(a) * r, rand(-0.2, 0.2)).applyMatrix4(c.slab.matrixWorld);
+      m.rotation.set(rand(0, TAU), rand(0, TAU), rand(0, TAU)); m.scale.setScalar(rand(1, 2.2)); scene.add(m);
+      const v = m.position.clone().sub(ctr).multiplyScalar(rand(0.5, 1.3)); v.y += rand(0, 2);
+      shards.push({ mesh: m, shared: true, life: rand(1.4, 2.4), v, w: new THREE.Vector3(rand(-9, 9), rand(-9, 9), rand(-9, 9)), fs: c.s, fo: 0 });
+    }
+    if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
+    scene.remove(c.slab); Sound.thickGlass(); Sound.shatter(1.2);
+    if (byCart) {
+      balls = Math.max(0, balls - CATA_COST); updateCount(); karmaLoss(0.15);
+      Sound.crash(); flash(); pop("−" + CATA_COST + T(" · стекло", " · glass"), "loss"); if (!reduceMotion) shakeT = 0.45;
+    } else { balls += 2; updateCount(); karmaGain(0.04); addScore(30); pop(T("+2 · стекло разбито", "+2 · glass smashed"), "gain"); }
+  }
+  function updateCatapults(dt) {
+    for (const c of catas) {
+      setObj(c.slab, c.s, 0, 0); c.slab.updateMatrixWorld(true); c.inv.copy(c.slab.matrixWorld).invert();
+      setObj(c.root, c.cs, c.side * 2.9, 0); c.root.updateMatrixWorld(true);
+      c.twp.set(-c.side * 0.95, 1.0, 0.98).multiplyScalar(CATA_K).applyMatrix4(c.root.matrixWorld);
+      if (c.fired && !c.shot) { // the arm swings over; at the top the shot leaves the cup for the glass
+        c.a = Math.min(1, c.a + dt / 0.28); c.arm.rotation.x = lerp(c.armRest, -2.0, c.a * c.a); // up over the axle and forward
+        if (c.a >= 1) {
+          c.ball.updateMatrixWorld(true); const from = new THREE.Vector3().setFromMatrixPosition(c.ball.matrixWorld);
+          c.arm.remove(c.ball); scene.add(c.ball); c.ball.matrixAutoUpdate = true; c.ball.scale.setScalar(CATA_K);
+          const ahead = Math.max(0.5, c.s - sC - 1.7); // it must land before the cart is there
+          c.shot = { from, k: 0, dur: Math.min(clamp((c.s - c.cs) / 22, 0.3, 0.6), ahead / Math.max(1, speedNow) * 0.8) };
+        }
+      }
+      if (c.shot && !c.broken) {
+        const sh = c.shot; sh.k = Math.min(1, sh.k + dt / sh.dur);
+        frameAt(c.s); const to = tmpV.copy(_P).addScaledVector(_U, HEX_V - 0.6);
+        c.ball.position.copy(sh.from).lerp(to, sh.k).addScaledVector(_U, 3.2 * sh.k * (1 - sh.k)); c.ball.rotation.x += dt * 9;
+        if (sh.k >= 1) { scene.remove(c.ball); burstCataSlab(c, false); }
+      }
+      if (state === "play" && !c.broken && !c.passed && c.s <= sC + 1.7) { c.passed = true; if (c.shot) scene.remove(c.ball); burstCataSlab(c, true); }
+      if (c.s < sC - 12) { c.dead = true; scene.remove(c.root); if (!c.broken) scene.remove(c.slab); if (c.shot) scene.remove(c.ball); }
+    }
+    catas = catas.filter(c => !c.dead);
+  }
+  // a ball against a catapult: its target fires it; the glass, still whole, takes the ball and keeps it
+  function cataBall(b, pos, pathDist, vel) {
+    for (const c of catas) {
+      if (Math.abs(c.s - sC) > 130) continue;
+      if (!c.fired && pathDist(c.twp) < CATA_TG + R_BALL) { fireCatapult(c); chips(c.twp, targetOn, 5, vel); return "target"; }
+      if (!c.broken) { const l = DL.copy(pos).applyMatrix4(c.inv); if (Math.abs(l.z) < 0.25 + R_BALL && inHex(l.x, l.y, -0.2)) { Sound.knock(); chips(pos, cataGlassMat, 4, vel); return "glass"; } }
+    }
+    return null;
+  }
   function updateGates(dt) {
     for (const g of gates) {
       if (g.opening) g.pr = Math.min(1, g.pr + dt / 0.65);
@@ -4356,13 +4479,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       req: { after: "rubinus", fare: 20 }, map: { x: 615, y: 440, label: "t" } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "glass_halls_in_blue", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "prism", glassWalls: true }, crystalMul: 1.1,
-      pats: { center: [1, 1, 0.7], wall: [0.5, 0.5, 0.5], triple: [0.5, 0.8, 0.5], double: [0, 0.4, 0.8], sides: [1.4, 0.5, 0], gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1],
+      // no heaps of glass (a wall, pairs, threes, the side panes, the scatter of small ones, the shutters): their room goes to
+      // the catapults, one group in eight or so, and a little more to the plain single pane
+      pats: { center: [2, 2, 1.2], wall: [0, 0, 0], triple: [0, 0, 0], double: [0, 0, 0], sides: [0, 0, 0], bonus: [0, 0, 0], shutter: [0, 0, 0], catapult: [1.1, 1.3, 1.3],
+        gate: [0.8, 1, 1], pendulum: [0.5, 0.8, 1],
         bar: [0.45, 0.5, 0.5], bars2: [0.45, 0.7, 0.85], barrow: [0.25, 0.5, 0.7], barwave: [0.2, 0.45, 0.65], barfan: [0.25, 0.45, 0.5], // glass bars turning, alone and in sequences
         rotor: [0.5, 0.6, 0.6], rotor2: [0.3, 0.5, 0.6] }, // and flat glass crosses, alone or a checkerboard pair
+      every: { catapult: 180 }, // a catapult every 180 m at the most (some 300 if one would come too close to the last)
       turns: [[80, 50, -45], [190, 60, 70], [300, 45, -50], [380, 45, 50], [500, 80, -90], [640, 50, 40], [730, 50, -40],
         [830, 70, 80], [960, 50, -55], [1060, 60, 60], [1180, 45, -45], [1260, 45, 45], [1380, 70, -70]],
-      desc: "Призматические галереи над пустотой. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть. Поперёк пути вращаются стеклянные планки и кресты, поодиночке и вереницами.",
-      feats: ["Монолиты на цепях и маятники поперёк пути", "Вращающиеся стеклянные планки, кресты и их вереницы", "Финал Ruina: обвал глыб"],
+      desc: "Призматические галереи под синим майским небом, а на горизонте собирается гроза: чем глубже во Тьму, тем она ближе. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть. Поперёк пути вращаются стеклянные планки и кресты, а толстое стекло во весь проход разбивает только катапульта: попадите в её мишень.",
+      feats: ["Стеклянные катапульты: попадите в мишень — снаряд разобьёт толстое стекло", "Монолиты на цепях, вращающиеся планки и кресты", "Финал Ruina: обвал глыб"],
       req: { after: "initium" }, map: { x: 270, y: 320, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
@@ -4456,8 +4583,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["Square arches, solid walls and floating cubes", "Glass, blue crystals; in the Dark spikes and black-red crystal imps", "Finale Iudicium: seals and a multiplier"] },
       thesaurus: { ru: "Treasury", desc: "A dead-end branch off Rubinus. Golden halls with round arches and floating coins. Twice the usual crystals: the ride costs a fare, but you can come back with a profit.",
         feats: ["2.2 times the crystals", "A short ride, about a minute", "Finale Pluvia: a rain of crystals"] },
-      vitrum: { ru: "Glass", desc: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, alone and in sequences.",
-        feats: ["Monoliths on chains and pendulums across the track", "Turning glass bars, crosses and their sequences", "Finale Ruina: falling boulders"] },
+      vitrum: { ru: "Glass", desc: "Prismatic galleries under a blue May sky, a thunderstorm gathering on the horizon: the deeper into the Dark, the nearer it comes. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, and thick glass that fills the way breaks only to a catapult: hit its target.",
+        feats: ["Glass catapults: hit the target and the shot breaks the thick glass", "Monoliths on chains, turning glass bars and crosses", "Finale Ruina: falling boulders"] },
       armamentarium: { ru: "Armoury", desc: "A dead-end depot beyond the Garden (Hortus). Here crystals buy new cannons and upgrades for the cart.",
         feats: ["The Triplex, Gemini and Lumen cannons", "Upgrades: a bigger reserve, a second wind, more bounty from crystals", "What you buy stays yours; switch cannons in the menu"] },
       labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hangs a switch arrow — a shot flips it, and the rails turn into the other branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains.",
@@ -4592,7 +4719,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const LEVEL_LOOK = {
     initium: { sky: { mode: 3, a: 0.85, c: "#ffffff" } },
     thesaurus: { sky: { mode: 5, a: 0.9, c: "#ffe8b0" } },
-    vitrum: { sky: { mode: 3, a: 0.95, c: "#ffffff" }, shell: [5.3, 8.75] }, // walls and ceiling clear of the hexagonal frames
+    vitrum: { sky: { mode: 8, a: 0.95, c: "#ffffff" }, shell: [5.3, 8.75] }, // walls and ceiling clear of the hexagonal frames; a May storm on the horizon
     tao: { sky: { mode: 7, a: 0.9, c: "#ffffff" } },
     rubinus: { sky: { mode: 6, a: 0.95, c: "#ff2a46" }, shell: [8, 10.5] }, // the triangles are wide: a hall of glass
     labyrinthus: { sky: { mode: 3, a: 0.75, c: "#d4f6e6" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },
@@ -4916,6 +5043,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       tmpV.copy(bt.wp).sub(o); const d = tmpV.dot(dir);
       if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < (bt.r * 1.3) ** 2) hits.push({ d, kind: "button", x: bt });
     }
+    for (const c of catas) {
+      if (Math.abs(c.s - sC) > 130) continue;
+      if (!c.fired) { tmpV.copy(c.twp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < CATA_TG * CATA_TG) hits.push({ d, kind: "cata", x: c }); }
+      if (!c.broken) { const t = rayBox(o, dir, c.inv.clone().premultiply(new THREE.Matrix4().makeTranslation(0, -HEX_V, 0)), 4.1, 4.1, 0.25); if (t >= 0) hits.push({ d: t, kind: "cataglass", x: c }); }
+    }
     for (const bo of boughs) {
       if (bo.broken) continue;
       const r = raySeg(o, dir, bo.A, bo.B);
@@ -4946,6 +5078,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       else if (h.kind === "drop" && h.x.alive) hitDrop(h.x, fake);
       else if (h.kind === "switch") { flipFork(h.x); end = h.d; break; }
       else if (h.kind === "button" && !h.x.pressed) pressButton(h.x);
+      else if (h.kind === "cata") fireCatapult(h.x);
+      else if (h.kind === "cataglass") { end = h.d; break; } // the thick glass stops the beam
       else if (h.kind === "weight") dropWeight(h.x, h.lf);
       else if (h.kind === "hmhead") { end = h.d; break; }
       else if (h.kind === "door") { const at = tmpV.copy(o).addScaledVector(dir, h.d).clone(); doorStrike(h.x, h.t, at, vel); if (!h.t.c) { end = h.d; break; } } // a chain cut lets the beam on
@@ -5188,7 +5322,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     panes = panes.filter(p => p.alive);
 
-    updateBoughs(dt); updateWheels(dt); updateGates(dt); updateLasers(dt); updateTessera(dt); updateRams(dt); updateDoors(dt); updateGears(dt);
+    updateBoughs(dt); updateWheels(dt); updateGates(dt); updateCatapults(dt); updateLasers(dt); updateTessera(dt); updateRams(dt); updateDoors(dt); updateGears(dt);
     mirageMat.opacity = 0.5 + 0.18 * Math.sin(time * 7.5);
     for (const c of crystals) {
       if (!c.alive) continue;
@@ -5432,6 +5566,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (let k = 1; k <= steps && !dead; k++) { const q = SWEEP.copy(b.p0).lerp(pos, k / steps); for (const br of set.bars) if (br.alive && barTouch(br, q, R_BALL)) { mark(); breakBar(br, q.clone()); dead = true; break; } }
         if (dead) break;
       }
+      if (!dead) { const ch = cataBall(b, pos, pathDist, b.v); if (ch) { if (ch === "target") mark(); dead = true; } }
       if (!dead) for (const g of gates) {
         if (Math.abs(g.s - sC) > 130) continue;
         if (g.weights) for (const lf of g.leaves) { const w = lf.wt; if (!w.down && (pathDist(w.wp) < 0.55 + R_BALL || segDist(pos, w.A, w.B) < CHAIN_HIT)) { mark(); dropWeight(g, lf); chips(w.wp, weightMat, 6, b.v); dead = true; break; } }

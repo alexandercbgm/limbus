@@ -264,7 +264,7 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
 .wpn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; align-self: flex-end; margin-bottom: 4px; }
 .extra:empty, .feats:empty, .reqs:empty { display: none; }
 .extra { display: grid; gap: 10px; margin: 16px 0 0; }
-.panes { display: grid; } .pane { grid-area: 1 / 1; display: grid; gap: 10px; align-content: start; } .pane:not(.on) { visibility: hidden; }
+.pane { display: grid; gap: 10px; } .pane:not(.on) { display: none; }
 .reqs:empty + .btns { margin-top: 18px; } /* a station with no conditions listed: the buttons as far below the text as they are below the conditions */
 .tabs { display: flex; gap: 4px; padding: 4px; border-radius: 6px; background: rgba(226, 233, 236, 0.92); } /* the tabs stay at the top of the sheet and scroll away with it */
 .tab { flex: 1; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 4px; background: transparent; color: #4c6470; cursor: pointer;
@@ -403,7 +403,8 @@ video.mini { background: none; object-fit: contain; }
   .sheet .btns { grid-auto-flow: column; grid-auto-columns: 1fr; } .sheet .cta, .sheet .ghost { padding-block: 8px; }
   .sheet h1 small { display: inline; margin-left: 10px; }
 }
-.sheet .panel.nomini { display: block; } /* the depot has no shot to show */
+.sheet .panel.nomini { display: block; align-self: start; } /* the depot has no shot to show; its top stays put as its tabs change, its foot follows the cards */
+.tgphone .overlay.sheet .panel.nomini { align-self: start; }
 .sheet .btns > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* a button's words on one line ("Closed for now") */
 .sheet .btns > :only-child { grid-column: 1 / -1; } /* a lone button (Back to the scheme, at the depot and the shop) across the whole sheet */
 .titlecard { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; text-align: center; }
@@ -1284,6 +1285,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // a phone's bright screen burns these saturated glows out: on a touch screen (the APK, Telegram on a phone) they glow a third
   // less and a shade softer, the blue toward sea-green, the reds toward ruby
   const PHONE = matchMedia("(pointer: coarse)").matches;
+  // a station on the scheme: the circle with its rim, and the area round it a press answers to, twice as wide for a finger
+  // (the stations stand far enough apart for it: no two such areas meet)
+  const STATION_R = 24, STATION_HIT = PHONE ? 56 : 28;
   if (PHONE) {
     crystalMat.color.set(0x5ccbe6); crystalMat.emissive.set(0x1a7fa6); crystalMat.emissiveIntensity = 0.5;
     decoyMat.emissive.set(0xd8241a); decoyMat.emissiveIntensity = 0.48;
@@ -5668,7 +5672,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         L[0] += L[2] === "end" ? -w / 2 : w / 2; L[2] = "middle";
       }
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS(st)}">`;
-      out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="28"/>`;
+      out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="${STATION_HIT}"/>`;
       if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += ring(p, lv.gift ? LINE_GOLD : LINE_BR, 2.5, d); // rings round the depot till the first purchase
       if (first) for (const d of [0, 1.2]) out += ring(p, "url(#firstRing)", 2.5, d); // till the first ride, as round the depot
       else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 20, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
@@ -5758,8 +5762,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (lv.depot && progress.open[lv.id]) reqs.length = 0; // an open depot needs no conditions listed: more room for its wares
     $("shReqs").innerHTML = reqs.map(([ok, t]) => `<li><span class="${ok ? "ok" : "no"}">${ok ? "✓" : "✕"}</span><span>${esc(t)}</span></li>`).join("");
     const btns = $("shBtns"), extra = $("shExtra"); btns.innerHTML = ""; extra.innerHTML = "";
-    // the cards of every tab, laid out in one cell and only the chosen one seen: the sheet is as tall on every tab, so it
-    // stands still when the tab changes
+    // the cards of every tab, only the chosen one shown
     const tabPanes = (ids, on) => {
       const box = document.createElement("div"), pane = {}; box.className = "panes"; extra.appendChild(box);
       for (const id of ids) { const d = pane[id] = document.createElement("div"); d.className = "pane" + (id === on ? " on" : ""); box.appendChild(d); }
@@ -6160,7 +6163,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
     return LEVELS.find(l => l.map && Math.hypot(pt.x - l.map.x, pt.y - l.map.y) <= r) || null;
   };
-  const STATION_R = 24, STATION_HIT = 28; // the circle with its rim; the touch area round it
   const hot = lv => $("map").querySelectorAll(".station").forEach(g => g.classList.toggle("hot", !!lv && g.dataset.id === lv.id));
   $("map").addEventListener("pointerdown", e => { mapPress = stationAt(e, STATION_HIT); hot(stationAt(e, STATION_R)); });
   $("map").addEventListener("pointermove", e => hot(e.pointerType === "mouse" || mapPress ? stationAt(e, STATION_R) : null));

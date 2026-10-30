@@ -7,8 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Manrope:wght@400;600&family=JetBrains+Mono:wght@700&display=swap">
-<!-- the night theme unless the day was chosen; limbus-theme2: everyone starts again in the night (v1.0.50) -->
-<script>try { if (localStorage.getItem("limbus-theme2") !== "day") document.documentElement.classList.add("night"); } catch (e) { document.documentElement.classList.add("night"); }</script>
+<!-- the night theme unless the day was chosen; limbus-theme2: everyone starts again in the night (v1.0.50). And the menu laid
+     out for its background loop from the first paint: the loop's video comes at the page's end, and till then the menu would
+     show its plain light backing (a grey screen in the night) -->
+<script>document.documentElement.classList.add("videobg"); try { if (localStorage.getItem("limbus-theme2") !== "day") document.documentElement.classList.add("night"); } catch (e) { document.documentElement.classList.add("night"); }</script>
 <style>
 /* Layout: full-bleed WebGL track; HUD pinned to the top edge; karma meter on the right edge; frosted panels centered for menus.
    The whole world recolors with the cart's karma, so the HUD flips between dark ink (light world) and light ink (dark world). */
@@ -142,7 +144,8 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   background: linear-gradient(180deg, rgba(240, 246, 248, 0.78), rgba(232, 238, 241, 0.9));
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 /* with the background loop (build.py: minis/menu.bg.mp4, blurred beforehand) the menu blurs nothing and the world behind it rests */
-.videobg .menu { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.videobg .menu { background: #e9f2f6; -webkit-backdrop-filter: none; backdrop-filter: none; } /* the loop's own ground, under it, till it comes */
+.night.videobg .menu { background: #04070f; }
 .videobg .menu::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(180deg, rgba(240, 246, 248, 0.78), rgba(232, 238, 241, 0.9)); }
 .menu > video.menubg { position: fixed; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .menu-in { max-width: 1000px; margin: 0 auto; box-sizing: border-box; display: grid; gap: 18px;
@@ -5951,7 +5954,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the menu's background: a loop of the rails, blurred beforehand, playing while the menu is up (the page's last elements)
   function menuBg() {
     const night = () => document.documentElement.classList.contains("night") && document.getElementById("menubg-night");
-    const src = document.getElementById("menubg"); if (!src) return;
+    const src = document.getElementById("menubg"); if (!src) { document.documentElement.classList.remove("videobg"); return; } // a page without the loop: the menu's own backing
     // a loop's first frame stands behind it as well, so a moment without a decoded frame (starting, or a web view that has let
     // go of it) shows that, not the world's last frame under the menu
     const make = id => {

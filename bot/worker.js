@@ -3,6 +3,7 @@
 // What it does:
 //   /start            greets the player with a Play button and remembers them for the news
 //   /stop             takes them off the news; /start puts them back
+//   /trailer, /ost    the trailer, and the game's soundtrack as audio albums: both come by themselves on the first /start
 //   /support, text    a message to the bot goes on to the owner; the owner replies to it in the bot's chat and the
 //                     reply goes back to the player, from the bot
 //                     (the owner can try it out: after their own /support his next message goes the player's way)
@@ -32,7 +33,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.5.4";
+const BOT_VERSION = "1.6.0";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -97,8 +98,8 @@ async function speaker(env, user) {
 }
 // the commands under the input field and the Play button beside it, in a language: for everyone by default, or for one chat
 const commands = r => r
-  ? [{ command: "play", description: "Играть" }, { command: "buy", description: "Кристаллы для Арсенала" }, { command: "support", description: "Написать автору" }, { command: "language", description: "Язык" }]
-  : [{ command: "play", description: "Play" }, { command: "buy", description: "Crystals for Armamentarium" }, { command: "support", description: "Write to the author" }, { command: "language", description: "Language" }];
+  ? [{ command: "play", description: "Играть" }, { command: "trailer", description: "Трейлер" }, { command: "ost", description: "Саундтрек" }, { command: "buy", description: "Кристаллы для Арсенала" }, { command: "support", description: "Написать автору" }, { command: "language", description: "Язык" }]
+  : [{ command: "play", description: "Play" }, { command: "trailer", description: "Trailer" }, { command: "ost", description: "Soundtrack" }, { command: "buy", description: "Crystals for Armamentarium" }, { command: "support", description: "Write to the author" }, { command: "language", description: "Language" }];
 const menuButton = (env, r) => ({ type: "web_app", text: r ? "Играть" : "Play", web_app: { url: env.GAME_URL } });
 async function onButton(q, env) {
   const m = /^lang:(ru|en)$/.exec(q.data || "");
@@ -203,10 +204,36 @@ async function sendClip(env, msg, id) {
 const TRAILER_VERSION = 3;
 async function sendTrailer(env, chat, from) {
   const lang = ru(from) ? "ru" : "en", key = `trailer:${lang}:${TRAILER_VERSION}`, known = await env.USERS.get(key);
-  const msg = { chat_id: chat, width: 1280, height: 720, duration: 40, supports_streaming: true };
+  const msg = { chat_id: chat, width: 1280, height: 720, duration: 40, supports_streaming: true,
+    caption: T(from, "Трейлер Limbus. Посмотреть ещё раз — /trailer", "The Limbus trailer. Watch it again with /trailer") };
   if (known) { const r = await tg(env, "sendVideo", { ...msg, video: known }); if (r.ok) return r; }
   const r = await tg(env, "sendVideo", { ...msg, video: `${env.GAME_URL}minis/trailer.${lang}.mp4?v=${TRAILER_VERSION}` });
   if (r.ok && r.result.video) await env.USERS.put(key, r.result.video.file_id);
+  return r;
+}
+
+// the soundtrack: the menu's track, then the stations' along the main line, the lower line and the dead ends, left to right on
+// the scheme, as the game plays them (music/<stem>.mp3 beside the game; a new or moved track is a new OST_VERSION). Fetched by
+// Telegram from their addresses the first time, then sent again by the file_ids it gave back, kept in KV. A Telegram album
+// holds 10 at most: the twelve go as two albums of six
+const OST_VERSION = 1;
+const OST = [["Menu", "menu_glass_horizon"],
+  ["Initium", "glass_perspective"], ["Vitrum", "glass_halls_in_blue"], ["Labyrinthus", "calculated_descent"], ["Tao", "translucent_corridor"], ["Nox", "through_the_glass_corridor"], ["Lux", "translucent_path"],
+  ["Rubinus", "through_the_glass_maze"], ["Speculum", "measured_descent"],
+  ["Hortus", "glass_horizon"], ["Thesaurus", "luminous_glass"], ["Carcer", "refraction_point"]];
+async function sendOst(env, chat, from) {
+  const key = `ost:${OST_VERSION}`, known = JSON.parse(await env.USERS.get(key) || "null"), ids = [];
+  const groups = [OST.slice(0, 6), OST.slice(6)];
+  let r;
+  for (const [g, list] of groups.entries()) {
+    const media = (byId) => list.map(([name, stem], i) => ({ type: "audio", media: byId ? known[g * 6 + i] : `${env.GAME_URL}music/${stem}.mp3?v=${OST_VERSION}`, title: `Limbus - ${name}`, performer: "Limbus",
+      ...(g === groups.length - 1 && i === list.length - 1 ? { caption: T(from, "Саундтрек Limbus. Получить ещё раз — /ost", "The Limbus soundtrack. Get it again with /ost") } : {}) }));
+    r = known ? await tg(env, "sendMediaGroup", { chat_id: chat, media: media(true) }) : null;
+    if (!r || !r.ok) r = await tg(env, "sendMediaGroup", { chat_id: chat, media: media(false) });
+    if (!r.ok) return r;
+    for (const m of r.result) ids.push(m.audio && m.audio.file_id);
+  }
+  if (!known && ids.length === OST.length && ids.every(Boolean)) await env.USERS.put(key, JSON.stringify(ids));
   return r;
 }
 
@@ -253,14 +280,17 @@ async function onUpdate(u, env) {
         return tg(env, "sendInvoice", { chat_id: chat, ...invoiceBody({ language_code: from.language_code }, "apk") });
       }
       const key = "u:" + from.id, rec = JSON.parse(await env.USERS.get(key) || "null");
-      if (!rec || !rec.trailer) { // the trailer once, on their first /start, before the level card with its Start button
+      if (!rec || !rec.trailer) { // the trailer and the soundtrack once, on their first /start, before the level card with its Start button
         const r = await sendTrailer(env, chat, from);
         if (r.ok && rec) await env.USERS.put(key, JSON.stringify({ ...rec, trailer: true }));
+        await sendOst(env, chat, from);
       }
       // the station they are up to on the way to the Light, as the game last told (Initium for a newcomer); a link's own level first
       return greet(env, chat, from, arg || await env.USERS.get("w:" + from.id) || "initium");
     }
     case "/play": return greet(env, chat, from, await env.USERS.get("w:" + from.id) || "initium"); // as /start: the station they are up to
+    case "/trailer": return sendTrailer(env, chat, from);
+    case "/ost": return sendOst(env, chat, from);
     case "/version": return tg(env, "sendMessage", { chat_id: chat, text: `v${BOT_VERSION}` });
     case "/language": return tg(env, "sendMessage", { chat_id: chat, text: T(from, "Выберите язык:", "Choose a language:"),
       reply_markup: { inline_keyboard: [[{ text: "Русский", callback_data: "lang:ru" }, { text: "English", callback_data: "lang:en" }]] } });

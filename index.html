@@ -269,10 +269,9 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
   background: #e9eced; color: #10242e; text-align: center; font: 600 16px var(--body); }
 .rotate svg { width: 84px; height: 84px; stroke: #10242e; fill: none; stroke-width: 1.6; transform: rotate(0deg); animation: turn 3.2s ease-in-out infinite; }
 @keyframes turn { 0%, 25% { transform: rotate(0deg); } 50%, 75% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } } /* upright, turned, and smoothly back: no jump between rounds */
-.rotate button { font: 600 13px var(--body); padding: 10px 16px; border-radius: 4px; border: 1px solid #10242e; background: transparent; color: #10242e; }
 @media (orientation: landscape) { .rotate { display: none; } }
 /* the Telegram build on a phone shows it from the first paint, before any script, so the upright menu never flashes */
-@media (orientation: portrait) and (pointer: coarse) { html.tgbuild:not(.rotskip) .rotate[hidden] { display: flex !important; } }
+@media (orientation: portrait) and (pointer: coarse) { html.tgbuild .rotate[hidden] { display: flex !important; } }
 html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rotate > * { visibility: hidden; } html.tgbuild:not(.tgready) .rotate svg { animation: none; } /* the turn starts upright when it shows */ /* nothing shows, not the menu nor the tunnel behind it, till Telegram has opened the app at its full size */
 .how .panel { width: min(640px, 100%); }
 .how .panel p { font-size: 14px; margin-top: 8px; text-wrap: pretty; } /* no word left alone on the last line */
@@ -290,6 +289,9 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 /* a phone in Telegram: the Space line on a line of its own, and a station sheet the whole height of the screen, so nothing shows round it */
 .tgphone .spc { display: block; }
 .tgphone .overlay.sheet .panel { align-self: stretch; align-content: center; }
+/* and up to the screen's top edge, under Telegram's own buttons, its content kept clear of them: no strip of the menu above it */
+.tgphone .overlay.sheet { padding-top: 0; }
+.tgphone .overlay.sheet .panel { padding-top: calc(var(--safe-top, 0px) + 10px); border-top-left-radius: 0; border-top-right-radius: 0; }
 /* on a low screen held sideways all of it goes in one row beside the logo, and the legend gives way to the scheme */
 @media (orientation: landscape) and (max-height: 380px) {
   .tg .m-side { gap: 6px; }
@@ -342,6 +344,7 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
 .wpn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; align-self: flex-end; margin-bottom: 4px; }
 .extra:empty, .feats:empty, .reqs:empty { display: none; }
 .extra { display: grid; gap: 10px; margin: 16px 0 0; }
+.panes { display: grid; } .pane { grid-area: 1 / 1; display: grid; gap: 10px; align-content: start; } .pane:not(.on) { visibility: hidden; }
 .reqs:empty + .btns { margin-top: 18px; } /* a station with no conditions listed: the buttons as far below the text as they are below the conditions */
 .tabs { display: flex; gap: 4px; padding: 4px; border-radius: 6px; background: rgba(226, 233, 236, 0.92); } /* the tabs stay at the top of the sheet and scroll away with it */
 .tab { flex: 1; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 4px; background: transparent; color: #4c6470; cursor: pointer;
@@ -481,6 +484,8 @@ video.mini { background: none; object-fit: contain; }
   .sheet h1 small { display: inline; margin-left: 10px; }
 }
 .sheet .panel.nomini { display: block; } /* the depot has no shot to show */
+.sheet .btns > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* a button's words on one line ("Closed for now") */
+.sheet .btns > :only-child { grid-column: 1 / -1; } /* a lone button (Back to the scheme, at the depot and the shop) across the whole sheet */
 .titlecard { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; text-align: center; }
 .titlecard > div { animation: banner 3.4s ease-out forwards; color: var(--ink); }
 .tc-num { font-family: var(--mono); font-size: 13px; letter-spacing: 0.3em; padding-left: 0.3em; }
@@ -615,7 +620,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 <div class="rotate" id="rotate" hidden>
   <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="15" y="5" width="18" height="38" rx="3"/><path d="M21 10h6"/></svg>
   <div data-en="Turn your phone sideways">Поверните телефон горизонтально</div>
-  <button type="button" id="rotateSkip" data-en="Play upright">Играть вертикально</button>
 </div>
 <section class="menu" id="menu">
   <div class="menu-in">
@@ -658,7 +662,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.59</div>
+      <div class="credit version">v1.0.60</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -818,7 +822,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.59`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.60`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5840,6 +5844,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (lv.depot && progress.open[lv.id]) reqs.length = 0; // an open depot needs no conditions listed: more room for its wares
     $("shReqs").innerHTML = reqs.map(([ok, t]) => `<li><span class="${ok ? "ok" : "no"}">${ok ? "✓" : "✕"}</span><span>${esc(t)}</span></li>`).join("");
     const btns = $("shBtns"), extra = $("shExtra"); btns.innerHTML = ""; extra.innerHTML = "";
+    // the cards of every tab, laid out in one cell and only the chosen one seen: the sheet is as tall on every tab, so it
+    // stands still when the tab changes
+    const tabPanes = (ids, on) => {
+      const box = document.createElement("div"), pane = {}; box.className = "panes"; extra.appendChild(box);
+      for (const id of ids) { const d = pane[id] = document.createElement("div"); d.className = "pane" + (id === on ? " on" : ""); box.appendChild(d); }
+      return pane;
+    };
     const button = (parent, cls, text, fn, disabled) => {
       const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; b.disabled = !!disabled;
       if (parent.classList && parent.classList.contains("pack") && /^\d+$/.test(text)) b.insertAdjacentHTML("beforeend", STAR_SVG); // a price in Stars: a star in the button's own colour
@@ -5853,10 +5864,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     };
     if (lv.gift) {
       const inTg = TG && BOT_API && TG.isVersionAtLeast("6.1");
-      const card = (pk, buy) => {
+      const card = (pk, buy, to = extra) => {
         const c = document.createElement("div"); c.className = "wcard pack";
         c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true">${pk.icon}</svg>${esc(T(pk.ru, pk.en))}<small>◆ ${pk.crystals}</small></h3><p>${esc(T(...pk.desc))}<br><span class="pk-plus">${T("+25% бонус", "+25% bonus")}</span></p>`;
-        buy(c); extra.appendChild(c);
+        buy(c); to.appendChild(c);
       };
       if (inTg) { // packs for Stars, on two tabs: the upgrades, and the cannons with everything at once
         const tabs = document.createElement("div"); tabs.className = "tabs"; tabs.setAttribute("role", "tablist");
@@ -5865,7 +5876,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           t.innerHTML = `${name}<small>${esc(sub)}</small>`; t.addEventListener("click", () => { if (shopTab !== id) { shopTab = id; openSheet(lv, true); } }); tabs.appendChild(t);
         }
         extra.appendChild(tabs);
-        for (const pk of PACKS.filter(p => p.tab === shopTab)) card(pk, c => button(c, "cta", `${pk.stars}`, async ev => {
+        const pane = tabPanes(["guns", "up"], shopTab);
+        for (const pk of PACKS) card(pk, c => button(c, "cta", `${pk.stars}`, async ev => {
           ev.target.disabled = true;
           try {
             const r = await (await fetch(BOT_API + "/invoice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ product: pk.id, lang: LANG }) })).json();
@@ -5877,7 +5889,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             });
           } catch (e) { pop(T("Не удалось связаться с ботом", "Couldn't reach the bot"), "info"); }
           ev.target.disabled = false;
-        }));
+        }), pane[pk.tab]);
       } else if (window.LimbusPlay) { // the Google Play build: the same pack, bought through Google Play
         const all = PACKS.find(p => p.id === "all");
         card(Object.assign({}, all, { ru: playPrice ? `Всё сразу · ${playPrice}` : "Всё сразу", en: playPrice ? `Everything · ${playPrice}` : "Everything" }),
@@ -5920,20 +5932,21 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           tabs.appendChild(t);
         }
         extra.appendChild(tabs);
-        if (depotTab === "arma") for (const id in WEAPONS) {
+        const pane = tabPanes(["arma", "ingenia"], depotTab);
+        for (const id in WEAPONS) {
           const w = WEAPONS[id], card = document.createElement("div"); card.className = "wcard";
           card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${ballsWord(w.cost)} ${T("за выстрел", "a shot")}</small></h3><p>${esc(w.desc)}</p>`;
           if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? T("Стоит на вагонетке", "On the cart") : T("Поставить", "Mount"), () => { progress.weapon = id; saveProgress(); openSheet(lv, true); }, progress.weapon === id);
           else if (w.price === null) button(card, "ghost", T("Заперта в Темнице", "Locked in the Dungeon"), null, true);
           else { const price = priceOf(id); button(card, "cta", price < w.price ? T(`Купить: ◆ ${price} (скидка из Сада)`, `Buy: ◆ ${price} (Garden discount)`) : T(`Купить: ◆ ${price}`, `Buy: ◆ ${price}`), () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; progress.bought = true; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
-          extra.appendChild(card);
+          pane.arma.appendChild(card);
         }
-        else for (const id in UPGRADES) {
+        for (const id in UPGRADES) {
           const u = UPGRADES[id], lvl = upLevel(id), card = document.createElement("div"); card.className = "wcard";
           card.innerHTML = `<h3>${esc(u.name)}<small>${esc(T(u.ru, u.en))} · ${T("уровень", "level")} ${lvl}/3${lvl ? " · " + esc(u.now(lvl)) : ""}</small></h3><p>${esc(T(...u.desc))}</p>`;
           if (lvl >= 3) button(card, "ghost", T("Всё куплено", "Maxed out"), null, true);
           else { const price = u.prices[lvl]; button(card, "cta", T(`Уровень ${lvl + 1}: ◆ ${price}`, `Level ${lvl + 1}: ◆ ${price}`), () => { progress.bank -= price; progress.up[id] = lvl + 1; progress.bought = true; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
-          extra.appendChild(card);
+          pane.ingenia.appendChild(card);
         }
       } else if (reached && bank >= req.toll) button(btns, "cta", T(`Открыть склад: −${req.toll} ◆`, `Open the depot: −${req.toll} ◆`), () => { progress.bank -= req.toll; progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); });
       else if (reached) { const rich = [byId("hortus"), byId("thesaurus")].filter(isOpen); short(rich.length ? rich : [byId(WAY.find(id => !progress.done[id]) || "lux")]); } // the dead ends richest in crystals
@@ -6199,8 +6212,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     window.__fitMap = fitMap;
     // on a phone the game is played sideways, as in the Android app: ask to turn it, then keep it so
     if (/^(android|ios)$/.test(TG.platform)) {
-      $("rotate").hidden = false;
-      $("rotateSkip").addEventListener("click", () => { $("rotate").hidden = true; document.documentElement.classList.add("rotskip"); });
+      $("rotate").hidden = false; // and no way past it upright: the game is played sideways
       try { screen.orientation.lock("landscape").catch(() => {}); } catch (e) { /* the WebView won't turn it itself */ }
       const keep = () => { if (innerWidth > innerHeight && TG.isVersionAtLeast("8.0") && TG.lockOrientation) TG.lockOrientation(); };
       keep(); addEventListener("resize", keep);

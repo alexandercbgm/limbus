@@ -277,11 +277,11 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
 video.mini { background: none; object-fit: contain; }
 /* a station's sheet steps out of a white veil that clears, growing a little into place: half a second, the time its clip
    takes to load and start */
-.sheet .panel.enter { position: relative; will-change: transform, opacity; animation: sheetenter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.sheet .panel.enter { position: relative; } /* the panel itself is not moved nor faded: a phone shows a video in a moving or fading box frozen till it settles */
 .sheet .panel.enter::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
-  background: radial-gradient(ellipse at center, #fff 30%, #eaf8ff 100%); animation: sheetglare 0.5s ease-out forwards; } /* the glare it steps out of: a white veil that clears, cheap to draw */
-@keyframes sheetenter { 0% { opacity: 0; transform: scale(0.94); } 30% { opacity: 1; } 100% { opacity: 1; transform: none; } }
-@keyframes sheetglare { 0%, 45% { opacity: 1; } 100% { opacity: 0; } } /* opaque for the first quarter second, while the clip starts */ /* a wide clip in the shot's place: the sheet shows through above and below it */
+  background: radial-gradient(ellipse at center, #fff 30%, #eaf8ff 100%); animation: sheetglare 0.4s ease-out forwards; } /* the glare it steps out of: a veil over it that clears, the clip already moving under it */
+.night .sheet .panel.enter::after { background: radial-gradient(ellipse at center, #1a2c4a 30%, #0a1426 100%); }
+@keyframes sheetglare { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.04); } } /* opaque for the first quarter second, while the clip starts */ /* a wide clip in the shot's place: the sheet shows through above and below it */
 .sheet h1 small { display: block; font-family: var(--body); font-weight: 600; font-size: 15px; letter-spacing: 0; color: #4c6470; margin-top: 4px; }
 .feats { margin: 12px 0 0; padding-left: 18px; color: #4c6470; line-height: 1.5; font-size: 14px; }
 .reqs { list-style: none; margin: 16px 0 18px; padding: 0; display: grid; gap: 8px; }
@@ -424,7 +424,6 @@ html.night, .night body { background: #03060d; }
 .night .logo span { color: #3cc9ec; }
 .night .map-card { background: linear-gradient(180deg, rgba(20, 34, 58, 0.78), rgba(8, 14, 28, 0.86));
   box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.16), 0 30px 80px -20px rgba(0, 0, 0, 0.8); }
-.night #map line, .night #map polyline { filter: drop-shadow(0 0 4px currentColor); }
 .night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; }
 .night #map circle[fill="#ffffff"], .night #map circle[fill="#fffaf0"], .night #map rect[fill="#fffaf0"] { fill: #0c1628; }
 .night #map circle[fill="#e6ecee"] { fill: #18233a; }
@@ -432,12 +431,10 @@ html.night, .night body { background: #03060d; }
 .night #map path[stroke="#10242e"] { stroke: #dff6ff; } .night #map path[stroke="#ffffff"] { stroke: #0c1628; }
 .night #map text[fill="#10242e"] { fill: #eaf6ff; } .night #map text[fill="#4c6470"] { fill: #8fb0c8; }
 .night #map text[fill="#1d6f8f"] { fill: #4fd8f0; } .night #map text[fill="#7a8d95"] { fill: #6a86a0; }
-.night #map .ring { filter: drop-shadow(0 0 5px rgba(80, 200, 255, 0.45)); }
-.night .map-rings i { filter: drop-shadow(0 0 5px currentColor); }
 .night .bank, .night .arms, .night .map-tools .ibtn { background: rgba(14, 26, 46, 0.78); color: #dff3ff; box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2); }
 .night .map-tools .ibtn:hover { background: rgba(24, 40, 66, 0.9); }
 .night .map-tools .ibtn.on { box-shadow: inset 0 0 0 1.5px #3cc9ec, 0 0 12px rgba(60, 201, 236, 0.35); }
-.night .ibtn svg { fill: #dff3ff; stroke: #dff3ff; } .night .ibtn svg.gear, .night .gp-label svg.globe { fill: none; }
+.night .map-tools .ibtn svg { fill: #dff3ff; stroke: #dff3ff; } .night .map-tools .ibtn svg.gear, .night .gp-label svg.globe { fill: none; }
 .night .bank b, .night .arm b { color: #4fd8f0; } .night .arms .arm { color: #dff3ff; } .night .arms .arm:hover { background: rgba(160, 220, 255, 0.07); }
 .night .arms .arm[aria-pressed="true"] { background: #02060c; color: #e8fbff; box-shadow: inset 0 0 0 1.5px #3cc9ec, 0 0 12px rgba(60, 201, 236, 0.45); }
 .night .arms .arm[aria-pressed="true"] b { color: #3cc9ec; }
@@ -446,23 +443,43 @@ html.night, .night body { background: #03060d; }
 .night .gp-link:hover { background: rgba(160, 220, 255, 0.07); }
 .night .seg { background: rgba(0, 0, 0, 0.35); } .night .seg button { color: #8fb0c8; }
 .night .seg button[aria-pressed="true"] { background: #02060c; color: #e8fbff; box-shadow: inset 0 0 0 1.5px #3cc9ec, 0 0 10px rgba(60, 201, 236, 0.35); }
-/* the sheets and the help */
-.night .sheet::before, .night .how { background: rgba(2, 6, 14, 0.55); }
-.night .sheet .panel, .night .how .panel { background: linear-gradient(180deg, rgba(18, 32, 56, 0.96), rgba(8, 14, 28, 0.97)); border: 0; color: #e6f4ff; border-radius: 16px;
+/* ---- every panel (the station sheets, the help, the pause, a ride's end, the arrival), in either theme: rounded glass,
+   the main action flat, the rest outlined, a chosen tab or cannon ringed ---- */
+.overlay .panel { border: 0; border-radius: 16px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(246, 251, 252, 0.92));
+  box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.06), 0 8px 24px -6px rgba(16, 36, 46, 0.12), 0 32px 64px -24px rgba(16, 36, 46, 0.25); }
+.overlay .panel .eyebrow { color: #1d8fb0; }
+.overlay .cta { border-radius: 10px; background: #1d8fb0; color: #ffffff; box-shadow: 0 6px 18px -6px rgba(29, 143, 176, 0.55); }
+.overlay .cta:hover { background: #1f9fc4; } .overlay .cta:disabled { background: #b9c6cc; color: #eef3f5; box-shadow: none; }
+.overlay .ghost { border-radius: 10px; border-color: rgba(16, 36, 46, 0.25); }
+.overlay .ghost:hover { background: rgba(16, 36, 46, 0.04); }
+.sheet .mini, .sheet video.mini { border-radius: 10px; }
+.wcard { border-radius: 10px; border-color: rgba(16, 36, 46, 0.1); }
+.tabs { border-radius: 11px; } .tab { border-radius: 8px; }
+.tab[aria-selected="true"] { background: #ffffff; color: #10242e; box-shadow: inset 0 0 0 1.5px #1d8fb0, 0 0 10px rgba(29, 143, 176, 0.18); }
+.arms .arm[aria-pressed="true"] { background: #ffffff; color: #10242e; box-shadow: inset 0 0 0 1.5px #1d8fb0, 0 0 10px rgba(29, 143, 176, 0.22); }
+.arms .arm[aria-pressed="true"] b { color: #1287b5; }
+.seg button[aria-pressed="true"] { box-shadow: inset 0 0 0 1.5px #1d8fb0, 0 1px 3px rgba(16, 36, 46, 0.12); }
+.journey { border-radius: 10px; }
+/* night */
+.night .overlay:not(.sheet) { background: rgba(2, 6, 14, 0.45); }
+.night .sheet::before { background: rgba(2, 6, 14, 0.55); }
+.night .overlay .panel { background: linear-gradient(180deg, rgba(18, 32, 56, 0.96), rgba(8, 14, 28, 0.97)); color: #e6f4ff;
   box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 40px rgba(60, 201, 236, 0.1), 0 40px 90px -20px rgba(0, 0, 0, 0.85); -webkit-backdrop-filter: none; backdrop-filter: none; }
-.night .sheet .panel .eyebrow, .night .how .eyebrow { color: #4fd8f0; }
-.night .sheet .panel h1, .night .how .panel h1 { color: #f2faff; text-shadow: 0 0 18px rgba(80, 200, 255, 0.3); } .night .sheet h1 small { color: #8fb0c8; }
-.night .sheet .panel p, .night .sheet .feats li, .night .sheet .reqs li, .night .how .panel p, .night .how li { color: #b9cfe0; }
-.night .sheet .reqs .ok { color: #4fd8f0; } .night .sheet .reqs .no { color: #ff5b7a; }
+.night .overlay .panel .eyebrow { color: #4fd8f0; }
+.night .overlay .panel h1 { color: #f2faff; text-shadow: 0 0 18px rgba(80, 200, 255, 0.3); } .night .sheet h1 small { color: #8fb0c8; }
+.night .overlay .panel p, .night .overlay .panel li, .night .feats, .night .stat span { color: #b9cfe0; }
+.night .stat b { color: #f2faff; }
+.night .reqs .ok { color: #4fd8f0; } .night .reqs .no { color: #ff5b7a; }
 .night .sheet .mini { box-shadow: 0 0 0 1px rgba(120, 200, 255, 0.25), 0 0 24px rgba(60, 201, 236, 0.16); }
-.night .sheet .wcard { background: rgba(10, 20, 38, 0.75); box-shadow: inset 0 0 0 1px rgba(120, 200, 255, 0.16); color: #e6f4ff; }
-.night .sheet .wcard h3 { color: #e6f4ff; } .night .sheet .wcard h3 small { color: #8fb0c8; } .night .sheet .wcard p { color: #b9cfe0; }
-.night .sheet .tabs { background: rgba(10, 20, 38, 0.8); } .night .sheet .tab { color: #8fb0c8; }
-.night .sheet .tab[aria-selected="true"] { background: #02060c; color: #e8fbff; box-shadow: inset 0 0 0 1.5px #3cc9ec; }
-.night .sheet .cta:not(:disabled), .night .how .cta { background: #3cc9ec; color: #04121c; box-shadow: 0 0 22px rgba(60, 201, 236, 0.3); }
-.night .sheet .cta:not(:disabled):hover, .night .how .cta:hover { background: #5fd6f2; }
-.night .sheet .cta:disabled { background: rgba(120, 150, 175, 0.22); color: #7f97aa; }
-.night .sheet .ghost, .night .how .ghost { background: transparent; color: #cfe6f5; border-color: rgba(160, 220, 255, 0.35); }
+.night .wcard { background: rgba(10, 20, 38, 0.75); border-color: rgba(120, 200, 255, 0.16); color: #e6f4ff; }
+.night .wcard h3 { color: #e6f4ff; } .night .wcard h3 small { color: #8fb0c8; }
+.night .tabs { background: rgba(10, 20, 38, 0.8); } .night .tab { color: #8fb0c8; }
+.night .tab[aria-selected="true"] { background: #02060c; color: #e8fbff; box-shadow: inset 0 0 0 1.5px #3cc9ec; }
+.night .overlay .cta { background: #3cc9ec; color: #04121c; box-shadow: 0 0 22px rgba(60, 201, 236, 0.3); }
+.night .overlay .cta:hover { background: #5fd6f2; } .night .overlay .cta:disabled { background: rgba(120, 150, 175, 0.22); color: #7f97aa; box-shadow: none; }
+.night .overlay .ghost { background: transparent; color: #cfe6f5; border-color: rgba(160, 220, 255, 0.35); }
+.night .overlay .ghost:hover { background: rgba(160, 220, 255, 0.06); }
+.night .journey { background: rgba(10, 20, 38, 0.75); box-shadow: inset 0 0 0 1px rgba(120, 200, 255, 0.16); color: #b9cfe0; } .night .journey h2, .night .journey b { color: #eaf6ff; }
 .night .how .rules li { border-top-color: #3cc9ec; color: #8fb0c8; } .night .how .rules b { color: #eaf6ff; }
 .night .sheet .redeem input { background: #02060c; color: #e6f4ff; border-color: rgba(120, 200, 255, 0.35); }
 </style>
@@ -840,7 +857,7 @@ html.night, .night body { background: #03060d; }
   // ---------- sound: synthesized effects + background track ----------
   const Sound = {
     ctx: null, master: null, muted: (() => { try { return !!localStorage.getItem("limbus-muted"); } catch (e) { return false; } })(), noise: null, music: null, musicLP: null, musicGain: null, fallback: null,
-    buffers: {}, elements: {}, track: null, want: "seer_vahl", // the menu plays the first level's track until a level is run
+    buffers: {}, elements: {}, track: null, want: "ascent_through_glass", // the menu's own track (a level plays its own)
     init() {
       if (this.ctx) { if (this.ctx.state === "suspended") this.ctx.resume(); this.play(this.want); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -4606,7 +4623,7 @@ html.night, .night body { background: #03060d; }
   }
   function showMenu() {
     state = "menu";
-    Sound.setKarma(0.35); if (Sound.ctx) Sound.play(Sound.want); // the menu keeps the last level's track (the first level's, at the start)
+    Sound.want = "ascent_through_glass"; Sound.setKarma(0.35); if (Sound.ctx) Sound.play(Sound.want); // the menu always plays its own track
     hidePanels();
     $("hud").hidden = true; $("meter").hidden = true; $("combo").hidden = true; $("banner").hidden = true; $("titlecard").hidden = true;
     darkHud = false; document.body.classList.remove("dark"); vignetteEl.style.opacity = "0";
@@ -5576,7 +5593,7 @@ html.night, .night body { background: #03060d; }
     svg.setAttribute("viewBox", "0 100 1000 372"); // just the stations and their names; the legend and the buttons sit in the empty corners
     const pt = id => byId(id).map;
     const poly = pts => pts.map(([x, y]) => `${x},${y}`).join(" ");
-    let out = `<defs><filter id="lift" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1.6" stdDeviation="1.8" flood-color="${INK}" flood-opacity="0.22"/></filter><linearGradient id="firstRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="${LINE_GOLD}"/><stop offset="0.5" stop-color="${LINE_BR}"/></linearGradient></defs>`;
+    let out = `<defs><linearGradient id="firstRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="${LINE_GOLD}"/><stop offset="0.5" stop-color="${LINE_BR}"/></linearGradient></defs>`;
     const casing = (shape, w) => shape.replace(/stroke="[^"]*"/, 'stroke="#ffffff"').replace(/stroke-width="([\d.]+)"/, (m, x) => `stroke-width="${+x + w}"`).replace(/ stroke-dasharray="[^"]*"| opacity="[^"]*"/g, "");
     // main line, station to station; unbuilt stretches are dotted
     for (let i = 0; i < MAIN_LINE.length - 1; i++) {
@@ -5624,7 +5641,7 @@ html.night, .night body { background: #03060d; }
       if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += ring(p, lv.gift ? LINE_GOLD : LINE_BR, 2.5, d); // rings round the depot till the first purchase
       if (first) for (const d of [0, 1.2]) out += ring(p, "url(#firstRing)", 2.5, d); // till the first ride, as round the depot
       else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 20, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
-      out += `<circle cx="${p.x}" cy="${p.y}" r="23" fill="#ffffff" filter="url(#lift)"/>`; // a soft shadow under the station, lifting it off the card
+      out += `<circle cx="${p.x}" cy="${p.y + 1.6}" r="25" fill="${INK}" opacity="0.06"/><circle cx="${p.x}" cy="${p.y + 1.2}" r="23.4" fill="${INK}" opacity="0.1"/>`; // a soft shadow under the station, lifting it off the card (drawn, not filtered: cheap to repaint)
       if (hub && lv.id === "initium") out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/><path d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
       else if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
       out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring

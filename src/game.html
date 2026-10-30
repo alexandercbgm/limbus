@@ -431,6 +431,14 @@ video.mini { background: none; object-fit: contain; }
 .seg button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .seg button[aria-pressed="true"] { background: #ffffff; color: #10242e; box-shadow: 0 1px 3px rgba(16, 36, 46, 0.18), 0 0 0 1px rgba(16, 36, 46, 0.06); }
 @media (orientation: landscape) and (max-height: 430px) { .gear-pop { top: calc(100% + 5px); min-width: 200px; padding: 4px; } .gp-row { min-height: 34px; padding-block: 3px; } .seg button { height: 26px; } }
+/* a phone held sideways: the sound and gear buttons half as large again for a finger, its menu as well, and all of it in from
+   the right edge by half a button, clear of the phone's own Back arrow */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
+  .map-tools { right: 23px; gap: 8px; } .map-tools .ibtn { width: 45px; height: 45px; border-radius: 14px; } .map-tools .ibtn svg { width: 28px; height: 28px; }
+  .gear-pop { top: calc(100% + 7px); min-width: 300px; padding: 6px; border-radius: 18px; }
+  .gp-row { min-height: 51px; padding: 6px 8px 6px 14px; gap: 18px; font-size: 16px; border-radius: 12px; } .gp-label { gap: 11px; } .gp-label svg { width: 26px; height: 26px; }
+  .seg { padding: 3px; border-radius: 12px; } .seg button { min-width: 56px; height: 39px; padding: 0 14px; font-size: 15px; border-radius: 9px; } .seg button svg { width: 23px; height: 23px; }
+}
 
 /* ---- night: the menu and the station sheets in dark glass and neon over a dark loop (minis/menu.night.mp4) ---- */
 html.night, .night body { background: #03060d; }
@@ -6172,6 +6180,19 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   });
   for (const ev of ["pointerleave", "pointercancel"]) $("map").addEventListener(ev, () => hot(null));
   window.addEventListener("resize", () => { const w = $("map").parentElement.clientWidth; if (state === "menu" && Math.abs(w - mapW) > 40) renderMap(); });
+  // two buttons side by side, their words cut short at even halves ("Closed for no…"): when both fit whole with the room shared
+  // by their words, the columns take it so (the other one, "Back to the scheme", the narrower); else they stay even
+  function fitPair(box) {
+    const kids = [...box.children]; box.style.gridTemplateColumns = "";
+    if (kids.length !== 2 || !box.clientWidth || kids[0].offsetTop !== kids[1].offsetTop || kids.every(k => k.scrollWidth <= k.clientWidth)) return;
+    const range = document.createRange(), room = kids.reduce((t, k) => t + k.getBoundingClientRect().width, 0);
+    const need = kids.map(k => { range.selectNodeContents(k); const cs = getComputedStyle(k); // its words, laid out whole even where cut, its padding and border
+      return Math.ceil(range.getBoundingClientRect().width) + 2 + ["paddingLeft", "paddingRight", "borderLeftWidth", "borderRightWidth"].reduce((t, q) => t + parseFloat(cs[q]), 0); });
+    if (need[0] + need[1] <= room) box.style.gridTemplateColumns = need.map(n => `minmax(0, ${n}fr)`).join(" ");
+  }
+  const pairs = new ResizeObserver(es => es.forEach(e => fitPair(e.target))), pairsMut = new MutationObserver(ms => ms.forEach(m => fitPair(m.target)));
+  document.querySelectorAll(".overlay .btns").forEach(b => { pairs.observe(b); pairsMut.observe(b, { childList: true, subtree: true, characterData: true }); });
+  if (document.fonts) document.fonts.ready.then(() => document.querySelectorAll(".overlay .btns").forEach(fitPair)); // the display font come in late
   // two sound buttons, in the HUD and on the scheme, showing the same state
   function syncMute() {
     document.querySelectorAll(".snd").forEach(b => {

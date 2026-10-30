@@ -658,7 +658,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.53</div>
+      <div class="credit version">v1.0.54</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -2349,7 +2349,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const m = (a + b) / 2, l = b - a; parts.push(dx ? [dx * m, 0, l, p.h] : [0, dy * m, p.h, l]);
       }
     } else { const n = Math.max(2, Math.round(p.w / 0.65)); for (let i = 0; i < n; i++) parts.push([-hw + (i + 0.5) * p.w / n, 0, p.w / n, p.h]); } // a block: smaller pieces
-    const up = p.U0 || p.U, pieces = [];
+    const pieces = [];
     // each part splits into a few big irregular shards: wedges fanned out from a point somewhere inside it, each as thick
     // as the glass, or a little less where it chipped
     for (const [x, y, sx, sy] of parts) {
@@ -2371,7 +2371,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       let dx = x - lx, dy = y - ly; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
       const spd = rand(1.5, 3.2) / (0.8 + d * 0.3);
       const v = new THREE.Vector3().addScaledVector(p.R, dx * spd + impL.x * 0.05).addScaledVector(p.U, dy * spd + impL.y * 0.05 + 1).addScaledVector(p.T, impL.z * rand(0.1, 0.25));
-      shards.push({ mesh: m, life: rand(2.6, 3.4), v, floorP: tmpV.copy(p.C).addScaledVector(up, -p.v + p.thick / 2).clone(), floorN: up.clone(), w: new THREE.Vector3(rand(-4, 4), rand(-4, 4), rand(-3, 3)) });
+      shards.push({ mesh: m, life: rand(2.6, 3.4), v, fs: p.s, fo: p.thick / 2, w: new THREE.Vector3(rand(-4, 4), rand(-4, 4), rand(-3, 3)) });
     }
     if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
     Sound.shatter(1.4); Sound.crash();
@@ -2437,7 +2437,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       .addScaledVector(p.U, dy * spd + impL.y * 0.06 + 0.6)
       .addScaledVector(p.T, impL.z * (0.15 + Math.random() * 0.25));
     shards.push({
-      mesh: m, life: 2.4 + Math.random() * 1.2, v, floorP: tmpV.copy(p.C).addScaledVector(p.U0 || p.U, -p.v).clone(), floorN: (p.U0 || p.U).clone(),
+      mesh: m, life: 2.4 + Math.random() * 1.2, v, fs: p.s, fo: 0,
       w: new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6),
     });
     if (shards.length > MAX_SHARDS) dropShard(shards.shift());
@@ -2551,7 +2551,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   // the broken chain comes apart: every link flies off on its own, the ones at the break fastest
   function scatterChain(hg, c, at) {
-    frameAt(hg.s); const fp = _P.clone(), fn = _U.clone();
     c.mesh.updateMatrixWorld(true);
     for (const l of c.mesh.children) {
       const m = new THREE.Mesh(linkGeo, chainMat);
@@ -2559,7 +2558,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       scene.add(m);
       const near = Math.max(0, 1 - m.position.distanceTo(at) / 2.5);
       const v = new THREE.Vector3(rand(-1, 1), rand(-0.3, 1), rand(-1, 1)).multiplyScalar(1 + near * 5);
-      shards.push({ mesh: m, shared: true, life: rand(1.3, 2.2), v, w: new THREE.Vector3(rand(-14, 14), rand(-14, 14), rand(-14, 14)), floorP: fp, floorN: fn });
+      shards.push({ mesh: m, shared: true, life: rand(1.3, 2.2), v, w: new THREE.Vector3(rand(-14, 14), rand(-14, 14), rand(-14, 14)), fs: hg.s, fo: 0 });
     }
     chips(at, accentMat, 8, tmpV2.set(0, 3, 0));
     c.mesh.visible = false;
@@ -2569,7 +2568,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function burstSlab(hg) {
     hg.body.updateMatrixWorld(true);
     const c = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld);
-    frameAt(hg.s); const fp = _P.clone(), fn = _U.clone();
     const n = Math.round(hg.w * hg.h * 9);
     for (let i = 0; i < n; i++) {
       const m = new THREE.Mesh(chunkGeo, hg.bars ? ironMat : hg.laser ? laserBaseMat : monoMat);
@@ -2577,7 +2575,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       m.rotation.set(rand(0, TAU), rand(0, TAU), rand(0, TAU)); m.scale.setScalar(rand(0.6, 1.4));
       scene.add(m);
       const v = m.position.clone().sub(c).multiplyScalar(rand(0.6, 1.6)); v.y += rand(-0.5, 1);
-      shards.push({ mesh: m, shared: true, life: rand(1.4, 2.4), v, w: new THREE.Vector3(rand(-9, 9), rand(-9, 9), rand(-9, 9)), floorP: fp, floorN: fn });
+      shards.push({ mesh: m, shared: true, life: rand(1.4, 2.4), v, w: new THREE.Vector3(rand(-9, 9), rand(-9, 9), rand(-9, 9)), fs: hg.s, fo: 0 });
     }
     if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
     scene.remove(hg.body);
@@ -5201,7 +5199,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       frameAt(p.s);
       p.R.copy(_R); p.U.copy(_U); p.T.copy(_T); p.C.copy(_P).addScaledVector(_R, p.u).addScaledVector(_U, p.v);
       if (p.rot !== undefined) { // a rotor bar: turn it about the track axis, and maybe tumble it about an axis of its own
-        p.rot += p.spin * dt; p.U0 = (p.U0 || new THREE.Vector3()).copy(_U);
+        p.rot += p.spin * dt;
         if (p.turn) { p.turn.b += p.turn.w * dt; p.group.matrix.multiply(M2.makeRotationY(p.turn.b)); } // a potter's wheel under it: about the upright, fixed
         p.group.matrix.multiply(M2.makeRotationZ(p.rot));
         if (p.tilt) for (const t of Array.isArray(p.tilt) ? p.tilt : [p.tilt]) { t.b += t.w * dt; p.group.matrix.multiply(M2.makeRotationAxis(t.ax, t.b)); } // one tumble or two
@@ -5523,9 +5521,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       s.v.y -= G * dt;
       pos.addScaledVector(s.v, dt);
       s.mesh.rotation.x += s.w.x * dt; s.mesh.rotation.y += s.w.y * dt; s.mesh.rotation.z += s.w.z * dt;
-      if (s.floorN && tmpV.copy(pos).sub(s.floorP).dot(s.floorN) < 0.03) {
-        pos.addScaledVector(s.floorN, 0.03 - tmpV.dot(s.floorN));
-        s.v.multiplyScalar(0.5); s.v.addScaledVector(s.floorN, -1.25 * s.v.dot(s.floorN)); s.w.multiplyScalar(0.6);
+      // the floor under a piece is the track's where the piece now is, as the track is now: the rails ahead bend with the karma,
+      // so a floor taken once where the glass stood left pieces hanging in the air over a dip or sunk under a rise. Over the
+      // void beside a bridge there is none, and a piece born under the deck (a pane rising from below) has none either
+      if (s.fs !== undefined) {
+        frameAt(s.fs); s.fs += tmpV.copy(pos).sub(_P).dot(_T); frameAt(s.fs); tmpV.copy(pos).sub(_P);
+        const h = tmpV.dot(_U) - s.fo - 0.03;
+        if (!s.seen) { s.seen = true; if (h < -0.15) s.fs = undefined; }
+        else if (h < 0 && !(STYLE.bridge && Math.abs(tmpV.dot(_R)) > BRIDGE_W + 0.2)) {
+          pos.addScaledVector(_U, -h);
+          s.v.multiplyScalar(0.5); s.v.addScaledVector(_U, -1.25 * s.v.dot(_U)); s.w.multiplyScalar(0.6);
+        }
       }
       s.life -= dt;
       if (s.life <= 0) { dropShard(s); shards.splice(i, 1); }

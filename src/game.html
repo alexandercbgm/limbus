@@ -4294,7 +4294,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // The menu draws these as a metro scheme: the main line runs through every station in order;
   // a transfer skips one station and costs banked crystals.
   const LEVELS = [
-    { id: "initium", num: "I", latin: "Initium", ru: "Начало", playable: true, music: "glass_corridor", len: 1500, pal: PAL_INITIUM, finale: "iudicium",
+    { id: "initium", num: "I", latin: "Initium", ru: "Начало", playable: true, music: "glass_perspective", len: 1500, pal: PAL_INITIUM, finale: "iudicium",
       style: { arch: "square", blocks: "cube", glassWalls: false },
       turns: [[105, 60, 50], [225, 70, -80], [350, 50, 40], [455, 80, -65], [585, 60, 70], [700, 50, -45], [775, 50, 45],
         [880, 90, -100], [1040, 60, 60], [1150, 50, -40], [1240, 60, 55], [1350, 55, -35]],
@@ -4358,7 +4358,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       desc: "Вершина верхней линии, откуда путь Дао уходит через Nox к Lux. Круглые лунные врата. Тушь и рисовая бумага: в Свете белое с алой печатью, во Тьме чёрная тушь с нефритовым свечением. Над путём плывёт туман и медленно вращается знак инь-ян.",
       feats: ["Ворота инь-ян: кнопки раздвигают половины", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
-    { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "glass_perspective", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
+    { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45,
       pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], prisms: [0.9, 1.3, 1.6],
         tallgate: [0.6, 0.9, 1.1], gate: [0.4, 0.6, 0.8], pendulum: [0.4, 0.6, 0.8] }, // and tall gates, and monoliths on chains as in Vitrum

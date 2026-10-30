@@ -2,7 +2,7 @@
 """Build rails/index.html: the game source with every track from music/ embedded as base64.
 
 The page then works as a single file (offline, from disk, or as a hosted artifact): three.js is inlined as well.
-A track is addressed in the code by its file stem, e.g. music/glass_corridor.mp3 -> musicBytes("glass_corridor").
+A track is addressed in the code by its file stem, e.g. music/glass_perspective.mp3 -> musicBytes("glass_perspective").
 
 To keep the page under the 16 MB artifact limit, tracks are re-encoded to MP3 at 56 kbps with ffmpeg before
 embedding (cached in .build/, the originals in music/ stay untouched). MP3 rather than AAC or Opus because every

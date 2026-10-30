@@ -150,6 +150,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 .logo span { color: #1d6f8f; }
 /* the bank is a readout, not a button: a pale plate with dark text */
 .bank { font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 4px; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; display: flex; gap: 8px; align-items: center; }
+.star { display: inline-block; width: 1.1em; height: 1.1em; margin-left: 0.35em; vertical-align: -0.17em; fill: currentColor; }
 .gem { display: inline-block; height: 1.15em; width: 0.6em; vertical-align: -0.2em; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; flex: none; }
 .bank b { font-size: inherit; color: #1287b5; font-variant-numeric: tabular-nums; }
 .map-card { position: relative; background: var(--frost); border: 1px solid var(--edge); border-radius: 6px; box-shadow: 0 18px 50px rgba(16, 36, 46, 0.12); padding: 14px 10px; }
@@ -160,12 +161,12 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 /* rings spreading from stations: plain round boxes in a layer under the scheme, grown and faded on the graphics card alone
    (an SVG shape's transform is laid out again every frame; a box's is not) */
 .map-scroll { position: relative; } #map { position: relative; }
-.map-rings { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+.map-rings { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 1; } /* over the lines and their casing */
 .map-rings i { --tilt: rotate(0deg); position: absolute; box-sizing: border-box; border-radius: 50%; border-style: solid; opacity: 0; will-change: transform, opacity; }
 .map-rings .out { animation: ringout 2.4s linear infinite; } .map-rings .breath { animation: ringpulse 2.4s linear infinite; }
 .map-rings .split { --tilt: rotate(-45deg); } /* gold above, lilac below: two borders each, turned an eighth */
-@keyframes ringout { from { transform: var(--tilt) scale(1); opacity: 0.8; } to { transform: var(--tilt) scale(1.818); opacity: 0; } } /* r 22 to 40 */
-@keyframes ringpulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.35); opacity: 0; } } /* r 20 to 27 and back */ /* under the pointer, on the station's circle itself (set from the script: a finger has no hover) */
+@keyframes ringout { from { transform: var(--tilt) scale(1); opacity: 0.8; } to { transform: var(--tilt) scale(1.667); opacity: 0; } } /* r 24 to 40 */
+@keyframes ringpulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.18); opacity: 0; } } /* r 24.5 to 29 and back */ /* under the pointer, on the station's circle itself (set from the script: a finger has no hover) */
 .map-tools { position: absolute; top: 12px; right: 14px; z-index: 1; display: flex; gap: 8px; }
 .map-tools .ibtn { border: 1px solid rgba(16, 36, 46, 0.22); border-radius: 4px; background: rgba(255, 255, 255, 0.75); cursor: pointer; }
 .map-tools .ibtn:hover { background: #ffffff; }
@@ -426,6 +427,7 @@ html.night, .night body { background: #03060d; }
   box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.16), 0 30px 80px -20px rgba(0, 0, 0, 0.8); }
 .night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; }
 .night #map circle[fill="#ffffff"], .night #map circle[fill="#fffaf0"], .night #map rect[fill="#fffaf0"] { fill: #0c1628; }
+.night #map circle.casing { fill: #08101e; }
 .night #map circle[fill="#e6ecee"] { fill: #18233a; }
 .night #map circle.ring[fill="#10242e"] { fill: #dff6ff; } /* a finished station: lit, as it is dark by day */
 .night #map path[stroke="#10242e"] { stroke: #dff6ff; } .night #map path[stroke="#ffffff"] { stroke: #0c1628; }
@@ -460,6 +462,9 @@ html.night, .night body { background: #03060d; }
 .arms .arm[aria-pressed="true"] b { color: #1287b5; }
 .seg button[aria-pressed="true"] { box-shadow: inset 0 0 0 1.5px #1d8fb0, 0 1px 3px rgba(16, 36, 46, 0.12); }
 .journey { border-radius: 10px; }
+/* the day's menu: its loop shows through, the scheme on light glass */
+html:not(.night).videobg .menu::before { background: radial-gradient(120% 80% at 50% 40%, rgba(247, 252, 254, 0) 40%, rgba(214, 230, 238, 0.45)); }
+html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 252, 253, 0.62)); }
 /* night */
 .night .overlay:not(.sheet) { background: rgba(2, 6, 14, 0.45); }
 .night .sheet::before { background: rgba(2, 6, 14, 0.55); }
@@ -5547,6 +5552,7 @@ html.night, .night body { background: #03060d; }
     carcer: "M-6 -7V7M-2 -7V7M2 -7V7M6 -7V7M-7.5 -7H7.5M-7.5 7H7.5",    // bars
     lux: "M-7 -5H7M-7 0H7M-7 5H7", // Lux: the trigram Qian, pure yang
   };
+  const STAR_SVG = `<svg class="star" viewBox="-10.5 -10.5 21 21" aria-label="Stars"><path d="M0.00 -10.00L2.25 -3.09L9.51 -3.09L3.63 1.18L5.88 8.09L0.00 3.82L-5.88 8.09L-3.63 1.18L-9.51 -3.09L-2.25 -3.09Z"/></svg>`; // a regular five-pointed star
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function stationStatus(lv) {
     if (lv.gift) return "gift";
@@ -5621,7 +5627,7 @@ html.night, .night body { background: #03060d; }
         `<text x="${5}" text-anchor="middle" dy="4.5" font-family="JetBrains Mono, monospace" font-weight="700" font-size="11.5" fill="${INK}">${esc(txt)}</text></g>`;
     }
     mapRings = []; // the rings spreading from stations, placed in their own layer once the scheme is drawn (placeRings)
-    const ring = (p, stroke, w, d) => { mapRings.push({ x: p.x, y: p.y, r: 22, w, stroke, d, kind: "out" }); return ""; };
+    const ring = (p, stroke, w, d) => { mapRings.push({ x: p.x, y: p.y, r: 24, w, stroke, d, kind: "out" }); return ""; };
     for (const lv of LEVELS) {
       const p = lv.map, st = stationStatus(lv), first = lv.id === "initium" && !progress.rode; // where a newcomer starts
       const hub = !!HUB_RING[lv.id]; // where two lines meet, or a dead-end branch leaves
@@ -5640,8 +5646,8 @@ html.night, .night body { background: #03060d; }
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="34"/>`;
       if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += ring(p, lv.gift ? LINE_GOLD : LINE_BR, 2.5, d); // rings round the depot till the first purchase
       if (first) for (const d of [0, 1.2]) out += ring(p, "url(#firstRing)", 2.5, d); // till the first ride, as round the depot
-      else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 20, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
-      out += `<circle cx="${p.x}" cy="${p.y + 1.6}" r="25" fill="${INK}" opacity="0.06"/><circle cx="${p.x}" cy="${p.y + 1.2}" r="23.4" fill="${INK}" opacity="0.1"/>`; // a soft shadow under the station, lifting it off the card (drawn, not filtered: cheap to repaint)
+      else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 24.5, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
+      out += `<circle cx="${p.x}" cy="${p.y + 1.8}" r="27.2" fill="${INK}" opacity="0.06"/><circle cx="${p.x}" cy="${p.y + 1.2}" r="26" fill="${INK}" opacity="0.1"/><circle class="casing" cx="${p.x}" cy="${p.y}" r="25.5" fill="#ffffff"/>`; // the lines' white casing round the station too // a soft shadow under the station, lifting it off the card (drawn, not filtered: cheap to repaint)
       if (hub && lv.id === "initium") out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/><path d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
       else if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // ringed in the colour of the other line that meets here
       out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
@@ -5726,6 +5732,7 @@ html.night, .night body { background: #03060d; }
     const btns = $("shBtns"), extra = $("shExtra"); btns.innerHTML = ""; extra.innerHTML = "";
     const button = (parent, cls, text, fn, disabled) => {
       const b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; b.disabled = !!disabled;
+      if (parent.classList && parent.classList.contains("pack") && /^\d+$/.test(text)) b.insertAdjacentHTML("beforeend", STAR_SVG); // a price in Stars: a star in the button's own colour
       if (fn) b.addEventListener("click", fn); parent.appendChild(b); return b;
     };
     const reached = isOpen(lv); // the station before it is finished
@@ -5748,7 +5755,7 @@ html.night, .night body { background: #03060d; }
           t.innerHTML = `${name}<small>${esc(sub)}</small>`; t.addEventListener("click", () => { if (shopTab !== id) { shopTab = id; openSheet(lv, true); } }); tabs.appendChild(t);
         }
         extra.appendChild(tabs);
-        for (const pk of PACKS.filter(p => p.tab === shopTab)) card(pk, c => button(c, "cta", `${pk.stars} ⭐`, async ev => {
+        for (const pk of PACKS.filter(p => p.tab === shopTab)) card(pk, c => button(c, "cta", `${pk.stars}`, async ev => {
           ev.target.disabled = true;
           try {
             const r = await (await fetch(BOT_API + "/invoice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ product: pk.id, lang: LANG }) })).json();

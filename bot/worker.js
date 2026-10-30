@@ -3,7 +3,8 @@
 // What it does:
 //   /start            greets the player with a Play button and remembers them for the news
 //   /stop             takes them off the news; /start puts them back
-//   /trailer, /ost    the trailer, and the game's soundtrack as audio albums: both come by themselves on the first /start
+//   /trailer, /ost    the trailer, and the game's soundtrack as audio albums; /start sends the trailer when the chat has not
+//                     the current one (never sent, a newer trailer, or the chat cleared)
 //   /support, text    a message to the bot goes on to the owner; the owner replies to it in the bot's chat and the
 //                     reply goes back to the player, from the bot
 //                     (the owner can try it out: after their own /support his next message goes the player's way)
@@ -34,7 +35,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.6.3";
+const BOT_VERSION = "1.6.4";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -213,14 +214,27 @@ async function sendClip(env, msg, id) {
 // the game's trailer (minis/trailer.<ru|en>.mp4, 1280x720, 40 s) in their language: fetched by Telegram from its address the
 // first time, then sent again by the file_id Telegram gave back, kept in KV (a new trailer is a new TRAILER_VERSION)
 const TRAILER_VERSION = 3;
+const trailerCaption = from => T(from, "Посмотреть ещё раз: /trailer\nПослушать саундтрек: /ost", "Watch it again: /trailer\nListen to the soundtrack: /ost");
 async function sendTrailer(env, chat, from) {
   const lang = ru(from) ? "ru" : "en", key = `trailer:${lang}:${TRAILER_VERSION}`, known = await env.USERS.get(key);
-  const msg = { chat_id: chat, width: 1280, height: 720, duration: 40, supports_streaming: true,
-    caption: T(from, "Посмотреть ещё раз /trailer", "Watch it again /trailer") };
-  if (known) { const r = await tg(env, "sendVideo", { ...msg, video: known }); if (r.ok) return r; }
-  const r = await tg(env, "sendVideo", { ...msg, video: `${env.GAME_URL}minis/trailer.${lang}.mp4?v=${TRAILER_VERSION}` });
-  if (r.ok && r.result.video) await env.USERS.put(key, r.result.video.file_id);
+  const msg = { chat_id: chat, width: 1280, height: 720, duration: 40, supports_streaming: true, caption: trailerCaption(from) };
+  let r = known ? await tg(env, "sendVideo", { ...msg, video: known }) : null;
+  if (!r || !r.ok) {
+    r = await tg(env, "sendVideo", { ...msg, video: `${env.GAME_URL}minis/trailer.${lang}.mp4?v=${TRAILER_VERSION}` });
+    if (r.ok && r.result.video) await env.USERS.put(key, r.result.video.file_id);
+  }
+  if (r.ok) { // which trailer this chat has, and where: /start looks for it there
+    const ukey = "u:" + from.id, rec = JSON.parse(await env.USERS.get(ukey) || "null");
+    if (rec) await env.USERS.put(ukey, JSON.stringify({ ...rec, trailer: true, tv: TRAILER_VERSION, tm: r.result.message_id }));
+  }
   return r;
+}
+// is the current trailer still in the chat? A bot cannot read a chat's history, but it can edit its own messages: an edit of
+// the trailer's caption to what it is answers "not modified" while it is there, "not found" once it is gone (a cleared chat)
+async function trailerThere(env, chat, from, rec) {
+  if (!rec || rec.tv !== TRAILER_VERSION || !rec.tm) return false; // never sent, or an older trailer: the new one goes
+  const r = await tg(env, "editMessageCaption", { chat_id: chat, message_id: rec.tm, caption: trailerCaption(from) });
+  return r.ok || /not modified/i.test(r.description || "");
 }
 
 // the soundtrack: the menu's track, then the stations' along the main line, the lower line and the dead ends, left to right on
@@ -288,12 +302,9 @@ async function onUpdate(u, env) {
           "Crystals for Armamentarium: the depot's entry, every cannon (but Ferrum) and every upgrade to the third level, +25% bonus.\nOnce paid, a code comes: enter it in the game at the Emptio station.") });
         return tg(env, "sendInvoice", { chat_id: chat, ...invoiceBody({ language_code: from.language_code }, "apk") });
       }
-      const key = "u:" + from.id, rec = JSON.parse(await env.USERS.get(key) || "null");
-      if (!rec || !rec.trailer) { // the trailer and the soundtrack once, on their first /start, before the level card with its Start button
-        const r = await sendTrailer(env, chat, from);
-        if (r.ok && rec) await env.USERS.put(key, JSON.stringify({ ...rec, trailer: true }));
-        await sendOst(env, chat, from);
-      }
+      const rec = JSON.parse(await env.USERS.get("u:" + from.id) || "null");
+      // the trailer, unless the current one is still up in the chat, before the level card with its Start button
+      if (!(await trailerThere(env, chat, from, rec))) await sendTrailer(env, chat, from);
       // the station they are up to on the way to the Light, as the game last told (Initium for a newcomer); a link's own level first
       return greet(env, chat, from, arg || await env.USERS.get("w:" + from.id) || "initium");
     }

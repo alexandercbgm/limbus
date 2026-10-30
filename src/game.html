@@ -157,9 +157,11 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #e9eced; col
 #map { display: block; width: 100%; height: auto; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } /* a drag across the scheme selects no names */
 .station { cursor: pointer; outline: none; }
 .station .hit { fill: transparent; }
-.station.hot .ring { stroke-width: 7; }
-.station .hub { transform-box: view-box; } /* a transfer's outer rim, in front, grows out round its inner circle */
-.station.hot .hub { stroke-width: 5; transform: scale(1.1); } .station.hot .ring:has(+ .hub) { stroke-width: 5; } /* a transfer: only its outer rim swells */
+.station .ring, .station .hub { transform-box: view-box; }
+/* under the pointer a station's outer rim thickens outward only, its inside edge where it was: scaled by 1.04 with a wider
+   stroke, so that edge stays put (a lone circle: 20.5 - 5/2 = 18 = 1.04 * (20.5 - 6.38/2); a transfer's rim: 19 = 1.04 * (21 - 5.46/2)) */
+.station.hot .ring:not(.inner) { stroke-width: 6.38; transform: scale(1.04); }
+.station.hot .hub { stroke-width: 5.46; transform: scale(1.04); }
 /* rings spreading from stations: plain round boxes in a layer under the scheme, grown and faded on the graphics card alone
    (an SVG shape's transform is laid out again every frame; a box's is not) */
 .map-scroll { position: relative; z-index: 0; } #map { position: relative; } /* its layers stack inside it, under the tools */
@@ -864,10 +866,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
 
   // ---------- sound: synthesized effects + background track ----------
-  const MENU_TRACK = "ascent_through_glass";
+  const MENU_TRACK = "menu_glass_horizon";
   const Sound = {
     ctx: null, master: null, muted: (() => { try { return !!localStorage.getItem("limbus-muted"); } catch (e) { return false; } })(), noise: null, music: null, musicLP: null, musicGain: null, fallback: null,
-    buffers: {}, elements: {}, track: null, at: 0, at0: 0, t0: 0, want: "ascent_through_glass", // the menu's own track (a level plays its own)
+    buffers: {}, elements: {}, track: null, at: 0, at0: 0, t0: 0, want: "menu_glass_horizon", // the menu's own track (a level plays its own)
     init() {
       if (this.ctx) { if (this.ctx.state === "suspended") this.ctx.resume(); this.play(this.want); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -4636,7 +4638,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function showMenu() {
     state = "menu";
-    Sound.want = "ascent_through_glass"; Sound.setKarma(0.35); if (Sound.ctx) Sound.play(Sound.want); // the menu always plays its own track
+    Sound.want = MENU_TRACK; Sound.setKarma(0.35); if (Sound.ctx) Sound.play(Sound.want); // the menu always plays its own track
     hidePanels();
     $("hud").hidden = true; $("meter").hidden = true; $("combo").hidden = true; $("banner").hidden = true; $("titlecard").hidden = true;
     darkHud = false; document.body.classList.remove("dark"); vignetteEl.style.opacity = "0";
@@ -5660,7 +5662,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       under += `<circle cx="${p.x}" cy="${p.y + 1.8}" r="27.2" fill="${INK}" opacity="0.06"/><circle cx="${p.x}" cy="${p.y + 1.2}" r="26" fill="${INK}" opacity="0.1"/>`; // its soft shadow
       stationCasings += `<circle class="casing" cx="${p.x}" cy="${p.y}" r="25.5" fill="#ffffff"/>`; // the lines' casing round the station, one with theirs // a soft shadow under the station, lifting it off the card (drawn, not filtered: cheap to repaint)
       if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/>`; // a transfer's face, under its inner circle
-      out += `<circle class="ring" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
+      out += `<circle class="ring${hub ? " inner" : ""}" style="transform-origin:${p.x}px ${p.y}px" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
       if (hub && lv.id === "initium") out += `<path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
       else if (hub) out += `<circle class="hub" style="transform-origin:${p.x}px ${p.y}px" cx="${p.x}" cy="${p.y}" r="21" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // its rim in the colour of the other line that meets here, in front of the inner circle
       out += `<path d="${GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;

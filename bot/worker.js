@@ -35,7 +35,7 @@
 // And a KV namespace bound as USERS (Worker → Settings → Bindings → KV namespace).
 
 // the bot's own version, apart from the game's (VERSION in the repository): /version tells it, a command left off the menu
-const BOT_VERSION = "1.6.5";
+const BOT_VERSION = "1.6.6";
 const PER_RUN = 45; // messages a run may send: a free Worker may make 50 outside requests per run
 // the crystal packs: the prices live here, not in the game. Each holds a quarter more than what it covers costs, for additions to come
 const PACKS = {
@@ -215,7 +215,7 @@ async function sendClip(env, msg, id) {
 // first time, then sent again by the file_id Telegram gave back, kept in KV (a new trailer is a new TRAILER_VERSION)
 const TRAILER_VERSION = 3;
 // the soundtrack's line only under the trailer /start sends, not under one asked for with /trailer
-const trailerCaption = (from, ost) => T(from, "Посмотреть ещё раз: /trailer", "Watch it again: /trailer") + (ost ? T(from, "\nПослушать саундтрек: /ost", "\nListen to the soundtrack: /ost") : "");
+const trailerCaption = (from, ost) => T(from, "Ещё раз: /trailer", "Again: /trailer") + (ost ? T(from, "\nСаундтрек: /ost", "\nSoundtrack: /ost") : "");
 async function sendTrailer(env, chat, from, ost) {
   const lang = ru(from) ? "ru" : "en", key = `trailer:${lang}:${TRAILER_VERSION}`, known = await env.USERS.get(key);
   const msg = { chat_id: chat, width: 1280, height: 720, duration: 40, supports_streaming: true, caption: trailerCaption(from, ost) };

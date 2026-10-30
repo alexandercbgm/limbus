@@ -657,7 +657,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.48</div>
+      <div class="credit version">v1.0.49</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -6005,28 +6005,37 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function menuBg() {
     const night = () => document.documentElement.classList.contains("night") && document.getElementById("menubg-night");
     const src = document.getElementById("menubg"); if (!src) return;
-    const make = () => {
-      const v = document.createElement("video");
+    // a loop's first frame stands behind it as well, so a moment without a decoded frame (starting, or a web view that has let
+    // go of it) shows that, not the world's last frame under the menu
+    const make = id => {
+      const v = document.createElement("video"), p = document.getElementById(id + "-poster");
       for (const a of ["muted", "loop", "playsinline", "autoplay", "disablepictureinpicture"]) v.setAttribute(a, "");
-      v.muted = true; v.className = "menubg"; v.setAttribute("aria-hidden", "true");
+      v.muted = true; v.className = "menubg"; v.setAttribute("aria-hidden", "true"); v.dataset.id = id;
+      if (p) { v.poster = p.src; v.style.background = `center / cover no-repeat url("${p.src}")`; }
       v.addEventListener("pause", () => setTimeout(kick, 200)); // a web view that stops it (as Telegram's may) gets it going again
       return v;
     };
-    let v = make();
+    const want = () => (night() ? "menubg-night" : "menubg"), srcOf = id => document.getElementById(id).textContent.trim();
+    let v = make(want()); v.src = srcOf(v.dataset.id);
     // the day's loop or the night's, and again whenever the theme changes. The two move alike frame for frame, so the new one is
-    // started under the old one at the moment the old one has reached, and takes its place once it plays: only the colours change
-    const pick = () => { const id = night() ? "menubg-night" : "menubg", p = document.getElementById(id + "-poster"), s = document.getElementById(id).textContent.trim();
-      if (v.dataset.id === id) return;
-      if (!v.dataset.id || $("menu").hidden || v.readyState < 2) { v.dataset.id = id; if (p) v.poster = p.src; v.src = s; kick(); return; }
-      const old = v, nv = make(); nv.dataset.id = id; v = nv; old.before(nv);
+    // started under the old one at the moment the old one has reached, and takes its place once it has a frame on the screen:
+    // only the colours change
+    const pick = () => { const id = want(); if (v.dataset.id === id) return;
+      const old = v, nv = make(id); v = nv; old.before(nv);
+      if ($("menu").hidden || old.readyState < 2) { old.remove(); nv.src = srcOf(id); kick(); return; }
+      const swap = () => { if (old.isConnected) old.remove(); };
       nv.addEventListener("loadedmetadata", () => { nv.currentTime = (old.currentTime + 0.1) % (nv.duration || 4); }, { once: true });
       nv.addEventListener("seeked", () => { nv.currentTime = old.currentTime; nv.play().catch(() => {}); }, { once: true });
-      nv.addEventListener("playing", () => { if (p) nv.poster = p.src; old.remove(); }, { once: true });
-      nv.src = s; };
+      nv.addEventListener("playing", () => { if (nv.requestVideoFrameCallback) nv.requestVideoFrameCallback(() => requestAnimationFrame(swap)); else setTimeout(swap, 150); }, { once: true });
+      setTimeout(swap, 2500); // and if it never plays, its first frame behind it does
+      nv.src = srcOf(id); };
     window.__menuBg = pick;
     $("menu").append(v); document.documentElement.classList.add("videobg"); // last, out of the way of the menu's own layout (fitMap measures .menu-in)
     const kick = () => { if ($("menu").hidden) v.pause(); else if (v.paused) v.play().catch(() => {}); };
-    pick();
+    // back in the menu (from a ride), or back in the app, or a touch: it plays again
+    addEventListener("pointerdown", kick); document.addEventListener("visibilitychange", () => { if (!document.hidden) kick(); });
+    new MutationObserver(kick).observe($("menu"), { attributes: true, attributeFilter: ["hidden"] });
+    kick();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", menuBg, { once: true }); else menuBg();
   window.addEventListener("load", () => document.querySelectorAll('script[id^="clip-"]').forEach(s => { if (s.textContent.trim().startsWith("data:")) clipVid(s.id.slice(5)); }));

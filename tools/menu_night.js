@@ -1,21 +1,24 @@
 // Renders the menu's background loops in three.js: a flight down a neon grid through a storm of glass shards, solid
 // shards (thick, bevelled, lit, with bright edges) tumbling past the camera. Everything moves by a whole period over the
 // loop, so its last frame runs into its first.
+// It is drawn for smoothness at 60 fps: every frame is the average of SUB moments across half its time (a film camera's
+// shutter), so a streak or a shard rushing past leaves a short smear rather than jumping from place to place. (SS draws
+// it larger and scales it down; at 2 the one-pixel lines of the grid and the shards' edges come out half as bright.)
 // node tools/menu_night.js        the night's: minis/menu.night.mp4 and its first frame (.jpg)
 // node tools/menu_night.js day    the day's, the same in light: minis/menu.bg.mp4 and .jpg
 // Needs Playwright and ffmpeg; three.js is the one the Android build ships (android/three.min.js).
 const { chromium } = require("playwright");
 const { execFileSync } = require("child_process");
 const fs = require("fs"), os = require("os"), path = require("path");
-const W = 960, H = 540, FPS = 30, SECS = 4, N = FPS * SECS;
+const W = 960, H = 540, SS = 1, FPS = 60, SECS = 4, N = FPS * SECS, SUB = 6, SHUTTER = 0.5;
 const DAY = process.argv[2] === "day";
 const P = DAY
   ? { bg: "#e9f2f6", fog: "#e9f2f6", glass: "#ffffff", glassOp: 0.55, edge: "#1d8fb0", edgeOp: 0.9, grid: "#1d6f8f", gridOp: 0.28, streak: ["#1d8fb0", "#7a6cff", "#4fb8d8"], streakOp: 0.55, hemi: ["#ffffff", "#9fb8c4", 1.0], sun: 0.9, glow: "rgba(255,255,255,0.85)" }
   : { bg: "#04070f", fog: "#04070f", glass: "#6fb7e6", glassOp: 0.32, edge: "#9fe8ff", edgeOp: 0.95, grid: "#2a8fd0", gridOp: 0.45, streak: ["#4fd8f0", "#7a6cff", "#9fe8ff"], streakOp: 0.8, hemi: ["#9fd8ff", "#1a1040", 0.9], sun: 1.1, glow: "rgba(60,201,236,0.35)" };
 const root = path.resolve(__dirname, ".."), work = fs.mkdtempSync(path.join(os.tmpdir(), "menu-"));
 
-const page = `<body style="margin:0;background:${P.bg}"><canvas id="c" width="${W}" height="${H}"></canvas><script>${fs.readFileSync(path.join(root, "android", "three.min.js"), "utf8")}</script><script>
-const P = ${JSON.stringify(P)}, W = ${W}, H = ${H};
+const page = `<body style="margin:0;background:${P.bg}"><canvas id="c" width="${W * SS}" height="${H * SS}"></canvas><script>${fs.readFileSync(path.join(root, "android", "three.min.js"), "utf8")}</script><script>
+const P = ${JSON.stringify(P)}, W = ${W * SS}, H = ${H * SS};
 let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("c"), antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(W, H, false); renderer.setClearColor(P.bg);
@@ -66,20 +69,29 @@ window.draw = t => {
   for (const s of streaks) { const z = wrap(s.z0 + d * 1.6); s.m.position.set(s.x, s.y, z); s.mt.opacity = s.op * Math.min(1, (-z - 1) / 4); }
   renderer.render(scene, cam);
 };
+// one frame of the video: the average of n moments from t across span (in loops)
+const gl = renderer.getContext(), px = new Uint8Array(W * H * 4), acc = new Float32Array(W * H * 4);
+const out = document.createElement("canvas"); out.width = W; out.height = H; const og = out.getContext("2d"), img = og.createImageData(W, H);
+window.frame = (t, span, n) => {
+  acc.fill(0);
+  for (let k = 0; k < n; k++) { draw(t + span * (k + 0.5) / n); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px); for (let i = 0; i < px.length; i++) acc[i] += px[i]; }
+  for (let y = 0; y < H; y++) { const src = (H - 1 - y) * W * 4, dst = y * W * 4; for (let i = 0; i < W * 4; i++) img.data[dst + i] = i % 4 === 3 ? 255 : Math.round(acc[src + i] / n); } // read bottom up
+  og.putImageData(img, 0, 0); return out.toDataURL("image/png");
+};
 </script>`;
 
 (async () => {
   const b = await chromium.launch({ args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader"] });
-  const p = await b.newPage({ viewport: { width: W, height: H } });
+  const p = await b.newPage({ viewport: { width: W * SS, height: H * SS } });
   fs.writeFileSync(path.join(work, "page.html"), page);
   await p.goto("file://" + path.join(work, "page.html"));
   for (let i = 0; i < N; i++) {
-    const data = await p.evaluate(t => { draw(t); return document.getElementById("c").toDataURL("image/png"); }, i / N);
+    const data = await p.evaluate(([t, span, n]) => frame(t, span, n), [i / N, SHUTTER / N, SUB]);
     fs.writeFileSync(path.join(work, `f${String(i).padStart(4, "0")}.png`), Buffer.from(data.split(",")[1], "base64"));
   }
   await b.close();
   const out = path.join(root, "minis", DAY ? "menu.bg.mp4" : "menu.night.mp4");
-  execFileSync("ffmpeg", ["-v", "error", "-y", "-framerate", String(FPS), "-i", path.join(work, "f%04d.png"), "-vf", "gblur=sigma=0.6", "-c:v", "libx264", "-preset", "slow", "-crf", "24",
+  execFileSync("ffmpeg", ["-v", "error", "-y", "-framerate", String(FPS), "-i", path.join(work, "f%04d.png"), "-vf", `scale=${W}:${H}:flags=lanczos,gblur=sigma=0.6`, "-c:v", "libx264", "-preset", "slow", "-crf", "24",
     "-g", String(FPS * 2), "-pix_fmt", "yuv420p", "-an", "-movflags", "+faststart", out]);
   execFileSync("ffmpeg", ["-v", "error", "-y", "-i", out, "-frames:v", "1", "-q:v", "4", out.replace(/\.mp4$/, ".jpg")]);
   console.log(out, (fs.statSync(out).size / 1e6).toFixed(2), "MB");

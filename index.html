@@ -657,7 +657,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.42</div>
+      <div class="credit version">v1.0.43</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -6007,18 +6007,27 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function menuBg() {
     const night = () => document.documentElement.classList.contains("night") && document.getElementById("menubg-night");
     const src = document.getElementById("menubg"); if (!src) return;
-    const v = document.createElement("video");
-    for (const a of ["muted", "loop", "playsinline", "autoplay", "disablepictureinpicture"]) v.setAttribute(a, "");
-    v.muted = true; v.className = "menubg"; v.setAttribute("aria-hidden", "true");
-    // the day's loop or the night's, and again whenever the theme changes
+    const make = () => {
+      const v = document.createElement("video");
+      for (const a of ["muted", "loop", "playsinline", "autoplay", "disablepictureinpicture"]) v.setAttribute(a, "");
+      v.muted = true; v.className = "menubg"; v.setAttribute("aria-hidden", "true");
+      v.addEventListener("pause", () => setTimeout(kick, 200)); // a web view that stops it (as Telegram's may) gets it going again
+      return v;
+    };
+    let v = make();
+    // the day's loop or the night's, and again whenever the theme changes. The two move alike frame for frame, so the new one is
+    // started under the old one at the moment the old one has reached, and takes its place once it plays: only the colours change
     const pick = () => { const id = night() ? "menubg-night" : "menubg", p = document.getElementById(id + "-poster"), s = document.getElementById(id).textContent.trim();
-      if (v.dataset.id === id) return; v.dataset.id = id; if (p) v.poster = p.src; v.src = s; kick(); };
+      if (v.dataset.id === id) return;
+      if (!v.dataset.id || $("menu").hidden || v.readyState < 2) { v.dataset.id = id; if (p) v.poster = p.src; v.src = s; kick(); return; }
+      const old = v, nv = make(); nv.dataset.id = id; v = nv; old.before(nv);
+      nv.addEventListener("loadedmetadata", () => { nv.currentTime = (old.currentTime + 0.1) % (nv.duration || 4); }, { once: true });
+      nv.addEventListener("seeked", () => { nv.currentTime = old.currentTime; nv.play().catch(() => {}); }, { once: true });
+      nv.addEventListener("playing", () => { if (p) nv.poster = p.src; old.remove(); }, { once: true });
+      nv.src = s; };
     window.__menuBg = pick;
     $("menu").append(v); document.documentElement.classList.add("videobg"); // last, out of the way of the menu's own layout (fitMap measures .menu-in)
     const kick = () => { if ($("menu").hidden) v.pause(); else if (v.paused) v.play().catch(() => {}); };
-    v.addEventListener("pause", () => setTimeout(kick, 200)); // a web view that stops it (as Telegram's may) gets it going again
-    addEventListener("pointerdown", kick); document.addEventListener("visibilitychange", () => { if (!document.hidden) kick(); });
-    new MutationObserver(kick).observe($("menu"), { attributes: true, attributeFilter: ["hidden"] });
     pick();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", menuBg, { once: true }); else menuBg();

@@ -881,15 +881,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     { sky: "#0a2458", hor: "#123070", gnd: "#06143a", surf: "#1c3a78", wall: "#16306a", line: "#80b0f0", lineI: 0.3, frame: "#0c1c44", frameE: "#1a50c0", frameEI: 0.3,
       rail: "#3a5a98", sleeper: "#142450", glass: "#90c0ff", glassO: 0.42, edge: "#dcecff", fogN: 9, fogF: 80, hemiS: "#a0c4ff", hemiG: "#0a1838", hemiI: 0.75, sunI: 0.5,
       dust: "#b8d4ff", block: "#1e4088", cart: "#1a2c5a", accent: "#90c0ff" },
-    { sky: "#2c74d8", hor: "#7cb0ec", gnd: "#2a5aa8", surf: "#b8d4f4", wall: "#8ab4e8", line: "#ffffff", lineI: 0.08, frame: "#2a5098", frameE: "#000000", frameEI: 0,
-      rail: "#6a90c8", sleeper: "#4a70a8", glass: "#cfe6ff", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 96, hemiS: "#ffffff", hemiG: "#5a84c4", hemiI: 0.95, sunI: 0.75,
-      dust: "#ffffff", block: "#9cc4f4", cart: "#3a5a8a", accent: "#ffffff" },
-    { sky: "#3a8ef0", hor: "#bcdcff", gnd: "#8ab8f0", surf: "#f4f9ff", wall: "#d8eaff", line: "#a0d0ff", lineI: 0.2, frame: "#6a9ce0", frameE: "#000000", frameEI: 0,
-      rail: "#a8c8ec", sleeper: "#c8dcf4", glass: "#c8ecff", glassO: 0.4, edge: "#ffffff", fogN: 16, fogF: 108, hemiS: "#ffffff", hemiG: "#a8c8f0", hemiI: 1.05, sunI: 0.85,
-      dust: "#ffffff", block: "#dcecff", cart: "#5a7aa8", accent: "#60b8ff" },
-    { sky: "#4aa0ff", hor: "#e4f2ff", gnd: "#c4e0ff", surf: "#ffffff", wall: "#eef6ff", line: "#7cc8ff", lineI: 0.4, frame: "#a8d0f8", frameE: "#c8ecff", frameEI: 0.5,
-      rail: "#d0e6fa", sleeper: "#e8f2fc", glass: "#b0e4ff", glassO: 0.36, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#c8e2fa", hemiI: 1.15, sunI: 0.9,
-      dust: "#c0e8ff", block: "#f2f8ff", cart: "#6a88aa", accent: "#50b8ff" },
+    { sky: "#1e4a9a", hor: "#4a6aa8", gnd: "#2a4a88", surf: "#4a6498", wall: "#405a8c", line: "#c8dcff", lineI: 0.15, frame: "#1e3a78", frameE: "#000000", frameEI: 0,
+      rail: "#4a6aa0", sleeper: "#2a4478", glass: "#8ab4f0", glassO: 0.42, edge: "#e0ecff", fogN: 13, fogF: 96, hemiS: "#c8d4ff", hemiG: "#2a3a70", hemiI: 0.85, sunI: 0.7,
+      dust: "#d0dcff", block: "#4a6aa8", cart: "#2a3e6a", accent: "#c8dcff" },
+    { sky: "#2a5ab0", hor: "#6a8ac4", gnd: "#4a6aa8", surf: "#5a74a8", wall: "#506ca2", line: "#a0c4ff", lineI: 0.25, frame: "#3a5ca0", frameE: "#000000", frameEI: 0,
+      rail: "#6a8ac0", sleeper: "#4a66a0", glass: "#a8c8f4", glassO: 0.4, edge: "#ffffff", fogN: 16, fogF: 108, hemiS: "#ffe0c8", hemiG: "#3a4e88", hemiI: 0.85, sunI: 0.65,
+      dust: "#e8ecff", block: "#7a96cc", cart: "#4a6494", accent: "#80b8ff" },
+    { sky: "#3466c0", hor: "#8aa4d4", gnd: "#6a86c0", surf: "#6680b4", wall: "#5e7ab0", line: "#8cc4ff", lineI: 0.4, frame: "#5a7ab8", frameE: "#c8e0ff", frameEI: 0.3,
+      rail: "#7a96c8", sleeper: "#5a76ae", glass: "#b8d4f8", glassO: 0.36, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffe6d0", hemiG: "#4a62a0", hemiI: 0.9, sunI: 0.7,
+      dust: "#d8e6ff", block: "#9ab0dc", cart: "#5a74a0", accent: "#60b0ff" },
   ];
   // stars and band: the starfield and the Milky Way on the sky dome (Abyssus); every other palette has none
   const buildPal = raw => raw.map(o => { const r = {}; for (const k in Object.assign({ stars: 0, band: "#000000" }, o)) { const v = k in o ? o[k] : k === "stars" ? 0 : "#000000"; r[k] = typeof v === "string" ? new THREE.Color(v) : v; } return r; });
@@ -1077,16 +1077,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
   // sky dome: gradient that tracks the karma palette; the horizon color equals the fog color so the void reads as one space
   const skyUni = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, stars: { value: 0 }, band: { value: new THREE.Color() },
-    mode: { value: 0 }, amt: { value: 0 }, sunK: { value: 1 }, fxc: { value: new THREE.Color() }, t: { value: 0 }, px: { value: 0.002 }, lt: { value: 9 }, lseed: { value: 0 }, laz: { value: 0 }, fwd: { value: new THREE.Vector3(0, 0, -1) } };
+    mode: { value: 0 }, amt: { value: 0 }, sunK: { value: 1 }, fxc: { value: new THREE.Color() }, t: { value: 0 }, px: { value: 0.002 } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(480, 32, 16), new THREE.ShaderMaterial({
     uniforms: skyUni, side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: "varying vec3 vP; void main(){ vP = (modelMatrix*vec4(position,1.0)).xyz - cameraPosition; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
     // each level's sky has its own effect (mode): 1 deep space (stars and the Milky Way), 2 silver silk: slow
     // sheets of quicksilver light, 3 lit clouds under a sun, 4 radiance: a sun of pure light with turning rays,
-    // 5 warm clouds with drifting gold dust, 8 the lit clouds of a May day with a thunderstorm coming up as the Dark nears.
+    // 5 warm clouds with drifting gold dust, 8 the clear sky just after sunset, the sun half sunk behind the cart.
     // Whatever the mode, as the palette darkens the stars come out
     // and a faint galaxy in the level's own colour shows through
-    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; uniform float mode; uniform float amt; uniform float sunK; uniform vec3 fxc; uniform float t; uniform float px; uniform float lt; uniform float lseed; uniform float laz; uniform vec3 fwd; varying vec3 vP;
+    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; uniform float mode; uniform float amt; uniform float sunK; uniform vec3 fxc; uniform float t; uniform float px; varying vec3 vP;
       float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
       float vn(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
         return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
@@ -1104,6 +1104,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         float s = starAt(n, 90.0, 0.93 - 0.06 * b) + starAt(n, 210.0, 0.95 - 0.06 * b) * 0.7 + starAt(n, 40.0, 0.985) * 1.6;
         return c + mix(vec3(0.75, 0.85, 1.0), vec3(1.0, 0.9, 0.8), h3(floor(n * 90.0))) * s * k;
       }
+      const float SUN_R = 0.05;
+      const vec3 SUN_AZ = vec3(0.819, 0.0, -0.574); // 55 degrees right of the track's start (-z)
       void main(){ vec3 n = normalize(vP); float h = n.y;
         vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, bot, pow(-h, 0.5));
         float lum = dot(top, vec3(0.3, 0.55, 0.15)), m = floor(mode + 0.5), night = 1.0 - smoothstep(0.08, 0.45, lum);
@@ -1124,75 +1126,37 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         } else if (m == 3.0 || m == 5.0 || m == 8.0) { // lit clouds: soft heaps whose sunward sides are bright
           vec3 q = vec3(n.x * 1.6, n.y * 4.0, n.z * 1.6) / max(0.2, h + 0.2) * 0.55 + vec3(t * 0.006, 0.0, t * 0.004);
           float dn = fbm(q), d2 = fbm(q + sd * 0.12);
-          float cov = smoothstep(0.45, 0.72, dn) * smoothstep(-0.02, 0.18, h) * (m == 8.0 ? 0.0 : 1.0); // the storm sky keeps no fair-weather clouds
+          float cov = smoothstep(0.45, 0.72, dn) * smoothstep(-0.02, 0.18, h) * (m == 8.0 ? 0.0 : 1.0); // the sunset sky is clear
           float lit = clamp((dn - d2) * 5.0 + 0.55, 0.0, 1.0);
           vec3 cc = mix(mix(hor, top, 0.4) * 0.75, fxc * (0.3 + 0.85 * lum), lit) + vec3(1.0, 0.95, 0.85) * pow(sdot, 6.0) * 0.4 * lum;
           c = mix(c, cc, cov * amt);
           if (m != 8.0) c += mix(vec3(1.0, 0.97, 0.9), fxc, 0.3) * (pow(sdot, 300.0) * 2.0 + pow(sdot, 12.0) * 0.35) * amt * (0.3 + 0.7 * lum) * (1.0 - cov * 0.7);
           if (m == 5.0) c += vec3(1.0, 0.85, 0.4) * starAt(n, 120.0, 0.96) * amt * (0.6 + 0.4 * sin(t * 3.0 + h3(floor(n * 120.0)) * 30.0));
-          if (m == 8.0) { // a May thunderstorm. In the Light a dark deck of cloud stands over one side of the sky, its edges lit gold by
-            // the sun; toward the Dark it covers all of it, heavy and churning, the stars only in its gaps, lit from within by the
-            // lightning and struck through by branching strokes to the horizon (lt: time since the last stroke, laz: where,
-            // lseed: its shape; set by the game, which lights the level and thunders with it)
-            // after sunset: where the sun went down, behind the cart, the horizon still glows warm, paling up into blue; to the
-            // sides the sky darkens to night with its stars; ahead it is dark, the storm there (fwd: the camera's heading).
+          if (m == 8.0) { // the moment of sunset: the sun half sunk on the horizon, fixed in the world ahead and to the right (SUN_AZ:
+            // Vitrum's track heads between -25 and +65 degrees of its start, so on the turns the sun swings across the view
+            // and now and then out of it), the afterglow about it, rose above, paling up into blue; away from it the sky gone
+            // dark, its stars out.
             // Deeper into the Dark all of it dims
-            float storm = 0.55 + 0.45 * (1.0 - smoothstep(0.12, 0.5, lum)), dim = mix(1.0, 0.5, (storm - 0.55) / 0.45);
-            vec3 stD = normalize(vec3(fwd.x, 0.0, fwd.z) + 1e-5), na = normalize(vec3(n.x, 0.0, n.z) + 1e-5);
-            float back = -dot(na, stD), ch = max(h, 0.0), glowK = smoothstep(-0.1, 1.0, back);
+            float dim = mix(1.0, 0.55, 1.0 - smoothstep(0.12, 0.5, lum));
+            vec3 na = normalize(vec3(n.x, 0.0, n.z) + 1e-5);
+            float back = dot(na, SUN_AZ), ch = max(h, 0.0), glowK = smoothstep(-0.1, 1.0, back);
             vec3 nightZ = vec3(0.012, 0.02, 0.055), nightH = vec3(0.05, 0.065, 0.13), duskH = vec3(0.32, 0.36, 0.6), glowH = vec3(1.0, 0.55, 0.3);
             vec3 horC = mix(nightH, duskH, smoothstep(-0.5, 0.4, back));
-            horC = mix(horC, glowH, glowK * glowK * exp(-ch * 4.5)); // the afterglow low behind
+            horC = mix(horC, glowH, glowK * glowK * exp(-ch * 4.5)); // the afterglow low about the sun
             horC = mix(horC, vec3(0.75, 0.42, 0.55), glowK * glowK * smoothstep(0.02, 0.18, ch) * exp(-ch * 6.0) * 0.6); // rose above it
             vec3 zen = mix(nightZ, vec3(0.08, 0.13, 0.32), glowK * 0.7);
             vec3 dusk = mix(horC, zen, pow(ch, 0.38)) + vec3(1.0, 0.75, 0.45) * pow(max(back, 0.0), 8.0) * exp(-ch * 14.0) * 0.5;
-            if (h < 0.0) dusk = mix(horC, nightZ * 0.6, pow(-h, 0.5));
+            if (h < 0.0) dusk = mix(horC, nightZ * 0.6, sqrt(min(-h * 6.0, 1.0))); // under the horizon, quickly dark
             c = dusk * dim;
-            // the stars, as over Nox, where the sky has gone dark: the sides and above, not in the afterglow
-            float starK = (1.0 - smoothstep(-0.2, 0.7, back)) * smoothstep(0.02, 0.2, h);
+            float starK = (1.0 - smoothstep(-0.2, 0.7, back)) * smoothstep(0.02, 0.2, h); // the stars, as over Nox, where it has gone dark
             c += galaxy(n, vec3(0.45, 0.55, 0.95), starK * 1.1);
-            // the cloud deck as a ceiling over the world: the further off, the flatter, closing to the horizon
-            vec2 pc = n.xz / (max(h, 0.0) + 0.035) * 0.3 + vec2(t * 0.012, t * 0.005) * (0.6 + storm);
-            vec2 wq = vec2(fbm(vec3(pc * 0.55, 1.0)), fbm(vec3(pc * 0.55 + 5.2, 2.0))); // churned, the noise warped by itself
-            float far = smoothstep(0.25, 0.02, h); // near the horizon the fine heaps fade, or they would shimmer
-            vec3 qd = vec3(pc * 1.3 + wq * 0.6, 3.0 + t * 0.01), qs = qd + vec3(normalize(sd.xz) * 0.22, 0.0);
-            float bw = 0.35 * (1.0 - far);
-            float dens = fbm(qd) * (1.0 - bw) + (1.0 - abs(fbm(qd * 2.3 + 4.0) * 2.0 - 1.0)) * bw; // great heaps, billowing
-            float d2 = fbm(qs) * (1.0 - bw) + (1.0 - abs(fbm(qs * 2.3 + 4.0) * 2.0 - 1.0)) * bw;
-            float sect = smoothstep(mix(0.45, -0.1, storm), mix(0.8, 0.35, storm), dot(na, stD)); // where it covers: ahead, wider as it deepens
-            float cov = mix(0.6, 0.88, storm) * sect * smoothstep(mix(0.3, 0.75, storm), mix(0.04, 0.3, storm), h); // a low bank on the horizon, rising a little as it comes
-            float cloud = smoothstep(1.0 - cov - 0.06, 1.0 - cov + 0.1, dens) * smoothstep(-0.01, 0.05, h) * step(0.001, cov);
-            float lit = clamp((dens - d2) * 11.0 + 0.3, 0.0, 1.0), thick = smoothstep(1.0 - cov + 0.05, 1.05 - cov * 0.4, dens);
-            vec3 baseC = vec3(0.025, 0.028, 0.045), litC = vec3(0.13, 0.13, 0.19); // dark storm cloud, its heaps just showing against the night
-            vec3 cc = mix(baseC, litC, lit * (1.0 - 0.7 * thick));
-            cc = mix(cc, horC * dim, 0.5 * exp(-max(h, 0.0) * 14.0)); // hazed into the horizon
-            c *= 1.0 - 0.35 * storm * sect; // the sky under it dimmed
-            c = mix(c, cc, cloud * amt);
-            float fl = lt < 1.2 ? exp(-lt * 14.0) + 0.7 * exp(-abs(lt - 0.12) * 40.0) + 0.5 * exp(-abs(lt - 0.3) * 30.0) : 0.0;
-            if (fl > 0.002) {
-              float azm = atan(na.z, na.x), fa = atan(stD.z, stD.x) + laz;
-              vec3 fdir = vec3(cos(fa), 0.0, sin(fa));
-              vec2 fpc = fdir.xz / (0.16 + 0.035) * 0.3 + vec2(t * 0.012, t * 0.005) * (0.6 + storm);
-              float illum = exp(-length(pc - fpc) * 1.6); // the cloud lit from inside and below, along its own heaps, the thin of it the brightest
-              c += vec3(0.62, 0.58, 1.0) * illum * cloud * fl * (0.4 + 1.8 * (1.0 - thick)) * (0.3 + 1.2 * dens) * (0.9 + 1.4 * storm);
-              c += vec3(0.45, 0.42, 0.75) * fl * (0.03 + 0.08 * storm) * exp(-length(pc - fpc) * 0.5); // and the sky about it
-              // the strokes: one in the Light, up to three in the Dark, each jagged from the cloud's foot to the horizon, forking
-              float el = asin(clamp(h, 0.0, 1.0)), top = mix(0.13, 0.28, storm);
-              for (int k = 0; k < 5; k++) {
-                float fk = float(k); if (fk > 1.0 + storm * 3.6) break;
-                float sk = lseed + fk * 13.7, ax = fa + (fk == 0.0 ? 0.0 : (fract(sk * 0.31) - 0.5) * 1.4);
-                float dab = mod(azm - ax + 3.1416, 6.2832) - 3.1416, q = el / top, L = top;
-                float bx = L * (0.2 * sin(q * 8.0 + sk) + 0.09 * sin(q * 21.0 + sk * 1.7) + 0.045 * sin(q * 53.0 + sk * 2.3) + 0.02 * sin(q * 131.0 + sk) + (1.0 - q) * 0.35 * (fract(sk * 0.37) - 0.5));
-                float w = 0.004 + 0.003 * storm, inB = step(0.0, h) * step(el, top) * (1.0 - 0.3 * fk);
-                float bolt = inB * (smoothstep(w, 0.0, abs(dab - bx)) + 0.45 * exp(-abs(dab - bx) / (w * 5.0)));
-                for (int f = 0; f < 2; f++) { // two forks off it
-                  float ff = float(f), fq = 0.35 + 0.3 * ff + 0.1 * fract(sk * 0.53), dir = (fract(sk * (0.71 + ff * 0.2)) < 0.5 ? -1.0 : 1.0);
-                  float fx = bx + (fq - q) * L * (0.5 + 0.3 * ff) * dir + L * 0.03 * sin(q * 90.0 + sk + ff);
-                  bolt += step(0.0, h) * step(fq - 0.32, q) * step(q, fq) * 0.55 * (smoothstep(w * 0.75, 0.0, abs(dab - fx)) + 0.35 * exp(-abs(dab - fx) / (w * 5.0)));
-                }
-                c += vec3(0.86, 0.84, 1.0) * bolt * fl * 4.5;
-              }
-            }
+            // the sun: a disc of SUN_R, its middle a third of it over the horizon (two thirds of it showing), reddened, its
+            // rim darker, a glow round it; the horizon cuts it
+            vec3 sunD = normalize(vec3(SUN_AZ.x, sin(SUN_R / 3.0), SUN_AZ.z));
+            float ang = acos(clamp(dot(n, sunD), -1.0, 1.0)), q = ang / SUN_R;
+            vec3 disc = mix(vec3(1.0, 0.85, 0.5), vec3(1.0, 0.45, 0.18), smoothstep(0.0, 1.0, q)) * 2.2;
+            c = mix(c, disc * dim, smoothstep(1.0, 0.94, q) * step(0.0, h));
+            c += vec3(1.0, 0.55, 0.25) * (exp(-ang * 14.0) * 0.55 + exp(-ang * 4.0) * 0.18) * dim * step(-0.02, h);
           }
         } else if (m == 7.0) { // ink wash: drifting bands of mist and a slowly turning yin-yang in place of the sun
           float mist = smoothstep(0.45, 0.8, fbm(vec3(n.x * 2.0, n.y * 7.0, n.z * 2.0) + vec3(t * 0.012, 0.0, t * 0.008))) * smoothstep(-0.1, 0.25, h) * (1.0 - smoothstep(0.35, 0.8, h));
@@ -1429,7 +1393,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const chainMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.8 });
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
 
-  let stormT0 = -99, stormNext = 3; const DUSK_FOG = new THREE.Color(0.16, 0.18, 0.3); // Vitrum's lightning: when the last stroke was, when the next comes
+  const DUSK_FOG = new THREE.Color(0.16, 0.18, 0.3); // Vitrum's lightning: when the last stroke was, when the next comes
   function applyPalette() {
     skyUni.top.value.copy(cur.sky); skyUni.hor.value.copy(cur.hor); skyUni.bot.value.copy(cur.gnd); skyUni.stars.value = cur.stars; skyUni.band.value.copy(cur.band);
     const fx = (LEVEL_LOOK[LEVEL.id] || {}).sky || { mode: 0 };
@@ -1447,16 +1411,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     glassMat.color.copy(cur.glass); glassMat.emissive.copy(cur.glass); glassMat.opacity = cur.glassO;
     edgeMat.color.copy(cur.edge);
     hemi.color.copy(cur.hemiS); hemi.groundColor.copy(cur.hemiG); hemi.intensity = cur.hemiI * (LEVEL.lightMul || 1); // a level may be lit brighter
-    if (fx.mode === 8) { camera.getWorldDirection(skyUni.fwd.value); scene.fog.color.lerp(DUSK_FOG, 0.55); } // the storm keeps ahead of the cart; the haze of the dusk
-    if (fx.mode === 8) { // the storm's lightning: now and then a stroke, more often as it comes on; the level lit by it, the thunder after
-      const lum = 0.3 * cur.sky.r + 0.55 * cur.sky.g + 0.15 * cur.sky.b, x = clamp((lum - 0.12) / 0.38, 0, 1), storm = 0.45 + 0.55 * (1 - x * x * (3 - 2 * x));
-      if (time > stormNext || time < stormT0) {
-        if (time > stormNext && state === "play") { stormT0 = time; skyUni.lseed.value = rand(0, 40); skyUni.laz.value = rand(-0.45, 0.45) * (0.6 + 0.8 * storm); Sound.thunder(lerp(2.2, 0.35, storm), lerp(0.22, 0.85, storm)); }
-        stormNext = time + rand(0.6, 1.4) * lerp(3, 1.2, storm);
-      }
-      const lt = time - stormT0, fl = lt < 1.2 ? Math.exp(-lt * 14) + 0.7 * Math.exp(-Math.abs(lt - 0.12) * 40) + 0.5 * Math.exp(-Math.abs(lt - 0.3) * 30) : 0;
-      skyUni.lt.value = lt; hemi.intensity *= 1 + fl * (0.12 + 0.55 * storm);
-    }
+    if (fx.mode === 8) scene.fog.color.lerp(DUSK_FOG, 0.55); // the haze of the dusk
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
     shellMat.color.copy(cur.block).lerp(cur.frame, 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
@@ -1653,7 +1608,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const wallP = STYLE.closed || STYLE.skylight ? 2 : lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = STYLE.closed ? 2 : STYLE.skylight ? -1 : lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z); // skylight: walls all along, open above
     d = { wl: !station && hash(seg * 3 + 1) < wallP, wr: !station && hash(seg * 3 + 2) < wallP, ceil: !station && hash(seg * 7 + 5) < ceilP,
       arch: !station && k % 4 === 0, pyr: null, blocks: [] };
-    if (STYLE.bridge) d.wl = d.wr = d.ceil = false; // Abyssus: a bare bridge over the void
+    if (STYLE.bridge || STYLE.bare) d.wl = d.wr = d.ceil = false; // Abyssus: a bare bridge over the void; Vitrum: no glass walls or roof, only the hexagonal frames
     if (STYLE.open && !station) { // Labyrinthus: walled passages that now and then open into a wide hall
       const hall = hash(seg * 13 + 7) < 0.55 && s > 70 && s < MAIN_LEN - 40 && !forks.some(f => Math.abs(s - f.s) < 80);
       d.wl = d.wr = d.ceil = !hall; if (hall) { d.arch = false; d.hall = true; }
@@ -4635,7 +4590,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
       req: { after: "rubinus", fare: 20 }, map: { x: 615, y: 440, label: "t" } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "glass_halls_in_blue", len: 1560, pal: PAL_VITRUM, finale: "ruina",
-      style: { arch: "hex", blocks: "prism", glassWalls: true }, crystalMul: 1.1,
+      style: { arch: "hex", blocks: "prism", glassWalls: true, bare: true }, crystalMul: 1.1,
       // no heaps of glass (a wall, pairs, threes, the side panes, the scatter of small ones, the shutters): their room goes to
       // the catapults, one group in eight or so, and a little more to the plain single pane
       pats: { center: [2, 2, 1.2], wall: [0, 0, 0], triple: [0, 0, 0], double: [0, 0, 0], sides: [0, 0, 0], bonus: [0, 0, 0], shutter: [0, 0, 0], catapult: [1.1, 1.3, 1.3],
@@ -4646,7 +4601,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       every: { catapult: 180 }, // a catapult every 180 m at the most (some 300 if one would come too close to the last)
       turns: [[80, 50, -45], [190, 60, 70], [300, 45, -50], [380, 45, 50], [500, 80, -90], [640, 50, 40], [730, 50, -40],
         [830, 70, 80], [960, 50, -55], [1060, 60, 60], [1180, 45, -45], [1260, 45, 45], [1380, 70, -70]],
-      desc: "Призматические галереи под синим майским небом, а на горизонте собирается гроза: чем глубже во Тьму, тем она ближе. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть. Поперёк пути вращаются стеклянные планки и кресты, а толстое стекло во весь проход разбивает только катапульта: попадите в её мишень.",
+      desc: "Призматические арки над пропастью в чистом вечернем небе: позади садится солнце, впереди зажигаются звёзды. Шестигранные своды и монолиты на цепях: собьёте цепи — монолит улетит в пропасть. Поперёк пути вращаются стеклянные планки и кресты, а толстое стекло во весь проход разбивает только катапульта: попадите в её мишень.",
       feats: ["Стеклянные катапульты: попадите в мишень — снаряд разобьёт толстое стекло", "Монолиты на цепях, вращающиеся планки и кресты", "Финал Ruina: обвал глыб"],
       req: { after: "initium" }, map: { x: 270, y: 320, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
@@ -4741,7 +4696,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["Square arches, solid walls and floating cubes", "Glass, blue crystals; in the Dark spikes and black-red crystal imps", "Finale Iudicium: seals and a multiplier"] },
       thesaurus: { ru: "Treasury", desc: "A dead-end branch off Rubinus. Golden halls with round arches and floating coins. Twice the usual crystals: the ride costs a fare, but you can come back with a profit.",
         feats: ["2.2 times the crystals", "A short ride, about a minute", "Finale Pluvia: a rain of crystals"] },
-      vitrum: { ru: "Glass", desc: "Prismatic galleries under a blue May sky, a thunderstorm gathering on the horizon: the deeper into the Dark, the nearer it comes. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, and thick glass that fills the way breaks only to a catapult: hit its target.",
+      vitrum: { ru: "Glass", desc: "Prismatic arches over the abyss in a clear evening sky: the sun setting behind, the stars coming out ahead. Hexagonal vaults and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, and thick glass that fills the way breaks only to a catapult: hit its target.",
         feats: ["Glass catapults: hit the target and the shot breaks the thick glass", "Monoliths on chains, turning glass bars and crosses", "Finale Ruina: falling boulders"] },
       armamentarium: { ru: "Armoury", desc: "A dead-end depot beyond the Garden (Hortus). Here crystals buy new cannons and upgrades for the cart.",
         feats: ["The Triplex, Gemini and Lumen cannons", "Upgrades: a bigger reserve, a second wind, more bounty from crystals", "What you buy stays yours; switch cannons in the menu"] },
@@ -4877,7 +4832,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const LEVEL_LOOK = {
     initium: { sky: { mode: 3, a: 0.85, c: "#ffffff" } },
     thesaurus: { sky: { mode: 5, a: 0.9, c: "#ffe8b0" } },
-    vitrum: { sky: { mode: 8, a: 0.95, c: "#ffffff" }, shell: [5.3, 8.75] }, // walls and ceiling clear of the hexagonal frames; a May storm on the horizon
+    vitrum: { sky: { mode: 8, a: 0.95, c: "#ffffff" }, shell: [5.3, 8.75] }, // walls and ceiling clear of the hexagonal frames; the sky just after sunset
     tao: { sky: { mode: 7, a: 0.9, c: "#ffffff" } },
     rubinus: { sky: { mode: 6, a: 0.95, c: "#ff2a46" }, shell: [8, 10.5] }, // the triangles are wide: a hall of glass
     labyrinthus: { sky: { mode: 3, a: 0.75, c: "#d4f6e6" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },

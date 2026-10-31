@@ -993,6 +993,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const f = this.ctx.createBiquadFilter(); f.type = ftype; f.frequency.value = freq; s.connect(f);
       const t = this.env(f, gain, dur, when); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
     },
+    thunder(delay, vol) { // a crack and a long rolling rumble, low noise swelling and dying away
+      if (!this.ctx) return;
+      const c = this.ctx, t = c.currentTime + delay;
+      for (const [f, g, d, w] of [[600, vol * 0.35, 0.7, 0], [220, vol * 0.9, 3.2, 0.02], [90, vol, 3.8, 0.06]]) {
+        const src = c.createBufferSource(); src.buffer = this.noise; src.loop = true;
+        const fl = c.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = f; src.connect(fl);
+        const gn = c.createGain(), a = t + w; gn.gain.setValueAtTime(0.0001, a); gn.gain.exponentialRampToValueAtTime(g, a + 0.12);
+        gn.gain.exponentialRampToValueAtTime(g * 0.45, a + 0.6); gn.gain.exponentialRampToValueAtTime(g * 0.7, a + 1.0); gn.gain.exponentialRampToValueAtTime(0.0001, a + d);
+        fl.connect(gn); gn.connect(this.master); src.start(a, Math.random() * 0.5); src.stop(a + d + 0.1);
+      }
+    },
     thickGlass() { // a block of glass, not a pane: a deep crack, a grinding crunch, heavy chunks hitting the floor
       this.tone(72, 0.6, 0.45, "sine", 0, 32); this.tone(95, 0.22, 0.22, "sawtooth", 0, 40);
       this.hiss(0.9, 700, "bandpass", 0.5); this.hiss(0.5, 320, "lowpass", 0.45); this.hiss(0.3, 2600, "bandpass", 0.2);
@@ -1066,7 +1077,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
   // sky dome: gradient that tracks the karma palette; the horizon color equals the fog color so the void reads as one space
   const skyUni = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, stars: { value: 0 }, band: { value: new THREE.Color() },
-    mode: { value: 0 }, amt: { value: 0 }, sunK: { value: 1 }, fxc: { value: new THREE.Color() }, t: { value: 0 }, px: { value: 0.002 } };
+    mode: { value: 0 }, amt: { value: 0 }, sunK: { value: 1 }, fxc: { value: new THREE.Color() }, t: { value: 0 }, px: { value: 0.002 }, lt: { value: 9 }, lseed: { value: 0 }, laz: { value: 0 }, stC: { value: null }, stA: { value: null }, stOn: { value: 0 } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(480, 32, 16), new THREE.ShaderMaterial({
     uniforms: skyUni, side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: "varying vec3 vP; void main(){ vP = (modelMatrix*vec4(position,1.0)).xyz - cameraPosition; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
@@ -1075,7 +1086,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // 5 warm clouds with drifting gold dust, 8 the lit clouds of a May day with a thunderstorm coming up as the Dark nears.
     // Whatever the mode, as the palette darkens the stars come out
     // and a faint galaxy in the level's own colour shows through
-    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; uniform float mode; uniform float amt; uniform float sunK; uniform vec3 fxc; uniform float t; uniform float px; varying vec3 vP;
+    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; uniform float mode; uniform float amt; uniform float sunK; uniform vec3 fxc; uniform float t; uniform float px; uniform float lt; uniform float lseed; uniform float laz; uniform sampler2D stC; uniform sampler2D stA; uniform float stOn; varying vec3 vP;
       float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
       float vn(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
         return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
@@ -1119,38 +1130,45 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           c = mix(c, cc, cov * amt);
           c += mix(vec3(1.0, 0.97, 0.9), fxc, 0.3) * (pow(sdot, 300.0) * 2.0 + pow(sdot, 12.0) * 0.35) * amt * (0.3 + 0.7 * lum) * (1.0 - cov * 0.7);
           if (m == 5.0) c += vec3(1.0, 0.85, 0.4) * starAt(n, 120.0, 0.96) * amt * (0.6 + 0.4 * sin(t * 3.0 + h3(floor(n * 120.0)) * 30.0));
-          if (m == 8.0) { // a May thunderstorm: in the Light a far bank of cloud low on the horizon, away from the sun; toward the
-            // Dark it comes on, higher, wider round the sky and darker, its lightning more often; the stars stay above it
+          if (m == 8.0) { // a May thunderstorm: a few great cumulonimbus with anvils, out on the horizon in the Light, filling half
+            // the sky in the Dark; dark at the foot, sunlit at the top, rain walls under them, lightning (lt: time since the last
+            // stroke, laz: where along them, lseed: its shape; set by the game, which lights the level and thunders with it)
             float storm = 1.0 - smoothstep(0.12, 0.5, lum);
             vec3 stD = normalize(vec3(-0.75, 0.0, -0.66)), na = normalize(vec3(n.x, 0.0, n.z) + 1e-5);
-            float az = dot(na, stD), span = mix(0.35, -0.5, storm), wing = smoothstep(span, span + 0.3, az);
-            float tw = smoothstep(0.32, 0.68, fbm(vec3(na.x * 1.7, 0.0, na.z * 1.7) + vec3(5.0, t * 0.004, 0.0))), fine = fbm(n * vec3(9.0, 13.0, 9.0) + vec3(t * 0.02, 0.0, 0.0)); // towers round the sky, billows on them
-            float topH = (mix(0.3, 0.62, storm) * (0.35 + 0.75 * tw) + 0.1 * (fine - 0.5)) * wing; // how high the cloud stands, its top heaped round
-            float body = smoothstep(topH + 0.015, topH - 0.03, h) * smoothstep(-0.08, 0.0, h) * wing;
-            vec3 dk = mix(mix(vec3(0.24, 0.27, 0.36), hor, 0.18), vec3(0.04, 0.05, 0.08), storm); // a slate-grey storm cloud, hazed a little far off; near, black
-            vec3 rim = mix(vec3(1.0, 0.98, 0.95), vec3(0.3, 0.34, 0.44), storm) * (0.65 + 0.5 * lum);
-            vec3 cb = mix(dk * (0.6 + 0.8 * fine) * (0.75 + 0.5 * h / max(topH, 0.01)), rim, smoothstep(topH - 0.07, topH, h) * (1.0 - storm * 0.5)); // darker at its foot, its tops lit by the sun
-            // rain: grey veils hanging under the cloud in shafts, streaked
-            float shaft = smoothstep(0.45, 0.7, fbm(vec3(na.x * 5.0, 0.0, na.z * 5.0) + vec3(t * 0.01, 2.0, 0.0)));
-            float streak = 0.6 + 0.4 * vn(vec3(atan(n.z, n.x) * 260.0, h * 6.0 + t * 1.5, 1.0));
-            cb = mix(cb, mix(cb, vec3(0.55, 0.6, 0.68) * (0.35 + 0.65 * lum), 0.55) * streak, shaft * smoothstep(topH * 0.55, 0.0, h) * 0.8);
-            float slot = floor(t * 1.3), ph = fract(t * 1.3); // now and then a flash somewhere in it, more often as it comes on
-            float fl = step(1.0 - (0.25 + 0.45 * storm), h3(vec3(slot, 3.1, 7.7))) * (exp(-ph * 14.0) + 0.7 * exp(-abs(ph - 0.12) * 40.0));
-            vec3 fd = normalize(stD + vec3(-stD.z, 0.0, stD.x) * (h3(vec3(slot, 1.3, 2.9)) * 2.0 - 1.0) * mix(0.5, 1.3, storm));
-            float near = exp(-(1.0 - max(dot(na, fd), 0.0)) * 110.0) * exp(-abs(h - topH * 0.55) * 9.0);
-            cb += vec3(0.8, 0.86, 1.0) * fl * near * (0.45 + 1.1 * storm);
-            c = mix(c, cb, body * amt);
-            // the bolt: a jagged stroke from inside the cloud down to the horizon, with a fork, there with the flash
-            vec3 fx = vec3(-fd.z, 0.0, fd.x); float ang = atan(dot(na, fx), dot(na, fd)), h0 = topH * 0.8;
-            float sd1 = h3(vec3(slot, 5.1, 1.7)) * 40.0, jag = 0.014 * sin(h * 95.0 + sd1) + 0.007 * sin(h * 260.0 + sd1 * 1.7) + 0.004 * sin(h * 610.0 + sd1 * 2.3);
-            float bx = jag + (h0 - h) * 0.12 * (h3(vec3(slot, 8.3, 4.4)) - 0.5);
-            float inB = step(0.0, h) * step(h, h0) * step(0.0, dot(na, fd)), w = 0.0035 + 0.002 * storm;
-            float bolt = inB * (smoothstep(w, 0.0, abs(ang - bx)) + 0.35 * exp(-abs(ang - bx) * 90.0));
-            float hf = h0 * 0.55, fork = step(0.0, h) * step(h, hf) * step(h0 * 0.15, h) * step(0.0, dot(na, fd)); // a branch off it, halfway down
-            float fxp = bx + (hf - h) * 0.35 * sign(h3(vec3(slot, 2.2, 9.1)) - 0.5) + 0.006 * sin(h * 330.0 + sd1);
-            bolt += fork * 0.7 * (smoothstep(w * 0.8, 0.0, abs(ang - fxp)) + 0.3 * exp(-abs(ang - fxp) * 110.0));
-            c += vec3(0.85, 0.9, 1.0) * bolt * fl * 2.2 * amt;
-            c += vec3(0.45, 0.5, 0.65) * fl * (0.04 + 0.08 * storm) * exp(-(1.0 - max(dot(na, fd), 0.0)) * 6.0); // the sky round it lit as well
+            float azm = atan(na.z, na.x), az0 = atan(stD.z, stD.x);
+            // the storm itself: a picture of it rendered once (tools/storm_cloud.js), laid at its side of the horizon, the
+            // bigger as it comes on; lit by the day in the Light, near black in the Dark, hazed when far
+            float sc = mix(0.9, 1.7, storm), stw = 1.6 * sc, sth = 0.625 * sc, el = asin(clamp(h, -1.0, 1.0)), lift = mix(0.035, 0.07, storm);
+            float dab0 = mod(azm - az0 + 3.1416, 6.2832) - 3.1416;
+            vec2 suv = vec2(dab0 / stw + 0.5, (el - lift) / sth); // its base a little over the horizon: rain and lightning under it
+            float cloud = 0.0, rain = 0.0, hb = lift + 0.05 * sth;
+            vec3 tex = vec3(0.0);
+            if (stOn > 0.5 && suv.x > 0.0 && suv.x < 1.0 && suv.y < 1.0) {
+              if (suv.y > 0.0) { cloud = texture2D(stA, suv).r; tex = texture2D(stC, suv).rgb; }
+              rain = pow(texture2D(stA, vec2(suv.x, 0.12)).r, 2.0) * step(0.0, el) * smoothstep(lift + 0.07 * sth, lift + 0.03 * sth, el) * 0.75; // in shafts under the thickest of it
+            }
+            vec3 cc = tex * mix(1.0, 0.11, storm) * (0.8 + 0.3 * lum);
+            cc = mix(cc, hor, 0.22 * (1.0 - storm) * (1.0 - clamp(suv.y * 2.0, 0.0, 1.0))); // far off, hazed at the foot
+            c *= 1.0 - 0.45 * storm * smoothstep(-0.4, 0.7, dot(na, stD)) * smoothstep(-0.1, 0.35, h); // the sky toward it gloomy
+            float shafts = 0.45 + 0.55 * vn(vec3(azm * 22.0, 0.5, t * 0.05)), streak = 0.6 + 0.4 * vn(vec3(azm * 300.0, el * 60.0 + t * 1.6, 1.0));
+            vec3 rc = mix(vec3(0.4, 0.44, 0.52), vec3(0.03, 0.035, 0.05), storm);
+            c = mix(c, mix(c, rc, 0.85) * streak, rain * shafts * amt); // rain walls down to the horizon
+            c = mix(c, cc, cloud * amt);
+            float fl = lt < 1.2 ? exp(-lt * 14.0) + 0.7 * exp(-abs(lt - 0.12) * 40.0) + 0.5 * exp(-abs(lt - 0.3) * 30.0) : 0.0;
+            if (fl > 0.002) {
+              float dab = mod(azm - az0 - laz + 3.1416, 6.2832) - 3.1416, L = hb, q = el / L;
+              // the stroke: from inside the cloud's foot down to the horizon, jagged, with a fork
+              float bx = L * (0.22 * sin(q * 9.0 + lseed) + 0.1 * sin(q * 23.0 + lseed * 1.7) + 0.05 * sin(q * 57.0 + lseed * 2.3) + (1.0 - q) * 0.3 * (fract(lseed * 0.37) - 0.5));
+              float w = 0.0022 + 0.0018 * storm, inB = step(-0.003, el) * step(el, hb);
+              float bolt = inB * (smoothstep(w, 0.0, abs(dab - bx)) + 0.35 * exp(-abs(dab - bx) / (w * 4.0)));
+              float fxp = bx + (0.55 - q) * L * 0.6 * sign(fract(lseed * 0.71) - 0.5) + L * 0.04 * sin(q * 70.0 + lseed);
+              bolt += step(0.12, q) * step(q, 0.55) * 0.6 * (smoothstep(w * 0.8, 0.0, abs(dab - fxp)) + 0.3 * exp(-abs(dab - fxp) / (w * 4.0)));
+              // the cloud lit up from inside, along its own billows
+              float glow = exp(-pow(dab / (0.18 * stw), 2.0) - pow((suv.y - 0.25) / 0.4, 2.0));
+              c += tex * vec3(0.8, 0.86, 1.0) * glow * cloud * fl * (1.3 + 1.7 * storm);
+              c += vec3(0.92, 0.95, 1.0) * bolt * fl * 3.0;
+              c += vec3(0.35, 0.4, 0.5) * fl * (0.04 + 0.1 * storm) * exp(-abs(dab) * 1.5); // and the sky about it
+            }
           }
         } else if (m == 7.0) { // ink wash: drifting bands of mist and a slowly turning yin-yang in place of the sun
           float mist = smoothstep(0.45, 0.8, fbm(vec3(n.x * 2.0, n.y * 7.0, n.z * 2.0) + vec3(t * 0.012, 0.0, t * 0.008))) * smoothstep(-0.1, 0.25, h) * (1.0 - smoothstep(0.35, 0.8, h));
@@ -1387,6 +1405,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const chainMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.8 });
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
 
+  let stormT0 = -99, stormNext = 3; // Vitrum's lightning: when the last stroke was, when the next comes
   function applyPalette() {
     skyUni.top.value.copy(cur.sky); skyUni.hor.value.copy(cur.hor); skyUni.bot.value.copy(cur.gnd); skyUni.stars.value = cur.stars; skyUni.band.value.copy(cur.band);
     const fx = (LEVEL_LOOK[LEVEL.id] || {}).sky || { mode: 0 };
@@ -1404,6 +1423,19 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     glassMat.color.copy(cur.glass); glassMat.emissive.copy(cur.glass); glassMat.opacity = cur.glassO;
     edgeMat.color.copy(cur.edge);
     hemi.color.copy(cur.hemiS); hemi.groundColor.copy(cur.hemiG); hemi.intensity = cur.hemiI * (LEVEL.lightMul || 1); // a level may be lit brighter
+    if (fx.mode === 8 && !skyUni.stOn.value) { // the storm's picture, from the page's end once it is there
+      const ic = document.getElementById("storm-c"), ia = document.getElementById("storm-a");
+      if (ic && ia && ic.complete && ia.complete && ic.naturalWidth) { for (const [k, im] of [["stC", ic], ["stA", ia]]) { const tx = new THREE.Texture(im); tx.needsUpdate = true; skyUni[k].value = tx; } skyUni.stOn.value = 1; }
+    }
+    if (fx.mode === 8) { // the storm's lightning: now and then a stroke, more often as it comes on; the level lit by it, the thunder after
+      const lum = 0.3 * cur.sky.r + 0.55 * cur.sky.g + 0.15 * cur.sky.b, storm = 1 - clamp((lum - 0.12) / 0.38, 0, 1) ** 2 * (3 - 2 * clamp((lum - 0.12) / 0.38, 0, 1));
+      if (time > stormNext || time < stormT0) {
+        if (time > stormNext && state === "play") { stormT0 = time; skyUni.lseed.value = rand(0, 40); skyUni.laz.value = rand(-0.32, 0.32) * 1.6 * lerp(0.9, 1.7, storm); Sound.thunder(lerp(2.2, 0.35, storm), lerp(0.22, 0.85, storm)); }
+        stormNext = time + rand(0.6, 1.4) * lerp(9, 2.6, storm);
+      }
+      const lt = time - stormT0, fl = lt < 1.2 ? Math.exp(-lt * 14) + 0.7 * Math.exp(-Math.abs(lt - 0.12) * 40) + 0.5 * Math.exp(-Math.abs(lt - 0.3) * 30) : 0;
+      skyUni.lt.value = lt; hemi.intensity *= 1 + fl * (0.12 + 0.55 * storm);
+    }
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
     shellMat.color.copy(cur.block).lerp(cur.frame, 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
@@ -3947,13 +3979,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // before it, at the side, a catapult or a crossbow of clear and coloured glass and chrome stands on a round platform tilted
   // to the cart and ringed as a target: hit it, the target goes out, the catapult throws its glowing shot or the crossbow
   // its glass stake, and the glass bursts in big pieces (+2 balls). Missed, the cart bursts it itself (−CATA_COST).
-  let catas = [], lastCataS = -1e9;
-  const CATA_COST = 4, CATA_GAP = 80, CATA_LEAD = 8, CATA_K = 1.35, CATA_TG = 1.05 * 1.35; // its toll, the least room between two, the lead on its glass, its size, its target's reach
+  let catas = [], lastCataS = -1e9, cataNext = Math.random() < 0.5 ? "catapult" : "crossbow"; // the two in turn
+  const CATA_COST = 4, CATA_GAP = 80, CATA_LEAD = 12, CATA_K = 1.2, CATA_U = 3.7, CATA_TG = 0.8 * 1.2; // its toll, the least room between two, its lead on its glass (midway between frames), its size, how far out it stands, its target's reach
   const HEX_PTS = Array.from({ length: 6 }, (_, k) => [Math.cos(k * Math.PI / 3) * 4.9, Math.sin(k * Math.PI / 3) * 4.9]); // the frame's hexagon (flat on top and bottom)
   const cataSlabGeo = (() => { const sh = new THREE.Shape(HEX_PTS.map(([x, y]) => new THREE.Vector2(x, y))); return new THREE.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: false }).translate(0, 0, -0.3); })();
-  // glass that bends what is behind it: it draws the sky the game has drawn this frame (skyRT), shifted by its own curve, in
-  // its colour, bright at its rims. One more texture read where it shows, no extra pass: the frames and walls behind it are
-  // seen through it unbent, the sky bent
+  // the thick glass bends the sky behind it: it draws the sky the game has drawn this frame (skyRT), shifted by its own
+  // curve, bright at its rims; one more texture read where it shows, no extra pass
   const lensMat = (tint, k, a) => new THREE.ShaderMaterial({
     uniforms: { map: { value: skyRT.texture }, res: { value: bufSize }, tint: { value: new THREE.Color(tint) }, k: { value: k }, a: { value: a } },
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
@@ -3962,49 +3993,59 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       void main(){ vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n; float fr = pow(1.0 - abs(dot(n, normalize(vV))), 2.2);
         vec3 bg = texture2D(map, gl_FragCoord.xy / res + n.xy * k).rgb;
         gl_FragColor = vec4(bg * tint * 1.1 + tint * 0.18 + vec3(1.0) * fr * 0.6, clamp(a + fr * 0.55, 0.0, 1.0)); }` });
-  const clearGlass = lensMat(0xeaf8ff, 0.03, 0.22), slabGlass = lensMat(0xc8ecff, 0.05, 0.28);
-  const cyanGlass = lensMat(0x38d4ff, 0.09, 0.5), limbGlass = lensMat(0x30c8ff, 0.1, 0.72), amberGlass = lensMat(0xffa22e, 0.09, 0.62), roseGlass = lensMat(0xff4fa8, 0.09, 0.55), dimGlass = lensMat(0x6a7784, 0.04, 0.5);
+  const slabGlass = lensMat(0xc8ecff, 0.05, 0.28), glassEdge = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+  // the weapons: today's machines, not tomorrow's: powder-coated graphite and safety orange, brushed aluminium, chrome,
+  // black rubber; the bow a compound one, carbon limbs on a black riser with silver cams. Both shoot black polished steel
+  const std = (color, metal, rough) => new THREE.MeshStandardMaterial({ color, metalness: metal, roughness: rough });
+  const graphiteMat = std(0x2c3238, 0.45, 0.55), orangeMat = std(0xf0661a, 0.3, 0.45), aluMat = std(0xb9c2cb, 0.75, 0.32), rubberMat = std(0x18191b, 0, 0.9);
   const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe8f0f8, metalness: 0.35, roughness: 0.22, emissive: 0x5a6a7c, emissiveIntensity: 0.6 }); // bright polished metal (there is no environment to mirror)
-  const glassEdge = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }), stringMat = new THREE.LineBasicMaterial({ color: 0xfff4d8 });
-  const shotMat = new THREE.MeshBasicMaterial({ color: 0x8ff0ff });
+  const carbonMat = std(0x1c1f24, 0.5, 0.3), blackSteelMat = new THREE.MeshStandardMaterial({ color: 0x0c0d10, metalness: 0.95, roughness: 0.14, emissive: 0x1a2030, emissiveIntensity: 0.4 });
+  const stringMat = new THREE.LineBasicMaterial({ color: 0xf2e6c8 });
   const G_ = {
-    ring: new THREE.CylinderGeometry(1.25, 1.25, 0.16, 40), mid: new THREE.CylinderGeometry(0.86, 0.86, 0.2, 36), eye: new THREE.CylinderGeometry(0.44, 0.44, 0.24, 28),
-    mast: new THREE.CylinderGeometry(0.09, 0.12, 1, 12), axle: new THREE.CylinderGeometry(0.1, 0.1, 0.95, 12).rotateZ(Math.PI / 2), post: new THREE.BoxGeometry(0.12, 1.0, 0.22),
-    arm: new THREE.BoxGeometry(0.16, 0.16, 2.6).translate(0, 0, 1.0), cup: new THREE.SphereGeometry(0.3, 14, 8, 0, TAU, 0, Math.PI / 2).rotateX(Math.PI),
-    weight: new THREE.OctahedronGeometry(0.34, 0), shot: new THREE.IcosahedronGeometry(0.26, 1),
-    stock: new THREE.BoxGeometry(0.22, 0.18, 2.6), riser: new THREE.BoxGeometry(0.5, 0.3, 0.36), limb: new THREE.TorusGeometry(1.3, 0.11, 8, 28, Math.PI * 0.5).rotateZ(Math.PI * 0.25).rotateX(-Math.PI / 2),
-    stake: new THREE.CylinderGeometry(0.045, 0.045, 1.5, 8).rotateX(Math.PI / 2), tip: new THREE.ConeGeometry(0.1, 0.32, 6).rotateX(Math.PI / 2).translate(0, 0, 0.9),
+    base: new THREE.BoxGeometry(1.5, 0.5, 1.7), deck: new THREE.BoxGeometry(1.56, 0.08, 1.76), post: new THREE.BoxGeometry(0.16, 1.5, 0.3), axle: new THREE.CylinderGeometry(0.1, 0.1, 1.05, 14).rotateZ(Math.PI / 2),
+    arm: new THREE.BoxGeometry(0.16, 0.16, 3.0).translate(0, 0, 1.2), cup: new THREE.SphereGeometry(0.32, 14, 8, 0, TAU, 0, Math.PI / 2).rotateX(Math.PI), weight: new THREE.BoxGeometry(0.5, 0.5, 0.5),
+    shot: new THREE.SphereGeometry(0.26, 18, 12),
+    mount: new THREE.CylinderGeometry(0.1, 0.13, 1, 12), rail: new THREE.BoxGeometry(0.16, 0.14, 2.4), grip: new THREE.BoxGeometry(0.14, 0.4, 0.2), riser: new THREE.BoxGeometry(0.42, 0.22, 0.24),
+    limb: new THREE.BoxGeometry(0.62, 0.05, 0.14), cam: new THREE.CylinderGeometry(0.13, 0.13, 0.06, 18),
+    rod: new THREE.CylinderGeometry(0.035, 0.035, 1.6, 10).rotateX(Math.PI / 2), rodTip: new THREE.ConeGeometry(0.07, 0.22, 8).rotateX(Math.PI / 2).translate(0, 0, 0.9),
+    pole: new THREE.BoxGeometry(0.14, 1, 0.14), beam: new THREE.BoxGeometry(1, 0.12, 0.12), disc: new THREE.CylinderGeometry(0.78, 0.78, 0.1, 36).rotateX(Math.PI / 2), discRim: new THREE.TorusGeometry(0.78, 0.04, 8, 36),
   };
   const part = (geo, mat, parent, edges) => { const m = new THREE.Mesh(geo, mat); if (edges) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), glassEdge)); parent.add(m); return m; };
   function addCatapult(s, want) {
-    if (STYLE.arch && STYLE.arch !== "none") s = Math.round((s - 1) / 8) * 8 + 1; // the glass in a frame (every 8 m, at 1), the weapon a frame before
+    if (STYLE.arch && STYLE.arch !== "none") s = Math.round((s - 1) / 8) * 8 + 1; // the glass in a frame (every 8 m, at 1); the weapon midway between two, 12 m before it
     lastCataS = s;
-    const side = Math.random() < 0.5 ? -1 : 1, kind = want || (Math.random() < 0.5 ? "catapult" : "crossbow");
+    const side = Math.random() < 0.5 ? -1 : 1, kind = want || cataNext; if (!want) cataNext = kind === "catapult" ? "crossbow" : "catapult";
     const c = { s, cs: s - CATA_LEAD, side, kind, fired: false, broken: false, passed: false, a: 0, shot: null, inv: new THREE.Matrix4(), twp: new THREE.Vector3() };
     c.slab = new THREE.Group(); c.slab.matrixAutoUpdate = false; scene.add(c.slab);
     part(cataSlabGeo, slabGlass, c.slab, true).position.y = HEX_V;
     c.root = new THREE.Group(); c.root.matrixAutoUpdate = false; scene.add(c.root);
-    const body = c.body = new THREE.Group(); body.scale.setScalar(CATA_K); c.root.add(body); // a size larger than a man
-    // the platform: a round target tilted to the cart, cyan rim, clear ring, amber eye, on a chrome mast
-    const plat = c.plat = new THREE.Group(); plat.position.set(0, 0.95, 0.25); plat.rotation.x = 0.85; body.add(plat);
-    part(G_.ring, cyanGlass, plat, true); c.mid = part(G_.mid, clearGlass, plat, true); c.eye = part(G_.eye, amberGlass, plat, true);
-    const foot = part(G_.mast, chromeMat, body); foot.scale.set(1, 0.95, 1); foot.position.set(0, 0.47, 0.25);
-    const mast = part(G_.mast, chromeMat, body); mast.scale.set(1, 1.4, 1); mast.position.set(0, 1.4, -0.35); // up behind the platform to the weapon
-    if (kind === "catapult") {
-      for (const x of [-0.42, 0.42]) part(G_.post, chromeMat, body).position.set(x, 2.15, -0.35);
-      part(G_.axle, chromeMat, body).position.set(0, 2.55, -0.35);
-      c.arm = new THREE.Group(); c.arm.position.set(0, 2.55, -0.35); body.add(c.arm);
-      part(G_.arm, roseGlass, c.arm, true); const cup = part(G_.cup, chromeMat, c.arm); cup.position.set(0, 0.16, 2.3);
-      part(G_.weight, amberGlass, c.arm, true).position.set(0, 0, -0.45); // the counterweight, a lump of amber glass
-      c.ball = part(G_.shot, shotMat, c.arm); c.ball.position.set(0, 0.32, 2.3);
-      c.armRest = 0.55; c.arm.rotation.x = c.armRest; // leaning back toward the cart, the shot in its cup
-    } else {
-      const bow = c.bow = new THREE.Group(); bow.position.set(0, 2.25, -0.35); bow.rotation.y = side * 0.33; body.add(bow); // aimed at the glass's middle ahead
-      part(G_.stock, clearGlass, bow, true); part(G_.axle, chromeMat, bow).position.set(0, -0.14, 0.3); part(G_.riser, chromeMat, bow).position.set(0, 0, -1.0);
-      part(G_.limb, limbGlass, bow, true).position.set(0, 0, -0.1); // the bow: one arc of cyan glass, bulging forward
-      c.tips = [new THREE.Vector3(-0.92, 0, -1.02), new THREE.Vector3(0.92, 0, -1.02)];
+    const body = c.body = new THREE.Group(); body.scale.setScalar(CATA_K); c.root.add(body);
+    // the target as on Carcer's doors, on a round plate its own size, out on an arm over the weapon, square to the tunnel
+    const pole = part(G_.pole, graphiteMat, body); pole.scale.y = 3.6; pole.position.set(side * 0.95, 1.8, 0.2);
+    const beam = part(G_.beam, orangeMat, body); beam.scale.x = 2.1; beam.position.set(-side * 0.1, 3.55, 0.2);
+    part(G_.disc, graphiteMat, body).position.set(-side * 1.15, 3.55, 0.25); part(G_.discRim, chromeMat, body).position.set(-side * 1.15, 3.55, 0.31);
+    c.tg = doorTarget(body, -side * 1.15, 3.55, 0.32, true); c.tg.forEach(m => m.scale.setScalar(1.6)); c.tgAt = new THREE.Vector3(-side * 1.15, 3.55, 0.32);
+    if (kind === "catapult") { // the old shape: a base, two posts, an axle, an arm with a cup and a counterweight
+      part(G_.base, graphiteMat, body).position.set(0, 0.25, 0); part(G_.deck, orangeMat, body).position.set(0, 0.52, 0);
+      for (const x of [-0.5, 0.5]) part(G_.post, orangeMat, body).position.set(x, 1.25, 0);
+      part(G_.axle, chromeMat, body).position.set(0, 1.95, 0);
+      c.arm = new THREE.Group(); c.arm.position.set(0, 1.95, 0); body.add(c.arm);
+      part(G_.arm, aluMat, c.arm); part(G_.cup, rubberMat, c.arm).position.set(0, 0.16, 2.6); part(G_.weight, graphiteMat, c.arm).position.set(0, 0, -0.45);
+      c.ball = part(G_.shot, blackSteelMat, c.arm); c.ball.position.set(0, 0.3, 2.6);
+      c.armRest = 0.5; c.arm.rotation.x = c.armRest; // leaning back toward the cart, the shot in its cup
+    } else { // a compound bow laid on a rail: black riser, carbon limbs, silver cams, a black steel rod
+      const mount = part(G_.mount, graphiteMat, body); mount.scale.y = 1.6; mount.position.set(0, 0.8, 0);
+      const pad = part(G_.base, graphiteMat, body); pad.scale.set(0.7, 0.3, 0.7); pad.position.set(0, 0.08, 0);
+      const bow = c.bow = new THREE.Group(); bow.position.set(0, 1.7, 0); bow.rotation.y = side * 0.28; body.add(bow); // aimed at the glass's middle
+      part(G_.rail, aluMat, bow); part(G_.grip, rubberMat, bow).position.set(0, -0.22, 0.55); part(G_.riser, carbonMat, bow).position.set(0, 0, -1.05);
+      c.tips = [];
+      for (const sx of [-1, 1]) {
+        const limb = part(G_.limb, carbonMat, bow); limb.position.set(sx * 0.48, 0, -0.95); limb.rotation.y = sx * 0.42; // swept back from the riser
+        const stripe = part(G_.limb, orangeMat, bow); stripe.scale.set(0.5, 1.3, 0.35); stripe.position.set(sx * 0.48, 0, -0.95); stripe.rotation.y = sx * 0.42;
+        const tip = new THREE.Vector3(sx * 0.76, 0, -0.82); part(G_.cam, chromeMat, bow).position.copy(tip); c.tips.push(tip);
+      }
       c.string = new THREE.Line(new THREE.BufferGeometry().setFromPoints([c.tips[0], new THREE.Vector3(0, 0, 0.55), c.tips[1]]), stringMat); bow.add(c.string); // drawn back
-      c.ball = new THREE.Group(); part(G_.stake, clearGlass, c.ball, true); part(G_.tip, amberGlass, c.ball); c.ball.position.set(0, 0.14, -0.2); c.ball.rotation.y = Math.PI; bow.add(c.ball); // its amber point forward
+      c.ball = new THREE.Group(); part(G_.rod, blackSteelMat, c.ball); part(G_.rodTip, chromeMat, c.ball); c.ball.position.set(0, 0.1, -0.25); c.ball.rotation.y = Math.PI; bow.add(c.ball); // its point forward
     }
     catas.push(c);
     clearZone(c.cs - 6, s + GATE_CLEAR); // nothing in the way between the weapon and its glass, nor just past it
@@ -4012,9 +4053,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function fireCatapult(c) {
     if (c.fired) return;
-    c.fired = true; c.eye.material = dimGlass; c.mid.material = dimGlass; // the target goes out
+    c.fired = true; c.tg.forEach(m => { m.material = targetOff; }); // the target goes out
     Sound.tone(c.kind === "crossbow" ? 420 : 220, 0.2, 0.12, "sawtooth", 0, 110); Sound.clink(); addScore(10);
-    if (c.kind === "crossbow") c.string.geometry.setFromPoints([c.tips[0], new THREE.Vector3(0, 0, -1.02), c.tips[1]]); // the string snaps straight
+    if (c.kind === "crossbow") c.string.geometry.setFromPoints([c.tips[0], new THREE.Vector3(0, 0, -0.82), c.tips[1]]); // the string snaps straight
   }
   // the glass bursts in big pieces: wedges from the point struck to the frame, each cut again across, all of the glass's thickness
   function burstCataSlab(c, byCart) {
@@ -4047,12 +4088,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       Sound.crash(); flash(); pop("−" + CATA_COST + T(" · стекло", " · glass"), "loss"); if (!reduceMotion) shakeT = 0.45;
     } else { balls += 2; updateCount(); karmaGain(0.04); addScore(30); pop(T("+2 · стекло разбито", "+2 · glass smashed"), "gain"); }
   }
-  const PLAT_C = new THREE.Vector3(0, 0.95, 0.25);
   function updateCatapults(dt) {
     for (const c of catas) {
       setObj(c.slab, c.s, 0, 0); c.slab.updateMatrixWorld(true); c.inv.copy(c.slab.matrixWorld).invert();
-      setObj(c.root, c.cs, c.side * 2.9, 0); c.root.updateMatrixWorld(true);
-      c.twp.copy(PLAT_C).multiplyScalar(CATA_K).applyMatrix4(c.root.matrixWorld);
+      setObj(c.root, c.cs, c.side * CATA_U, 0); c.root.updateMatrixWorld(true);
+      c.twp.copy(c.tgAt).multiplyScalar(CATA_K).applyMatrix4(c.root.matrixWorld);
       if (c.fired && !c.shot) {
         if (c.kind === "catapult") { c.a = Math.min(1, c.a + dt / 0.28); c.arm.rotation.x = lerp(c.armRest, -2.0, c.a * c.a); } // up over the axle and forward
         else c.a = 1; // a crossbow looses at once
@@ -4067,7 +4107,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const sh = c.shot; sh.k = Math.min(1, sh.k + dt / sh.dur);
         frameAt(c.s); const to = tmpV.copy(_P).addScaledVector(_U, HEX_V - 1.2).clone();
         c.ball.position.copy(sh.from).lerp(to, sh.k).addScaledVector(_U, sh.arc * sh.k * (1 - sh.k));
-        if (c.kind === "crossbow") c.ball.lookAt(to); else c.ball.rotation.x += dt * 9;
+        if (c.kind === "crossbow") c.ball.lookAt(to); else c.ball.rotation.x += dt * 9; // the rod point first, the shot spinning
         if (sh.k >= 1) { scene.remove(c.ball); burstCataSlab(c, false); }
       }
       if (state === "play" && !c.broken && !c.passed && c.s <= sC + 1.7) { c.passed = true; if (c.shot) scene.remove(c.ball); burstCataSlab(c, true); }
@@ -4080,7 +4120,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const c of catas) {
       if (Math.abs(c.s - sC) > 130) continue;
       if (!c.fired && pathDist(c.twp) < CATA_TG + R_BALL) { fireCatapult(c); chips(c.twp, targetOn, 5, vel); return "target"; }
-      if (!c.broken) { const l = DL.copy(pos).applyMatrix4(c.inv); if (Math.abs(l.z) < 0.3 + R_BALL && inHex(l.x, l.y, -0.2)) { Sound.knock(); chips(pos, clearGlass, 4, vel); return "glass"; } }
+      if (!c.broken) { const l = DL.copy(pos).applyMatrix4(c.inv); if (Math.abs(l.z) < 0.3 + R_BALL && inHex(l.x, l.y, -0.2)) { Sound.knock(); chips(pos, slabGlass, 4, vel); return "glass"; } }
     }
     return null;
   }

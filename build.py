@@ -91,6 +91,11 @@ night = root / "minis" / "menu.night.mp4" # the night theme's loop: a neon grid 
 if night.exists():
     page += f'<script type="text/plain" id="menubg-night">data:video/mp4;base64,{base64.b64encode(night.read_bytes()).decode("ascii")}</script>\n'
     page += f'<img hidden alt="" id="menubg-night-poster" src="data:image/jpeg;base64,{base64.b64encode(night.with_suffix(".jpg").read_bytes()).decode("ascii")}">\n'
+# Vitrum's thunderstorm, rendered once (tools/storm_cloud.js): its colour and its cover, small, inline in every build
+for name, file in (("storm-c", "storm.jpg"), ("storm-a", "storm.a.jpg")):
+    img = root / "minis" / file
+    if img.exists():
+        page += f'<img hidden alt="" id="{name}" src="data:image/jpeg;base64,{base64.b64encode(img.read_bytes()).decode("ascii")}">\n'
 if TELEGRAM:
     out = root / "dist" / "telegram"
     shutil.rmtree(out, ignore_errors=True)

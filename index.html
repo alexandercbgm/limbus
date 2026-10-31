@@ -685,7 +685,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.76</div>
+      <div class="credit version">v1.0.77</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -863,7 +863,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.76`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.77`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1220,16 +1220,23 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             // the sun; toward the Dark it covers all of it, heavy and churning, the stars only in its gaps, lit from within by the
             // lightning and struck through by branching strokes to the horizon (lt: time since the last stroke, laz: where,
             // lseed: its shape; set by the game, which lights the level and thunders with it)
-            // the clear sky: deep blue up high, paling to a bright haze at the horizon, the sun with its glare and a wide glow
-            float ch = max(h, 0.0);
-            vec3 zen = top * vec3(0.72, 0.82, 1.0), hz = mix(hor, vec3(1.0), 0.25);
-            vec3 clear = mix(hz, zen, pow(ch, 0.45)) + vec3(1.0, 0.96, 0.88) * (pow(sdot, 900.0) * 3.0 + pow(sdot, 60.0) * 0.4 + pow(sdot, 6.0) * 0.18) * (0.3 + 0.7 * lum);
-            clear += hz * 0.2 * exp(-ch * 18.0); // a band of bright haze along the horizon
-            c = mix(c, clear, smoothstep(0.0, 0.02, h + 0.02) * smoothstep(0.15, 0.45, lum));
-            // the storm stands ahead, over a quarter of the round, and the cart rides into it (fwd: the camera's heading); the
-            // least of it already close, darkening, its lightning near; more of it and wider toward the Dark
-            float storm = 0.45 + 0.55 * (1.0 - smoothstep(0.12, 0.5, lum));
+            // after sunset: where the sun went down, behind the cart, the horizon still glows warm, paling up into blue; to the
+            // sides the sky darkens to night with its stars; ahead it is dark, the storm there (fwd: the camera's heading).
+            // Deeper into the Dark all of it dims
+            float storm = 0.55 + 0.45 * (1.0 - smoothstep(0.12, 0.5, lum)), dim = mix(1.0, 0.5, (storm - 0.55) / 0.45);
             vec3 stD = normalize(vec3(fwd.x, 0.0, fwd.z) + 1e-5), na = normalize(vec3(n.x, 0.0, n.z) + 1e-5);
+            float back = -dot(na, stD), ch = max(h, 0.0), glowK = smoothstep(-0.1, 1.0, back);
+            vec3 nightZ = vec3(0.012, 0.02, 0.055), nightH = vec3(0.05, 0.065, 0.13), duskH = vec3(0.32, 0.36, 0.6), glowH = vec3(1.0, 0.55, 0.3);
+            vec3 horC = mix(nightH, duskH, smoothstep(-0.5, 0.4, back));
+            horC = mix(horC, glowH, glowK * glowK * exp(-ch * 4.5)); // the afterglow low behind
+            horC = mix(horC, vec3(0.75, 0.42, 0.55), glowK * glowK * smoothstep(0.02, 0.18, ch) * exp(-ch * 6.0) * 0.6); // rose above it
+            vec3 zen = mix(nightZ, vec3(0.08, 0.13, 0.32), glowK * 0.7);
+            vec3 dusk = mix(horC, zen, pow(ch, 0.38)) + vec3(1.0, 0.75, 0.45) * pow(max(back, 0.0), 8.0) * exp(-ch * 14.0) * 0.5;
+            if (h < 0.0) dusk = mix(horC, nightZ * 0.6, pow(-h, 0.5));
+            c = dusk * dim;
+            // the stars, as over Nox, where the sky has gone dark: the sides and above, not in the afterglow
+            float starK = (1.0 - smoothstep(-0.2, 0.7, back)) * smoothstep(0.02, 0.2, h);
+            c += galaxy(n, vec3(0.45, 0.55, 0.95), starK * 1.1);
             // the cloud deck as a ceiling over the world: the further off, the flatter, closing to the horizon
             vec2 pc = n.xz / (max(h, 0.0) + 0.035) * 0.3 + vec2(t * 0.012, t * 0.005) * (0.6 + storm);
             vec2 wq = vec2(fbm(vec3(pc * 0.55, 1.0)), fbm(vec3(pc * 0.55 + 5.2, 2.0))); // churned, the noise warped by itself
@@ -1238,13 +1245,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             float bw = 0.35 * (1.0 - far);
             float dens = fbm(qd) * (1.0 - bw) + (1.0 - abs(fbm(qd * 2.3 + 4.0) * 2.0 - 1.0)) * bw; // great heaps, billowing
             float d2 = fbm(qs) * (1.0 - bw) + (1.0 - abs(fbm(qs * 2.3 + 4.0) * 2.0 - 1.0)) * bw;
-            float sect = smoothstep(mix(0.55, -0.2, storm), mix(0.82, 0.25, storm), dot(na, stD)); // where it covers: ahead, some 90°, wider as it deepens
+            float sect = smoothstep(mix(0.45, -0.1, storm), mix(0.8, 0.35, storm), dot(na, stD)); // where it covers: ahead, wider as it deepens
             float cov = mix(0.6, 0.88, storm) * sect * smoothstep(mix(0.3, 0.75, storm), mix(0.04, 0.3, storm), h); // a low bank on the horizon, rising a little as it comes
             float cloud = smoothstep(1.0 - cov - 0.06, 1.0 - cov + 0.1, dens) * smoothstep(-0.01, 0.05, h) * step(0.001, cov);
             float lit = clamp((dens - d2) * 11.0 + 0.3, 0.0, 1.0), thick = smoothstep(1.0 - cov + 0.05, 1.05 - cov * 0.4, dens);
-            vec3 baseC = mix(vec3(0.17, 0.19, 0.25), vec3(0.055, 0.06, 0.09), storm), litC = mix(vec3(1.0, 0.93, 0.8), vec3(0.36, 0.37, 0.48), storm) * (0.55 + 0.6 * lum);
+            vec3 baseC = vec3(0.025, 0.028, 0.045), litC = vec3(0.13, 0.13, 0.19); // dark storm cloud, its heaps just showing against the night
             vec3 cc = mix(baseC, litC, lit * (1.0 - 0.7 * thick));
-            cc = mix(cc, hor, 0.55 * exp(-max(h, 0.0) * 14.0) * (1.0 - 0.5 * storm)); // hazed into the horizon
+            cc = mix(cc, horC * dim, 0.5 * exp(-max(h, 0.0) * 14.0)); // hazed into the horizon
             c *= 1.0 - 0.35 * storm * sect; // the sky under it dimmed
             c = mix(c, cc, cloud * amt);
             float fl = lt < 1.2 ? exp(-lt * 14.0) + 0.7 * exp(-abs(lt - 0.12) * 40.0) + 0.5 * exp(-abs(lt - 0.3) * 30.0) : 0.0;
@@ -1508,7 +1515,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const chainMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.8 });
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
 
-  let stormT0 = -99, stormNext = 3; // Vitrum's lightning: when the last stroke was, when the next comes
+  let stormT0 = -99, stormNext = 3; const DUSK_FOG = new THREE.Color(0.16, 0.18, 0.3); // Vitrum's lightning: when the last stroke was, when the next comes
   function applyPalette() {
     skyUni.top.value.copy(cur.sky); skyUni.hor.value.copy(cur.hor); skyUni.bot.value.copy(cur.gnd); skyUni.stars.value = cur.stars; skyUni.band.value.copy(cur.band);
     const fx = (LEVEL_LOOK[LEVEL.id] || {}).sky || { mode: 0 };
@@ -1526,12 +1533,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     glassMat.color.copy(cur.glass); glassMat.emissive.copy(cur.glass); glassMat.opacity = cur.glassO;
     edgeMat.color.copy(cur.edge);
     hemi.color.copy(cur.hemiS); hemi.groundColor.copy(cur.hemiG); hemi.intensity = cur.hemiI * (LEVEL.lightMul || 1); // a level may be lit brighter
-    if (fx.mode === 8) camera.getWorldDirection(skyUni.fwd.value); // the storm keeps ahead of the cart
+    if (fx.mode === 8) { camera.getWorldDirection(skyUni.fwd.value); scene.fog.color.lerp(DUSK_FOG, 0.55); } // the storm keeps ahead of the cart; the haze of the dusk
     if (fx.mode === 8) { // the storm's lightning: now and then a stroke, more often as it comes on; the level lit by it, the thunder after
       const lum = 0.3 * cur.sky.r + 0.55 * cur.sky.g + 0.15 * cur.sky.b, x = clamp((lum - 0.12) / 0.38, 0, 1), storm = 0.45 + 0.55 * (1 - x * x * (3 - 2 * x));
       if (time > stormNext || time < stormT0) {
         if (time > stormNext && state === "play") { stormT0 = time; skyUni.lseed.value = rand(0, 40); skyUni.laz.value = rand(-0.45, 0.45) * (0.6 + 0.8 * storm); Sound.thunder(lerp(2.2, 0.35, storm), lerp(0.22, 0.85, storm)); }
-        stormNext = time + rand(0.6, 1.4) * lerp(4.5, 1.6, storm);
+        stormNext = time + rand(0.6, 1.4) * lerp(3, 1.2, storm);
       }
       const lt = time - stormT0, fl = lt < 1.2 ? Math.exp(-lt * 14) + 0.7 * Math.exp(-Math.abs(lt - 0.12) * 40) + 0.5 * Math.exp(-Math.abs(lt - 0.3) * 30) : 0;
       skyUni.lt.value = lt; hemi.intensity *= 1 + fl * (0.12 + 0.55 * storm);
@@ -1658,7 +1665,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function inst(geo, mat, max) { const m = new THREE.InstancedMesh(geo, mat, max); m.frustumCulled = false; m.count = 0; scene.add(m); return m; }
   const ceilGeo = new THREE.PlaneGeometry(2 * W, SL + 0.02); ceilGeo.rotateX(Math.PI / 2);
   const I = {
-    ceil: inst(ceilGeo, surfMat, 140),
+    ceil: inst(ceilGeo, surfMat, 140), // Vitrum's of clear glass (setLevel)
     sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 560),
     rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 560),
     wall: inst(new THREE.BoxGeometry(0.24, H, SL + 0.03), wallMat, 420),
@@ -3047,12 +3054,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // how far a beam from (u, v) along (du, dv) runs before it meets a wall, the floor or the vault
   function beamReach(u, v, du, dv, max, s) {
     const hall = s !== undefined && LEVEL.halls && inHall(s), ww = hall ? HALL_W : SW, wh = hall ? HALL_H : SH; // in a hall, its own walls and vault
-    // a beam runs on till it meets something: where a wall or the roof is missing, it shines on out into the open
+    // a beam runs on till it meets something that is there: a wall only up to its height, the roof only over the track, the
+    // floor only under it (on a bridge, the deck: off its edge a beam goes down into the void); where a wall or the roof is
+    // missing it shines on out into the open
     const dk = s !== undefined ? decor.get(Math.floor(s / SL)) : null, open = STYLE.bridge;
-    const u0 = open || (dk && !dk.wl) ? -60 : -ww + 0.04, u1 = open || (dk && !dk.wr) ? 60 : ww - 0.04, v0 = 0.03, v1 = open || (dk && !dk.ceil) ? 60 : wh - 0.04;
+    const wallL = !open && !(dk && !dk.wl), wallR = !open && !(dk && !dk.wr), roof = !open && !(dk && !dk.ceil), floorW = (open ? BRIDGE_W : ww) + 0.15; // the floor is as wide as the track's room, the deck as the bridge
     let tm = max;
-    if (du > 1e-6) tm = Math.min(tm, (u1 - u) / du); else if (du < -1e-6) tm = Math.min(tm, (u0 - u) / du);
-    if (dv > 1e-6) tm = Math.min(tm, (v1 - v) / dv); else if (dv < -1e-6) tm = Math.min(tm, (v0 - v) / dv);
+    const at = (t, cond) => { if (t > 0 && t < tm && cond(t)) tm = t; };
+    if (du < -1e-6 && wallL) at((-ww + 0.04 - u) / du, t => v + dv * t <= wh);
+    if (du > 1e-6 && wallR) at((ww - 0.04 - u) / du, t => v + dv * t <= wh);
+    if (dv > 1e-6 && roof) at((wh - 0.04 - v) / dv, t => Math.abs(u + du * t) <= ww);
+    if (dv < -1e-6) at((0.03 - v) / dv, t => Math.abs(u + du * t) <= floorW);
     return Math.max(0, tm);
   }
   const segDist2 = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay, k = clamp(((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1), 0, 1); return Math.hypot(ax + dx * k - px, ay + dy * k - py); };
@@ -4973,6 +4985,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
     [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;
     mirStrips.forEach(m => { m.o = m.k * 2 * (SW + 0.12); });
+    I.ceil.material = lv.id === "vitrum" ? glassWallMat : surfMat; // Vitrum's roof, where there is one, of clear glass
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", mirror: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known

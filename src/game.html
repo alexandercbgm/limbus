@@ -2301,8 +2301,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "bar": addGlassBar(s, LEVEL.fanBars ? { spin: rand(0.8, 1.3) * LEVEL.fanBars * (Math.random() < 0.5 ? -1 : 1) } : {}, LEVEL.fanBars ? null : tumbleKind(0.8)); break; // Vitrum's turn as a fan blade, fast
       case "bars2": { // a mill: two shorter bars side by side in checkerboard order, one a step behind the other, turning against each other
         const spin = rand(0.9, 1.3) * (LEVEL.fanBars || 1), a0 = rand(0, TAU), sd = Math.random() < 0.5 ? -1 : 1, tk = LEVEL.fanBars ? null : tumbleKind(0.35), tw = rand(1.2, 1.8);
-        const seq = {}, w2 = LEVEL.fanBars ? 3.1 : 3.4, s2 = LEVEL.fanBars ? s : s - 2.2; // Vitrum's side by side, short enough not to meet
-        addGlassBar(s, { u: -1.6 * sd, w: w2, rot: a0, spin, seq }, tk, { w: tw, b: 0 }); addGlassBar(s2, { u: 1.6 * sd, w: w2, rot: a0 + Math.PI / 2, spin: -spin, seq }, tk, { w: -tw, b: Math.PI / 2 });
+        const seq = {}, w2 = LEVEL.fanBars ? 3.1 : 3.4, s2 = LEVEL.fanBars ? s : s - 2.2; // Vitrum's side by side, short enough not to meet, turning together a quarter turn apart: always a checkerboard
+        addGlassBar(s, { u: -1.6 * sd, w: w2, rot: a0, spin, seq }, tk, { w: tw, b: 0 }); addGlassBar(s2, { u: 1.6 * sd, w: w2, rot: a0 + Math.PI / 2, spin: LEVEL.fanBars ? spin : -spin, seq }, tk, { w: -tw, b: Math.PI / 2 });
         break;
       }
       // the sequences run in one tunnel down the middle, or in 2, 3 or 4 narrower tunnels side by side and one over another
@@ -3995,7 +3995,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // to the cart and ringed as a target: hit it, the target goes out, the catapult throws its glowing shot or the crossbow
   // its glass stake, and the glass bursts in big pieces (+2 balls). Missed, the cart bursts it itself (−CATA_COST).
   let catas = [], lastCataS = -1e9, cataNext = Math.random() < 0.5 ? "catapult" : "crossbow"; // the two in turn
-  const CATA_COST = 4, CATA_GAP = 80, CATA_LEAD = 20, CATA_K = 1.1, CATA_TG = 0.8 * 1.1; // its toll, the least room between two, its lead on its glass (midway between frames), its size, how far out it stands, its target's reach
+  const CATA_COST = 4, CATA_GAP = 80, CATA_LEAD = 18, CATA_K = 1.1, CATA_TG = 0.8 * 1.1; // its toll, the least room between two, its lead on its glass (midway between frames), its size, how far out it stands, its target's reach
   const HEX_PTS = Array.from({ length: 6 }, (_, k) => [Math.cos(k * Math.PI / 3) * 4.9, Math.sin(k * Math.PI / 3) * 4.9]); // the frame's hexagon (flat on top and bottom)
   const cataSlabGeo = (() => { const sh = new THREE.Shape(HEX_PTS.map(([x, y]) => new THREE.Vector2(x, y))); return new THREE.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: false }).translate(0, 0, -0.3); })();
   // the thick glass bends the sky behind it: it draws the sky the game has drawn this frame (skyRT), shifted by its own
@@ -4040,7 +4040,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const laserSightMat = new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
   const part = (geo, mat, parent, edges) => { const m = new THREE.Mesh(geo, mat); if (edges) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), glassEdge)); parent.add(m); return m; };
   function addCatapult(s, want) {
-    if (STYLE.arch && STYLE.arch !== "none") s = Math.round((s - 1) / 8) * 8 + 1; // the glass in a frame (every 8 m, at 1); the weapon 20 m before it, the frame there taken away
+    if (STYLE.arch && STYLE.arch !== "none") s = Math.round((s - 1) / 8) * 8 + 1; // the glass in a frame (every 8 m, at 1); the weapon 18 m before it, the frame there taken away
     lastCataS = s;
     const side = Math.random() < 0.5 ? -1 : 1, kind = want || cataNext; if (!want) cataNext = kind === "catapult" ? "crossbow" : "catapult";
     const c = { s, cs: s - CATA_LEAD, side, kind, fired: false, broken: false, passed: false, a: 0, shot: null, inv: new THREE.Matrix4(), twp: new THREE.Vector3() };
@@ -4078,7 +4078,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       // a laser sight on the rail; its beam is drawn to the glass each frame
       part(G_.sight, rubberMat, bow).position.set(0, 0.2, -0.55);
-      c.beam = new THREE.Mesh(G_.beamGeo, laserSightMat); c.beam.matrixAutoUpdate = false; scene.add(c.beam);
+      c.beam = laserBeam(); c.beam.userData.spot.visible = false; c.beam.matrixAutoUpdate = false; scene.add(c.beam); setBeamLen(c.beam, LASER_LEN); // a beam as Lux's lasers
       c.dot = new THREE.Mesh(G_.dot, laserSightMat); scene.add(c.dot); c.sightAt = new THREE.Vector3(0, 0.2, -0.75);
       c.string = new THREE.Line(new THREE.BufferGeometry().setFromPoints([c.tips[0], new THREE.Vector3(0, 0, 0.55), c.tips[1]]), stringMat); bow.add(c.string); // drawn back
       c.ball = new THREE.Group(); part(G_.rod, blackSteelMat, c.ball); part(G_.rodTip, chromeMat, c.ball); c.ball.position.set(0, 0.2, -0.3); c.ball.rotation.y = Math.PI; bow.add(c.ball); // its point forward
@@ -4132,10 +4132,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const c of catas) {
       setObj(c.slab, c.s, 0, 0); c.slab.updateMatrixWorld(true); c.inv.copy(c.slab.matrixWorld).invert();
       setObj(c.root, c.cs, c.u, 0); c.root.updateMatrixWorld(true);
-      if (c.beam) { // the laser sight's beam, to the glass's middle while it stands
-        const on = !c.broken; c.beam.visible = c.dot.visible = on;
-        if (on) { const a = tmpV.copy(c.sightAt).applyMatrix4(c.bow.matrixWorld).clone(); frameAt(c.s); const b = _P.clone().addScaledVector(_U, HEX_V - 1.2).addScaledVector(_T, 0.32);
-          const d = b.clone().sub(a), L = d.length(); c.beam.matrix.compose(a, new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.divideScalar(L)), new THREE.Vector3(1, L, 1)); c.dot.position.copy(b); }
+      if (c.beam) { // the laser sight's beam, straight on along the bow and on down the track, as Lux's lasers; its spot on the glass where the rod will strike it
+        c.dot.visible = !c.broken;
+        { const a = tmpV.copy(c.sightAt).applyMatrix4(c.bow.matrixWorld).clone(), dir = new THREE.Vector3(0, 0, -1).transformDirection(c.bow.matrixWorld);
+          frameAt(c.s); const den = dir.dot(_T), k = _P.clone().addScaledVector(_T, -0.32 * Math.sign(den)).sub(a).dot(_T) / (Math.abs(den) < 0.05 ? 0.05 * Math.sign(den || 1) : den); // to the slab's near face
+          c.aim = a.clone().addScaledVector(dir, Math.abs(k));
+          c.beam.matrix.compose(a, new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir), new THREE.Vector3(1, 1, 1)); c.beam.matrixWorldNeedsUpdate = true; c.dot.position.copy(c.aim); }
       }
       c.twp.copy(c.tgAt).multiplyScalar(CATA_K).applyMatrix4(c.root.matrixWorld);
       if (c.fired && !c.shot) {
@@ -4150,7 +4152,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       if (c.shot && !c.broken) {
         const sh = c.shot; sh.k = Math.min(1, sh.k + dt / sh.dur);
-        frameAt(c.s); const to = tmpV.copy(_P).addScaledVector(_U, HEX_V - 1.2).clone();
+        frameAt(c.s); const to = c.kind === "crossbow" && c.aim ? c.aim.clone() : tmpV.copy(_P).addScaledVector(_U, HEX_V - 1.2).clone(); // the rod where the laser points
         c.ball.position.copy(sh.from).lerp(to, sh.k).addScaledVector(_U, sh.arc * sh.k * (1 - sh.k));
         if (c.kind === "crossbow") c.ball.lookAt(to); else c.ball.rotation.x += dt * 9; // the rod point first, the shot spinning
         if (sh.k >= 1) { scene.remove(c.ball); burstCataSlab(c, false); }

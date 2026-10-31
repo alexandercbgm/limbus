@@ -685,7 +685,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.81</div>
+      <div class="credit version">v1.0.82</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -863,7 +863,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.81`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.82`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3142,7 +3142,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // for any other beam across it, 6 at most. A set stands midway between the hall's pillars, the stone around it cleared.
   let lbars = [], barBits = [], lastSet = null;
   const BAR_T = 0.42, BAR_DU = 3.0, BAR_V0 = 1.25, BAR_DV = n => n < 4 ? 2.9 : 2.3, BAR_EM = BAR_T / 2 + 0.03, BAR_M = 0.35, barGeos = {};
-  const recvPostGeo = new THREE.BoxGeometry(0.6, BAR_T, BAR_T), recvCupGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.08, 14);
   const lbarGeo = (key, len) => barGeos[key] || (barGeos[key] = new THREE.BoxGeometry(len, BAR_T, BAR_T));
   // Abyssus: a bar a little wider than the deck the rails lie on, its three beams 1.65 m apart, the middle (or lowest) one on the cart
   const barGap = (orient, n) => STYLE.bridge ? 1.65 : orient === "h" ? BAR_DU : BAR_DV(n);
@@ -3179,15 +3178,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const beam = laserBeam(); beam.rotation.z = Math.PI; beam.position.set(x, -BAR_EM, 0); bar.add(beam);
         return { x, beam, len: 0, au: 0, av: 0 };
       });
-      // Abyssus: a bar beside the bridge has its catcher across the deck, a dark bar of the same with a glowing cup for each beam
-      let recv = 0;
-      if (STYLE.bridge && orient === "v") {
-        recv = 2 * Math.abs(u);
-        const rg = new THREE.Group(); rg.position.y = -recv; bar.add(rg);
-        const geo = noz ? recvPostGeo : lbarGeo(orient + n, len); rg.add(new THREE.Mesh(geo, laserBaseMat)); rg.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), laserEdgeMat));
-        for (const x of xs) { const cup = new THREE.Mesh(recvCupGeo, recessMat); cup.position.set(x, BAR_T / 2 + 0.03, 0); rg.add(cup); }
-      }
-      set.bars.push({ set, orient, side, n, len, rz, root, bar, ems, recv, u, v, cu: u, cv: v, noz, alive: true, inv: new THREE.Matrix4(), wp: new THREE.Vector3() });
+      set.bars.push({ set, orient, side, n, len, rz, root, bar, ems, u, v, cu: u, cv: v, noz, alive: true, inv: new THREE.Matrix4(), wp: new THREE.Vector3() });
     };
     if (!noz) { unit(u, v, len, [...Array(n).keys()].map(i => (i - (n - 1) / 2) * gap)); return; }
     for (let i = 0; i < n; i++) { const x = (i - (n - 1) / 2) * gap; if (orient === "h") unit(u + x, v, 0.6, [0]); else unit(u, v - side * x, 0.6, [0]); } // loose nozzles, each a set of one
@@ -3236,7 +3227,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         setObj(b.root, set.s, u, v); b.root.updateMatrixWorld(true); b.inv.copy(b.bar.matrixWorld).invert(); b.wp.setFromMatrixPosition(b.root.matrix);
         for (const e of b.ems) {
           if (b.orient === "h") { e.au = u + e.x; e.av = v - BAR_EM; } else { e.au = u - b.side * BAR_EM; e.av = v - b.side * e.x; }
-          e.len = b.recv ? b.recv - BAR_EM - BAR_T / 2 : beamReach(e.au, e.av, bdu, bdv, 60, set.s); setBeamLen(e.beam, e.len); // over the bridge, on the catcher across it
+          e.len = beamReach(e.au, e.av, bdu, bdv, 60, set.s); setBeamLen(e.beam, e.len); // over the bridge, on out of sight across the void
         }
         if (state === "play" && !set.passed && set.s <= sC + 0.5)
           for (const e of b.ems) if (beamHitsCart(e.au, e.av, e.au + bdu * e.len, e.av + bdv * e.len)) { const c = set.cost ? 1 : LASER_COST; if (set.cost + c <= 6) { set.cost += c; laserHit(c); } }

@@ -685,7 +685,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.71</div>
+      <div class="credit version">v1.0.72</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -863,7 +863,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.71`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.72`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2208,7 +2208,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     drops.forEach(d => scene.remove(d.group)); drops = [];
     boughs.forEach(b => scene.remove(b.root)); boughs = [];
     gates.forEach(g => scene.remove(g.root)); gates = []; lastGateS = -1e9;
-    catas.forEach(c => { scene.remove(c.root); scene.remove(c.slab); if (c.shot) scene.remove(c.ball); }); catas = []; lastCataS = -1e9;
+    catas.forEach(c => { scene.remove(c.root); scene.remove(c.slab); if (c.shot) scene.remove(c.ball); if (c.beam) { scene.remove(c.beam); scene.remove(c.dot); } }); catas = []; lastCataS = -1e9;
     rams.forEach(r => scene.remove(r.root)); rams = []; hmills.forEach(m => scene.remove(m.root)); hmills = []; doors.forEach(d => scene.remove(d.root)); doors = [];
     spinners.forEach(x => scene.remove(x.root)); spinners = []; lblocks.forEach(x => scene.remove(x.root)); lblocks = []; lbars.forEach(x => x.bars.forEach(b => scene.remove(b.root))); lbars = []; prismSets.forEach(x => scene.remove(x.root)); prismSets = []; gears.forEach(x => x.gears.forEach(g => { scene.remove(g.root); scene.remove(g.pin.root); })); gears = []; barBits.forEach(x => scene.remove(x.root)); barBits = [];
     wheels.forEach(w => scene.remove(w.ring)); wheels = [];
@@ -4081,7 +4081,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // to the cart and ringed as a target: hit it, the target goes out, the catapult throws its glowing shot or the crossbow
   // its glass stake, and the glass bursts in big pieces (+2 balls). Missed, the cart bursts it itself (−CATA_COST).
   let catas = [], lastCataS = -1e9, cataNext = Math.random() < 0.5 ? "catapult" : "crossbow"; // the two in turn
-  const CATA_COST = 4, CATA_GAP = 80, CATA_LEAD = 20, CATA_K = 1.1, CATA_U = 4.6, CATA_TG = 0.8 * 1.1; // by the glass wall, inside it // its toll, the least room between two, its lead on its glass (midway between frames), its size, how far out it stands, its target's reach
+  const CATA_COST = 4, CATA_GAP = 80, CATA_LEAD = 20, CATA_K = 1.1, CATA_TG = 0.8 * 1.1; // its toll, the least room between two, its lead on its glass (midway between frames), its size, how far out it stands, its target's reach
   const HEX_PTS = Array.from({ length: 6 }, (_, k) => [Math.cos(k * Math.PI / 3) * 4.9, Math.sin(k * Math.PI / 3) * 4.9]); // the frame's hexagon (flat on top and bottom)
   const cataSlabGeo = (() => { const sh = new THREE.Shape(HEX_PTS.map(([x, y]) => new THREE.Vector2(x, y))); return new THREE.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: false }).translate(0, 0, -0.3); })();
   // the thick glass bends the sky behind it: it draws the sky the game has drawn this frame (skyRT), shifted by its own
@@ -4100,7 +4100,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const std = (color, metal, rough) => new THREE.MeshStandardMaterial({ color, metalness: metal, roughness: rough });
   const graphiteMat = std(0x2c3238, 0.45, 0.55), orangeMat = std(0xf0661a, 0.3, 0.45), aluMat = std(0xb9c2cb, 0.75, 0.32), rubberMat = std(0x18191b, 0, 0.9);
   const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe8f0f8, metalness: 0.35, roughness: 0.22, emissive: 0x5a6a7c, emissiveIntensity: 0.6 }); // bright polished metal (there is no environment to mirror)
-  const cupMat = new THREE.MeshStandardMaterial({ color: 0xf0661a, metalness: 0.3, roughness: 0.45, side: THREE.DoubleSide }); // orange, so the black shot shows in it
+  const cupMat = new THREE.MeshStandardMaterial({ color: 0xb9c2cb, metalness: 0.75, roughness: 0.32, side: THREE.DoubleSide }); // aluminium, as the arm
   const plateMat = std(0x5c636b, 0.55, 0.45), carbonMat = std(0x1c1f24, 0.5, 0.3), blackSteelMat = new THREE.MeshStandardMaterial({ color: 0x0c0d10, metalness: 0.95, roughness: 0.14, emissive: 0x1a2030, emissiveIntensity: 0.4 });
   const stringMat = new THREE.LineBasicMaterial({ color: 0xf2e6c8 });
   const G_ = {
@@ -4108,11 +4108,22 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     arm: new THREE.BoxGeometry(0.16, 0.16, 3.0).translate(0, 0, 1.2), cup: new THREE.SphereGeometry(0.34, 18, 8, 0, TAU, 0, Math.PI / 2).rotateX(Math.PI), cupRim: new THREE.TorusGeometry(0.34, 0.035, 8, 24).rotateX(Math.PI / 2), weight: new THREE.BoxGeometry(0.5, 0.5, 0.5),
     shot: new THREE.SphereGeometry(0.26, 18, 12),
     mount: new THREE.CylinderGeometry(0.1, 0.13, 1, 12), rail: new THREE.BoxGeometry(0.16, 0.14, 2.4), grip: new THREE.BoxGeometry(0.14, 0.4, 0.2), riser: new THREE.BoxGeometry(0.6, 0.48, 0.45),
-    limbA: new THREE.BoxGeometry(0.72, 0.09, 0.22), limbB: new THREE.BoxGeometry(0.6, 0.09, 0.2), cam: new THREE.CylinderGeometry(0.15, 0.15, 0.42, 20),
+    limb: limbGeo(0.2, 0.09), limbStripe: limbGeo(0.08, 0.012), sight: new THREE.BoxGeometry(0.12, 0.12, 0.36),
+    beamGeo: new THREE.CylinderGeometry(0.03, 0.03, 1, 6).translate(0, 0.5, 0), dot: new THREE.SphereGeometry(0.07, 10, 8),
     railTop: new THREE.BoxGeometry(0.12, 0.05, 2.5), stockEnd: new THREE.BoxGeometry(0.22, 0.4, 0.55), riserBand: new THREE.BoxGeometry(0.64, 0.08, 0.5),
     rod: new THREE.CylinderGeometry(0.035, 0.035, 1.6, 10).rotateX(Math.PI / 2), rodTip: new THREE.ConeGeometry(0.07, 0.22, 8).rotateX(Math.PI / 2).translate(0, 0, 0.9),
     pole: new THREE.BoxGeometry(0.14, 1, 0.14), pad: new THREE.BoxGeometry(2.4, 0.24, 2.4), padEdge: new THREE.BoxGeometry(2.46, 0.05, 2.46), beam: new THREE.BoxGeometry(1, 0.12, 0.12), disc: new THREE.CylinderGeometry(0.78, 0.78, 0.1, 36).rotateX(Math.PI / 2), 
   };
+  // a crossbow limb: a strip bent from inside the riser out and back to its tip, w wide, t thick (in the bow's plane, x out, z back)
+  function limbGeo(w, t) {
+    const a = [0.2, -1.12], c1 = [1.0, -1.32], b = [1.42, -0.6], sh = new THREE.Shape(), q = (p0, p1, p2, k) => [(1 - k) * (1 - k) * p0[0] + 2 * (1 - k) * k * p1[0] + k * k * p2[0], (1 - k) * (1 - k) * p0[1] + 2 * (1 - k) * k * p1[1] + k * k * p2[1]];
+    const outer = [], inner = [];
+    for (let i = 0; i <= 16; i++) { const k = i / 16, p = q(a, c1, b, k), p2 = q(a, c1, b, Math.min(1, k + 0.01)), dx = p2[0] - p[0], dz = p2[1] - p[1], L = Math.hypot(dx, dz) || 1, nx = -dz / L, nz = dx / L, ww = w * (1 - 0.45 * k);
+      outer.push([p[0] + nx * ww / 2, p[1] + nz * ww / 2]); inner.push([p[0] - nx * ww / 2, p[1] - nz * ww / 2]); }
+    [...outer, ...inner.reverse()].forEach(([x, z], i) => i ? sh.lineTo(x, -z) : sh.moveTo(x, -z));
+    return new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false }).translate(0, 0, -t / 2).rotateX(-Math.PI / 2);
+  }
+  const laserSightMat = new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
   const part = (geo, mat, parent, edges) => { const m = new THREE.Mesh(geo, mat); if (edges) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), glassEdge)); parent.add(m); return m; };
   function addCatapult(s, want) {
     if (STYLE.arch && STYLE.arch !== "none") s = Math.round((s - 1) / 8) * 8 + 1; // the glass in a frame (every 8 m, at 1); the weapon 20 m before it, the frame there taken away
@@ -4145,16 +4156,22 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       part(G_.riser, carbonMat, bow).position.set(0, 0, -1.15); part(G_.riserBand, orangeMat, bow).position.set(0, 0, -1.15);
       c.tips = [];
       for (const sx of [-1, 1]) {
-        for (const ly of [-0.13, 0.13]) { // the limb: two flat carbon strips, bending back
-          const a = part(G_.limbA, carbonMat, bow); a.position.set(sx * 0.62, ly, -1.08); a.rotation.y = sx * 0.3;
-          const b = part(G_.limbB, carbonMat, bow); b.position.set(sx * 1.22, ly, -0.84); b.rotation.y = sx * 0.62;
-          const st = part(G_.limbA, orangeMat, bow); st.scale.set(0.45, 0.4, 0.5); st.position.set(sx * 0.62, ly + 0.045, -1.08); st.rotation.y = sx * 0.3;
+        for (const ly of [-0.13, 0.13]) { // the limb: one bent carbon strip, out of the riser and back to its tip, an orange stripe along it
+          const l = part(G_.limb, carbonMat, bow); l.position.y = ly; l.scale.x = sx;
+          const st = part(G_.limbStripe, orangeMat, bow); st.position.y = ly + 0.05; st.scale.x = sx;
         }
-        const tip = new THREE.Vector3(sx * 1.48, 0, -0.62); const cam = part(G_.cam, chromeMat, bow); cam.position.copy(tip); c.tips.push(tip);
+        c.tips.push(new THREE.Vector3(sx * 1.42, 0, -0.6));
       }
-      c.string = new THREE.Line(new THREE.BufferGeometry().setFromPoints([c.tips[0], new THREE.Vector3(0, 0, 0.6), c.tips[1]]), stringMat); bow.add(c.string); // drawn back
+      // a laser sight on the rail; its beam is drawn to the glass each frame
+      part(G_.sight, rubberMat, bow).position.set(0, 0.2, -0.55);
+      c.beam = new THREE.Mesh(G_.beamGeo, laserSightMat); c.beam.matrixAutoUpdate = false; scene.add(c.beam);
+      c.dot = new THREE.Mesh(G_.dot, laserSightMat); scene.add(c.dot); c.sightAt = new THREE.Vector3(0, 0.2, -0.75);
+      c.string = new THREE.Line(new THREE.BufferGeometry().setFromPoints([c.tips[0], new THREE.Vector3(0, 0, 0.55), c.tips[1]]), stringMat); bow.add(c.string); // drawn back
       c.ball = new THREE.Group(); part(G_.rod, blackSteelMat, c.ball); part(G_.rodTip, chromeMat, c.ball); c.ball.position.set(0, 0.2, -0.3); c.ball.rotation.y = Math.PI; bow.add(c.ball); // its point forward
     }
+    // as far out as it can stand with all of it inside the glass wall
+    const bb = new THREE.Box3().setFromObject(body), wall = SW - 0.35;
+    c.u = side > 0 ? wall - bb.max.x : -wall - bb.min.x;
     catas.push(c);
     clearZone(c.cs - 6, s + GATE_CLEAR); // nothing in the way between the weapon and its glass, nor just past it
     return c;
@@ -4163,7 +4180,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (c.fired) return;
     c.fired = true; c.tg.forEach(m => { m.material = targetOff; }); // the target goes out
     Sound.tone(c.kind === "crossbow" ? 420 : 220, 0.2, 0.12, "sawtooth", 0, 110); Sound.clink(); addScore(10);
-    if (c.kind === "crossbow") c.string.geometry.setFromPoints([c.tips[0], new THREE.Vector3(0, 0, -0.62), c.tips[1]]); // the string snaps straight
+    if (c.kind === "crossbow") c.string.geometry.setFromPoints([c.tips[0], new THREE.Vector3(0, 0, -0.6), c.tips[1]]); // the string snaps straight
   }
   // the glass bursts in big pieces: wedges from the point struck to the frame, each cut again across, all of the glass's thickness
   function burstCataSlab(c, byCart) {
@@ -4199,7 +4216,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function updateCatapults(dt) {
     for (const c of catas) {
       setObj(c.slab, c.s, 0, 0); c.slab.updateMatrixWorld(true); c.inv.copy(c.slab.matrixWorld).invert();
-      setObj(c.root, c.cs, c.side * CATA_U, 0); c.root.updateMatrixWorld(true);
+      setObj(c.root, c.cs, c.u, 0); c.root.updateMatrixWorld(true);
+      if (c.beam) { // the laser sight's beam, to the glass's middle while it stands
+        const on = !c.broken; c.beam.visible = c.dot.visible = on;
+        if (on) { const a = tmpV.copy(c.sightAt).applyMatrix4(c.bow.matrixWorld).clone(); frameAt(c.s); const b = _P.clone().addScaledVector(_U, HEX_V - 1.2).addScaledVector(_T, 0.32);
+          const d = b.clone().sub(a), L = d.length(); c.beam.matrix.compose(a, new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.divideScalar(L)), new THREE.Vector3(1, L, 1)); c.dot.position.copy(b); }
+      }
       c.twp.copy(c.tgAt).multiplyScalar(CATA_K).applyMatrix4(c.root.matrixWorld);
       if (c.fired && !c.shot) {
         if (c.kind === "catapult") { c.a = Math.min(1, c.a + dt / 0.28); c.arm.rotation.x = lerp(c.armRest, -2.0, c.a * c.a); } // up over the axle and forward
@@ -4219,7 +4241,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (sh.k >= 1) { scene.remove(c.ball); burstCataSlab(c, false); }
       }
       if (state === "play" && !c.broken && !c.passed && c.s <= sC + 1.7) { c.passed = true; if (c.shot) scene.remove(c.ball); burstCataSlab(c, true); }
-      if (c.s < sC - 12) { c.dead = true; scene.remove(c.root); if (!c.broken) scene.remove(c.slab); if (c.shot) scene.remove(c.ball); }
+      if (c.s < sC - 12) { c.dead = true; scene.remove(c.root); if (!c.broken) scene.remove(c.slab); if (c.shot) scene.remove(c.ball); if (c.beam) { scene.remove(c.beam); scene.remove(c.dot); } }
     }
     catas = catas.filter(c => !c.dead);
   }

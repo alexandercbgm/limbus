@@ -1105,17 +1105,21 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         return c + mix(vec3(0.75, 0.85, 1.0), vec3(1.0, 0.9, 0.8), h3(floor(n * 90.0))) * s * k;
       }
       vec3 galaxy(vec3 n, vec3 col, float k) { return galaxyAx(n, col, k, normalize(vec3(0.42, 0.55, 0.72))); }
-      vec3 farGalaxies(vec3 n, float k) { // a scatter of small galaxies: oval glows, a bright core in each, tilted every way
+      vec3 farGalaxies(vec3 n, float k) { // a few small spiral galaxies, faint: a core, two arms winding out, each disc seen aslant
         vec3 c = vec3(0.0);
-        for (int i = 0; i < 9; i++) {
-          float fi = float(i), az = fi * 2.399 + 0.7, el = 0.12 + 0.75 * fract(sin(fi * 7.77 + 1.1) * 43758.5);
+        for (int i = 0; i < 6; i++) {
+          float fi = float(i), az = fi * 2.399 + 0.7, el = 0.12 + 0.7 * fract(sin(fi * 7.77 + 1.1) * 43758.5);
           vec3 gd = normalize(vec3(cos(az) * cos(el), sin(el), sin(az) * cos(el)));
-          float cz = dot(n, gd); if (cz < 0.99) continue;
+          float cz = dot(n, gd); if (cz < 0.975) continue;
           vec3 ax = normalize(cross(gd, vec3(0.0, 1.0, 0.0))), ay = cross(gd, ax);
-          float tw = fi * 1.7, x = dot(n, ax) * cos(tw) + dot(n, ay) * sin(tw), y = -dot(n, ax) * sin(tw) + dot(n, ay) * cos(tw);
-          float sz = 0.018 + 0.02 * fract(fi * 0.618), r2 = (x * x * 0.22 + y * y) / (sz * sz);
-          vec3 tint = mix(vec3(0.75, 0.8, 1.0), vec3(1.0, 0.85, 0.75), fract(fi * 0.37));
-          c += tint * (exp(-r2 * 6.0) * 0.9 + exp(-r2) * 0.25) * k;
+          float tw = fi * 1.7, px0 = dot(n, ax), py0 = dot(n, ay);
+          float sz = 0.034 + 0.024 * fract(fi * 0.618), tilt = 0.45 + 0.5 * fract(fi * 0.41); // its size, and how far round it faces us
+          vec2 q = vec2(px0 * cos(tw) + py0 * sin(tw), (-px0 * sin(tw) + py0 * cos(tw)) / tilt) / sz;
+          float r = length(q), a = atan(q.y, q.x);
+          float arm = pow(0.5 + 0.5 * cos(2.0 * a - 4.0 * log(r + 0.05) + fi), 3.0); // two arms on a log spiral
+          float disc = exp(-r * 2.2) * (0.25 + 0.75 * arm) * smoothstep(0.08, 0.35, r), core = exp(-r * r * 30.0);
+          vec3 tint = mix(vec3(0.7, 0.78, 1.0), vec3(1.0, 0.86, 0.74), fract(fi * 0.37));
+          c += (tint * disc * 0.6 + vec3(1.0, 0.92, 0.8) * core * 0.55) * k;
         }
         return c;
       }
@@ -1403,6 +1407,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const redGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a10, transparent: true, opacity: 0.6, depthWrite: false });
   if (PHONE) { redGlow.opacity = 0.42; redGlow.color.set(0xe0281a); impEdgeMat.color.set(0xd8341c); blueGlow.opacity *= 0.7; } // and their halos and the imps' cages, on a phone
   const glassWallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, transparent: true, opacity: 0.3, roughness: 0.08, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide });
+  const hexPlateMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.22, roughness: 0.05, metalness: 0.3, depthWrite: false, side: THREE.DoubleSide });
   const prismMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.72, roughness: 0.1, metalness: 0.25, flatShading: true });
   const sigilMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8 });
   const stationMat = new THREE.MeshStandardMaterial({ map: floorTex.map, roughness: 0.6, metalness: 0.1 });
@@ -1435,6 +1440,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
     glassWallMat.color.copy(cur.wall); glassWallMat.emissive.copy(cur.line).multiplyScalar(Math.max(0.15, cur.lineI));
+    hexPlateMat.color.copy(cur.glass); hexPlateMat.emissive.copy(cur.frameE).multiplyScalar(cur.frameEI * 0.3);
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
     stationMat.color.copy(cur.surf).lerp(cur.frame, 0.12);
@@ -1569,6 +1575,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
     prism: inst(new THREE.OctahedronGeometry(0.75, 0), prismMat, 260),
+    hexring: inst(hexFrameGeo(1, 0.09), frameMat, 120), // Vitrum, out over the abyss: small hexagonal frames like the tunnel's, a pane in each
+    hexplate: inst(new THREE.ShapeGeometry(new THREE.Shape([0, 1, 2, 3, 4, 5].map(k => new THREE.Vector2(Math.cos(k * Math.PI / 3) * 0.96, Math.sin(k * Math.PI / 3) * 0.96)))), hexPlateMat, 120),
     ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus and Hortus, squeezed to fit (RING_SX, RING_SY)
     coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),
     block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 900),
@@ -1683,6 +1691,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         d.blocks.push({ u: (h1 - 0.5) * 2 * (SW + 22), v: 9 + h2 * 14, sx: r, sy: r, sz: r, rx: 0, ry: 0, spin: 0, wob: h1 * TAU }); }
       decor.set(k, d); return d;
     }
+    if (STYLE.blocks === "hex") { // Vitrum: a frame now and then, well out on either side, never in a heap: in each 10 m (five
+      // segments) one at most, on one of its first four, so two are 4 m apart at the least; the sides mostly take turns;
+      // tilted every way, turning slowly
+      const g = Math.floor(k / 5);
+      if (hash(g * 11 + 1) < 0.7 && k - g * 5 === Math.floor(hash(g * 7 + 2) * 4)) {
+        const h1 = hash(k * 31), h2 = hash(k * 17), h3 = hash(k * 23), r = 0.9 + h2 * 2.6;
+        const side = (g % 2 ? 1 : -1) * (h1 < 0.25 ? -1 : 1);
+        d.blocks.push({ u: side * (SW + 5 + h3 * 16 + r), v: -5 + h2 * 15, sx: r, sy: r, sz: r, rx: h1 * TAU, ry: h3 * TAU, spin: (h2 - 0.5) * 0.25 });
+      }
+      decor.set(k, d); return d;
+    }
     const nb = STYLE.mirror ? 0 : (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
     for (let i = 0; i < nb; i++) {
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
@@ -1716,7 +1735,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
     const putWall = (key, s, u, hh = SH) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, hh / 2).scale(SV.set(1, hh / H, 1))); }; // as tall as the shell (or the hall)
-    const wallKey = STYLE.glassWalls ? "gwall" : "wall", blockKey = STYLE.blocks === "prism" ? "prism" : STYLE.blocks === "coin" ? "coin" : STYLE.blocks === "bush" ? "bush" : STYLE.blocks === "drop" ? "drop" : "block";
+    const wallKey = STYLE.glassWalls ? "gwall" : "wall", blockKey = STYLE.blocks === "hex" ? "hexring" : STYLE.blocks === "prism" ? "prism" : STYLE.blocks === "coin" ? "coin" : STYLE.blocks === "bush" ? "bush" : STYLE.blocks === "drop" ? "drop" : "block";
     const k0 = Math.floor((sC - 10) / SL), k1 = Math.floor((sC + AHEAD - 4) / SL);
     for (let k = k0; k <= k1; k++) {
       const dec = getDecor(k), s = k * SL + SL / 2;
@@ -1783,6 +1802,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const wob = b.wob !== undefined ? 1 + 0.07 * Math.sin(time * 2.2 + b.wob) : 1; // a drop of mercury trembles
         M.multiply(M2.makeRotationFromEuler(EU)).scale(blockKey === "coin" ? SV.set(b.sx * 0.6, b.sx * 0.6, 1) : SV.set(b.sx * wob, b.sy / wob, b.sz * wob)).scale(SV.setScalar(grow));
         I[blockKey].setMatrixAt(n[blockKey]++, M);
+        if (blockKey === "hexring") I.hexplate.setMatrixAt(n.hexplate++, M);
       }
     }
     fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, STYLE.bridge ? BRIDGE_W : LEVEL.halls ? HALL_W : STYLE.floorW || SW); // Vitrum: as wide as the hexagon's bottom edge
@@ -4629,7 +4649,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
       req: { after: "rubinus", fare: 20 }, map: { x: 615, y: 440, label: "t" } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "glass_halls_in_blue", len: 1560, pal: PAL_VITRUM, finale: "ruina",
-      style: { arch: "hex", blocks: "prism", glassWalls: true, bare: true, floor: "plain", floorW: 2.6 }, crystalMul: 1.1,
+      style: { arch: "hex", blocks: "hex", glassWalls: true, bare: true, floor: "plain", floorW: 2.6 }, crystalMul: 1.1,
       // no heaps of glass (a wall, pairs, threes, the side panes, the scatter of small ones, the shutters): their room goes to
       // the catapults, one group in eight or so, and a little more to the plain single pane
       pats: { center: [2, 2, 1.2], wall: [0, 0, 0], triple: [0, 0, 0], double: [0, 0, 0], sides: [0, 0, 0], bonus: [0, 0, 0], shutter: [0, 0, 0], catapult: [1.1, 1.3, 1.3],

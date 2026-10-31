@@ -1411,7 +1411,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const chainMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.8 });
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
 
-  const DUSK_FOG = new THREE.Color(0.16, 0.18, 0.3); // Vitrum's lightning: when the last stroke was, when the next comes
+  const DUSK_FOG = new THREE.Color(0.16, 0.18, 0.3); // Vitrum's haze of the dusk
   function applyPalette() {
     skyUni.top.value.copy(cur.sky); skyUni.hor.value.copy(cur.hor); skyUni.bot.value.copy(cur.gnd); skyUni.stars.value = cur.stars; skyUni.band.value.copy(cur.band);
     const fx = (LEVEL_LOOK[LEVEL.id] || {}).sky || { mode: 0 };
@@ -2579,7 +2579,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // at the cart and away
     const mono = pend && !laser && !bars, fore = mono && Math.random() < 0.5, shellW = inHall(s) ? HALL_W : STYLE.bare ? 4.4 : SW; // Vitrum: within the hexagon
     const wn2 = G / arm0, amp = !pend ? 0 : fore ? rand(0.5, 0.62) : mono ? Math.asin(clamp((shellW - 1.9) / arm, 0.2, 0.9)) * rand(0.85, 1) : rand(0.4, 0.52) * kArm, ph = rand(0, TAU);
-    hangers.push({ s, kind, w, h, d, L, arm, wn2, kArm, top, fore, u0: pend || laser ? 0 : rand(-0.4, 0.4), theta: amp * Math.sin(ph), omega: amp * Math.sqrt(wn2) * Math.cos(ph), swMax: pend ? clamp(amp * 1.5, 0.5, 1.2) : 1.2, // a gate must be able to swing clear of the cart tilt: 0,
+    // swMax: the widest its swing may grow under hits (a gate wider, to swing clear of the cart)
+    hangers.push({ s, kind, w, h, d, L, arm, wn2, kArm, top, fore, u0: pend || laser ? 0 : rand(-0.4, 0.4), theta: amp * Math.sin(ph), omega: amp * Math.sqrt(wn2) * Math.cos(ph), swMax: pend ? clamp(amp * 1.5, 0.5, 1.2) : 1.2, tilt: 0,
       laser, bars, emitters, lasHit: false, root, body, chains, hp: laser ? 6 : opt.wide ? 13 : bars ? 9 : pend ? 5 : 7, falling: false, fallT: 0, fv: new THREE.Vector3(), alive: true, passed: false, inv: new THREE.Matrix4() });
   }
   const SWEEP = new THREE.Vector3(), CHAIN_HIT = 0.4; // chains look thin, so their hit zone is generous
@@ -2943,26 +2944,29 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const spot = new THREE.Sprite(spotMat); spot.scale.setScalar(0.9); g.add(spot); g.userData.spot = spot;
     return g;
   }
+  // a beam that meets nothing runs on out of sight (BEAM_FAR, too far for its end to show) and has no spot at its end
+  const BEAM_FAR = 400;
   function setBeamLen(g, len) {
-    g.visible = len > 0.02;
+    g.visible = len > 0.02; if (g.userData.spot.userData.on === undefined) g.userData.spot.userData.on = g.userData.spot.visible;
+    g.userData.spot.visible = g.userData.spot.userData.on && len < BEAM_FAR - 1;
     g.children.forEach(m => { if (m.isMesh) m.scale.y = Math.max(0.01, len); });
     g.userData.spot.position.y = len; g.userData.spot.scale.setScalar(0.7 + 0.25 * Math.sin(time * 30 + len));
   }
-  // how far a beam from (u, v) along (du, dv) runs before it meets a wall, the floor or the vault
+  // how far a beam from (u, v) along (du, dv) runs before it meets a wall, the floor or the vault (BEAM_FAR if nothing within max)
   function beamReach(u, v, du, dv, max, s) {
     const hall = s !== undefined && LEVEL.halls && inHall(s), ww = hall ? HALL_W : SW, wh = hall ? HALL_H : SH; // in a hall, its own walls and vault
     // a beam runs on till it meets something that is there: a wall only up to its height, the roof only over the track, the
     // floor only under it (on a bridge, the deck: off its edge a beam goes down into the void); where a wall or the roof is
     // missing it shines on out into the open
     const dk = s !== undefined ? decor.get(Math.floor(s / SL)) : null, open = STYLE.bridge;
-    const wallL = !open && !(dk && !dk.wl), wallR = !open && !(dk && !dk.wr), roof = !open && !(dk && !dk.ceil), floorW = (open ? BRIDGE_W : ww) + 0.15; // the floor is as wide as the track's room, the deck as the bridge
+    const wallL = !open && !(dk && !dk.wl), wallR = !open && !(dk && !dk.wr), roof = !open && !(dk && !dk.ceil), floorW = (open ? BRIDGE_W : LEVEL.halls ? HALL_W : STYLE.floorW || SW) - 0.02; // the floor as it's drawn: as wide as the track's room (Vitrum's narrower), the deck as the bridge
     let tm = max;
     const at = (t, cond) => { if (t > 0 && t < tm && cond(t)) tm = t; };
     if (du < -1e-6 && wallL) at((-ww + 0.04 - u) / du, t => v + dv * t <= wh);
     if (du > 1e-6 && wallR) at((ww - 0.04 - u) / du, t => v + dv * t <= wh);
     if (dv > 1e-6 && roof) at((wh - 0.04 - v) / dv, t => Math.abs(u + du * t) <= ww);
     if (dv < -1e-6) at((0.03 - v) / dv, t => Math.abs(u + du * t) <= floorW);
-    return Math.max(0, tm);
+    return tm >= max ? BEAM_FAR : Math.max(0, tm); // nothing within max: on out of sight
   }
   const segDist2 = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay, k = clamp(((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1), 0, 1); return Math.hypot(ax + dx * k - px, ay + dy * k - py); };
   const beamHitsCart = (ax, ay, bx, by) => CART_PTS.some(([u, v]) => segDist2(u, v, ax, ay, bx, by) < 0.22);
@@ -3032,6 +3036,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // for any other beam across it, 6 at most. A set stands midway between the hall's pillars, the stone around it cleared.
   let lbars = [], barBits = [], lastSet = null;
   const BAR_T = 0.42, BAR_DU = 3.0, BAR_V0 = 1.25, BAR_DV = n => n < 4 ? 2.9 : 2.3, BAR_EM = BAR_T / 2 + 0.03, BAR_M = 0.35, barGeos = {};
+  const recvPostGeo = new THREE.BoxGeometry(0.6, BAR_T, BAR_T), recvCupGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.08, 14);
   const lbarGeo = (key, len) => barGeos[key] || (barGeos[key] = new THREE.BoxGeometry(len, BAR_T, BAR_T));
   // Abyssus: a bar a little wider than the deck the rails lie on, its three beams 1.65 m apart, the middle (or lowest) one on the cart
   const barGap = (orient, n) => STYLE.bridge ? 1.65 : orient === "h" ? BAR_DU : BAR_DV(n);
@@ -3068,7 +3073,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const beam = laserBeam(); beam.rotation.z = Math.PI; beam.position.set(x, -BAR_EM, 0); bar.add(beam);
         return { x, beam, len: 0, au: 0, av: 0 };
       });
-      set.bars.push({ set, orient, side, n, len, rz, root, bar, ems, u, v, cu: u, cv: v, noz, alive: true, inv: new THREE.Matrix4(), wp: new THREE.Vector3() });
+      // Abyssus: a bar beside the bridge has its catcher across the deck, a dark bar of the same with a glowing cup for each beam
+      let recv = 0;
+      if (STYLE.bridge && orient === "v") {
+        recv = 2 * Math.abs(u);
+        const rg = new THREE.Group(); rg.position.y = -recv; bar.add(rg);
+        const geo = noz ? recvPostGeo : lbarGeo(orient + n, len); rg.add(new THREE.Mesh(geo, laserBaseMat)); rg.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), laserEdgeMat));
+        for (const x of xs) { const cup = new THREE.Mesh(recvCupGeo, recessMat); cup.position.set(x, BAR_T / 2 + 0.03, 0); rg.add(cup); }
+      }
+      set.bars.push({ set, orient, side, n, len, rz, root, bar, ems, recv, u, v, cu: u, cv: v, noz, alive: true, inv: new THREE.Matrix4(), wp: new THREE.Vector3() });
     };
     if (!noz) { unit(u, v, len, [...Array(n).keys()].map(i => (i - (n - 1) / 2) * gap)); return; }
     for (let i = 0; i < n; i++) { const x = (i - (n - 1) / 2) * gap; if (orient === "h") unit(u + x, v, 0.6, [0]); else unit(u, v - side * x, 0.6, [0]); } // loose nozzles, each a set of one
@@ -3117,7 +3130,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         setObj(b.root, set.s, u, v); b.root.updateMatrixWorld(true); b.inv.copy(b.bar.matrixWorld).invert(); b.wp.setFromMatrixPosition(b.root.matrix);
         for (const e of b.ems) {
           if (b.orient === "h") { e.au = u + e.x; e.av = v - BAR_EM; } else { e.au = u - b.side * BAR_EM; e.av = v - b.side * e.x; }
-          e.len = beamReach(e.au, e.av, bdu, bdv, STYLE.bridge ? 2 * (BRIDGE_W + 1.6) - BAR_EM : 60, set.s); setBeamLen(e.beam, e.len); // over the void a beam ends as far out the other side
+          e.len = b.recv ? b.recv - BAR_EM - BAR_T / 2 : beamReach(e.au, e.av, bdu, bdv, 60, set.s); setBeamLen(e.beam, e.len); // over the bridge, on the catcher across it
         }
         if (state === "play" && !set.passed && set.s <= sC + 0.5)
           for (const e of b.ems) if (beamHitsCart(e.au, e.av, e.au + bdu * e.len, e.av + bdv * e.len)) { const c = set.cost ? 1 : LASER_COST; if (set.cost + c <= 6) { set.cost += c; laserHit(c); } }
@@ -3166,14 +3179,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const faceGeos = {}, mirrorFaceGeo = len => faceGeos[len] || (faceGeos[len] = new THREE.PlaneGeometry(len - 0.12, MIR_D - 0.12));
   const inCart = (u, v, m) => Math.abs(u) < 1.0 + m && v < 2.2 + m, RING_R = 3.2; // where nothing may hover: the cart's way
   const LOW_SLOT = i => HEX_V - RING_R * Math.cos(i * Math.PI / 6) < 5.0; // a prism never at the top of the ring: too hard to hit there
-  // Speculum's hexagonal frames (circumradius 4.9 about v 4.2): the light stays within them, the mirrors well inside
+  // Speculum's hexagonal frames (circumradius 4.9 about v 4.2): the mirrors stay well inside them
   const HEX_N = [0, 1, 2, 3, 4, 5].map(k => [Math.cos(Math.PI / 6 + k * Math.PI / 3), Math.sin(Math.PI / 6 + k * Math.PI / 3)]), HEX_IN = 4.9 * Math.cos(Math.PI / 6), HEX_V = 4.2;
   const inHex = (u, v, m) => HEX_N.every(([a, b]) => a * u + b * (v - HEX_V) <= HEX_IN - m);
-  function lightReach(ox, oy, dx, dy, s) {
-    let t = beamReach(ox, oy, dx, dy, 60, s);
-    for (const [a, b] of HEX_N) { const dn = a * dx + b * dy; if (dn > 1e-6) t = Math.min(t, (HEX_IN - 0.22 - (a * ox + b * (oy - HEX_V))) / dn); }
-    return Math.max(0, t);
-  }
+  // the light runs on to the walls or, up through the open roof, out of sight (cut at the hexagon, it ended in the air
+  // between the frames)
+  function lightReach(ox, oy, dx, dy, s) { return beamReach(ox, oy, dx, dy, 60, s); }
   // where a 2D ray (o, d) first meets the segment c ± t·len/2; the distance along the ray, or Infinity
   function raySeg2(ox, oy, dx, dy, m) {
     const tx = -m.nv, ty = m.nu, ex = ox - m.u, ey = oy - m.v, den = dx * ty - dy * tx;
@@ -4073,7 +4084,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       // a laser sight on the rail; its beam is drawn to the glass each frame
       part(G_.sight, rubberMat, bow).position.set(0, 0.2, -0.55);
-      c.beam = laserBeam(); c.beam.userData.spot.visible = false; c.beam.matrixAutoUpdate = false; scene.add(c.beam); setBeamLen(c.beam, LASER_LEN); // a beam as Lux's lasers
+      c.beam = laserBeam(); c.beam.userData.spot.visible = false; c.beam.matrixAutoUpdate = false; scene.add(c.beam); setBeamLen(c.beam, BEAM_FAR); // a beam as Lux's lasers, on out of sight
       c.dot = new THREE.Mesh(G_.dot, laserSightMat); scene.add(c.dot); c.sightAt = new THREE.Vector3(0, 0.2, -0.75);
       c.string = new THREE.Line(new THREE.BufferGeometry().setFromPoints([c.tips[0], new THREE.Vector3(0, 0, 0.55), c.tips[1]]), stringMat); bow.add(c.string); // drawn back
       c.ball = new THREE.Group(); part(G_.rod, blackSteelMat, c.ball); part(G_.rodTip, chromeMat, c.ball); c.ball.position.set(0, 0.2, -0.3); c.ball.rotation.y = Math.PI; bow.add(c.ball); // its point forward

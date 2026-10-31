@@ -685,7 +685,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.72</div>
+      <div class="credit version">v1.0.73</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -863,7 +863,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.72`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.73`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -4116,7 +4116,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   };
   // a crossbow limb: a strip bent from inside the riser out and back to its tip, w wide, t thick (in the bow's plane, x out, z back)
   function limbGeo(w, t) {
-    const a = [0.2, -1.12], c1 = [1.0, -1.32], b = [1.42, -0.6], sh = new THREE.Shape(), q = (p0, p1, p2, k) => [(1 - k) * (1 - k) * p0[0] + 2 * (1 - k) * k * p1[0] + k * k * p2[0], (1 - k) * (1 - k) * p0[1] + 2 * (1 - k) * k * p1[1] + k * k * p2[1]];
+    const a = [0.2, -1.12], c1 = [0.82, -1.36], b = [1.0, -0.6], sh = new THREE.Shape(), q = (p0, p1, p2, k) => [(1 - k) * (1 - k) * p0[0] + 2 * (1 - k) * k * p1[0] + k * k * p2[0], (1 - k) * (1 - k) * p0[1] + 2 * (1 - k) * k * p1[1] + k * k * p2[1]];
     const outer = [], inner = [];
     for (let i = 0; i <= 16; i++) { const k = i / 16, p = q(a, c1, b, k), p2 = q(a, c1, b, Math.min(1, k + 0.01)), dx = p2[0] - p[0], dz = p2[1] - p[1], L = Math.hypot(dx, dz) || 1, nx = -dz / L, nz = dx / L, ww = w * (1 - 0.45 * k);
       outer.push([p[0] + nx * ww / 2, p[1] + nz * ww / 2]); inner.push([p[0] - nx * ww / 2, p[1] - nz * ww / 2]); }
@@ -4136,10 +4136,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     c.root = new THREE.Group(); c.root.matrixAutoUpdate = false; scene.add(c.root);
     const body = c.body = new THREE.Group(); body.scale.setScalar(CATA_K); c.root.add(body);
     // the target as on Carcer's doors, on a round plate its own size, out on a short arm over the weapon, square to the tunnel
-    const pole = part(G_.pole, graphiteMat, body); pole.scale.y = 3.6; pole.position.set(side * 0.95, 1.8, 0.2);
-    const beam = part(G_.beam, orangeMat, body); beam.scale.x = 2.1; beam.position.set(-side * 0.1, 3.55, 0.2);
-    part(G_.disc, plateMat, body).position.set(-side * 1.15, 3.55, 0.25); // a plain grey plate, as Carcer's doors
-    c.tg = doorTarget(body, -side * 1.15, 3.55, 0.32, true); c.tg.forEach(m => m.scale.setScalar(1.6)); c.tgAt = new THREE.Vector3(-side * 1.15, 3.55, 0.32);
+    const ty = kind === "crossbow" ? 4.8 : 3.55; // over the crossbow, high on its post
+    const pole = part(G_.pole, graphiteMat, body); pole.scale.y = ty + 0.05; pole.position.set(side * 0.95, (ty + 0.05) / 2, 0.2);
+    const beam = part(G_.beam, orangeMat, body); beam.scale.x = 2.1; beam.position.set(-side * 0.1, ty, 0.2);
+    part(G_.disc, plateMat, body).position.set(-side * 1.15, ty, 0.25); // a plain grey plate, as Carcer's doors
+    c.tg = doorTarget(body, -side * 1.15, ty, 0.32, true); c.tg.forEach(m => m.scale.setScalar(1.6)); c.tgAt = new THREE.Vector3(-side * 1.15, ty, 0.32);
     if (kind === "catapult") { // the old shape: a base, two posts, an axle, an arm with a cup and a counterweight
       part(G_.base, graphiteMat, body).position.set(0, 0.25, 0); part(G_.deck, orangeMat, body).position.set(0, 0.52, 0);
       for (const x of [-0.5, 0.5]) part(G_.post, orangeMat, body).position.set(x, 1.25, 0);
@@ -4149,8 +4150,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       c.ball = part(G_.shot, blackSteelMat, c.arm); c.ball.position.set(0, 0.3, 2.6);
       c.armRest = 0.5; c.arm.rotation.x = c.armRest; // leaning back toward the cart, the shot in its cup
     } else { // a crossbow after a modern one: two stacked limbs a side on a heavy riser, cams at their tips, a rail, a black steel rod
-      const mount = part(G_.mount, graphiteMat, body); mount.scale.set(1.6, 1.6, 1.6); mount.position.set(0, 0.8, 0);
-      const bow = c.bow = new THREE.Group(); bow.position.set(0, 1.75, 0); bow.rotation.order = "YXZ"; bow.rotation.set(0.26, side * 0.28, side * 0.32); bow.scale.setScalar(1.5); body.add(bow); // aimed at the glass, its front up a little and rolled toward the track: seen from above
+      const mount = part(G_.mount, graphiteMat, body); mount.scale.set(1.6, 3.1, 1.6); mount.position.set(0, 1.55, 0);
+      const bow = c.bow = new THREE.Group(); bow.position.set(0, 3.2, 0); bow.rotation.order = "YXZ"; bow.rotation.set(0.26, side * 0.2, side * 0.22); bow.scale.setScalar(1.5); body.add(bow); // aimed at the glass, its front up a little and rolled toward the track: seen from above // high on its post: its limbs pass over the cart
       part(G_.rail, aluMat, bow).scale.set(1.6, 1.6, 1.1); part(G_.railTop, carbonMat, bow).position.set(0, 0.13, 0);
       part(G_.grip, rubberMat, bow).position.set(0, -0.28, 0.75); part(G_.stockEnd, carbonMat, bow).position.set(0, -0.05, 1.35);
       part(G_.riser, carbonMat, bow).position.set(0, 0, -1.15); part(G_.riserBand, orangeMat, bow).position.set(0, 0, -1.15);
@@ -4160,7 +4161,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           const l = part(G_.limb, carbonMat, bow); l.position.y = ly; l.scale.x = sx;
           const st = part(G_.limbStripe, orangeMat, bow); st.position.y = ly + 0.05; st.scale.x = sx;
         }
-        c.tips.push(new THREE.Vector3(sx * 1.42, 0, -0.6));
+        c.tips.push(new THREE.Vector3(sx * 1.0, 0, -0.6));
       }
       // a laser sight on the rail; its beam is drawn to the glass each frame
       part(G_.sight, rubberMat, bow).position.set(0, 0.2, -0.55);
@@ -4172,6 +4173,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // as far out as it can stand with all of it inside the glass wall
     const bb = new THREE.Box3().setFromObject(body), wall = SW - 0.35;
     c.u = side > 0 ? wall - bb.max.x : -wall - bb.min.x;
+    c.inner = side > 0 ? c.u + bb.min.x : -(c.u + bb.max.x); // how near the track its nearest part comes (clear of the cart past 1.6)
     catas.push(c);
     clearZone(c.cs - 6, s + GATE_CLEAR); // nothing in the way between the weapon and its glass, nor just past it
     return c;

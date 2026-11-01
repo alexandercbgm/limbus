@@ -1534,7 +1534,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
 
   const DUSK_FOG = new THREE.Color(0.16, 0.18, 0.3); // Vitrum's haze of the dusk
-  const BH_FWD = new THREE.Vector3(), BH_EL = 0.3, BH_EL_ST = 0.16; let bhHead = null, bhA = 0, bhLastT = 0; // Speculum's black hole: its heading (late), 0.3 rad up
+  const BH_FWD = new THREE.Vector3(), BH_EL = 0.3, BH_EL_ST = 0.2; let bhHead = null, bhA = 0, bhLastT = 0; // Speculum's black hole: its heading (late), 0.3 rad up
   let bhTexDone = false;
   function bhTexInit() { // the picture comes at the page's end, after the code: taken up the first time the sky needs it
     const img = document.getElementById("sky-blackhole"); if (!img || bhTexDone) return; bhTexDone = true;
@@ -1569,7 +1569,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       bhA += wrap(want - bhA) * (1 - Math.exp(-dt / 2.5)); // late, as if far
       const off = wrap(want - bhA); if (Math.abs(off) > 0.35) bhA = want - Math.sign(off) * 0.35;
       bhHead = true;
-      const el = BH_EL + (BH_EL_ST + 0.1 * camera.fov * Math.PI / 180 - BH_EL) * smooth5((sC - SUPER_END) / (STATION_LEN - 8)); // at the station it sinks, to a little over midway between the track and the canopy (a tenth of the screen up)
+      const el = BH_EL + (BH_EL_ST - BH_EL) * smooth5((sC - SUPER_END) / (STATION_LEN - 8)); // at the station it sinks, to a tenth over midway between the track and the canopy
       skyUni.bhd.value.set(Math.sin(bhA) * Math.cos(el), Math.sin(el), -Math.cos(bhA) * Math.cos(el));
       skyUni.bhRot.value = 0.025 * Math.sin(time * 0.21);
     } else bhHead = null;
@@ -3815,10 +3815,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const tg = doorTarget(hinge, DOOR_W / 2, TALL_TV, sd < 0 ? 0.1 : -0.1, true); tg.forEach(m => { m.scale.setScalar(2); if (sd > 0) m.rotation.y = Math.PI; });
         dr.leaves.push({ sd, hinge, ang: 0, opening: false, tg, tgG: tg[0].parent, a: rand(0, TAU), w: -sd * w, tx: 0, ty: 0 });
       }
-      if (STYLE.mirror && o.s < MIRROR_END()) dr.mirrors = [-1, 1].map(k => { // its reflection in each mirror wall: frame and leaves, shut, no targets
-        const g = new THREE.Group(); g.matrixAutoUpdate = false; g.userData.o = k * 2 * (SW + 0.12); scene.add(g);
+      if (STYLE.mirror && o.s < MIRROR_END()) dr.mirrors = [-1, 1].map(k => { // its reflection in each mirror wall: frame, leaves and their targets,
+        // following the real ones (updateDoors); mirrored, so each real leaf shows as the other side's
+        const g = new THREE.Group(); g.matrixAutoUpdate = false; g.userData.o = k * 2 * (SW + 0.12); g.userData.leaves = []; scene.add(g);
         for (const sd of [-1, 1]) { const p = new THREE.Mesh(tallPostGeo, tallFrameMat); p.position.set(sd * (W + 0.5), (LEAF_T + 1.6) / 2, -0.1); g.add(p); outline(tallPostGeo, p);
-          const hinge = new THREE.Group(); hinge.position.x = sd * DOOR_W; hinge.rotation.y = sd < 0 ? 0 : Math.PI; g.add(hinge); hinge.add(new THREE.Mesh(tallLeafGeo, tallLeafMat)); outline(tallLeafGeo, hinge); }
+          const ms = -sd, hinge = new THREE.Group(); hinge.position.x = ms * DOOR_W; hinge.rotation.y = ms < 0 ? 0 : Math.PI; g.add(hinge); hinge.add(new THREE.Mesh(tallLeafGeo, tallLeafMat)); outline(tallLeafGeo, hinge);
+          const tg = doorTarget(hinge, DOOR_W / 2, TALL_TV, ms < 0 ? 0.1 : -0.1, true); tg.forEach(m => { m.scale.setScalar(2); if (ms > 0) m.rotation.y = Math.PI; });
+          g.userData.leaves.push({ ms, hinge, tg, tgG: tg[0].parent }); }
         const lin = new THREE.Mesh(tallLintelGeo, tallFrameMat); lin.position.set(0, LEAF_T + 0.6, -0.1); g.add(lin); outline(tallLintelGeo, lin);
         return g; });
       dr.steam = Array.from({ length: 12 }, (_, i) => { const sp = new THREE.Sprite(steamMat); const k = i / 12; sp.userData = { u: (k - 0.5) * 2 * (SW + 1.5) + rand(-0.6, 0.6), v: rand(0.4, 2.0), z: rand(-4, 2.5), sc: rand(2.6, 4.6), ph: rand(0, TAU) }; root.add(sp); return sp; });
@@ -3877,7 +3880,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function updateDoors(dt) {
     for (const dr of doors) {
       setObj(dr.root, dr.s, 0, 0); dr.root.updateMatrixWorld(true); dr.inv.copy(dr.root.matrixWorld).invert();
-      if (dr.mirrors) for (const g of dr.mirrors) setObj(g, dr.s, g.userData.o, 0);
       for (const c of dr.chains) { c.A.set(c.x, H - 0.34, 0.05); dr.root.localToWorld(c.A); c.B.set(c.x, FLAP_H + 0.1, 0.05); dr.root.localToWorld(c.B); }
       if (dr.kind === "flap" && dr.open && dr.ang < Math.PI / 2) { // it falls away from the cart, faster and faster, and lies flat in the hall
         dr.angV += 3.2 * Math.cos(dr.ang) * dt + 0.6 * dt; dr.ang = Math.min(Math.PI / 2, dr.ang + dr.angV * dt);
@@ -3903,6 +3905,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           if (dr.leaf) dr.leaf.visible = false; dr.leaves.forEach(l => { l.hinge.visible = false; }); if (dr.bolt) dr.bolt.visible = false;
         }
       }
+      if (dr.mirrors) for (const g of dr.mirrors) { setObj(g, dr.s, g.userData.o, 0);
+        g.userData.leaves.forEach((m, i) => { const lf = dr.leaves[i]; if (!lf) return; // the reflection of each leaf: its swing, its target's place and light
+          m.hinge.visible = lf.hinge.visible; m.hinge.rotation.y = (m.ms < 0 ? 0 : Math.PI) + (m.ms < 0 ? 1 : -1) * lf.ang;
+          if (lf.tgG) m.tgG.position.copy(lf.tgG.position); m.tg.forEach((t, j) => { t.material = lf.tg[j].material; }); }); }
       if (dr.s < sC - 8) { dr.dead = true; dropDoor(dr); }
     }
     doors = doors.filter(d => !d.dead);

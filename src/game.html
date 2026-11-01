@@ -1453,6 +1453,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const mirageGlow = blueGlow.clone(); mirageGlow.opacity = 0.32;
   const redGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a10, transparent: true, opacity: 0.6, depthWrite: false });
   if (PHONE) { redGlow.opacity = 0.42; redGlow.color.set(0xe0281a); impEdgeMat.color.set(0xd8341c); blueGlow.opacity *= 0.7; } // and their halos and the imps' cages, on a phone
+  const MIRROR_END = () => MAIN_LEN - 50; // Speculum's mirrors end midway through the finale's banner
+  const plainGlassMat = new THREE.MeshStandardMaterial({ color: 0xdfe8f4, emissive: 0x30384a, transparent: true, opacity: 0.22, roughness: 0.05, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide });
   const glassWallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, transparent: true, opacity: 0.3, roughness: 0.08, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide });
   const quartzMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.78, roughness: 0.12, metalness: 0.35, flatShading: true });
   // Rubinus's rubies: each facet its own depth of red, as a cut stone throws back the light: garnet dark to bright, now and then one
@@ -1532,7 +1534,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
 
   const DUSK_FOG = new THREE.Color(0.16, 0.18, 0.3); // Vitrum's haze of the dusk
-  const BH_FWD = new THREE.Vector3(), BH_EL = 0.3; let bhHead = null, bhA = 0, bhLastT = 0; // Speculum's black hole: its heading (late), 0.3 rad up
+  const BH_FWD = new THREE.Vector3(), BH_EL = 0.3, BH_EL_ST = 0.16; let bhHead = null, bhA = 0, bhLastT = 0; // Speculum's black hole: its heading (late), 0.3 rad up
   let bhTexDone = false;
   function bhTexInit() { // the picture comes at the page's end, after the code: taken up the first time the sky needs it
     const img = document.getElementById("sky-blackhole"); if (!img || bhTexDone) return; bhTexDone = true;
@@ -1567,7 +1569,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       bhA += wrap(want - bhA) * (1 - Math.exp(-dt / 2.5)); // late, as if far
       const off = wrap(want - bhA); if (Math.abs(off) > 0.35) bhA = want - Math.sign(off) * 0.35;
       bhHead = true;
-      skyUni.bhd.value.set(Math.sin(bhA) * Math.cos(BH_EL), Math.sin(BH_EL), -Math.cos(bhA) * Math.cos(BH_EL));
+      const el = BH_EL + (BH_EL_ST - BH_EL) * smooth5((sC - SUPER_END) / (STATION_LEN - 8)); // at the station it sinks, to midway between the track and the canopy
+      skyUni.bhd.value.set(Math.sin(bhA) * Math.cos(el), Math.sin(el), -Math.cos(bhA) * Math.cos(el));
       skyUni.bhRot.value = 0.025 * Math.sin(time * 0.21);
     } else bhHead = null;
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
@@ -1709,6 +1712,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     pyrR: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(Math.PI / 2), spikeMat, 90),
     // a pane of glass for a wall: one sheet, not a thin box, whose ends stacked into dozens of see-through layers far off
     gwall: inst(new THREE.PlaneGeometry(SL + 0.03, H).rotateY(Math.PI / 2), glassWallMat, 280),
+    pgwall: inst(new THREE.PlaneGeometry(SL + 0.03, H).rotateY(Math.PI / 2), plainGlassMat, 160), // Speculum's last stretch: clear glass, no mirror
     hexpane: inst(new THREE.PlaneGeometry(HEXPANE_R, SL + 0.02).rotateX(Math.PI / 2), glassWallMat, 420), // Vitrum: a face of the hexagon glazed, 2 m of it
     hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
@@ -1928,13 +1932,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const a0 = s - SL / 2, a1 = slot.s - SLOT_W / 2, b0 = slot.s + SLOT_W / 2, b1 = s + SL / 2;
         for (const [x0, x1] of [[a0, a1], [b0, b1]]) if (x1 - x0 > 0.05) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, (x0 + x1) / 2, u, 0.19).scale(SV.set(1, 1, (x1 - x0) / (SL + 0.04))));
       }
-      const open = forkOpenSide(s), ww = dec.hw || SW, wh = dec.hh || SH;
+      const open = forkOpenSide(s), ww = dec.hw || SW, wh = dec.hh || SH, wk = STYLE.mirror && s > MIRROR_END() ? "pgwall" : wallKey; // Speculum: past its mirrors, plain glass
       if (STYLE.bare) { // Vitrum: the hexagon glazed, its two left faces for a left wall, the right two for a right, the top for a roof
         for (let e = 0; e < 6; e++) if (e === 1 ? dec.ceil : e === 2 || e === 3 ? dec.wl : e === 0 || e === 5 ? dec.wr : false)
           I.hexpane.setMatrixAt(n.hexpane++, placeM(M, s, Math.cos((e + 0.5) * Math.PI / 3) * HEXPANE_A, HEXPANE_V + Math.sin((e + 0.5) * Math.PI / 3) * HEXPANE_A).multiply(M2.makeRotationZ((e + 0.5) * Math.PI / 3 - Math.PI / 2)));
       }
-      else if (dec.wl && open !== -1) putWall(wallKey, s, -ww - 0.12, wh);
-      if (dec.wr && open !== 1 && !STYLE.bare) putWall(wallKey, s, ww + 0.12, wh);
+      else if (dec.wl && open !== -1) putWall(wk, s, -ww - 0.12, wh);
+      if (dec.wr && open !== 1 && !STYLE.bare) putWall(wk, s, ww + 0.12, wh);
       if (dec.ceil && !STYLE.closed && !STYLE.bare) I.ceil.setMatrixAt(n.ceil++, placeM(M, s, 0, wh).scale(SV.set(ww / W, 1, 1))); // a closed maze has a continuous vault instead
       if (LEVEL.halls && !!dec.hw !== !!getDecor(k - 1).hw && (dec.hw || getDecor(k - 1).hw)) { // where a corridor meets a hall: the hall's end wall, seen from both sides
         const s0 = k * SL;
@@ -1999,8 +2003,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const m of mirStrips) {
       m.floor.visible = !!STYLE.mirror; m.vault.visible = !!STYLE.mirror && !!STYLE.closed;
       if (!STYLE.mirror) continue;
-      // the reflections end with the mirror walls, where the station begins: past it only the track's own floor runs on
-      const mEnd = Math.min(Math.floor(sC) + AHEAD - 4, SUPER_END - 6);
+      // the mirrors end as the finale is announced (its banner up); then plain glass to the finale's end; then only the track's floor to the station
+      const mEnd = Math.min(Math.floor(sC) + AHEAD - 4, MIRROR_END());
       fillStrip(m.floor, Math.floor(sC) - 10, mEnd, frameAt, 0, m.o, SW);
       fillStrip(m.vault, Math.floor(sC) - 10, mEnd, frameAt, H, m.o);
       const far = m.o + Math.sign(m.o) * (SW + 0.12);
@@ -5151,7 +5155,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // ---------- game state ----------
   let state = "menu", sC = 0, balls = START_BALLS, score = 0, speedNow = BASE_SPEED;
   let alt = 0.35, pending = 0, altVel = 0, pitchC = 0, pitchTs = 0;
-  let time = 0, runTime = 0, shakeT = 0, throwCD = 0, nextSpawn = 60, nextClack = 0, zoneShown = "", darkHud = false, audioTick = 0;
+  let time = 0, runTime = 0, arrivedT = 0, shakeT = 0, throwCD = 0, nextSpawn = 60, nextClack = 0, zoneShown = "", darkHud = false, audioTick = 0;
   let stats = { thrown: 0, hits: 0, broken: 0, crystals: 0 };
 
   function resetWorld(spawn) {
@@ -5205,7 +5209,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     setLevel(lv);
     state = "play";
     resetWorld(true);
-    zoneShown = ""; balls = START_BALLS + 10 * upLevel("copia"); secondWind = upLevel("spiritus") > 0; score = 0; shakeT = 0; throwCD = 0; runTime = 0; recoil = 0;
+    zoneShown = ""; balls = START_BALLS + 10 * upLevel("copia"); secondWind = upLevel("spiritus") > 0; score = 0; shakeT = 0; throwCD = 0; runTime = 0; arrivedT = 0; recoil = 0;
     stats = { thrown: 0, hits: 0, broken: 0, crystals: 0 };
     updateCount(); updateScore(); updateCombo();
     hidePanels();
@@ -5609,9 +5613,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // motion: uphill is slower, downhill faster
     let sp = BASE_SPEED * (LEVEL.speedMul || 1) * (1 - 0.55 * Math.sin(pitchC)) * Math.min(1, 0.4 + runTime * 0.6);
     if (superOn) sp *= 1.2;
-    if (sC > END_S - 34) sp = Math.min(sp, Math.max(2.2, (END_S - sC) * 0.55 + 1.5)); // brake into the station
-    speedNow = sp;
-    const ds = speedNow * dt;
+    const toStop = END_S - 0.3 - sC; // the cart brakes into the station and comes to rest there
+    if (sC > END_S - 34) sp = Math.min(sp, Math.max(0.3, toStop * 0.55 + 1.7 * clamp(toStop / 5, 0, 1)));
+    const ds = Math.min(sp * dt, Math.max(0, toStop));
+    speedNow = dt > 0 ? ds / dt : 0;
     frameAt(sC + ds / 2); // uses last frame's path; close enough for one step
     cartPos.addScaledVector(_T, ds);
     pitchC += (pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA));
@@ -5662,7 +5667,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     audioTick -= dt;
     if (audioTick <= 0) { audioTick = 0.25; Sound.setKarma(alt); }
 
-    if (sC >= END_S - 0.3) endRun(true);
+    if (sC >= END_S - 0.301 && (arrivedT += dt) >= 2) endRun(true); // the results 2 s after it stops, so the station can be seen
     else if (balls <= 0 && ballsArr.length === 0) endRun(false);
   }
 

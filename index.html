@@ -274,7 +274,9 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 @keyframes turn { 0%, 25% { transform: rotate(0deg); } 50%, 75% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } } /* upright, turned, and smoothly back: no jump between rounds */
 @media (orientation: landscape) { .rotate { display: none; } }
 /* the Telegram build on a phone shows it from the first paint, before any script, so the upright menu never flashes */
-@media (orientation: portrait) and (pointer: coarse) { html.tgbuild .rotate[hidden] { display: flex !important; } }
+@media (orientation: portrait) and (pointer: coarse) { html.tgbuild .rotate[hidden] { display: flex !important; }
+  /* the whole of the screen, to its foot, whatever height Telegram's view first reports; and under it the same ground, never a dark strip */
+  .rotate { bottom: auto; height: max(100%, 100lvh); } html.tgbuild, html.tgbuild body { background: #e9eced; } }
 html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rotate > * { visibility: hidden; } html.tgbuild:not(.tgready) .rotate svg { animation: none; } /* the turn starts upright when it shows */ /* nothing shows, not the menu nor the tunnel behind it, till Telegram has opened the app at its full size */
 .how .panel { width: min(640px, 100%); }
 .how.support .panel { width: min(460px, 100%); }
@@ -690,7 +692,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.134</div>
+      <div class="credit version">v1.0.135</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -868,7 +870,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.134`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.135`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1278,8 +1280,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           c += vec3(1.0) * (pow(sdot, 400.0) * 1.5 + pow(sdot, 16.0) * 0.25) * amt * (0.3 + 0.7 * lum);
         } else if (m == 3.0 || m == 5.0 || m == 8.0) { // lit clouds: soft heaps whose sunward sides are bright
           vec3 q = vec3(n.x * 1.6, n.y * 4.0, n.z * 1.6) / max(0.2, h + 0.2) * 0.55 + vec3(t * 0.006, 0.0, t * 0.004);
-          float dn = fbm(q), d2 = fbm(q + sd * 0.12);
-          float cov = smoothstep(0.45, 0.72, dn) * smoothstep(-0.02, 0.18, h) * (m == 8.0 ? 0.0 : 1.0); // the sunset sky is clear
+          float dn = 0.0, d2 = 0.0, cov = 0.0; // the sunset sky is clear: its clouds not worked out at all (the costliest part, and it was all multiplied away)
+          if (m != 8.0) { dn = fbm(q); d2 = fbm(q + sd * 0.12); cov = smoothstep(0.45, 0.72, dn) * smoothstep(-0.02, 0.18, h); }
           float lit = clamp((dn - d2) * 5.0 + 0.55, 0.0, 1.0);
           vec3 cc = mix(mix(hor, top, 0.4) * 0.75, fxc * (0.3 + 0.85 * lum), lit) + vec3(1.0, 0.95, 0.85) * pow(sdot, 6.0) * 0.4 * lum;
           c = mix(c, cc, cov * amt);
@@ -1360,7 +1362,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const bufSize = new THREE.Vector2();
   function renderSky() {
     renderer.getDrawingBufferSize(bufSize);
-    const div = skyUni.mode.value === 6 ? 1.5 : 2; // Rubinus's facets want their seams sharper: two thirds of the screen's size
+    // Rubinus's facets want their seams sharper: two thirds of the screen's size; the others half. On a phone, whose pixels are small,
+    // the soft skies at two thirds of its CSS size, however many pixels it draws the rest with
+    const div = skyUni.mode.value === 6 ? 1.5 : PHONE ? Math.max(2, renderer.getPixelRatio() * 1.5) : 2;
     const w = Math.max(2, Math.round(bufSize.x / div)), h = Math.max(2, Math.round(bufSize.y / div));
     if (skyRT.width !== w || skyRT.height !== h) skyRT.setSize(w, h);
     skyUni.px.value = camera.fov * Math.PI / 180 / h; // the angle one of its pixels spans
@@ -2173,12 +2177,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     stationParts.forEach(p => scene.remove(p.obj)); stationParts.length = 0;
     const add = (geo, mat, s, u, v) => { const m = new THREE.Mesh(geo, mat); m.matrixAutoUpdate = false; scene.add(m); stationParts.push({ obj: m, s, u, v }); return m; };
     const s0 = SUPER_END, seg = 4, n = Math.ceil((END_S + 8 - s0) / seg);
-    const plat = new THREE.BoxGeometry(2.3, 0.85, seg + 0.02), lip = new THREE.BoxGeometry(0.05, 0.03, seg + 0.02);
-    const roof = new THREE.BoxGeometry(2 * W + 2.4, 0.22, seg + 0.02), strip = new THREE.BoxGeometry(0.1, 0.025, seg - 0.6);
+    // the pieces overlap a little at each joint; every other one is a hair larger all round, so no two faces there lie in one plane
+    // (on a phone's coarser depth they fought, and the joints flickered as lines across the roof)
+    const pair = (w, h) => [0, 1].map(o => new THREE.BoxGeometry(w + o * 0.012, h + o * 0.012, seg + 0.02 + o * 0.012));
+    const plat = pair(2.3, 0.85), lip = pair(0.05, 0.03), roof = pair(2 * W + 2.4, 0.22), strip = new THREE.BoxGeometry(0.1, 0.025, seg - 0.6);
     for (let i = 0; i < n; i++) {
-      const s = s0 + seg * (i + 0.5);
-      [-1, 1].forEach(k => { add(plat, stationMat, s, k * 3.0, 0.425); add(lip, accentMat, s, k * 1.87, 0.86); });
-      add(roof, frameMat, s, 0, 5.6);
+      const s = s0 + seg * (i + 0.5), o = i % 2;
+      [-1, 1].forEach(k => { add(plat[o], stationMat, s, k * 3.0, 0.425); add(lip[o], accentMat, s, k * 1.87, 0.86); });
+      add(roof[o], frameMat, s, 0, 5.6);
       [-2.2, 0, 2.2].forEach(u => add(strip, accentMat, s, u, 5.47));
     }
     const pillar = new THREE.CylinderGeometry(0.16, 0.16, 4.75, 16);
@@ -6569,6 +6575,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: opened from the scheme or by a link, so it steps in
     const scroll = keep ? $("sheet").scrollTop : 0;
+    if (!keep) { depotTab = "arma"; shopTab = "guns"; $("sheet").scrollTop = 0; } // opened afresh: the first tab, from the top, never as it was left
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
     $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("кристаллы для Арсенала", "crystals for Armamentarium") : st === "locked" ? T("вход платный", "paid entry") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
     $("shName").innerHTML = `${esc(lv.latin)}<small>${esc(lv.ru)}</small>`;

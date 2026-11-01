@@ -688,7 +688,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.115</div>
+      <div class="credit version">v1.0.116</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.115`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.116`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1606,7 +1606,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     gPear: brilliantGeo(th => ellipseR(0.48, 0.62)(th) * (1 + 0.5 * Math.pow(Math.max(0, Math.sin(th)), 5)), { hc: 0.18, twoFaced: true, front: true }),
     gOval: brilliantGeo(ellipseR(0.46, 0.68), { hc: 0.18, twoFaced: true, front: true }),
     gEmer: stepGeo(0.44, 0.62, 0.13),
-    gSq: stepGeo(0.5, 0.5, 0.17, 1.3), // a square step cut, its corners cut deep: the gates' counterweights
   };
   const RUBY_COL = new THREE.Color(0xa8001e); // pomegranate juice: deep, a touch toward crimson
   const rubyMat = new THREE.MeshStandardMaterial({ color: RUBY_COL, emissive: 0x2a0005, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.7, vertexColors: true }); // see-through to the sky behind; only its near facets drawn, in depth
@@ -4210,16 +4209,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const order = nb === 0 ? [] : nb === 1 ? [0] : nb === 2 ? [3, 4] : [0, 1, 2];
     const g = { s, kind, k, root, leaves, buttons: [], pr: 0, opening: false, passed: false, dead: false, weights };
     leaves.forEach(lf => { lf.pr = 0; });
-    const yW0 = 2.9 + Math.random() * 0.8; // both weights of a gate hang at one height, their chains alike
-    if (weights) for (const lf of leaves) { // a counterweight for each leaf on a black chain, hanging from a bracket out from the wall beside the doorway; drop it and its leaf slides open
-      const x = lf.sd * (BRIDGE_W + 1.25), yTop = H - 0.15, yW = yW0, z = WT_Z, grp = new THREE.Group(); root.add(grp);
-      const arm = new THREE.Mesh(wtArmGeo, LEVEL.gateIron ? gateIronMat : frameMat); arm.position.set(x, yTop + 0.08, z / 2); grp.add(arm);
-      const brace = new THREE.Mesh(wtBraceGeo, LEVEL.gateIron ? gateIronMat : frameMat); brace.position.set(x, yTop - 0.45, z * 0.3); brace.rotation.x = -Math.atan2(0.9, z * 0.6); grp.add(brace); // a strut down to the wall
-      const ruby = LEVEL.id === "rubinus", top = ruby ? WT_H : 0.45; // the chain reaches down to the stone's top
-      const ch = makeChain(yTop - yW - top, 1, wtChainMat); ch.position.set(x, yTop, z); grp.add(ch);
-      const wt = ruby ? new THREE.Mesh(GEM_CUTS.gSq, rubyWeightMat) : new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt);
-      if (ruby) wt.scale.setScalar(WT_SC);
-      lf.wt = { x, z, yTop, yW, top, ruby, floor: ruby ? WT_H : 0.45, grp, ch, wt, vy: 0, down: false, wp: new THREE.Vector3(), A: new THREE.Vector3(), B: new THREE.Vector3() };
+    const yA0 = 2.5 + Math.random() * 0.5; // both anchors of a gate hang at one height, their chains alike
+    if (weights) for (const lf of leaves) { // an anchor for each leaf, its chain run out of a round hawse in the bulkhead, an orange target over it:
+      // hit the target, it goes out, the chain is hauled in nearly to the anchor, and the leaf swings open away from the cart, as if a weight inside had dropped
+      const x = lf.sd * (BRIDGE_W + 1.25), grp = new THREE.Group(); root.add(grp);
+      const ring = new THREE.Mesh(hawseGeo, wtChainMat); ring.position.set(x, HAWSE_V, 0.1); grp.add(ring);
+      const hole = new THREE.Mesh(hawseHoleGeo, hawseHoleMat); hole.position.set(x, HAWSE_V, 0.08); grp.add(hole);
+      const L0 = HAWSE_V - 0.05 - yA0, ch = makeChain(L0, 1, wtChainMat); ch.position.set(x, HAWSE_V - 0.05, ANCHOR_Z); grp.add(ch);
+      const anchor = anchorProto.clone(); anchor.position.set(x, HAWSE_V - 0.05 - L0, ANCHOR_Z); grp.add(anchor);
+      const tg = doorTarget(grp, x, HAWSE_V + 0.85, 0.1, true); tg.forEach(m => m.scale.setScalar(1.3));
+      const hinge = new THREE.Group(); hinge.position.set(lf.sd * BRIDGE_W, GATE_H / 2, 0); root.add(hinge); // the leaf hangs on a hinge at its outer edge
+      root.remove(lf.m); hinge.add(lf.m); lf.m.position.set(-lf.sd * BRIDGE_W / 2, 0, 0); lf.hinge = hinge;
+      lf.wt = { x, grp, ch, anchor, tg, L0, len: L0, pulled: false, tp: new THREE.Vector3() };
     }
     leaves.forEach(lf => { lf.hp = 2; }); // the first ball cracks a leaf, the second breaks it
     for (const o of order) {
@@ -4251,22 +4252,28 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // a level may have doors of solid coloured stone instead of dark glass, so they read as doors against its walls
   const doorMats = {};
   const solidDoorMat = c => doorMats[c] || (doorMats[c] = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.35, roughness: 0.2, metalness: 0.4 }));
-  const WT_Z = 1.3, wtArmGeo = new THREE.BoxGeometry(0.16, 0.16, WT_Z + 0.1), wtBraceGeo = new THREE.BoxGeometry(0.1, 0.1, Math.hypot(0.9, WT_Z * 0.6));
-  const wtChainMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.45, metalness: 0.7 }); // the rubies hang on black chains
+  const wtChainMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.45, metalness: 0.7 }); // the anchors, their chains and hawses: black iron
   const gateIronMat = new THREE.MeshStandardMaterial({ color: 0x1c1c22, roughness: 0.35, metalness: 0.8 });
-  // hung against the gate's pale wall a see-through ruby looked washed out: these are nearly solid, and glow deeper
-  const rubyWeightMat = new THREE.MeshStandardMaterial({ color: 0xc00022, emissive: 0x7a0010, roughness: 0.08, metalness: 0.25, transparent: true, opacity: 0.8, vertexColors: true });
-  const rubyChipMat = new THREE.MeshStandardMaterial({ color: 0xc00022, emissive: 0x7a0010, roughness: 0.08, metalness: 0.25, transparent: true, opacity: 0.85 }); // its splinters
-  // Rubinus's counterweights, alike on every gate: square step-cut rubies, upright, the table to the track; how far one reaches above and below its middle
-  const WT_SC = 0.6, WT_H = new THREE.Box3().setFromBufferAttribute(GEM_CUTS.gSq.attributes.position).max.y * WT_SC;
-  const weightGeo = new THREE.OctahedronGeometry(0.45, 0), weightMat = new THREE.MeshStandardMaterial({ color: 0x8a0a20, emissive: 0xff1a40, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.4, flatShading: true });
-  function dropWeight(g, lf, smash = false) { // smash: the stone itself was hit, and bursts where it hangs; else the chain was, and it falls
-    const w = lf.wt; if (w.down) return;
-    w.down = true; lf.opening = true;
-    scatterChain({ s: g.s }, { mesh: w.ch }, w.wp, wtChainMat); // the chain flies apart link by link, as the hangers' do
-    if (smash && w.ruby) { w.wt.visible = false; chips(w.wp, rubyChipMat, 22, tmpV2.set(0, 2, 0)); Sound.shatter(0.8); }
-    Sound.clink(); Sound.tone(260, 0.2, 0.1, "square", 0, 120); addScore(10);
-    if (g.leaves.every(l => l.wt.down)) { balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); }
+  const HAWSE_V = 4.9, ANCHOR_Z = 0.3, hawseGeo = new THREE.TorusGeometry(0.22, 0.07, 10, 28), hawseHoleGeo = new THREE.CircleGeometry(0.22, 24);
+  const hawseHoleMat = new THREE.MeshBasicMaterial({ color: 0x050506 });
+  const anchorProto = (() => { // a ship's anchor, flat to the track: a ring on top, the stock with its knobs, the shank, the arms curving up to barbed flukes
+    const a = new THREE.Group(), add = (geo, x, y, rz = 0) => { const m = new THREE.Mesh(geo, wtChainMat); m.position.set(x, y, 0); m.rotation.z = rz; a.add(m); };
+    add(new THREE.TorusGeometry(0.11, 0.035, 8, 20), 0, -0.11); // the ring the chain is shackled to
+    add(new THREE.CylinderGeometry(0.04, 0.04, 0.72, 10), 0, -0.34, Math.PI / 2); // the stock
+    for (const sd of [-1, 1]) add(new THREE.SphereGeometry(0.065, 12, 8), sd * 0.38, -0.34);
+    add(new THREE.CylinderGeometry(0.05, 0.06, 1.0, 10), 0, -0.72); // the shank
+    const R = 0.42, arc = Math.PI * 0.62; // the arms: an arc under the shank's foot
+    add(new THREE.TorusGeometry(R, 0.05, 8, 24, arc), 0, -1.2 + R, -Math.PI / 2 - arc / 2);
+    for (const sd of [-1, 1]) { const t = -Math.PI / 2 + sd * arc / 2; // a fluke on each arm's end, a barb pointing up and out
+      add(new THREE.ConeGeometry(0.1, 0.26, 4), Math.cos(t) * R, -1.2 + R + Math.sin(t) * R + 0.08, -sd * 0.5); }
+    add(new THREE.ConeGeometry(0.07, 0.14, 8), 0, -1.27, Math.PI); // the crown's point
+    return a;
+  })();
+  function pullAnchor(g, lf) {
+    const w = lf.wt; if (w.pulled) return;
+    w.pulled = true; lf.opening = true; w.tg.forEach(m => { m.material = targetOff; }); // the target goes out
+    Sound.clink(); Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); addScore(10);
+    if (g.leaves.every(l => l.wt.pulled)) { balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); }
   }
   function pressButton(bt) {
     if (bt.pressed) return;
@@ -4282,6 +4289,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (Math.abs(x) > BRIDGE_W + 0.1 || y < 0 || y > GATE_H + 0.1) return null;
     const lf = g.kind === "h" ? g.leaves[x < 0 ? 0 : 1] : g.leaves[y < GATE_H / 2 ? 0 : 1];
     if (lf.broken) return null;
+    if (lf.hinge) return lf.pr < 0.45 ? lf : null; // a swinging leaf: closed till it has turned well away
     if (g.kind === "h") return Math.abs(x) > BRIDGE_W * smooth5(lf.pr) ? lf : null;
     return y < GATE_H / 2 - (GATE_H / 2 + 0.3) * p || y > GATE_H / 2 + (GATE_H / 2 + 0.3) * p ? lf : null;
   }
@@ -4498,14 +4506,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       setObj(g.root, g.s, 0, 0);
       for (const lf of g.leaves) {
         if (g.kind !== "iris") lf.m.scale.setScalar(lf.m.scale.x + (1 - lf.m.scale.x) * Math.min(1, dt * 10));
-        if (g.kind === "h") lf.m.position.set(lf.sd * (BRIDGE_W / 2 + BRIDGE_W * smooth5(lf.pr)), GATE_H / 2, 0);
-        if (lf.wt) { const w = lf.wt; // a dropped weight falls to the floor and lies there
-          if (w.down && w.wt.visible && w.wt.position.y > w.floor) { w.vy -= G * dt; w.wt.position.y = Math.max(w.floor, w.wt.position.y + w.vy * dt);
-            if (w.wt.position.y === w.floor) { // a ruby shatters on the floor; the other levels' weights land with a thud and lie
-              if (w.ruby) { w.wt.visible = false; w.wp.copy(w.wt.position).applyMatrix4(g.root.matrix); chips(w.wp, rubyChipMat, 22, tmpV2.set(0, 4, 0)); Sound.shatter(0.8); } else Sound.tone(70, 0.25, 0.2); } }
-          if (!w.ruby) w.wt.rotation.y += dt * 0.6; else w.wt.rotation.y = 0.3 * Math.sin(time * 0.7 + w.x); // a ruby faces the track, turning only a little, so its cut shows
-          w.wp.copy(w.wt.position).applyMatrix4(g.root.matrix);
-          w.A.set(w.x, w.yTop, w.z).applyMatrix4(g.root.matrix); w.B.set(w.x, w.yW + w.top, w.z).applyMatrix4(g.root.matrix);
+        if (lf.hinge) lf.hinge.rotation.y = -lf.sd * 1.65 * smooth5(lf.pr); // swings away from the cart
+        else if (g.kind === "h") lf.m.position.set(lf.sd * (BRIDGE_W / 2 + BRIDGE_W * smooth5(lf.pr)), GATE_H / 2, 0);
+        if (lf.wt) { const w = lf.wt;
+          if (w.pulled && w.len > 0.35) { // the chain is hauled in, the anchor rising to just under the hawse
+            w.len = Math.max(0.35, w.len - dt * 3.2); w.anchor.position.y = HAWSE_V - 0.05 - w.len;
+            w.ch.children.forEach((l, i) => { l.visible = (i + 1) * LINK <= w.len + 0.01; });
+            if (w.len === 0.35) Sound.tone(90, 0.2, 0.15); }
+          w.tp.set(w.x, HAWSE_V + 0.85, 0.1).applyMatrix4(g.root.matrix);
         }
         else if (g.kind === "v") lf.m.position.set(0, GATE_H / 2 + lf.sd * (GATE_H / 4 + (GATE_H / 2 + 0.3) * p), 0);
         // each half moves far enough that its head and eye clear the doorway, and shrinks to stay behind the bulkhead
@@ -4547,7 +4555,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let wheels = [], wheelsDone = 0, triStep = 0, wavesDone = 0, tessGrids = [], tessRow = 0;
   // Tessera's stones: round brilliant rubies, deep and saturated; lit, they burn bright ruby
   const TILE_GEO = brilliantGeo(() => 0.56, { hc: 0.2, hp: 0.5, front: true });
-  const tileDimMat = new THREE.MeshStandardMaterial({ color: 0x3a0a12, roughness: 0.12, metalness: 0.3, vertexColors: true }); // unlit: near-black glass, its cut in the glints; lit, the light comes on inside
+  const tileDimMat = new THREE.MeshStandardMaterial({ color: 0xe4ecf4, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.32, vertexColors: true }); // unlit: clear glass, its cut in the glints; lit, the light comes on inside
   const tileLitMat = new THREE.MeshStandardMaterial({ color: 0xff0a2a, emissive: 0xa00014, emissiveIntensity: 0.55, roughness: 0.08, metalness: 0.2, vertexColors: true }); // bright, yet its facets still show
   const tileChipMat = new THREE.MeshStandardMaterial({ color: 0xd0002a, emissive: 0x80000f, roughness: 0.1, metalness: 0.2 });
   const tileGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xff0020, transparent: true, opacity: 0.4, depthWrite: false });
@@ -4990,8 +4998,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         grams: [0.7, 1, 1.2] }, // and glass blocks on chains, as in Labyrinthus
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 45], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
-      desc: "Нижний путь от Vitrum к Speculum сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат противовесы на цепях: собейте груз, и его дверца отъедет. Поперёк пути вращаются массивные стеклянные кресты и качаются на цепях стеклянные блоки.",
-      feats: ["Треугольный профиль, который поворачивается и меняется", "Ворота с дверцами на противовесах", "Финал Tessera: мозаика из рубинов"],
+      desc: "Нижний путь от Vitrum к Speculum сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат якоря на цепях: попадите в оранжевую мишень над клюзом, цепь втянется, и дверца распахнётся. Поперёк пути вращаются массивные стеклянные кресты и качаются на цепях стеклянные блоки.",
+      feats: ["Треугольный профиль, который поворачивается и меняется", "Ворота с дверцами на якорных цепях", "Финал Tessera: мозаика из рубинов"],
       req: { after: "vitrum" }, map: { x: 500, y: 320, label: "t" } }, // midway between Vitrum and Abyssus
     { id: "tao", num: "V", latin: "Tao", ru: "Дао", playable: true, music: "translucent_corridor", len: 1500, pal: PAL_TAO, finale: "taiji",
       style: { arch: "ring", blocks: "cube", glassWalls: false }, crystalMul: 1.4, armor: 1,
@@ -5063,8 +5071,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["Three forks: flip the switch with a shot", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       hortus: { ru: "Garden", desc: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it.",
         feats: ["Lashing boughs with crystals", "After a ride Gemini costs half at the depot", "Finale Vindemia: the harvest"] },
-      rubinus: { ru: "Ruby", desc: "The lower way from Vitrum to Speculum through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by counterweights on chains: shoot a weight down and its door slides away. Solid glass crosses turn across the way and glass blocks swing on chains.",
-        feats: ["A triangular profile that turns and changes", "Gates with doors on counterweights", "Finale Tessera: a ruby mosaic"] },
+      rubinus: { ru: "Ruby", desc: "The lower way from Vitrum to Speculum through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by anchors on chains: hit the orange target over the hawse, the chain hauls in and its door swings open. Solid glass crosses turn across the way and glass blocks swing on chains.",
+        feats: ["A triangular profile that turns and changes", "Gates with doors on anchor chains", "Finale Tessera: a ruby mosaic"] },
       tao: { ru: "The Way", desc: "The top of the upper line, from where the Way of Tao runs through Nox to Lux. Round moon gates. Ink and rice paper: in the Light white with a scarlet seal, in the Dark black ink with a jade glow. Mist drifts over the track and a yin-yang sign slowly turns.",
         feats: ["Yin-yang gates: buttons part the halves", "Rams on chains beside the track and hammer mills", "Finale Taiji: yin and yang in turn"] },
       speculum: { ru: "Mirror", desc: "Mirror halls. Behind the glass walls the corridor repeats, and beside each real crystal its reflection may hang. A reflection gives no balls, and a shot at it costs a ball. Across the way prisms gather light into beams that hovering mirrors bounce into a web: break a prism or a mirror to get through. Tall gates in drifting steam open to hits on the targets running up and down their leaves; monoliths hang on chains.",
@@ -5512,7 +5520,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const m of pr.mirrors) if (m.alive) { const t = rayBox(o, dir, m.inv, m.len / 2, 0.12, MIR_D / 2); if (t >= 0) hits.push({ d: t, kind: "mirror", x: set, m }); }
     }
     for (const set of lbars) if (Math.abs(set.s - sC) < 130) for (const b of set.bars) if (b.alive) { const t = rayBox(o, dir, b.inv, b.len / 2, BAR_T / 2 + 0.2, BAR_T / 2 + 0.05); if (t >= 0) hits.push({ d: t, kind: "lbar", x: b }); }
-    for (const g of gates) if (g.weights) for (const lf of g.leaves) { const w = lf.wt; if (w.down) continue; tmpV.copy(w.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.36) hits.push({ d, kind: "weight", x: g, lf }); }
+    for (const g of gates) if (g.weights) for (const lf of g.leaves) { const w = lf.wt; if (w.pulled) continue; tmpV.copy(w.tp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.36) hits.push({ d, kind: "weight", x: g, lf }); }
     for (const g of gates) for (const bt of g.buttons) {
       if (bt.pressed) continue;
       tmpV.copy(bt.wp).sub(o); const d = tmpV.dot(dir);
@@ -5555,7 +5563,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       else if (h.kind === "button" && !h.x.pressed) pressButton(h.x);
       else if (h.kind === "cata") fireCatapult(h.x);
       else if (h.kind === "cataglass") { end = h.d; break; } // the thick glass stops the beam
-      else if (h.kind === "weight") dropWeight(h.x, h.lf, true);
+      else if (h.kind === "weight") pullAnchor(h.x, h.lf);
       else if (h.kind === "hmhead") { end = h.d; break; }
       else if (h.kind === "door") { const at = tmpV.copy(o).addScaledVector(dir, h.d).clone(); doorStrike(h.x, h.t, at, vel); if (!h.t.c) { end = h.d; break; } } // a chain cut lets the beam on
       else if (h.kind === "ramchain" && h.c.alive) { breakRamChain(h.x, h.c, tmpV.copy(o).addScaledVector(dir, h.d).clone()); end = h.d; break; } // one chain per shot
@@ -6049,7 +6057,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (!dead) { const ch = cataBall(b, pos, pathDist, b.v); if (ch) { if (ch === "target") mark(); dead = true; } }
       if (!dead) for (const g of gates) {
         if (Math.abs(g.s - sC) > 130) continue;
-        if (g.weights) for (const lf of g.leaves) { const w = lf.wt; const onStone = pathDist(w.wp) < 0.55 + R_BALL; if (!w.down && (onStone || segDist(pos, w.A, w.B) < CHAIN_HIT)) { mark(); dropWeight(g, lf, onStone); chips(w.wp, LEVEL.id === "rubinus" ? rubyChipMat : weightMat, 6, b.v); dead = true; break; } }
+        if (g.weights) for (const lf of g.leaves) { const w = lf.wt; if (!w.pulled && pathDist(w.tp) < 0.6 + R_BALL) { mark(); pullAnchor(g, lf); chips(w.tp, targetOn, 5, b.v); dead = true; break; } }
         if (dead) break;
         for (const bt of g.buttons) if (!bt.pressed && pathDist(bt.wp) < bt.r * 1.3 + R_BALL) { mark(); pressButton(bt); chips(bt.wp, buttonMat, 5, b.v); dead = true; break; }
         if (dead) break;

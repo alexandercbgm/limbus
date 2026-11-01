@@ -685,7 +685,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.86</div>
+      <div class="credit version">v1.0.87</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -863,7 +863,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.86`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.87`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1493,7 +1493,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const redGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a10, transparent: true, opacity: 0.6, depthWrite: false });
   if (PHONE) { redGlow.opacity = 0.42; redGlow.color.set(0xe0281a); impEdgeMat.color.set(0xd8341c); blueGlow.opacity *= 0.7; } // and their halos and the imps' cages, on a phone
   const glassWallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, transparent: true, opacity: 0.3, roughness: 0.08, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide });
-  const quartzMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.55, roughness: 0.05, metalness: 0.05, flatShading: true });
+  const quartzMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.78, roughness: 0.12, metalness: 0.35, flatShading: true });
   const prismMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.72, roughness: 0.1, metalness: 0.25, flatShading: true });
   const sigilMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8 });
   const stationMat = new THREE.MeshStandardMaterial({ map: floorTex.map, roughness: 0.6, metalness: 0.1 });
@@ -1526,8 +1526,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
     glassWallMat.color.copy(cur.wall); glassWallMat.emissive.copy(cur.line).multiplyScalar(Math.max(0.15, cur.lineI));
-    // Vitrum's crystals: rock crystal, clear, the level's own glass a shade paler, lit a little from within
-    quartzMat.color.copy(cur.glass).lerp(WHITE, 0.35); quartzMat.emissive.copy(cur.glass).multiplyScalar(0.3);
+    quartzMat.color.copy(cur.frame).lerp(cur.glass, 0.3); quartzMat.emissive.copy(cur.frame).multiplyScalar(0.25); // Vitrum's crystals: the frames' sapphire, lit a little from within
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
     stationMat.color.copy(cur.surf).lerp(cur.frame, 0.12);
@@ -1663,9 +1662,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
     prism: inst(new THREE.OctahedronGeometry(0.75, 0), prismMat, 260),
     // Vitrum, out over the abyss: crystals of quartz, six-sided, pointed at both ends, 2 high and 0.64 across before they're scaled
-    quartz: inst(new THREE.LatheGeometry([[0, -1], [0.32, -0.62], [0.32, 0.62], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 200),
+    quartz: inst(new THREE.LatheGeometry([[0, -1], [0.32, -0.62], [0.32, 0.62], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 160),
     // and a cluster's: one point, the flat foot at the origin (2 long before it's scaled)
-    quartz1: inst(new THREE.LatheGeometry([[0, 0], [0.32, 0], [0.32, 1.42], [0, 2]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 240),
+    quartz1: inst(new THREE.LatheGeometry([[0, 0], [0.32, 0], [0.32, 1.42], [0, 2]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 300),
     ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus and Hortus, squeezed to fit (RING_SX, RING_SY)
     coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),
     block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 900),
@@ -1780,31 +1779,34 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         d.blocks.push({ u: (h1 - 0.5) * 2 * (SW + 22), v: 9 + h2 * 14, sx: r, sy: r, sz: r, rx: 0, ry: 0, spin: 0, wob: h1 * TAU }); }
       decor.set(k, d); return d;
     }
-    if (STYLE.blocks === "quartz") { // Vitrum: crystals of quartz well out on either side. In each 10 m (five segments) none (one in
-      // five), a lone one (two in five) or a cluster (two in five), on one of the group's first four segments
-      const g = Math.floor(k / 5), r0 = hash(g * 11 + 1);
-      if (r0 >= 0.2 && k - g * 5 === Math.floor(hash(g * 7 + 2) * 4)) {
-        const h1 = hash(k * 31), h2 = hash(k * 17), h3 = hash(k * 23), side = (g % 2 ? 1 : -1) * (h1 < 0.3 ? -1 : 1);
-        const cu = side * (SW + 6 + h3 * 14), cv = -6 + h2 * 15, Y = new THREE.Vector3(0, 1, 0), O = new THREE.Vector3();
-        // at = where its foot (or a lone one's middle) is, off the group's place
+    if (STYLE.blocks === "quartz") { // Vitrum: crystals of quartz out on either side, as many and as big as Abyssus's blocks. Every 4 m
+      // (every second segment) a place, holding nothing (15 in 100), a lone crystal (45) or a cluster (40). Everything grows
+      // upward: its axis in the upper half of the sphere
+      if (k % 2 === 0) {
+        const r0 = hash(k * 11 + 1);
+        const h1 = hash(k * 31), h2 = hash(k * 17), h3 = hash(k * 23), side = h1 < 0.5 ? -1 : 1;
+        const cu = side * (SW + 5 + h3 * 20), cv = -8 + h2 * 20, Y = new THREE.Vector3(0, 1, 0), O = new THREE.Vector3();
+        // at = where its middle (or a side crystal's foot) is, off the group's place
         const put = (key, dir, w, len, at, spin) => d.blocks.push({ key, u: cu + at.x, v: cv + at.y, ds: -at.z, sx: w, sy: len / 2, sz: w,
           q: new THREE.Quaternion().setFromUnitVectors(Y, dir), spin });
-        if (r0 < 0.6) { // a lone crystal, pointed at both ends, any way about, turning slowly about its length; 3.6 to 4 times as
-          // long as it's thick, 4 to 7 m
-          const w = 1.6 + hash(k * 59) * 1.0, len = w * (2.3 + hash(k * 61) * 0.26);
-          put("quartz", new THREE.Vector3(hash(k * 41) - 0.5, hash(k * 43) - 0.5, hash(k * 47) - 0.5).normalize(), w, len, O, (h2 - 0.5) * 0.3);
-        } else { // a cluster, always growing upward: a tall crystal along the cluster's axis (no more than 34 degrees off the
-          // vertical), its flat foot down, and two to four shorter ones fanned evenly round it, 26 to 43 degrees out, each
-          // grown out of its lower part: the foot of each is on its axis, inside it, so nothing sticks out and they part
-          // without running through each other
-          const al = hash(k * 41) * 0.6, be = hash(k * 43) * TAU, A = new THREE.Vector3(Math.sin(al) * Math.cos(be), Math.cos(al), Math.sin(al) * Math.sin(be));
+        const upward = (maxTilt, a, b) => { const al = hash(a) * maxTilt, be = hash(b) * TAU; return new THREE.Vector3(Math.sin(al) * Math.cos(be), Math.cos(al), Math.sin(al) * Math.sin(be)); };
+        if (r0 < 0.15) { /* nothing here */ }
+        else if (r0 < 0.6) { // a lone crystal, pointed at both ends, no more than 57 degrees off the vertical, turning slowly about its
+          // length; 3.6 to 4 times as long as it's thick, 6 to 10 m
+          const w = 2.5 + hash(k * 59) * 1.4, len = w * (2.3 + hash(k * 61) * 0.26);
+          put("quartz", upward(1.0, k * 41, k * 43), w, len, O, (h2 - 0.5) * 0.3);
+        } else { // a cluster: a tall crystal pointed at both ends along the cluster's axis (no more than 34 degrees off the
+          // vertical), and two to four shorter ones fanned evenly round it, 26 to 43 degrees out, each grown out of its lower
+          // part: the flat foot of each is on its axis, inside it, so nothing sticks out and they part without running
+          // through each other
+          const A = upward(0.6, k * 41, k * 43);
           const P1 = new THREE.Vector3().crossVectors(A, Math.abs(A.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1)).normalize(), P2 = new THREE.Vector3().crossVectors(A, P1);
-          const w0 = 1.3 + hash(k * 59) * 0.7, len0 = w0 * (3.2 + hash(k * 61)), m = 2 + Math.floor(hash(k * 53) * 3), f0 = hash(k * 67) * TAU;
-          put("quartz1", A, w0, len0, O, 0);
+          const w0 = 2.1 + hash(k * 59) * 0.9, len0 = w0 * (3.4 + hash(k * 61) * 0.8), m = 2 + Math.floor(hash(k * 53) * 3), f0 = hash(k * 67) * TAU;
+          put("quartz", A, w0, len0, O, 0);
           for (let i = 0; i < m; i++) {
             const f = f0 + i * TAU / m + (hash(k * 71 + i) - 0.5) * 0.5, th = 0.45 + hash(k * 73 + i) * 0.3, w = w0 * (0.55 + hash(k * 79 + i) * 0.25);
             const dir = A.clone().multiplyScalar(Math.cos(th)).addScaledVector(P1, Math.sin(th) * Math.cos(f)).addScaledVector(P2, Math.sin(th) * Math.sin(f));
-            put("quartz1", dir, w, w * (2.6 + hash(k * 83 + i)), A.clone().multiplyScalar(len0 * (0.12 + hash(k * 89 + i) * 0.16)), 0);
+            put("quartz1", dir, w, w * (2.6 + hash(k * 83 + i)), A.clone().multiplyScalar(-len0 * (0.1 + hash(k * 89 + i) * 0.15)), 0);
           }
         }
       }

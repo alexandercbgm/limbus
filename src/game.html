@@ -1080,7 +1080,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
   // sky dome: gradient that tracks the karma palette; the horizon color equals the fog color so the void reads as one space
   const skyUni = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, stars: { value: 0 }, band: { value: new THREE.Color() },
-    mode: { value: 0 }, amt: { value: 0 }, sunK: { value: 1 }, fxc: { value: new THREE.Color() }, t: { value: 0 }, px: { value: 0.002 } };
+    mode: { value: 0 }, amt: { value: 0 }, sunK: { value: 1 }, fxc: { value: new THREE.Color() }, t: { value: 0 }, px: { value: 0.002 }, bhd: { value: new THREE.Vector3(0, 0.3, -1).normalize() }, bhRot: { value: 0 }, bhTex: { value: new THREE.DataTexture(new Uint8Array(4), 1, 1) } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(480, 32, 16), new THREE.ShaderMaterial({
     uniforms: skyUni, side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: "varying vec3 vP; void main(){ vP = (modelMatrix*vec4(position,1.0)).xyz - cameraPosition; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
@@ -1089,7 +1089,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // 5 warm clouds with drifting gold dust, 8 the clear sky just after sunset, the sun half sunk behind the cart.
     // Whatever the mode, as the palette darkens the stars come out
     // and a faint galaxy in the level's own colour shows through
-    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; uniform float mode; uniform float amt; uniform float sunK; uniform vec3 fxc; uniform float t; uniform float px; varying vec3 vP;
+    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 bot; uniform float stars; uniform vec3 band; uniform float mode; uniform float amt; uniform float sunK; uniform vec3 fxc; uniform float t; uniform float px; uniform vec3 bhd; uniform float bhRot; uniform sampler2D bhTex; varying vec3 vP;
       float h3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
       float vn(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
         return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
@@ -1127,6 +1127,28 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         return c;
       }
       const float SUN_R = 0.05;
+      // Speculum's black hole, rendered once into a picture (tools/render_blackhole.js: 0.4 rad each way, its shadow 0.108
+      // rad across, from 24 hole-radii off) and shown at BH_K of that size in the direction bhd, turned by bhRot; round it
+      // the sky is bent outward as it would be, weakly, by 2 / b, and dimmed where it would be smeared thin
+      const float BH_K = 0.47, BH_TAN = 0.42, BH_L = 24.0 / 0.47;
+      vec3 bhStars(vec3 n) { // the first picture's sky: a dusty Milky Way, brown and grey with dark lanes, across behind the hole, and dense stars
+        return galaxyAx(n, vec3(0.62, 0.55, 0.47), 0.5, normalize(cross(bhd, vec3(1.0, 0.8, 0.0)))) + galaxy(n, vec3(0.5, 0.47, 0.42), 0.25) +
+          vec3(0.9, 0.92, 1.0) * starAt(n, 320.0, 0.965) * 0.55 + vec3(0.003, 0.003, 0.004);
+      }
+      vec3 blackHole(vec3 n) {
+        float ct = dot(n, bhd), th = acos(clamp(ct, -1.0, 1.0));
+        vec3 P0 = normalize(n - bhd * ct + 1e-6), sky;
+        float ths = th - 2.0 / (BH_L * max(th, 0.02)) * 1.13 * (1.0 - smoothstep(1.0, 1.6, th));
+        sky = bhStars(normalize(bhd * cos(ths) + P0 * sin(ths))) * mix(0.15, 1.0, smoothstep(0.06, 0.14, th));
+        sky += vec3(0.5, 0.5, 0.55) * 0.01 * (0.5 + 0.5 * sin(th * 560.0)) * smoothstep(0.26, 0.07, th); // faint rings about it
+        if (ct > 0.5) {
+          vec3 R = normalize(vec3(-bhd.z, 0.0, bhd.x)), U = cross(R, bhd);
+          vec2 q = vec2(dot(n, R), dot(n, U)) / ct / (BH_TAN * BH_K), cr = vec2(cos(bhRot), sin(bhRot));
+          q = vec2(q.x * cr.x - q.y * cr.y, q.x * cr.y + q.y * cr.x);
+          if (abs(q.x) < 1.0 && abs(q.y) < 1.0) { vec4 tx = texture2D(bhTex, q * 0.5 + 0.5); sky = mix(sky, tx.rgb, tx.a); }
+        }
+        return sky;
+      }
       const vec3 SUN_AZ = vec3(0.819, 0.0, -0.574); // 55 degrees right of the track's start (-z)
       void main(){ vec3 n = normalize(vP); float h = n.y;
         vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, bot, pow(-h, 0.5));
@@ -1218,6 +1240,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           c += galaxy(n, vec3(0.45, 0.55, 0.95), dome * 1.1);
           c += ((fxc * rays * fall * 0.9 + vec3(1.0) * pow(sdot, 10.0) * 0.5) * amt * (1.0 - 0.75 * dome) + vec3(1.0) * pow(sdot, 200.0) * 2.5 * amt) * sunK; // the rays fade over the stars
         }
+        if (m == 9.0) c = blackHole(n); // Speculum: in place of all the rest
         gl_FragColor = vec4(c, 1.0); }`,
   }));
   sky.frustumCulled = false;
@@ -1420,6 +1443,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
 
   const DUSK_FOG = new THREE.Color(0.16, 0.18, 0.3); // Vitrum's haze of the dusk
+  const BH_FWD = new THREE.Vector3(), BH_EL = 0.3; let bhHead = null, bhA = 0, bhLastT = 0; // Speculum's black hole: its heading (late), 0.3 rad up
+  let bhTexDone = false;
+  function bhTexInit() { // the picture comes at the page's end, after the code: taken up the first time the sky needs it
+    const img = document.getElementById("sky-blackhole"); if (!img || bhTexDone) return; bhTexDone = true;
+    const tx = new THREE.Texture(img); tx.minFilter = THREE.LinearMipmapLinearFilter; tx.anisotropy = 4; // seen small: mipmapped, or its edges shimmer
+    const ready = () => { tx.needsUpdate = true; skyUni.bhTex.value = tx; }; if (img.complete && img.naturalWidth) ready(); else img.addEventListener("load", ready);
+  }
   function applyPalette() {
     skyUni.top.value.copy(cur.sky); skyUni.hor.value.copy(cur.hor); skyUni.bot.value.copy(cur.gnd); skyUni.stars.value = cur.stars; skyUni.band.value.copy(cur.band);
     const fx = (LEVEL_LOOK[LEVEL.id] || {}).sky || { mode: 0 };
@@ -1438,6 +1468,19 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     edgeMat.color.copy(cur.edge);
     hemi.color.copy(cur.hemiS); hemi.groundColor.copy(cur.hemiG); hemi.intensity = cur.hemiI * (LEVEL.lightMul || 1); // a level may be lit brighter
     if (fx.mode === 8) scene.fog.color.lerp(DUSK_FOG, 0.8); // the haze of the dusk
+    if (fx.mode === 9 && !bhTexDone) bhTexInit();
+    if (fx.mode === 9) { // Speculum's black hole hangs ahead, up over the tunnel: it follows the heading late, drifting aside on a turn
+      // but never more than 20 degrees off it, so it stays in sight; and its picture sways a degree or so, as the disk turns
+      camera.getWorldDirection(BH_FWD); BH_FWD.y = 0; if (BH_FWD.lengthSq() < 1e-6) BH_FWD.set(0, 0, -1); BH_FWD.normalize();
+      const dt = Math.min(0.1, Math.max(0, time - bhLastT)); bhLastT = time;
+      const want = Math.atan2(BH_FWD.x, -BH_FWD.z), wrap = x => Math.atan2(Math.sin(x), Math.cos(x));
+      if (!bhHead || dt >= 0.1) bhA = want; // a new ride, or back after a pause: straight ahead
+      bhA += wrap(want - bhA) * (1 - Math.exp(-dt / 2.5)); // late, as if far
+      const off = wrap(want - bhA); if (Math.abs(off) > 0.35) bhA = want - Math.sign(off) * 0.35;
+      bhHead = true;
+      skyUni.bhd.value.set(Math.sin(bhA) * Math.cos(BH_EL), Math.sin(BH_EL), -Math.cos(bhA) * Math.cos(BH_EL));
+      skyUni.bhRot.value = 0.025 * Math.sin(time * 0.21);
+    } else bhHead = null;
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
     shellMat.color.copy(cur.block).lerp(cur.frame, 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
@@ -4927,7 +4970,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     rubinus: { sky: { mode: 6, a: 0.95, c: "#ff2a46" }, shell: [8, 10.5] }, // the triangles are wide: a hall of glass
     labyrinthus: { sky: { mode: 3, a: 0.75, c: "#d4f6e6" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },
     hortus: { sky: { mode: 3, a: 0.85, c: "#fff0f4" } },
-    speculum: { sky: { mode: 2, a: 0.9, c: "#f0f4ff" }, shell: [5.3, 8.75], style: { tex: "mirror", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum // open to a sky of quicksilver
+    speculum: { sky: { mode: 9, a: 0.9, c: "#f0f4ff" }, shell: [5.3, 8.75], style: { tex: "mirror", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum; open to a black sky with a black hole ahead
     abyssus: { sky: { mode: 1 } },
     carcer: { sky: { mode: 0 }, style: { tex: "panels" } }, // walls of grey Soviet precast slabs
     lux: { sky: { mode: 4, a: 0.9, c: "#fff4d0" } },

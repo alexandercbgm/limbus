@@ -74,6 +74,9 @@ for track in [] if "--no-music" in sys.argv or TELEGRAM else sorted((root / "mus
 for shot in sorted(f for f in (root / "minis").glob("*.jpg") if "." not in f.stem): # <id>.clip.jpg is a clip's first frame
     data = base64.b64encode(shot.read_bytes()).decode("ascii")
     page += f'<img hidden alt="" id="mini-{shot.stem}" src="data:image/jpeg;base64,{data}">\n'
+# pictures for the skies (sky/<name>.webp, e.g. Speculum's black hole, rendered by tools/render_blackhole.js)
+for pic in sorted((root / "sky").glob("*.webp")):
+    page += f'<img hidden alt="" id="sky-{pic.stem}" src="data:image/webp;base64,{base64.b64encode(pic.read_bytes()).decode("ascii")}">\n'
 # clips of a level that play in its sheet in place of the shot (minis/<level id>.mp4): inline in the one-file page, beside it in the Telegram build
 for clip in sorted(f for f in (root / "minis").glob("*.mp4") if "." not in f.stem): # <id>.bot.mp4 is the bot's 16:9 cut, served beside the Telegram build only
     src = f"minis/{clip.name}" if TELEGRAM else "data:video/mp4;base64," + base64.b64encode(clip.read_bytes()).decode("ascii")

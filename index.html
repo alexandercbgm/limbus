@@ -688,7 +688,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.95</div>
+      <div class="credit version">v1.0.96</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.95`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.96`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1761,6 +1761,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     strip.visible = seg > 0;
   }
   const STRIP_N = AHEAD + 20;
+  const endCap = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide })); // fogged through, so the fog's colour
+  endCap.matrixAutoUpdate = false; endCap.frustumCulled = false; endCap.visible = false; scene.add(endCap);
   const floorStrip = makeStrip(STRIP_N, surfMat, false), vaultStrip = makeStrip(STRIP_N, surfMat, true);
   const gFloorStrip = makeStrip(GHOST_N, surfMat, false), gVaultStrip = makeStrip(GHOST_N, surfMat, true);
   // a mirror wall reflects the corridor to an offset of 2 × (SW + 0.12) on its side (set with the level)
@@ -1966,6 +1968,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, STYLE.bridge ? BRIDGE_W : LEVEL.halls ? HALL_W : STYLE.floorW || SW); // Vitrum: as wide as the hexagon's bottom edge
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H); else vaultStrip.visible = false;
+    { // where a walled and roofed corridor (Labyrinthus, Carcer) stops being drawn, far ahead, the sky showed through its open
+      // end as a window: a cap closes it there, past the fog's far edge, so it's all fog's colour
+      const sEnd = Math.floor(sC) + AHEAD - 4.5, dk = getDecor(Math.floor(sEnd / SL)), hh = dk.hh || SH, ww = dk.hw || SW;
+      endCap.visible = (!!STYLE.closed || !!LEVEL.halls) && dk.wl && dk.wr && dk.ceil;
+      if (endCap.visible) { placeM(endCap.matrix, sEnd, 0, hh / 2).scale(SV.set(2 * ww + 0.6, hh + 0.4, 1)); endCap.matrixWorldNeedsUpdate = true; }
+    }
     // Speculum: the glass walls are mirrors, and beyond each one the corridor repeats: floor, vault, rails,
     // sleepers and arches, closed by a dark wall where the reflection's own mirror would be
     for (const m of mirStrips) {

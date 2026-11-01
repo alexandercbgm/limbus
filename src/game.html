@@ -2919,10 +2919,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (f === "taiji") { addTaiji(s); return 13; }
     if (f === "tessera") {
       superWave++;
-      const grid = { tiles: [], lit: null, t: 0, every: Math.max(0.35, 0.8 - superWave * 0.06) };
+      const grid = { tiles: [], lit: new Set(), t: 0, every: Math.max(0.35, 0.8 - superWave * 0.06) };
       for (let r = 0; r < 3; r++) for (let q = 0; q < 3; q++) {
         addCrystal(s, (q - 1) * 2.0, 1.6 + r * 1.35, 2);
-        const c = crystals[crystals.length - 1]; c.tile = grid; c.mesh.material = tileDimMat; c.group.children[1].visible = false; c.spin = 0.3; grid.tiles.push(c);
+        const c = crystals[crystals.length - 1]; c.tile = grid; c.mesh.geometry = TILE_GEO; c.mesh.material = tileDimMat; c.mesh.rotation.z = Math.random() * TAU; // a round ruby, its table to us
+        c.group.children[1].material = tileGlow; c.group.children[1].visible = false; c.spin = 0; grid.tiles.push(c);
       }
       tessGrids.push(grid);
       return 14;
@@ -4079,7 +4080,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const weights = kind === "h" && (LEVEL.gateOpeners || ["buttons"])[Math.floor(Math.random() * (LEVEL.gateOpeners || ["buttons"]).length)] === "weights";
     if (kind !== "iris" && kind !== "taiji" && !STYLE.bridge) { // in a corridor a bulkhead closes all around the doorway; the leaves slide away behind it
       const sh = new THREE.Shape([new THREE.Vector2(-SW, 0), new THREE.Vector2(SW, 0), new THREE.Vector2(SW, SH), new THREE.Vector2(-SW, SH)]);
-      sh.holes.push(new THREE.Path([new THREE.Vector2(-BRIDGE_W, 0), new THREE.Vector2(-BRIDGE_W, GATE_H), new THREE.Vector2(BRIDGE_W, GATE_H), new THREE.Vector2(BRIDGE_W, 0)]));
+      const hy = LEVEL.gateIron ? top - 0.2 : GATE_H; // Rubinus: the hole runs up to the black lintel, no pale band of wall over the doors, and what's past them shows
+      sh.holes.push(new THREE.Path([new THREE.Vector2(-BRIDGE_W, 0), new THREE.Vector2(-BRIDGE_W, hy), new THREE.Vector2(BRIDGE_W, hy), new THREE.Vector2(BRIDGE_W, 0)]));
       const bh = new THREE.Mesh(new THREE.ShapeGeometry(sh), LEVEL.id === "rubinus" ? rubyBulkheadMat : bulkheadMat); bh.position.z = 0.07; root.add(bh);
     }
     const round = kind === "iris" || kind === "taiji";
@@ -4128,7 +4130,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const brace = new THREE.Mesh(wtBraceGeo, LEVEL.gateIron ? gateIronMat : frameMat); brace.position.set(x, yTop - 0.45, z * 0.3); brace.rotation.x = -Math.atan2(0.9, z * 0.6); grp.add(brace); // a strut down to the wall
       const ruby = LEVEL.id === "rubinus", top = ruby ? WT_H : 0.45; // the chain reaches down to the stone's top
       const ch = makeChain(yTop - yW - top, 1, wtChainMat); ch.position.set(x, yTop, z); grp.add(ch);
-      const wt = ruby ? new THREE.Mesh(rubyWeightGeo, rubyWeightMat) : new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt);
+      const wt = ruby ? new THREE.Mesh(GEM_CUTS.gEmer, rubyWeightMat) : new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt);
+      if (ruby) wt.scale.setScalar(WT_SC);
       lf.wt = { x, z, yTop, yW, top, ruby, floor: ruby ? WT_H : 0.45, grp, ch, wt, vy: 0, down: false, wp: new THREE.Vector3(), A: new THREE.Vector3(), B: new THREE.Vector3() };
     }
     leaves.forEach(lf => { lf.hp = 2; }); // the first ball cracks a leaf, the second breaks it
@@ -4167,13 +4170,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // hung against the gate's pale wall a see-through ruby looked washed out: these are nearly solid, and glow deeper
   const rubyWeightMat = new THREE.MeshStandardMaterial({ color: 0xc00022, emissive: 0x7a0010, roughness: 0.08, metalness: 0.25, transparent: true, opacity: 0.8, vertexColors: true });
   const rubyChipMat = new THREE.MeshStandardMaterial({ color: 0xc00022, emissive: 0x7a0010, roughness: 0.08, metalness: 0.25, transparent: true, opacity: 0.85 }); // its splinters
-  // Rubinus's counterweights, alike on every gate: sixteen faces, two eight-sided pyramids base to base, a point up to the chain and one down
-  const WT_R = 0.42, WT_H = 0.62, rubyWeightGeo = (() => {
-    const pos = [], V = [...Array(8).keys()].map(i => [Math.cos(i * TAU / 8) * WT_R, 0, -Math.sin(i * TAU / 8) * WT_R]);
-    for (let i = 0; i < 8; i++) { const A = V[i], B = V[(i + 1) % 8]; pos.push(0, WT_H, 0, ...A, ...B, 0, -WT_H, 0, ...B, ...A); }
-    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-    return facetColours(g, 5);
-  })();
+  // Rubinus's counterweights, alike on every gate: emerald-cut rubies, upright, the table to the track; how far one reaches above and below its middle
+  const WT_SC = 0.6, WT_H = new THREE.Box3().setFromBufferAttribute(GEM_CUTS.gEmer.attributes.position).max.y * WT_SC;
   const weightGeo = new THREE.OctahedronGeometry(0.45, 0), weightMat = new THREE.MeshStandardMaterial({ color: 0x8a0a20, emissive: 0xff1a40, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.4, flatShading: true });
   function dropWeight(g, lf, smash = false) { // smash: the stone itself was hit, and bursts where it hangs; else the chain was, and it falls
     const w = lf.wt; if (w.down) return;
@@ -4418,7 +4416,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           if (w.down && w.wt.visible && w.wt.position.y > w.floor) { w.vy -= G * dt; w.wt.position.y = Math.max(w.floor, w.wt.position.y + w.vy * dt);
             if (w.wt.position.y === w.floor) { // a ruby shatters on the floor; the other levels' weights land with a thud and lie
               if (w.ruby) { w.wt.visible = false; w.wp.copy(w.wt.position).applyMatrix4(g.root.matrix); chips(w.wp, rubyChipMat, 22, tmpV2.set(0, 4, 0)); Sound.shatter(0.8); } else Sound.tone(70, 0.25, 0.2); } }
-          w.wt.rotation.y += dt * 0.6;
+          if (!w.ruby) w.wt.rotation.y += dt * 0.6; else w.wt.rotation.y = 0.3 * Math.sin(time * 0.7 + w.x); // a ruby faces the track, turning only a little, so its cut shows
           w.wp.copy(w.wt.position).applyMatrix4(g.root.matrix);
           w.A.set(w.x, w.yTop, w.z).applyMatrix4(g.root.matrix); w.B.set(w.x, w.yW + w.top, w.z).applyMatrix4(g.root.matrix);
         }
@@ -4460,16 +4458,21 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // Wheels of crystals turn above the bridge, a few red among the blue. Every blue one pays; take all the blue
   // off a wheel before it goes by and the wheel adds a bonus.
   let wheels = [], wheelsDone = 0, triStep = 0, wavesDone = 0, tessGrids = [], tessRow = 0;
-  const tileDimMat = new THREE.MeshStandardMaterial({ color: 0x3a0612, emissive: 0x200008, emissiveIntensity: 0.6, roughness: 0.25, metalness: 0.3, flatShading: true, transparent: true, opacity: 0.8 });
-  const tileLitMat = new THREE.MeshStandardMaterial({ color: 0xff3a5a, emissive: 0xff1a40, emissiveIntensity: 1.6, roughness: 0.2, metalness: 0.3, flatShading: true });
+  // Tessera's stones: round brilliant rubies, deep and saturated; lit, they burn bright ruby
+  const TILE_GEO = brilliantGeo(() => 0.56, { hc: 0.2, hp: 0.5, front: true });
+  const tileDimMat = new THREE.MeshStandardMaterial({ color: 0x9a0020, emissive: 0x3a0008, roughness: 0.1, metalness: 0.25, transparent: true, opacity: 0.88, vertexColors: true });
+  const tileLitMat = new THREE.MeshStandardMaterial({ color: 0xff0a2a, emissive: 0xa00014, emissiveIntensity: 0.55, roughness: 0.08, metalness: 0.2, vertexColors: true }); // bright, yet its facets still show
+  const tileChipMat = new THREE.MeshStandardMaterial({ color: 0xd0002a, emissive: 0x80000f, roughness: 0.1, metalness: 0.2 });
+  const tileGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xff0020, transparent: true, opacity: 0.4, depthWrite: false });
   function updateTessera(dt) {
     for (const gr of tessGrids) {
       gr.t -= dt;
       if (gr.t <= 0) {
         gr.t = gr.every;
-        if (gr.lit && gr.lit.alive) { gr.lit.mesh.material = tileDimMat; gr.lit.group.children[1].visible = false; }
-        const left = gr.tiles.filter(c => c.alive); gr.lit = left.length ? left[Math.floor(Math.random() * left.length)] : null;
-        if (gr.lit) { gr.lit.mesh.material = tileLitMat; gr.lit.group.children[1].visible = true; }
+        for (const c of gr.lit) if (c.alive) { c.mesh.material = tileDimMat; c.group.children[1].visible = false; }
+        const left = gr.tiles.filter(c => c.alive); gr.lit = new Set(); // three of the nine light up at once (or what's left, if fewer)
+        while (gr.lit.size < Math.min(3, left.length)) gr.lit.add(left[Math.floor(Math.random() * left.length)]);
+        for (const c of gr.lit) { c.mesh.material = tileLitMat; c.group.children[1].visible = true; }
       }
     }
     tessGrids = tessGrids.filter(gr => gr.tiles.some(c => c.alive));
@@ -4690,7 +4693,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     ruina: { name: "RUINA", ru: "Обвал", note: "С потолка падают глыбы. Сбивайте их в воздухе или на рельсах: +2 шара, каждые 4 подряд ещё +4. Глыба на пути стоит 8 шаров." },
     portae: { name: "PORTAE", ru: "Врата", note: "Впереди стеклянные врата. Перед каждыми горит голубой ключ-кристалл: попадите в него, и врата разлетятся, а ключ даст шары. Каждые трое врат подряд — ещё +3. Не попали — вагонетка пробьёт стекло: −4 шара." },
     taiji: { name: "TAIJI", ru: "Инь и ян", note: "Над путём вращается круг из белых и чёрных камней. Бейте их по очереди: белый, чёрный, белый… Каждое чередование — +2 шара, четыре подряд — ещё +3. Два одного цвета подряд сбивают серию и стоят шар." },
-    tessera: { name: "TESSERA", ru: "Мозаика", note: "Поперёк пути встаёт мозаика из рубинов, и в ней по очереди вспыхивает один камень. Попали во вспыхнувший — +2 шара, три подряд — ещё +3. Тусклый камень стоит шар." },
+    tessera: { name: "TESSERA", ru: "Мозаика", note: "Поперёк пути встаёт мозаика из рубинов, и в ней вспыхивают три камня из девяти. Попали во вспыхнувший — +2 шара, три подряд — ещё +3. Тусклый камень стоит шар." },
     fragmenta: { name: "FRAGMENTA", ru: "Осколки", note: "Волны хрусталя: за каждой перегородкой горит кристалл. Разбейте всю волну до последнего стекла — +4 шара, кристаллы платят как обычно." },
     custodes: { name: "CUSTODES", ru: "Стражи", note: "Стражи-тени летят волнами: каждый сбитый — +1 шар, вся волна — ещё +4, долетевший отнимает 3. Между волнами — сейф: широкая решётка на двух цепях, за ней голубые кристаллы по 3 шара." },
     triumphus: { name: "TRIUMPHUS", ru: "Триумф", note: "Финал всего пути: по очереди возвращаются суперигры станций, которые вы прошли, — и тупиков тоже. Каждая идёт по своим правилам." },
@@ -4999,7 +5002,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       ruina: { ru: "Collapse", note: "Boulders fall from the ceiling. Shoot them in the air or on the rails: +2 balls, every 4 in a row another +4. A boulder on the track costs 8 balls." },
       portae: { ru: "Gates", note: "Glass gates ahead. Before each one glows a blue key crystal: hit it and the gate shatters, and the key gives balls. Every three gates in a row, another +3. Miss, and the cart breaks the glass: −4 balls." },
       taiji: { ru: "Yin and yang", note: "A ring of white and black stones turns over the track. Hit them in turn: white, black, white… Each change is +2 balls, four in a row another +3. Two of one colour in a row break the run and cost a ball." },
-      tessera: { ru: "Mosaic", note: "A ruby mosaic rises across the track, and one stone at a time lights up. Hit the lit one: +2 balls, three in a row another +3. A dim stone costs a ball." },
+      tessera: { ru: "Mosaic", note: "A ruby mosaic rises across the track, and three of its nine stones light up at a time. Hit a lit one: +2 balls, three in a row another +3. A dim stone costs a ball." },
       fragmenta: { ru: "Shards", note: "Waves of crystal glass: behind every partition glows a crystal. Break a whole wave to the last pane: +4 balls; the crystals pay as usual." },
       custodes: { ru: "Guards", note: "Shade guards fly in waves: each downed +1 ball, a whole wave another +4, one that gets through takes 3. Between waves, a strongroom: a wide grate on two chains with blue crystals behind it, 3 balls each." },
       triumphus: { ru: "Triumph", note: "The finale of the whole journey: the finales of the stations you have finished, dead ends too, come back one after another, each with its own rules." },
@@ -5522,12 +5525,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     c.alive = false; scene.remove(c.group);
     if (c.yy !== undefined) { hitTaiji(c, b); return; }
     if (c.tile) { // Tessera
-      if (c.tile.lit === c) {
-        c.tile.lit = null; c.tile.t = 0.05; tessRow++; let gain = 2;
+      if (c.tile.lit.has(c)) {
+        c.tile.lit.delete(c); if (!c.tile.lit.size) c.tile.t = 0.05; tessRow++; let gain = 2;
         if (tessRow % 3 === 0) { gain += 3; wavesDone++; bestCombo = Math.max(bestCombo, tessRow); }
-        stats.crystals++; addScore(30); Sound.crystal(5); chips(c.wp, tileLitMat, 10, b.v);
+        stats.crystals++; addScore(30); Sound.crystal(5); chips(c.wp, tileChipMat, 10, b.v);
         balls += gain; superGain += gain; updateCount(); updateCombo(); pop(gain > 2 ? T(`+${gain} · три подряд`, `+${gain} · three in a row`) : "+2", "gain");
-      } else { tessRow = 0; balls = Math.max(0, balls - 1); updateCount(); updateCombo(); Sound.clink(); chips(c.wp, tileDimMat, 6, b.v); pop(T("−1 · тусклый", "−1 · dim"), "loss"); }
+      } else { tessRow = 0; balls = Math.max(0, balls - 1); updateCount(); updateCombo(); Sound.clink(); chips(c.wp, tileChipMat, 6, b.v); pop(T("−1 · тусклый", "−1 · dim"), "loss"); }
       return;
     }
     if (c.mirage) {

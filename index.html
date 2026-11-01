@@ -688,7 +688,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.116</div>
+      <div class="credit version">v1.0.117</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.116`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.117`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -4217,7 +4217,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const hole = new THREE.Mesh(hawseHoleGeo, hawseHoleMat); hole.position.set(x, HAWSE_V, 0.08); grp.add(hole);
       const L0 = HAWSE_V - 0.05 - yA0, ch = makeChain(L0, 1, wtChainMat); ch.position.set(x, HAWSE_V - 0.05, ANCHOR_Z); grp.add(ch);
       const anchor = anchorProto.clone(); anchor.position.set(x, HAWSE_V - 0.05 - L0, ANCHOR_Z); grp.add(anchor);
-      const tg = doorTarget(grp, x, HAWSE_V + 0.85, 0.1, true); tg.forEach(m => m.scale.setScalar(1.3));
+      const tg = doorTarget(grp, x, HAWSE_V + HAWSE_TG, 0.1, true); tg.forEach(m => m.scale.setScalar(1.6)); // as big as Vitrum's catapult targets
       const hinge = new THREE.Group(); hinge.position.set(lf.sd * BRIDGE_W, GATE_H / 2, 0); root.add(hinge); // the leaf hangs on a hinge at its outer edge
       root.remove(lf.m); hinge.add(lf.m); lf.m.position.set(-lf.sd * BRIDGE_W / 2, 0, 0); lf.hinge = hinge;
       lf.wt = { x, grp, ch, anchor, tg, L0, len: L0, pulled: false, tp: new THREE.Vector3() };
@@ -4254,7 +4254,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const solidDoorMat = c => doorMats[c] || (doorMats[c] = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.35, roughness: 0.2, metalness: 0.4 }));
   const wtChainMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.45, metalness: 0.7 }); // the anchors, their chains and hawses: black iron
   const gateIronMat = new THREE.MeshStandardMaterial({ color: 0x1c1c22, roughness: 0.35, metalness: 0.8 });
-  const HAWSE_V = 4.9, ANCHOR_Z = 0.3, hawseGeo = new THREE.TorusGeometry(0.22, 0.07, 10, 28), hawseHoleGeo = new THREE.CircleGeometry(0.22, 24);
+  const HAWSE_V = 4.5, HAWSE_TG = 1.3, ANCHOR_IN = 0.35 + LINK, ANCHOR_Z = 0.3, // the target well up over the hawse; the anchor hauled in to a link short of it
+   hawseGeo = new THREE.TorusGeometry(0.22, 0.07, 10, 28), hawseHoleGeo = new THREE.CircleGeometry(0.22, 24);
   const hawseHoleMat = new THREE.MeshBasicMaterial({ color: 0x050506 });
   const anchorProto = (() => { // a ship's anchor, flat to the track: a ring on top, the stock with its knobs, the shank, the arms curving up to barbed flukes
     const a = new THREE.Group(), add = (geo, x, y, rz = 0) => { const m = new THREE.Mesh(geo, wtChainMat); m.position.set(x, y, 0); m.rotation.z = rz; a.add(m); };
@@ -4509,11 +4510,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (lf.hinge) lf.hinge.rotation.y = -lf.sd * 1.65 * smooth5(lf.pr); // swings away from the cart
         else if (g.kind === "h") lf.m.position.set(lf.sd * (BRIDGE_W / 2 + BRIDGE_W * smooth5(lf.pr)), GATE_H / 2, 0);
         if (lf.wt) { const w = lf.wt;
-          if (w.pulled && w.len > 0.35) { // the chain is hauled in, the anchor rising to just under the hawse
-            w.len = Math.max(0.35, w.len - dt * 3.2); w.anchor.position.y = HAWSE_V - 0.05 - w.len;
+          if (w.pulled && w.len > ANCHOR_IN) { // the chain is hauled in, the anchor rising to a link or two under the hawse
+            w.len = Math.max(ANCHOR_IN, w.len - dt * 3.2); w.anchor.position.y = HAWSE_V - 0.05 - w.len;
             w.ch.children.forEach((l, i) => { l.visible = (i + 1) * LINK <= w.len + 0.01; });
-            if (w.len === 0.35) Sound.tone(90, 0.2, 0.15); }
-          w.tp.set(w.x, HAWSE_V + 0.85, 0.1).applyMatrix4(g.root.matrix);
+            if (w.len === ANCHOR_IN) Sound.tone(90, 0.2, 0.15); }
+          w.tp.set(w.x, HAWSE_V + HAWSE_TG, 0.1).applyMatrix4(g.root.matrix);
         }
         else if (g.kind === "v") lf.m.position.set(0, GATE_H / 2 + lf.sd * (GATE_H / 4 + (GATE_H / 2 + 0.3) * p), 0);
         // each half moves far enough that its head and eye clear the doorway, and shrinks to stay behind the bulkhead
@@ -5520,7 +5521,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const m of pr.mirrors) if (m.alive) { const t = rayBox(o, dir, m.inv, m.len / 2, 0.12, MIR_D / 2); if (t >= 0) hits.push({ d: t, kind: "mirror", x: set, m }); }
     }
     for (const set of lbars) if (Math.abs(set.s - sC) < 130) for (const b of set.bars) if (b.alive) { const t = rayBox(o, dir, b.inv, b.len / 2, BAR_T / 2 + 0.2, BAR_T / 2 + 0.05); if (t >= 0) hits.push({ d: t, kind: "lbar", x: b }); }
-    for (const g of gates) if (g.weights) for (const lf of g.leaves) { const w = lf.wt; if (w.pulled) continue; tmpV.copy(w.tp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.36) hits.push({ d, kind: "weight", x: g, lf }); }
+    for (const g of gates) if (g.weights) for (const lf of g.leaves) { const w = lf.wt; if (w.pulled) continue; tmpV.copy(w.tp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.5) hits.push({ d, kind: "weight", x: g, lf }); }
     for (const g of gates) for (const bt of g.buttons) {
       if (bt.pressed) continue;
       tmpV.copy(bt.wp).sub(o); const d = tmpV.dot(dir);
@@ -6057,7 +6058,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (!dead) { const ch = cataBall(b, pos, pathDist, b.v); if (ch) { if (ch === "target") mark(); dead = true; } }
       if (!dead) for (const g of gates) {
         if (Math.abs(g.s - sC) > 130) continue;
-        if (g.weights) for (const lf of g.leaves) { const w = lf.wt; if (!w.pulled && pathDist(w.tp) < 0.6 + R_BALL) { mark(); pullAnchor(g, lf); chips(w.tp, targetOn, 5, b.v); dead = true; break; } }
+        if (g.weights) for (const lf of g.leaves) { const w = lf.wt; if (!w.pulled && pathDist(w.tp) < 0.75 + R_BALL) { mark(); pullAnchor(g, lf); chips(w.tp, targetOn, 5, b.v); dead = true; break; } }
         if (dead) break;
         for (const bt of g.buttons) if (!bt.pressed && pathDist(bt.wp) < bt.r * 1.3 + R_BALL) { mark(); pressButton(bt); chips(bt.wp, buttonMat, 5, b.v); dead = true; break; }
         if (dead) break;

@@ -688,7 +688,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.110</div>
+      <div class="credit version">v1.0.111</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.110`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.111`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1590,7 +1590,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // a step cut (the emerald): a long octagon, three steps down from the table to the girdle, alike on both sides
   function stepGeo(w, h, c) {
     const pos = [], g = 0.03, tri = (a, b, cc) => pos.push(...a, ...b, ...cc);
-    const oct = (d, y) => [[w - d, h - c], [w - c + d * 0.41, h - d], [-w + c - d * 0.41, h - d], [-w + d, h - c], [-w + d, -h + c], [-w + c - d * 0.41, -h + d], [w - c + d * 0.41, -h + d], [w - d, -h + c]].map(([x, z]) => [x, y, -z]);
+    const oct = (d, y) => [[w - d, h - c - d * 0.41], [w - c - d * 0.41, h - d], [-w + c + d * 0.41, h - d], [-w + d, h - c - d * 0.41], [-w + d, -h + c + d * 0.41], [-w + c + d * 0.41, -h + d], [w - c - d * 0.41, -h + d], [w - d, -h + c + d * 0.41]].map(([x, z]) => [x, y, -z]);
     const steps = [[0, 0], [0.07, 0.06], [0.14, 0.11], [0.2, 0.15]], ring = (s, sgn, y0) => steps.map(([d, y]) => oct(d, y0 + sgn * y));
     for (const [sgn, y0] of [[1, 0], [-1, -g]]) { const R = ring(steps, sgn, y0);
       for (let r = 0; r + 1 < R.length; r++) for (let i = 0; i < 8; i++) { const j = (i + 1) % 8; tri(R[r][i], R[r][j], R[r + 1][j]); tri(R[r][i], R[r + 1][j], R[r + 1][i]); }

@@ -1497,12 +1497,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   const ring = (k, rx, rz, a0 = 0) => [...Array(k).keys()].map(i => [Math.cos(a0 + i / k * TAU) * rx, -Math.sin(a0 + i / k * TAU) * rz]);
   const cutRect = (w, h, c) => [[w, h - c], [w - c, h], [-w + c, h], [-w, h - c], [-w, -h + c], [-w + c, -h], [w - c, -h], [w, -h + c]].map(([x, z]) => [x, -z]);
+  const both = crown => [crown, crown.map(([k, y]) => [k, -0.05 - y]), 0.05 + crown[crown.length - 1][1]]; // the back the front's mirror, across the girdle
   const GEM_CUTS = { // the cuts of the pictures: round brilliant, emerald (stepped, as the level's own sign on the scheme), asscher, oval, pear
     // the brilliant of the third picture, seen as it lies: its table up, the point down
     gDia: gemGeo(ring(16, 0.62, 0.62), [[0.82, 0.12], [0.56, 0.22]], [[0.5, -0.28]], 0.58).rotateX(-Math.PI / 2),
-    gEmer: gemGeo(cutRect(0.42, 0.66, 0.14), [[0.86, 0.1], [0.72, 0.18], [0.6, 0.22]], [[0.72, -0.2], [0.42, -0.38]], 0.48),
-    gOval: gemGeo(ring(16, 0.48, 0.68)),
-    gPear: gemGeo([[0, 0.86], [0.24, 0.46], [0.42, 0.1], [0.5, -0.22], [0.44, -0.5], [0.26, -0.68], [0, -0.74], [-0.26, -0.68], [-0.44, -0.5], [-0.5, -0.22], [-0.42, 0.1], [-0.24, 0.46]].map(([x, z]) => [x, -z])),
+    // the emerald, the oval and the pear alike on both sides: the back stepped as the front, a table on each
+    gEmer: gemGeo(cutRect(0.42, 0.66, 0.14), ...both([[0.86, 0.1], [0.72, 0.18], [0.6, 0.22]])),
+    gOval: gemGeo(ring(16, 0.48, 0.68), ...both([[0.8, 0.13], [0.56, 0.23]])),
+    gPear: gemGeo([[0, 0.86], [0.24, 0.46], [0.42, 0.1], [0.5, -0.22], [0.44, -0.5], [0.26, -0.68], [0, -0.74], [-0.26, -0.68], [-0.44, -0.5], [-0.5, -0.22], [-0.42, 0.1], [-0.24, 0.46]].map(([x, z]) => [x, -z]), ...both([[0.8, 0.13], [0.56, 0.23]])),
   };
   const RUBY_COL = new THREE.Color(0xa8001e); // pomegranate juice: deep, a touch toward crimson
   const rubyMat = new THREE.MeshStandardMaterial({ color: RUBY_COL, emissive: 0x2a0005, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.7, vertexColors: true }); // see-through to the sky behind; only its near facets drawn, in depth
@@ -1856,8 +1858,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (k % 3 === 0) {
         const h1 = hash(k * 31), h2 = hash(k * 17), h3 = hash(k * 23), side = (k / 3) % 2 ? 1 : -1, r = 1.6 + h2 * 2.0, la = hash(k * 41) * TAU, lt = 0.1 + hash(k * 43) * 0.5;
         const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), hash(k * 47) * TAU);
-        d.blocks.push({ key: ["gDia", "gEmer", "gOval", "gPear"][Math.floor(hash(k * 13) * 4)], u: side * (SW + 5 + h3 * 15 + r), v: -4 + h2 * 12, sx: r, sy: r, sz: r,
-          q: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(la), 0, Math.sin(la)), lt).multiply(yaw), sway: h1 * TAU });
+        const key = ["gDia", "gEmer", "gOval", "gPear"][Math.floor(hash(k * 13) * 4)];
+        d.blocks.push({ key, u: side * (SW + 5 + h3 * 15 + r), v: -4 + h2 * 12, sx: r, sy: r, sz: r,
+          q: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(la), 0, Math.sin(la)), key === "gDia" ? lt * 0.4 : lt).multiply(yaw), sway: h1 * TAU }); // the brilliant leans less: up to 14 degrees
       }
       decor.set(k, d); return d;
     }

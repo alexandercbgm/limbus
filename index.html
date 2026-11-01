@@ -688,7 +688,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.103</div>
+      <div class="credit version">v1.0.104</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.103`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.104`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1931,11 +1931,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       decor.set(k, d); return d;
     }
     if (STYLE.blocks === "ruby") { // Rubinus: a cut ruby now and then, each on its own: one place every 4 m, filled six times in ten.
-      // Upright, as the pictures show them, its table toward the track, leaning a little, turning slowly about its upright
+      // Upright, as the pictures show them, its table toward the track, leaning a little, swaying a little about its upright
       if (k % 2 === 0 && hash(k * 5 + 3) < 0.6) {
         const h1 = hash(k * 31), h2 = hash(k * 17), h3 = hash(k * 23), side = h1 < 0.5 ? -1 : 1, r = 1.6 + h2 * 2.4, la = hash(k * 41) * TAU, lt = hash(k * 43) * 0.3;
+        const face = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -side * Math.PI / 4 + (hash(k * 47) - 0.5) * 0.5); // its table toward the track and the coming cart, aslant
         d.blocks.push({ key: ["gRound", "gEmer", "gAsch", "gOval", "gPear"][Math.floor(hash(k * 13) * 5)], u: side * (SW + 4 + h3 * 18 + r), v: -6 + h2 * 16, sx: r, sy: r, sz: r,
-          q: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(la), 0, Math.sin(la)), lt), spin: (h3 < 0.5 ? -1 : 1) * (0.15 + h1 * 0.2) });
+          q: face.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(la), 0, Math.sin(la)), lt)), sway: h1 * TAU }); // it only sways a little, never shows its edge
       }
       decor.set(k, d); return d;
     }
@@ -2035,7 +2036,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const lim = STYLE.bridge || STYLE.bare ? sC + AHEAD - 4 : sC + cur.fogF + 6, grow = clamp((lim - s) / 24, 0, 1);
       if (grow > 0) for (const b of dec.blocks) {
         placeM(M, s + (b.ds || 0), b.u, b.v);
-        if (b.q) M.multiply(M2.makeRotationFromQuaternion(b.q)).multiply(M2.makeRotationY(time * b.spin)); // a crystal turns about its own length
+        if (b.q) M.multiply(M2.makeRotationFromQuaternion(b.q)).multiply(M2.makeRotationY(b.sway !== undefined ? Math.sin(time * 0.35 + b.sway) * 0.2 : time * b.spin)); // a crystal turns about its own length; a ruby only sways
         else { EU.set(b.rx + time * b.spin, b.ry + time * b.spin * 0.7, 0); M.multiply(M2.makeRotationFromEuler(EU)); }
         const wob = b.wob !== undefined ? 1 + 0.07 * Math.sin(time * 2.2 + b.wob) : 1; // a drop of mercury trembles
         M.scale(blockKey === "coin" ? SV.set(b.sx * 0.6, b.sx * 0.6, 1) : SV.set(b.sx * wob, b.sy / wob, b.sz * wob)).scale(SV.setScalar(grow));

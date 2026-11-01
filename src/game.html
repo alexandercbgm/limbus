@@ -2008,7 +2008,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const dec = getDecor(k), s = k * SL + SL / 2;
         put("sleeper", s - 0.5, m.o, 0.06); put("sleeper", s + 0.5, m.o, 0.06);
         put("rail", s, m.o - 0.72, 0.19); put("rail", s, m.o + 0.72, 0.19);
-        putWall("wall", s, far);
+        putWall(wallKey, s, far); // the far wall as the real ones: mirror glass, the sky through it (opaque, it read as a roof)
         if (dec.arch && STYLE.arch !== "hex") { { put("post", s, m.o - W + 0.1, H / 2); put("post", s, m.o + W - 0.1, H / 2); put("beam", s, m.o, H - 0.18); put("sill", s, m.o, 0.025); } }
       }
     }

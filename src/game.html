@@ -1455,9 +1455,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   if (PHONE) { redGlow.opacity = 0.42; redGlow.color.set(0xe0281a); impEdgeMat.color.set(0xd8341c); blueGlow.opacity *= 0.7; } // and their halos and the imps' cages, on a phone
   const glassWallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, transparent: true, opacity: 0.3, roughness: 0.08, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide });
   const quartzMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.78, roughness: 0.12, metalness: 0.35, flatShading: true });
-  // Rubinus: rubies, as cut stones are: a flat table on top, the crown's facets sloping down to the girdle, a thin girdle,
-  // the pavilion's facets running down to a point. outline: the girdle, [x, z] counterclockwise, about 1 across
-  // each facet its own depth of red, as a cut stone throws back the light: garnet dark to bright, now and then one
+  // Rubinus's rubies: each facet its own depth of red, as a cut stone throws back the light: garnet dark to bright, now and then one
   // flashing rose-white; facets that lie in one plane (a pentagon's three triangles, a quad's two) take one colour
   function facetColours(g, seed) {
     const P = g.attributes.position.array, col = [];
@@ -1476,35 +1474,52 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); return g;
   }
-  // Rubinus: rubies, as cut stones are: a flat table on top, the crown's facets sloping down to the girdle (in steps, for a
-  // step cut), a thin girdle, the pavilion running down to a point. outline: the girdle, [x, z] counterclockwise, about 1
-  // across. Made upright, as the pictures show them: the table to +z, the outline's length up
-  function gemGeo(outline, crownRings = [[0.56, 0.26]], pavRings = [], pav = 0.62) {
-    const pos = [], n = outline.length, at = (k, y) => outline.map(([x, z]) => [x * k, y, z * k]);
-    const rings = [at(1, -0.05), at(1, 0), ...crownRings.map(([k, y]) => at(k, y))], top = crownRings[crownRings.length - 1][1];
-    const below = [at(1, -0.05), ...pavRings.map(([k, y]) => at(k, y))];
+  // A brilliant cut as jewellers cut it, on any outline (Rf: the girdle's radius at each angle, the outline in x, z): an
+  // octagonal table; eight star facets round it; eight bezel kites down to the girdle; sixteen upper girdle facets; a thin
+  // girdle; below, either the pavilion (eight main kites to the culet, sixteen lower girdle facets) or, two-faced, the
+  // crown again in mirror. Built table up; front: turned upright, the table to +z, the outline's length up
+  function brilliantGeo(Rf, { hc = 0.2, t = 0.56, hp = 0.55, twoFaced = false, front = false } = {}) {
+    const pos = [], g = 0.03, A = k => k * Math.PI / 4, pt = (a, r, y) => [Math.cos(a) * Rf(a) * r, y, -Math.sin(a) * Rf(a) * r];
     const tri = (a, b, c) => pos.push(...a, ...b, ...c);
-    for (let i = 0; i < n; i++) {
-      const j = (i + 1) % n, T = rings[rings.length - 1];
-      tri([0, top, 0], T[j], T[i]); // the table
-      for (let r = 0; r + 1 < rings.length; r++) { const A = rings[r], B = rings[r + 1]; tri(B[i], B[j], A[j]); tri(B[i], A[j], A[i]); } // the girdle and the crown's steps
-      for (let r = 0; r + 1 < below.length; r++) { const A = below[r], B = below[r + 1]; tri(A[i], A[j], B[j]); tri(A[i], B[j], B[i]); } // the pavilion's steps
-      const L = below[below.length - 1]; tri(L[i], L[j], [0, -pav, 0]); // down to the culet
-    }
-    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-    g.rotateX(Math.PI / 2); g.computeVertexNormals(); // unshared corners: every facet flat
-    return facetColours(g, n);
+    const crown = (sgn, y0) => { const Y = y => y0 + sgn * y;
+      const T = k => pt(A(k), t, Y(hc)), P = k => pt(A(k + 0.5), 0.8, Y(hc * 0.5)), G = j => pt(j * Math.PI / 8, 1, Y(0));
+      for (let k = 0; k < 8; k++) {
+        tri([0, Y(hc), 0], T(k), T(k + 1)); // the table
+        tri(T(k), T(k + 1), P(k)); // a star
+        tri(T(k), P(k - 1), G(2 * k)); tri(T(k), G(2 * k), P(k)); // a bezel kite
+        tri(P(k), G(2 * k), G(2 * k + 1)); tri(P(k), G(2 * k + 1), G(2 * k + 2)); // the upper girdle facets
+      } };
+    crown(1, 0);
+    for (let j = 0; j < 16; j++) { const a = pt(j * Math.PI / 8, 1, 0), b = pt((j + 1) * Math.PI / 8, 1, 0), c = pt((j + 1) * Math.PI / 8, 1, -g), d = pt(j * Math.PI / 8, 1, -g); tri(a, b, c); tri(a, c, d); } // the girdle
+    if (twoFaced) crown(-1, -g);
+    else { const C = [0, -g - hp, 0], Q = k => pt(A(k + 0.5), 0.22, -g - 0.78 * hp), B = j => pt(j * Math.PI / 8, 1, -g);
+      for (let k = 0; k < 8; k++) {
+        tri(C, Q(k - 1), B(2 * k)); tri(C, B(2 * k), Q(k)); // a pavilion main
+        tri(Q(k), B(2 * k), B(2 * k + 1)); tri(Q(k), B(2 * k + 1), B(2 * k + 2)); // the lower girdle facets
+      } }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    facetColours(geo, 7); if (front) { geo.rotateX(Math.PI / 2); geo.computeVertexNormals(); }
+    return geo;
   }
-  const ring = (k, rx, rz, a0 = 0) => [...Array(k).keys()].map(i => [Math.cos(a0 + i / k * TAU) * rx, -Math.sin(a0 + i / k * TAU) * rz]);
-  const cutRect = (w, h, c) => [[w, h - c], [w - c, h], [-w + c, h], [-w, h - c], [-w, -h + c], [-w + c, -h], [w - c, -h], [w, -h + c]].map(([x, z]) => [x, -z]);
-  const both = crown => [crown, crown.map(([k, y]) => [k, -0.05 - y]), 0.05 + crown[crown.length - 1][1]]; // the back the front's mirror, across the girdle
-  const GEM_CUTS = { // the cuts of the pictures: round brilliant, emerald (stepped, as the level's own sign on the scheme), asscher, oval, pear
-    // the brilliant of the third picture, seen as it lies: its table up, the point down
-    gDia: gemGeo(ring(16, 0.62, 0.62), [[0.82, 0.12], [0.56, 0.22]], [[0.5, -0.28]], 0.58).rotateX(-Math.PI / 2),
-    // the emerald, the oval and the pear alike on both sides: the back stepped as the front, a table on each
-    gEmer: gemGeo(cutRect(0.42, 0.66, 0.14), ...both([[0.86, 0.1], [0.72, 0.18], [0.6, 0.22]])),
-    gOval: gemGeo(ring(16, 0.42, 0.72), ...both([[0.8, 0.13], [0.56, 0.23]])), // long enough not to pass for round
-    gPear: gemGeo([[0, 0.86], [0.24, 0.46], [0.42, 0.1], [0.5, -0.22], [0.44, -0.5], [0.26, -0.68], [0, -0.74], [-0.26, -0.68], [-0.44, -0.5], [-0.5, -0.22], [-0.42, 0.1], [-0.24, 0.46]].map(([x, z]) => [x, -z]), ...both([[0.8, 0.13], [0.56, 0.23]])),
+  // a step cut (the emerald): a long octagon, three steps down from the table to the girdle, alike on both sides
+  function stepGeo(w, h, c) {
+    const pos = [], g = 0.03, tri = (a, b, cc) => pos.push(...a, ...b, ...cc);
+    const oct = (d, y) => [[w - d, h - c], [w - c + d * 0.41, h - d], [-w + c - d * 0.41, h - d], [-w + d, h - c], [-w + d, -h + c], [-w + c - d * 0.41, -h + d], [w - c + d * 0.41, -h + d], [w - d, -h + c]].map(([x, z]) => [x, y, -z]);
+    const steps = [[0, 0], [0.07, 0.06], [0.14, 0.11], [0.2, 0.15]], ring = (s, sgn, y0) => steps.map(([d, y]) => oct(d, y0 + sgn * y));
+    for (const [sgn, y0] of [[1, 0], [-1, -g]]) { const R = ring(steps, sgn, y0);
+      for (let r = 0; r + 1 < R.length; r++) for (let i = 0; i < 8; i++) { const j = (i + 1) % 8; tri(R[r][i], R[r][j], R[r + 1][j]); tri(R[r][i], R[r + 1][j], R[r + 1][i]); }
+      const T = R[R.length - 1], ty = y0 + sgn * steps[steps.length - 1][1]; for (let i = 0; i < 8; i++) tri([0, ty, 0], T[i], T[(i + 1) % 8]); } // the table
+    const G0 = oct(0, 0), G1 = oct(0, -g); for (let i = 0; i < 8; i++) { const j = (i + 1) % 8; tri(G0[i], G0[j], G1[j]); tri(G0[i], G1[j], G1[i]); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    facetColours(geo, 11); geo.rotateX(Math.PI / 2); geo.computeVertexNormals(); return geo;
+  }
+  const ellipseR = (a, b) => th => a * b / Math.hypot(b * Math.cos(th), a * Math.sin(th));
+  const GEM_CUTS = { // the cuts of the pictures: a round brilliant seen as it lies (its table up, the point down), and, upright and
+    // alike on both sides, a pear brilliant (its point up), an oval brilliant and an emerald step cut
+    gDia: brilliantGeo(() => 0.62, { hc: 0.2, hp: 0.53 }),
+    gPear: brilliantGeo(th => ellipseR(0.48, 0.62)(th) * (1 + 0.5 * Math.pow(Math.max(0, Math.sin(th)), 5)), { hc: 0.18, twoFaced: true, front: true }),
+    gOval: brilliantGeo(ellipseR(0.46, 0.68), { hc: 0.18, twoFaced: true, front: true }),
+    gEmer: stepGeo(0.44, 0.62, 0.13),
   };
   const RUBY_COL = new THREE.Color(0xa8001e); // pomegranate juice: deep, a touch toward crimson
   const rubyMat = new THREE.MeshStandardMaterial({ color: RUBY_COL, emissive: 0x2a0005, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.7, vertexColors: true }); // see-through to the sky behind; only its near facets drawn, in depth

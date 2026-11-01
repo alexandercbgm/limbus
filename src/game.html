@@ -243,7 +243,7 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
 @keyframes mapwait { to { visibility: visible; } }
 /* a phone held sideways (the app, Telegram): the head, the scheme's card and the scheme itself kept clear of the strip on the right
    where the phone's own Back, Home and Recents buttons come up over the page */
-@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) { .menu-in { padding-right: max(56px, var(--safe-right, env(safe-area-inset-right, 0px))); } }
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) { .menu-in { padding-right: max(40px, var(--safe-right, env(safe-area-inset-right, 0px))); } }
 .tgphone .menu-in { padding-top: var(--safe-top, 0px); } /* Telegram on a phone: the head right under its Close and ⋮ buttons, the scheme taller by as much */
 /* ---- the menu's finish: soft layered shadows instead of single hard ones, rounder corners, glass plates with a lit top edge ---- */
 .menu::before, .videobg .menu::before { background:
@@ -572,26 +572,26 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         <h1 class="logo">LIMB<span>U</span>S</h1>
       </div>
       <div class="m-side">
-        <div class="bank" title="Кристаллы, собранные на пройденных уровнях. Ими платят за проезд по веткам и оружие." data-en-title="Crystals gathered on finished levels. They pay branch fares and buy cannons." aria-label="Кристаллы в запасе" data-en-aria="Crystals in the bank">◆ <b id="bank">0</b></div>
+        <div class="bank" aria-label="Кристаллы в запасе" data-en-aria="Crystals in the bank">◆ <b id="bank">0</b></div>
         <div class="arms" id="arms" role="group" aria-label="Пушка на вагонетке" data-en-aria="The cart's cannon"></div>
       </div>
     </header>
     <div class="map-card">
       <div class="map-tools">
-        <button class="ibtn snd" id="mapMute" type="button" aria-pressed="false" aria-label="Звук" title="Звук" data-en-aria="Sound" data-en-title="Sound">
+        <button class="ibtn snd" id="mapMute" type="button" aria-pressed="false" aria-label="Звук" data-en-aria="Sound">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/>
             <path class="snd-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke-width="2" stroke-linecap="round"/>
             <path class="snd-off" d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
-        <button class="ibtn" id="gearBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="gearPop" aria-label="Настройки" title="Настройки" data-en-aria="Settings" data-en-title="Settings">
+        <button class="ibtn" id="gearBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="gearPop" aria-label="Настройки" data-en-aria="Settings">
           <svg class="gear" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2.8h3.4l.5 2.6 1.6.7 2.2-1.5 2.4 2.4-1.5 2.2.7 1.6 2.6.5v3.4l-2.6.5-.7 1.6 1.5 2.2-2.4 2.4-2.2-1.5-1.6.7-.5 2.6h-3.4l-.5-2.6-1.6-.7-2.2 1.5-2.4-2.4 1.5-2.2-.7-1.6-2.6-.5v-3.4l2.6-.5.7-1.6-1.5-2.2 2.4-2.4 2.2 1.5 1.6-.7z" fill="none" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" fill="none" stroke-width="1.6"/></svg>
         </button>
         <div class="gear-pop" id="gearPop" role="group" aria-label="Настройки" data-en-aria="Settings" hidden>
           <div class="gp-row">
             <span class="gp-label"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.7"><circle cx="12" cy="12" r="8.5" fill="none"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" stroke="none" fill="currentColor"/></svg><span data-en="Theme">Тема</span></span>
             <div class="seg" role="group" aria-label="Тема" data-en-aria="Theme">
-              <button type="button" data-theme="day" aria-label="Светлая" title="Светлая" data-en-aria="Light" data-en-title="Light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg></button>
-              <button type="button" data-theme="night" aria-label="Тёмная" title="Тёмная" data-en-aria="Dark" data-en-title="Dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></svg></button>
+              <button type="button" data-theme="day" aria-label="Светлая" data-en-aria="Light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg></button>
+              <button type="button" data-theme="night" aria-label="Тёмная" data-en-aria="Dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></svg></button>
             </div>
           </div>
           <div class="gp-row">
@@ -6237,7 +6237,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const w = WEAPONS[id], b = document.createElement("button");
       b.type = "button"; b.className = "arm"; b.setAttribute("aria-pressed", String(progress.weapon === id));
       b.innerHTML = `${esc(w.name)} <b>−${w.cost}</b>`;
-      b.title = w.desc;
+      b.setAttribute("aria-description", w.desc); // no tooltip on the scheme: the description for a screen reader only
       b.addEventListener("click", () => { progress.weapon = id; saveProgress(); renderArms(); });
       el.appendChild(b);
     }

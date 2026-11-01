@@ -1492,9 +1492,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const ring = (k, rx, rz, a0 = 0) => [...Array(k).keys()].map(i => [Math.cos(a0 + i / k * TAU) * rx, -Math.sin(a0 + i / k * TAU) * rz]);
   const cutRect = (w, h, c) => [[w, h - c], [w - c, h], [-w + c, h], [-w, h - c], [-w, -h + c], [-w + c, -h], [w - c, -h], [w, -h + c]].map(([x, z]) => [x, -z]);
   const GEM_CUTS = { // the cuts of the pictures: round brilliant, emerald (stepped, as the level's own sign on the scheme), asscher, oval, pear
-    gRound: gemGeo(ring(16, 0.62, 0.62)),
+    // the brilliant of the third picture, seen as it lies: its table up, the point down
+    gDia: gemGeo(ring(16, 0.62, 0.62), [[0.82, 0.12], [0.56, 0.22]], [[0.5, -0.28]], 0.58).rotateX(-Math.PI / 2),
     gEmer: gemGeo(cutRect(0.42, 0.66, 0.14), [[0.86, 0.1], [0.72, 0.18], [0.6, 0.22]], [[0.72, -0.2], [0.42, -0.38]], 0.48),
-    gAsch: gemGeo(cutRect(0.56, 0.56, 0.18), [[0.82, 0.14], [0.62, 0.26]], [[0.6, -0.3]], 0.6), gOval: gemGeo(ring(16, 0.48, 0.68)),
+    gOval: gemGeo(ring(16, 0.48, 0.68)),
     gPear: gemGeo([[0, 0.86], [0.24, 0.46], [0.42, 0.1], [0.5, -0.22], [0.44, -0.5], [0.26, -0.68], [0, -0.74], [-0.26, -0.68], [-0.44, -0.5], [-0.5, -0.22], [-0.42, 0.1], [-0.24, 0.46]].map(([x, z]) => [x, -z])),
   };
   const RUBY_COL = new THREE.Color(0xa8001e); // pomegranate juice: deep, a touch toward crimson
@@ -1689,8 +1690,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
     prism: inst(new THREE.OctahedronGeometry(0.75, 0), prismMat, 260),
-    gRound: inst(GEM_CUTS.gRound, rubyMat, 60), gEmer: inst(GEM_CUTS.gEmer, rubyMat, 60), // Rubinus: rubies over the abyss
-    gAsch: inst(GEM_CUTS.gAsch, rubyMat, 60), gOval: inst(GEM_CUTS.gOval, rubyMat, 60), gPear: inst(GEM_CUTS.gPear, rubyMat, 60),
+    gDia: inst(GEM_CUTS.gDia, rubyMat, 40), gEmer: inst(GEM_CUTS.gEmer, rubyMat, 40), // Rubinus: rubies over the abyss
+    gOval: inst(GEM_CUTS.gOval, rubyMat, 40), gPear: inst(GEM_CUTS.gPear, rubyMat, 40),
     // Vitrum, out over the abyss: crystals of quartz, six-sided, pointed at both ends, 2 high and 0.64 across before they're scaled
     quartz: inst(new THREE.LatheGeometry([[0, -1], [0.32, -0.62], [0.32, 0.62], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 160),
     // and a cluster's: one point, the flat foot at the origin (2 long before it's scaled)
@@ -1844,13 +1845,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       decor.set(k, d); return d;
     }
-    if (STYLE.blocks === "ruby") { // Rubinus: a cut ruby now and then, each on its own: one place every 4 m, filled six times in ten.
-      // Upright, as the pictures show them, its table toward the track, leaning a little, swaying a little about its upright
-      if (k % 2 === 0 && hash(k * 5 + 3) < 0.6) {
-        const h1 = hash(k * 31), h2 = hash(k * 17), h3 = hash(k * 23), side = h1 < 0.5 ? -1 : 1, r = 1.6 + h2 * 2.4, la = hash(k * 41) * TAU, lt = hash(k * 43) * 0.3;
-        const face = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -side * Math.PI / 4 + (hash(k * 47) - 0.5) * 0.5); // its table toward the track and the coming cart, aslant
-        d.blocks.push({ key: ["gRound", "gEmer", "gAsch", "gOval", "gPear"][Math.floor(hash(k * 13) * 5)], u: side * (SW + 4 + h3 * 18 + r), v: -6 + h2 * 16, sx: r, sy: r, sz: r,
-          q: face.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(la), 0, Math.sin(la)), lt)), sway: h1 * TAU }); // it only sways a little, never shows its edge
+    if (STYLE.blocks === "ruby") { // Rubinus: cut rubies spread evenly, one every 6 m, the sides taking turns. Each turned any way about
+      // its upright and leaning up to 35 degrees, never on its side nor upside down; swaying a little
+      if (k % 3 === 0) {
+        const h1 = hash(k * 31), h2 = hash(k * 17), h3 = hash(k * 23), side = (k / 3) % 2 ? 1 : -1, r = 1.6 + h2 * 2.0, la = hash(k * 41) * TAU, lt = 0.1 + hash(k * 43) * 0.5;
+        const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), hash(k * 47) * TAU);
+        d.blocks.push({ key: ["gDia", "gEmer", "gOval", "gPear"][Math.floor(hash(k * 13) * 4)], u: side * (SW + 5 + h3 * 15 + r), v: -4 + h2 * 12, sx: r, sy: r, sz: r,
+          q: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(la), 0, Math.sin(la)), lt).multiply(yaw), sway: h1 * TAU });
       }
       decor.set(k, d); return d;
     }

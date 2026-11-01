@@ -6150,9 +6150,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (hub && lv.id === "initium") out += `<path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
       else if (hub) out += `<circle class="hub" style="transform-origin:${p.x}px ${p.y}px" cx="${p.x}" cy="${p.y}" r="21" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // its rim in the colour of the other line that meets here, in front of the inner circle
       if (hub) out += `<circle class="case" cx="${p.x}" cy="${p.y}" r="19.25" fill="none" stroke="#ffffff" stroke-width="1"/>`; // a thin casing between a transfer's two rings
-      if (st === "done") { // a finished station: a glint runs round its ring now and then, and crystals circle it (mapCrystals)
+      if (st === "done") { // a finished station: a glint runs round its ring now and then, all of them at once (their clock is the page's, so a redrawn scheme keeps the beat), and crystals circle it (mapCrystals)
         const gx = 21 * Math.cos(0.35), gy = 21 * Math.sin(0.35);
-        out += `<g class="glint" style="transform-origin:${p.x}px ${p.y}px;animation-delay:-${(cxStations.length * 1.3) % 4.5}s"><path d="M${p.x - gx} ${p.y - gy}A21 21 0 0 1 ${p.x + gx} ${p.y - gy}" fill="none" stroke="url(#cxGl)" stroke-width="3.2" stroke-linecap="round"/></g>`;
+        out += `<g class="glint" style="transform-origin:${p.x}px ${p.y}px;animation-delay:-${(performance.now() / 1000) % 4.5}s"><path d="M${p.x - gx} ${p.y - gy}A21 21 0 0 1 ${p.x + gx} ${p.y - gy}" fill="none" stroke="url(#cxGl)" stroke-width="3.2" stroke-linecap="round"/></g>`;
         const ways = []; for (const [x1, y1, x2, y2] of segs) for (const [ax, ay, bx, by] of [[x1, y1, x2, y2], [x2, y2, x1, y1]]) if (Math.hypot(ax - p.x, ay - p.y) <= 1) ways.push(Math.atan2(by - ay, bx - ax));
         cxStations.push({ x: p.x, y: p.y, ways });
       }

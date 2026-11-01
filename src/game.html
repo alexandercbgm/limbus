@@ -1713,8 +1713,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     pyrL: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(-Math.PI / 2), spikeMat, 90), // pyramid out of the left wall, pointing +u
     pyrR: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(Math.PI / 2), spikeMat, 90),
     // a pane of glass for a wall: one sheet, not a thin box, whose ends stacked into dozens of see-through layers far off
-    gwall: inst(new THREE.PlaneGeometry(SL + 0.03, H).rotateY(Math.PI / 2), glassWallMat, 280),
-    pgwall: inst(new THREE.PlaneGeometry(SL + 0.03, H).rotateY(Math.PI / 2), plainGlassMat, 160), // Speculum's last stretch: clear glass, no mirror
+    gwall: inst(new THREE.PlaneGeometry(SL + 0.03, H).rotateY(Math.PI / 2), glassWallMat, 440), // Speculum: its walls and their reflections' far walls (about 320)
+    pgwall: inst(new THREE.PlaneGeometry(SL + 0.03, H).rotateY(Math.PI / 2), plainGlassMat, 240), // Speculum's last stretch: clear glass, no mirror
     hexpane: inst(new THREE.PlaneGeometry(HEXPANE_R, SL + 0.02).rotateX(Math.PI / 2), glassWallMat, 420), // Vitrum: a face of the hexagon glazed, 2 m of it
     hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
@@ -1735,7 +1735,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     kerb: inst(new THREE.BoxGeometry(0.14, 0.2, SL + 0.03), frameMat, 200), // Abyssus: the bridge's edge
     // Carcer's halls: the end wall with the corridor's doorway in it, cell bars along the sides, a glowing safety line
     portal: inst((() => { const sh = new THREE.Shape([new THREE.Vector2(-HALL_W - 0.24, 0), new THREE.Vector2(HALL_W + 0.24, 0), new THREE.Vector2(HALL_W + 0.24, HALL_H), new THREE.Vector2(-HALL_W - 0.24, HALL_H)]);
-      sh.holes.push(new THREE.Path([new THREE.Vector2(-W, 0), new THREE.Vector2(-W, H), new THREE.Vector2(W, H), new THREE.Vector2(W, 0)])); return new THREE.ShapeGeometry(sh); })(), wallMat, 8),
+      sh.holes.push(new THREE.Path([new THREE.Vector2(-W, 0), new THREE.Vector2(-W, H), new THREE.Vector2(W, H), new THREE.Vector2(W, 0)])); return new THREE.ShapeGeometry(sh); })(), wallMat, 16), // room to spare: a hall's two ends, both faces, two or three halls in sight
     wire: inst(new THREE.TorusGeometry(0.42, 0.016, 4, 18), wireMat, 900), // coils of barbed wire along a hall's sides
     safety: inst(new THREE.BoxGeometry(0.07, 0.03, SL + 0.03), safetyMat, 200),
     pylon: inst(new THREE.BoxGeometry(0.45, PYLON_H, 0.45), frameMat, 60),
@@ -2054,7 +2054,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       fillStrip(gFloorStrip, ghost.s + 2, ghost.s + GHOST_N - 2, frameAtG, -0.015, 0, STYLE.floorW || W);
       fillStrip(gVaultStrip, ghost.s + 2, ghost.s + GHOST_N - 2, frameAtG, H + 0.015);
     }
-    for (const key in I) { I[key].count = n[key]; I[key].instanceMatrix.needsUpdate = true; }
+    // never more than an instanced mesh holds: past its end a phone's GPU refuses the whole draw (all of Speculum's walls went missing)
+    for (const key in I) { I[key].count = Math.min(n[key], I[key].instanceMatrix.count); I[key].instanceMatrix.needsUpdate = true; }
     for (const k of decor.keys()) if (k < k0 - 2) decor.delete(k);
   }
 

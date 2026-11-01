@@ -1505,10 +1505,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const PP = new Float64Array(NS * 3), PR = new Float64Array(NS * 3), PU = new Float64Array(NS * 3), PT = new Float64Array(NS * 3);
   let sBase = 0;
   const cartPos = new THREE.Vector3();
-  // Speculum: past the station the track (and its walls and their reflections with it) dips away down, 25 degrees over
-  // some 25 m, so its far end, where it stops being drawn, sinks below the horizon into the haze before it's seen
-  const dipAt = s => LEVEL.id === "speculum" ? -0.44 * smooth5(clamp((s - END_S - 6) / 25, 0, 1)) : 0;
-  function pitchAt(s) { return (s <= sC ? pitchC : pitchTs + (pitchC - pitchTs) * Math.exp(-(s - sC) / LAMBDA)) + dipAt(s); }
+  function pitchAt(s) { return s <= sC ? pitchC : pitchTs + (pitchC - pitchTs) * Math.exp(-(s - sC) / LAMBDA); }
   // banking (roll) follows the level's own turns only: at a fork both branches stay level, so the other
   // branch's floor never rises over the main track's rails
   // and around a fork the track is not banked at all: a tilted main floor would rise over the other branch's
@@ -1896,10 +1893,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const m of mirStrips) {
       m.floor.visible = !!STYLE.mirror; m.vault.visible = !!STYLE.mirror && !!STYLE.closed;
       if (!STYLE.mirror) continue;
-      fillStrip(m.floor, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, m.o, SW);
-      fillStrip(m.vault, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, m.o);
+      // the reflections end with the mirror walls, where the station begins: past it only the track's own floor runs on
+      const mEnd = Math.min(Math.floor(sC) + AHEAD - 4, SUPER_END - 6);
+      fillStrip(m.floor, Math.floor(sC) - 10, mEnd, frameAt, 0, m.o, SW);
+      fillStrip(m.vault, Math.floor(sC) - 10, mEnd, frameAt, H, m.o);
       const far = m.o + Math.sign(m.o) * (SW + 0.12);
-      for (let k = k0; k <= k1; k++) {
+      for (let k = k0; k <= Math.min(k1, Math.floor(mEnd / SL) - 1); k++) {
         const dec = getDecor(k), s = k * SL + SL / 2;
         put("sleeper", s - 0.5, m.o, 0.06); put("sleeper", s + 0.5, m.o, 0.06);
         put("rail", s, m.o - 0.72, 0.19); put("rail", s, m.o + 0.72, 0.19);

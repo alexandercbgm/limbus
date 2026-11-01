@@ -4107,7 +4107,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const arm = new THREE.Mesh(wtArmGeo, LEVEL.gateIron ? gateIronMat : frameMat); arm.position.set(x, yTop + 0.08, z / 2); grp.add(arm);
       const brace = new THREE.Mesh(wtBraceGeo, LEVEL.gateIron ? gateIronMat : frameMat); brace.position.set(x, yTop - 0.45, z * 0.3); brace.rotation.x = -Math.atan2(0.9, z * 0.6); grp.add(brace); // a strut down to the wall
       const ch = makeChain(yTop - yW - 0.45, 1, wtChainMat); ch.position.set(x, yTop, z); grp.add(ch);
-      const wt = LEVEL.id === "rubinus" ? new THREE.Mesh(rubyWeightGeo, rubyMat) : new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt); // Rubinus: a twelve-faced ruby
+      const wt = LEVEL.id === "rubinus" ? new THREE.Mesh(rubyWeightGeo, rubyWeightMat) : new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt); // Rubinus: a twelve-faced ruby
       lf.wt = { x, z, yTop, yW, grp, ch, wt, vy: 0, down: false, wp: new THREE.Vector3(), A: new THREE.Vector3(), B: new THREE.Vector3() };
     }
     leaves.forEach(lf => { lf.hp = 2; }); // the first ball cracks a leaf, the second breaks it
@@ -4143,6 +4143,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const WT_Z = 1.3, wtArmGeo = new THREE.BoxGeometry(0.16, 0.16, WT_Z + 0.1), wtBraceGeo = new THREE.BoxGeometry(0.1, 0.1, Math.hypot(0.9, WT_Z * 0.6));
   const wtChainMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.45, metalness: 0.7 }); // the rubies hang on black chains
   const gateIronMat = new THREE.MeshStandardMaterial({ color: 0x1c1c22, roughness: 0.35, metalness: 0.8 });
+  // hung against the gate's pale wall a see-through ruby looked washed out: these are nearly solid, and glow deeper
+  const rubyWeightMat = new THREE.MeshStandardMaterial({ color: 0xb0001f, emissive: 0x6a000e, roughness: 0.08, metalness: 0.25, transparent: true, opacity: 0.94, vertexColors: true });
   const rubyWeightGeo = (() => { // Rubinus's counterweight: twelve faces, two six-sided pyramids base to base, a point up to the chain and one down
     const pos = [], r = 0.42, h = 0.62, V = [...Array(6).keys()].map(i => [Math.cos(i * TAU / 6) * r, 0, -Math.sin(i * TAU / 6) * r]);
     for (let i = 0; i < 6; i++) { const A = V[i], B = V[(i + 1) % 6]; pos.push(0, h, 0, ...A, ...B, 0, -h, 0, ...B, ...A); }

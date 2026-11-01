@@ -690,7 +690,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.133</div>
+      <div class="credit version">v1.0.134</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -868,7 +868,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.133`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.134`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1783,6 +1783,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function forkOpenSide() { return 0; }
 
   // ---------- corridor (instanced, laid out every frame) ----------
+  function growInst(key, need) { // an instanced mesh with room for at least need, in place of the old: the same geometry, material and state
+    const old = I[key], m = new THREE.InstancedMesh(old.geometry, old.material, Math.max(need + 16, old.instanceMatrix.count * 2));
+    m.frustumCulled = old.frustumCulled; m.visible = old.visible; m.count = 0; m.instanceMatrix.setUsage(old.instanceMatrix.usage);
+    scene.remove(old); old.dispose && old.dispose(); scene.add(m); I[key] = m;
+  }
   function inst(geo, mat, max) { const m = new THREE.InstancedMesh(geo, mat, max); m.frustumCulled = false; m.count = 0; scene.add(m); return m; }
   const ceilGeo = new THREE.PlaneGeometry(2 * W, SL + 0.02); ceilGeo.rotateX(Math.PI / 2);
   const HEXPANE_R = 4.84, HEXPANE_A = HEXPANE_R * Math.cos(Math.PI / 6), HEXPANE_V = 4.2; // the glazing just inside the hexagonal frames: its side and its apothem
@@ -2140,8 +2145,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       fillStrip(gFloorStrip, ghost.s + 2, ghost.s + GHOST_N - 2, frameAtG, -0.015, 0, STYLE.floorW || W);
       fillStrip(gVaultStrip, ghost.s + 2, ghost.s + GHOST_N - 2, frameAtG, H + 0.015);
     }
-    // never more than an instanced mesh holds: past its end a phone's GPU refuses the whole draw (all of Speculum's walls went missing)
-    for (const key in I) { I[key].count = Math.min(n[key], I[key].instanceMatrix.count); I[key].instanceMatrix.needsUpdate = true; }
+    // never more than an instanced mesh holds (past its end a phone's GPU refuses the whole draw: all of Speculum's walls went missing);
+    // one that ran short is swapped for one twice as large, full again from the next frame
+    for (const key in I) {
+      if (n[key] > I[key].instanceMatrix.count) growInst(key, n[key]);
+      I[key].count = Math.min(n[key], I[key].instanceMatrix.count); I[key].instanceMatrix.needsUpdate = true;
+    }
     for (const k of decor.keys()) if (k < k0 - 2) decor.delete(k);
   }
 

@@ -276,7 +276,9 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 /* the Telegram build on a phone shows it from the first paint, before any script, so the upright menu never flashes */
 @media (orientation: portrait) and (pointer: coarse) { html.tgbuild .rotate[hidden] { display: flex !important; }
   /* the whole of the screen, to its foot, whatever height Telegram's view first reports; and under it the same ground, never a dark strip */
-  .rotate { bottom: auto; height: max(100%, 100lvh); } html.tgbuild, html.tgbuild body { background: #e9eced; } }
+  .rotate { bottom: auto; height: max(100%, 100lvh); } html.tgbuild, html.tgbuild body { background: #e9eced; } html.tgbuild.night, html.tgbuild.night body { background: #03060d; } }
+/* in the dark theme the turn-the-phone card is dark too, the colour Telegram is told to paint round the page, so no strip of another shows */
+.night .rotate { background: #03060d; color: #e6f4ff; } .night .rotate svg { stroke: #dff3ff; }
 html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rotate > * { visibility: hidden; } html.tgbuild:not(.tgready) .rotate svg { animation: none; } /* the turn starts upright when it shows */ /* nothing shows, not the menu nor the tunnel behind it, till Telegram has opened the app at its full size */
 .how .panel { width: min(640px, 100%); }
 .how.support .panel { width: min(460px, 100%); }
@@ -692,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.136</div>
+      <div class="credit version">v1.0.137</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -870,7 +872,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.136`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.137`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6940,7 +6942,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     TG.ready(); TG.expand();
     document.body.classList.add("tg"); if (/^(android|ios)$/.test(TG.platform)) document.body.classList.add("tgphone");
     if (TG.isVersionAtLeast("7.7")) TG.disableVerticalSwipes(); // a swipe down to aim must not fold the app away
-    if (TG.isVersionAtLeast("6.1")) { TG.setHeaderColor("#e9eced"); TG.setBackgroundColor("#e9eced"); }
+    { const c = document.documentElement.classList.contains("night") ? "#03060d" : "#e9eced"; // round the page, Telegram's own bars in the page's colour
+      if (TG.isVersionAtLeast("6.1")) { TG.setHeaderColor(c); TG.setBackgroundColor(c); } if (TG.isVersionAtLeast("7.10") && TG.setBottomBarColor) TG.setBottomBarColor(c); }
     const ready = () => document.documentElement.classList.add("tgready");
     if (TG.isVersionAtLeast("8.0")) { // the whole screen from the start; the menu shows once it is there (or after a moment, if it never comes)
       TG.requestFullscreen(); TG.onEvent("fullscreenChanged", () => setTimeout(ready, 120)); TG.onEvent("fullscreenFailed", ready); setTimeout(ready, 900);
@@ -7048,7 +7051,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function syncTheme() {
     const night = document.documentElement.classList.contains("night");
     gearPopEl.querySelectorAll("[data-theme]").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.theme === "night") === night)));
-    if (TG && TG.isVersionAtLeast("6.1")) { const c = night ? "#03060d" : "#e9eced"; TG.setHeaderColor(c); TG.setBackgroundColor(c); }
+    if (TG && TG.isVersionAtLeast("6.1")) { const c = night ? "#03060d" : "#e9eced"; TG.setHeaderColor(c); TG.setBackgroundColor(c); if (TG.isVersionAtLeast("7.10") && TG.setBottomBarColor) TG.setBottomBarColor(c); }
   }
   syncTheme();
   const howPage = n => { const h = $("how"), paged = matchMedia("(orientation: landscape) and (max-height: 430px)").matches;

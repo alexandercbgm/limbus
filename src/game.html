@@ -4129,13 +4129,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const x = lf.sd * (BRIDGE_W + 1.25), grp = new THREE.Group(); root.add(grp);
       const ring = new THREE.Mesh(hawseGeo, wtChainMat); ring.position.set(x, HAWSE_V, 0.1); grp.add(ring);
       const hole = new THREE.Mesh(hawseHoleGeo, hawseHoleMat); hole.position.set(x, HAWSE_V, 0.08); grp.add(hole);
-      const L0 = HAWSE_V - 0.05 - yA0, ch = makeChain(L0, 1, wtChainMat); ch.position.set(x, HAWSE_V - 0.05, ANCHOR_Z); grp.add(ch);
-      const anchor = anchorProto.clone(); anchor.position.set(x, HAWSE_V - 0.05 - ANCHOR_IN, ANCHOR_Z); grp.add(anchor);
-      ch.children.forEach((l, i) => { l.visible = (i + 1) * LINK <= ANCHOR_IN + 0.01; });
+      // the whole chain, the anchor shackled to its last link; it slides out of the hawse, the links still inside hidden
+      const L0 = HAWSE_V - 0.05 - yA0, ch = makeChain(L0, 1, wtChainMat), Lc = ch.children.length * LINK; ch.position.set(x, 0, ANCHOR_Z); grp.add(ch);
+      const anchor = anchorProto.clone(); anchor.position.set(x, 0, ANCHOR_Z); grp.add(anchor);
       const tg = doorTarget(grp, x, HAWSE_V + HAWSE_TG, 0.1, true); tg.forEach(m => m.scale.setScalar(1.6)); // as big as Vitrum's catapult targets
       const hinge = new THREE.Group(); hinge.position.set(lf.sd * BRIDGE_W, GATE_H / 2, 0); root.add(hinge); // the leaf hangs on a hinge at its outer edge
       root.remove(lf.m); hinge.add(lf.m); lf.m.position.set(-lf.sd * BRIDGE_W / 2, 0, 0); lf.hinge = hinge;
-      lf.wt = { x, grp, ch, anchor, tg, L0, len: ANCHOR_IN, pulled: false, tp: new THREE.Vector3() };
+      lf.wt = { x, grp, ch, anchor, tg, L0: Math.min(L0, Lc), Lc, len: ANCHOR_IN, pulled: false, tp: new THREE.Vector3() }; hangAnchor(lf.wt);
     }
     leaves.forEach(lf => { lf.hp = 2; }); // the first ball cracks a leaf, the second breaks it
     for (const o of order) {
@@ -4186,6 +4186,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     add(new THREE.ConeGeometry(0.07, 0.14, 8), 0, -1.27, Math.PI); // the crown's point
     return a;
   })();
+  function hangAnchor(w) { // len of chain out of the hawse: the chain slid down so, the anchor on its end, the links not yet out hidden in the wall
+    const mouth = HAWSE_V - 0.05, gy = mouth + w.Lc - w.len; w.ch.position.y = gy; w.anchor.position.y = gy - w.Lc + 0.07; // the last link through the anchor's ring
+    w.ch.children.forEach((l, i) => { l.visible = gy - (i + 0.5) * LINK < mouth - LINK * 0.3; });
+  }
   function pullAnchor(g, lf) {
     const w = lf.wt; if (w.pulled) return;
     w.pulled = true; lf.opening = true; w.tg.forEach(m => { m.material = targetOff; }); // the target goes out
@@ -4427,8 +4431,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         else if (g.kind === "h") lf.m.position.set(lf.sd * (BRIDGE_W / 2 + BRIDGE_W * smooth5(lf.pr)), GATE_H / 2, 0);
         if (lf.wt) { const w = lf.wt;
           if (w.pulled && w.len < w.L0) { // the chain runs out, the anchor dropping, falling faster as it goes
-            w.vy = (w.vy || 0) + G * 0.5 * dt; w.len = Math.min(w.L0, w.len + w.vy * dt); w.anchor.position.y = HAWSE_V - 0.05 - w.len;
-            w.ch.children.forEach((l, i) => { l.visible = (i + 1) * LINK <= w.len + 0.01; });
+            w.vy = (w.vy || 0) + G * 0.5 * dt; w.len = Math.min(w.L0, w.len + w.vy * dt); hangAnchor(w);
             if (w.len === w.L0) Sound.tone(90, 0.2, 0.15); }
           w.tp.set(w.x, HAWSE_V + HAWSE_TG, 0.1).applyMatrix4(g.root.matrix);
         }

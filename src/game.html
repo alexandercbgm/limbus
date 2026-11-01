@@ -179,7 +179,7 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .map-rings .split { --tilt: rotate(-45deg); } /* gold above, lilac below: two borders each, turned an eighth */
 @keyframes ringout { from { transform: var(--tilt) scale(1); opacity: 0.8; } to { transform: var(--tilt) scale(1.818); opacity: 0; } } /* r 22 to 40 */
 @keyframes ringpulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.35); opacity: 0; } } /* r 20 to 27 and back */ /* under the pointer, on the station's circle itself (set from the script: a finger has no hover) */
-.map-tools { position: absolute; top: 12px; right: 14px; z-index: 1; display: flex; gap: 8px; }
+.map-tools { position: absolute; top: 12px; right: 14px; z-index: 3; display: flex; gap: 8px; } /* over the credit and version, so its menu covers them */
 .map-tools .ibtn { border: 1px solid rgba(16, 36, 46, 0.22); border-radius: 4px; background: rgba(255, 255, 255, 0.75); cursor: pointer; }
 .map-tools .ibtn:hover { background: #ffffff; }
 .map-tools .lang { width: auto; padding: 0 10px 0 8px; display: flex; gap: 6px; font: 700 12px var(--mono); color: #10242e; }
@@ -441,13 +441,12 @@ video.mini { background: none; object-fit: contain; }
 .seg button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .seg button[aria-pressed="true"] { background: #ffffff; color: #10242e; box-shadow: 0 1px 3px rgba(16, 36, 46, 0.18), 0 0 0 1px rgba(16, 36, 46, 0.06); }
 @media (orientation: landscape) and (max-height: 430px) { .gear-pop { top: calc(100% + 5px); min-width: 200px; padding: 4px; } .gp-row { min-height: 34px; padding-block: 3px; } .seg button { height: 26px; } }
-/* a phone held sideways: the sound and gear buttons half as large again for a finger, its menu as well, and all of it in from
-   the right edge by half a button, clear of the phone's own Back arrow */
+/* a phone held sideways: the sound and gear buttons half as large again for a finger, and its menu a little larger, so it still fits the screen's height */
 @media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
-  .map-tools { right: 23px; gap: 8px; } .map-tools .ibtn { width: 45px; height: 45px; border-radius: 14px; } .map-tools .ibtn svg { width: 28px; height: 28px; }
-  .gear-pop { top: calc(100% + 7px); min-width: 300px; padding: 6px; border-radius: 18px; }
-  .gp-row { min-height: 51px; padding: 6px 8px 6px 14px; gap: 18px; font-size: 16px; border-radius: 12px; } .gp-label { gap: 11px; } .gp-label svg { width: 26px; height: 26px; }
-  .seg { padding: 3px; border-radius: 12px; } .seg button { min-width: 56px; height: 39px; padding: 0 14px; font-size: 15px; border-radius: 9px; } .seg button svg { width: 23px; height: 23px; }
+  .map-tools { gap: 8px; } .map-tools .ibtn { width: 45px; height: 45px; border-radius: 14px; } .map-tools .ibtn svg { width: 28px; height: 28px; }
+  .gear-pop { top: calc(100% + 6px); min-width: 240px; padding: 5px; border-radius: 15px; max-height: calc(100vh - 80px); overflow-y: auto; }
+  .gp-row { min-height: 40px; padding: 4px 6px 4px 11px; gap: 14px; font-size: 14px; border-radius: 10px; } .gp-label { gap: 9px; } .gp-label svg { width: 21px; height: 21px; }
+  .seg { padding: 2px; border-radius: 10px; } .seg button { min-width: 44px; height: 31px; padding: 0 11px; font-size: 13px; border-radius: 8px; } .seg button svg { width: 19px; height: 19px; }
 }
 
 /* ---- night: the menu and the station sheets in dark glass and neon over a dark loop (minis/menu.night.mp4) ---- */

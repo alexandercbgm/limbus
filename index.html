@@ -688,7 +688,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.105</div>
+      <div class="credit version">v1.0.106</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.105`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.106`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1547,6 +1547,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // flashing rose-white; facets that lie in one plane (a pentagon's three triangles, a quad's two) take one colour
   function facetColours(g, seed) {
     const P = g.attributes.position.array, col = [];
+    for (let i = 0; i < P.length; i += 9) { // every facet wound to face outward, from the stone's middle (some were wound in, and showed hollow)
+      const cx = P[i] + P[i + 3] + P[i + 6], cy = P[i + 1] + P[i + 4] + P[i + 7], cz = P[i + 2] + P[i + 5] + P[i + 8];
+      const ux = P[i + 3] - P[i], uy = P[i + 4] - P[i + 1], uz = P[i + 5] - P[i + 2], vx = P[i + 6] - P[i], vy = P[i + 7] - P[i + 1], vz = P[i + 8] - P[i + 2];
+      if ((uy * vz - uz * vy) * cx + (uz * vx - ux * vz) * cy + (ux * vy - uy * vx) * cz < 0) for (let c = 0; c < 3; c++) { const tmp = P[i + 3 + c]; P[i + 3 + c] = P[i + 6 + c]; P[i + 6 + c] = tmp; }
+    }
+    g.computeVertexNormals();
     for (let i = 0; i < P.length; i += 9) {
       const ux = P[i + 3] - P[i], uy = P[i + 4] - P[i + 1], uz = P[i + 5] - P[i + 2], vx = P[i + 6] - P[i], vy = P[i + 7] - P[i + 1], vz = P[i + 8] - P[i + 2];
       let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
@@ -1585,7 +1591,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     gPear: gemGeo([[0, 0.86], [0.24, 0.46], [0.42, 0.1], [0.5, -0.22], [0.44, -0.5], [0.26, -0.68], [0, -0.74], [-0.26, -0.68], [-0.44, -0.5], [-0.5, -0.22], [-0.42, 0.1], [-0.24, 0.46]].map(([x, z]) => [x, -z])),
   };
   const RUBY_COL = new THREE.Color(0xa8001e); // pomegranate juice: deep, a touch toward crimson
-  const rubyMat = new THREE.MeshStandardMaterial({ color: RUBY_COL, emissive: 0x2a0005, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.7, vertexColors: true, depthWrite: false, side: THREE.DoubleSide }); // see-through: its far facets show through the near
+  const rubyMat = new THREE.MeshStandardMaterial({ color: RUBY_COL, emissive: 0x2a0005, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.7, vertexColors: true }); // see-through to the sky behind; only its near facets drawn, in depth
   const prismMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.72, roughness: 0.1, metalness: 0.25, flatShading: true });
   const sigilMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8 });
   const stationMat = new THREE.MeshStandardMaterial({ map: floorTex.map, roughness: 0.6, metalness: 0.1 });

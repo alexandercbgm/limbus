@@ -688,7 +688,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.124</div>
+      <div class="credit version">v1.0.125</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.124`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.125`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2357,7 +2357,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.add(new THREE.LineSegments(eg, reinf ? reinfEdgeMat : edgeMat));
     if (reinf) { const inner = new THREE.LineSegments(eg, reinfEdgeMat); inner.scale.set(0.86, 0.86, 1); g.add(inner); }
     scene.add(g);
-    panes.push(Object.assign({ bu: o.u, bv: o.v, hp: 1, group: g, geo, eg, alive: true, C: new THREE.Vector3(), R: new THREE.Vector3(), U: new THREE.Vector3(), T: new THREE.Vector3(), q: new THREE.Quaternion(), cracks: [] }, o, { maxhp: o.hp || 1, mat: reinf ? reinfMat : glassMat }));
+    const pn = Object.assign({ bu: o.u, bv: o.v, hp: 1, group: g, geo, eg, alive: true, C: new THREE.Vector3(), R: new THREE.Vector3(), U: new THREE.Vector3(), T: new THREE.Vector3(), q: new THREE.Quaternion(), cracks: [] }, o, { maxhp: o.hp || 1, mat: reinf ? reinfMat : glassMat }); panes.push(pn);
+    mirrorReg(g, () => pn.s); // Speculum: reflected in the mirrors
   }
   // where a segment from a to b (pane-local) first enters a thick pane, its bars taken as boxes, widened by m; or null
   function thickHit(p, a, b, m) {
@@ -2388,7 +2389,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (big) m.scale.setScalar(val >= CRYSTAL_DARK ? 1.45 : 1.25); // a dark one stands out
     const glow = new THREE.Sprite(decoyKind ? redGlow : blueGlow); glow.scale.setScalar(big ? 2.4 : 1.8); g.add(glow);
     scene.add(g);
-    crystals.push({ s, u, v, val, decoy: !!decoyKind, group: g, mesh: m, alive: true, spin: 0.8 + Math.random(), wp: new THREE.Vector3() });
+    const cr = { s, u, v, val, decoy: !!decoyKind, group: g, mesh: m, alive: true, spin: 0.8 + Math.random(), wp: new THREE.Vector3() }; crystals.push(cr);
+    mirrorReg(g, () => cr.s);
   }
   function addMirage(s, u, v, val) {
     addCrystal(s, u, v, val);
@@ -2882,6 +2884,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // swMax: the widest its swing may grow under hits (a gate wider, to swing clear of the cart)
     hangers.push({ s, kind, w, h, d, L, arm, wn2, kArm, top, fore, u0: pend || laser ? 0 : rand(-0.4, 0.4), theta: amp * Math.sin(ph), omega: amp * Math.sqrt(wn2) * Math.cos(ph), swMax: pend ? clamp(amp * 1.5, 0.5, 1.2) : 1.2, tilt: 0,
       laser, bars, emitters, lasHit: false, root, body, chains, hp: laser ? 6 : opt.wide ? 13 : bars ? 9 : pend ? 5 : 7, falling: false, fallT: 0, fv: new THREE.Vector3(), alive: true, passed: false, inv: new THREE.Matrix4() });
+    if (!laser) mirrorReg(root, () => s); // Speculum: reflected in the mirrors (the lasers' blocks are not)
   }
   const SWEEP = new THREE.Vector3(), CHAIN_HIT = 0.4; // chains look thin, so their hit zone is generous
   function segDist(pt, A, B) {
@@ -2934,6 +2937,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     hg.falling = true; hg.fallT = 0;
     for (const em of hg.emitters) { em.alive = false; setBeamLen(em.beam, 0); } // a falling beam's lasers go out
     scene.attach(hg.body); scene.remove(hg.root);
+    if (!hg.laser) mirrorReg(hg.body, () => hg.s); // its reflection falls with it
     frameAt(hg.s);
     hg.fv.copy(hg.fore ? _T : _R).multiplyScalar((hg.fore ? -1 : 1) * hg.omega * hg.arm).addScaledVector(_U, 0.5);
     addScore(25); karmaGain(0.05); pop(T("Путь свободен", "The way is clear"), "info");
@@ -3885,6 +3889,34 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const outline = (geo, parent) => { const l = new THREE.LineSegments(new THREE.EdgesGeometry(geo), doorLineMat); parent.add(l); return l; };
   const doorTarget = (parent, x, y, z, on) => { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
     const r = new THREE.Mesh(targetGeo, on ? targetOn : targetOff), d = new THREE.Mesh(targetDotGeo, on ? targetOn : targetOff); g.add(r); g.add(d); return [r, d]; };
+  // Speculum: panes, crystals and hanging blocks reflected in both mirror walls. Each gets two copies (sharing its geometry and
+  // materials); every frame a copy's parts take the original's pose, and the whole is turned through the mirror's plane
+  let mirrorCopies = [];
+  const MIR_M = new THREE.Matrix4();
+  function mirrorReg(obj, sOf) {
+    if (!STYLE.mirror) return;
+    const src = []; obj.traverse(o => src.push(o));
+    const copies = [-1, 1].map(k => { const c = obj.clone(true), nodes = []; c.traverse(o => nodes.push(o)); c.matrixAutoUpdate = false; scene.add(c); return { k, c, nodes }; });
+    mirrorCopies.push({ obj, sOf, src, copies });
+  }
+  function updateMirrorCopies() {
+    if (!mirrorCopies.length) return;
+    mirrorCopies = mirrorCopies.filter(m => { if (m.obj.parent) return true; m.copies.forEach(c => scene.remove(c.c)); return false; });
+    for (const m of mirrorCopies) {
+      const s = m.sOf(), on = s < MIRROR_END() && s > sC - 4 && s < sC + 60; // near ones only: behind the frosted glass the far ones are lost in the haze
+      m.copies.forEach(c => { c.c.visible = on && m.obj.visible; });
+      if (!on || !m.obj.visible) continue;
+      m.obj.updateMatrixWorld(true); frameAt(s);
+      for (const c of m.copies) {
+        const w = c.k * (SW + 0.12), d = 2 * (_P.dot(_R) + w), x = _R.x, y = _R.y, z = _R.z; // x' = x - 2(x·R)R + 2(P·R + w)R
+        MIR_M.set(1 - 2 * x * x, -2 * x * y, -2 * x * z, d * x, -2 * y * x, 1 - 2 * y * y, -2 * y * z, d * y, -2 * z * x, -2 * z * y, 1 - 2 * z * z, d * z, 0, 0, 0, 1);
+        c.c.matrix.multiplyMatrices(MIR_M, m.obj.matrixWorld); c.c.matrixWorldNeedsUpdate = true;
+        for (let i = 1; i < m.src.length && i < c.nodes.length; i++) { const a = m.src[i], b = c.nodes[i];
+          b.visible = a.visible && !a.isLineSegments && !a.isSprite; if (!b.visible) continue; if (a.material) b.material = a.material; // no outlines nor glows: lost behind the glass, and each a draw
+          if (a.matrixAutoUpdate) { b.position.copy(a.position); b.quaternion.copy(a.quaternion); b.scale.copy(a.scale); } else b.matrix.copy(a.matrix); }
+      }
+    }
+  }
   function dropDoor(dr) { scene.remove(dr.root); (dr.mirrors || []).forEach(g => scene.remove(g)); }
   function spawnDoor(o) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
@@ -6226,6 +6258,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     else if (state === "menu") updateAttract(dt);
     updateWorld(dt);
     const t1 = performance.now();
+    updateMirrorCopies();
     renderSky();
     renderer.render(scene, camera);
     perfAcc.n++; perfAcc.upd += t1 - t0; perfAcc.rnd += performance.now() - t1; perfAcc.max = Math.max(perfAcc.max, performance.now() - t0);

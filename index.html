@@ -692,7 +692,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.135</div>
+      <div class="credit version">v1.0.136</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -870,7 +870,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.135`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.136`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1363,8 +1363,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function renderSky() {
     renderer.getDrawingBufferSize(bufSize);
     // Rubinus's facets want their seams sharper: two thirds of the screen's size; the others half. On a phone, whose pixels are small,
-    // the soft skies at two thirds of its CSS size, however many pixels it draws the rest with
-    const div = skyUni.mode.value === 6 ? 1.5 : PHONE ? Math.max(2, renderer.getPixelRatio() * 1.5) : 2;
+    // Rubinus's at its CSS size and the soft skies at two thirds of it, however many pixels it draws the rest with
+    const div = skyUni.mode.value === 6 ? (PHONE ? Math.max(1.5, renderer.getPixelRatio()) : 1.5) : PHONE ? Math.max(2, renderer.getPixelRatio() * 1.5) : 2;
     const w = Math.max(2, Math.round(bufSize.x / div)), h = Math.max(2, Math.round(bufSize.y / div));
     if (skyRT.width !== w || skyRT.height !== h) skyRT.setSize(w, h);
     skyUni.px.value = camera.fov * Math.PI / 180 / h; // the angle one of its pixels spans

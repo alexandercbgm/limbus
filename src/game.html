@@ -1277,8 +1277,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function renderSky() {
     renderer.getDrawingBufferSize(bufSize);
     // Rubinus's facets want their seams sharper: two thirds of the screen's size; the others half. On a phone, whose pixels are small,
-    // the soft skies at two thirds of its CSS size, however many pixels it draws the rest with
-    const div = skyUni.mode.value === 6 ? 1.5 : PHONE ? Math.max(2, renderer.getPixelRatio() * 1.5) : 2;
+    // Rubinus's at its CSS size and the soft skies at two thirds of it, however many pixels it draws the rest with
+    const div = skyUni.mode.value === 6 ? (PHONE ? Math.max(1.5, renderer.getPixelRatio()) : 1.5) : PHONE ? Math.max(2, renderer.getPixelRatio() * 1.5) : 2;
     const w = Math.max(2, Math.round(bufSize.x / div)), h = Math.max(2, Math.round(bufSize.y / div));
     if (skyRT.width !== w || skyRT.height !== h) skyRT.setSize(w, h);
     skyUni.px.value = camera.fov * Math.PI / 180 / h; // the angle one of its pixels spans

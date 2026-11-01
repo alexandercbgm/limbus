@@ -685,7 +685,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.89</div>
+      <div class="credit version">v1.0.90</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -863,7 +863,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.89`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.90`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6095,6 +6095,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     svg.setAttribute("viewBox", "0 100 1000 372"); // just the stations and their names; the legend and the buttons sit in the empty corners
     const pt = id => byId(id).map;
     const poly = pts => pts.map(([x, y]) => `${x},${y}`).join(" ");
+    const segs = []; // the built lines' stretches [x1, y1, x2, y2, colour], for where they meet the stations
     let out = `<defs><linearGradient id="firstRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="${LINE_GOLD}"/><stop offset="0.5" stop-color="${LINE_BR}"/></linearGradient></defs>`;
     let under = "";
     const casing = (shape, w) => shape.replace(/stroke="[^"]*"/, 'stroke="#ffffff"').replace(/stroke-width="([\d.]+)"/, (m, x) => `stroke-width="${+x + w}"`).replace(/ stroke-dasharray="[^"]*"| opacity="[^"]*"/g, "");
@@ -6103,13 +6104,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const a = pt(MAIN_LINE[i]), b = pt(MAIN_LINE[i + 1]), built = byId(MAIN_LINE[i + 1]).playable;
       const onArc = ARC.includes(MAIN_LINE[i]) && ARC.includes(MAIN_LINE[i + 1]);
       const ln = `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${onArc ? LINE_ARC : LINE_MAIN}" stroke-width="8" stroke-linecap="round"${built ? "" : ' stroke-dasharray="1 13" opacity="0.6"'}/>`;
-      if (built) under += casing(ln, 5); out += ln; // a white casing, as on a metro map, in the layer under the rest
+      if (built) { under += casing(ln, 5); segs.push([a.x, a.y, b.x, b.y, onArc ? LINE_ARC : LINE_MAIN]); } out += ln; // a white casing, as on a metro map, in the layer under the rest
     }
     // transfers and dead-end branches, each with its price on the longest segment
     for (const ln of MAP_LINES) {
       const to = byId(ln.to), color = ln.kind === "transfer" ? LINE_TR : ln.kind === "line" ? LINE_MAIN : ln.kind === "tao" ? LINE_TAO : ln.kind === "gift" ? LINE_GOLD : LINE_BR, built = to.playable || to.depot || to.gift;
       const pl = `<polyline points="${poly(ln.pts)}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"${built ? "" : ' stroke-dasharray="1 11" opacity="0.75"'}/>`;
-      if (built) under += casing(pl, 5); out += pl;
+      if (built) { under += casing(pl, 5); for (let i = 0; i + 1 < ln.pts.length; i++) segs.push([...ln.pts[i], ...ln.pts[i + 1], color]); } out += pl;
       const cost = ln.kind === "transfer" ? to.req.transfer.cost : to.req.fare || to.req.toll;
       if (!cost || ln.kind === "branch") continue; // a dead end's fare is on its sheet, not on the line
       let best = 0, mx = 0, my = 0;
@@ -6144,11 +6145,20 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += ring(p, lv.gift ? LINE_GOLD : LINE_BR, 2.5, d); // rings round the depot till the first purchase
       if (first) for (const d of [0, 1.2]) out += ring(p, "url(#firstRing)", 2.5, d); // till the first ride, as round the depot
       else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 20, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
-      out += `<circle class="case" cx="${p.x}" cy="${p.y}" r="23.6" fill="none" stroke="#ffffff" stroke-width="1.2"/>`; // a thin casing all round the station, over the lines that run into it
+      // a thin casing all round the station, over the lines that run into it; but where a line comes in in the colour of the
+      // ring it meets (the outer one at a transfer, gold above and the other below at Initium), the line runs on into it unbroken
+      out += `<circle class="case" cx="${p.x}" cy="${p.y}" r="23.6" fill="none" stroke="#ffffff" stroke-width="1.2"/>`;
+      for (const [x1, y1, x2, y2, c] of segs) for (const [ax, ay, bx, by] of [[x1, y1, x2, y2], [x2, y2, x1, y1]]) {
+        if (Math.hypot(ax - p.x, ay - p.y) > 1) continue;
+        const L2 = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / L2, uy = (by - ay) / L2;
+        const outer = !hub ? stroke : lv.id === "initium" ? (uy < 0 ? LINE_GOLD : HUB_RING.initium) : HUB_RING[lv.id];
+        if (c.toLowerCase() === outer.toLowerCase()) out += `<line x1="${p.x}" y1="${p.y}" x2="${p.x + ux * 25}" y2="${p.y + uy * 25}" stroke="${c}" stroke-width="8"/>`;
+      }
       if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/>`; // a transfer's face, under its inner circle
       out += `<circle class="ring${hub ? " inner" : ""}" style="transform-origin:${p.x}px ${p.y}px" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
       if (hub && lv.id === "initium") out += `<path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
       else if (hub) out += `<circle class="hub" style="transform-origin:${p.x}px ${p.y}px" cx="${p.x}" cy="${p.y}" r="21" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // its rim in the colour of the other line that meets here, in front of the inner circle
+      if (hub) out += `<circle class="case" cx="${p.x}" cy="${p.y}" r="19.25" fill="none" stroke="#ffffff" stroke-width="1"/>`; // a thin casing between a transfer's two rings
       out += `<path d="${GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
       out += `<text x="${L[0]}" y="${L[1]}" text-anchor="${L[2]}" font-family="Unbounded, 'Arial Black', sans-serif" font-weight="700" font-size="12.5" letter-spacing="0.6" fill="${INK}">${esc(lv.latin.toUpperCase())}</text>`;
       out += `<text x="${L[0]}" y="${L[1] + 17}" text-anchor="${L[2]}" font-family="Manrope, system-ui, sans-serif" font-size="12.5" fill="#4c6470">${esc(lv.ru)}</text>`;

@@ -688,7 +688,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.121</div>
+      <div class="credit version">v1.0.122</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.121`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.122`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1785,7 +1785,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const ceilGeo = new THREE.PlaneGeometry(2 * W, SL + 0.02); ceilGeo.rotateX(Math.PI / 2);
   const HEXPANE_R = 4.84, HEXPANE_A = HEXPANE_R * Math.cos(Math.PI / 6), HEXPANE_V = 4.2; // the glazing just inside the hexagonal frames: its side and its apothem
   const I = {
-    ceil: inst(ceilGeo, surfMat, 140), // Vitrum's of clear glass (setLevel)
+    ceil: inst(ceilGeo, surfMat, 320), // room for the mirrored pieces too (Speculum); Vitrum's of clear glass (setLevel)
     sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 560),
     rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 560),
     wall: inst(new THREE.BoxGeometry(0.24, H, SL + 0.03), wallMat, 420),
@@ -2092,12 +2092,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // the mirrors end as the finale is announced (its banner up); then plain glass to the finale's end; then only the track's floor to the station
       const mEnd = Math.min(Math.floor(sC) + AHEAD - 4, MIRROR_END());
       fillStrip(m.floor, Math.floor(sC) - 10, mEnd, frameAt, 0, m.o, SW);
-      fillStrip(m.vault, Math.floor(sC) - 10, mEnd, frameAt, H, m.o);
+      if (STYLE.closed) fillStrip(m.vault, Math.floor(sC) - 10, mEnd, frameAt, H, m.o); else m.vault.visible = false; // a roof in the mirror only where there is one over the track
       const far = m.o + Math.sign(m.o) * (SW + 0.12);
       for (let k = k0; k <= Math.min(k1, Math.floor(mEnd / SL) - 1); k++) {
         const dec = getDecor(k), s = k * SL + SL / 2;
         put("sleeper", s - 0.5, m.o, 0.06); put("sleeper", s + 0.5, m.o, 0.06);
         put("rail", s, m.o - 0.72, 0.19); put("rail", s, m.o + 0.72, 0.19);
+        if (dec.ceil && !STYLE.closed && !STYLE.bare) I.ceil.setMatrixAt(n.ceil++, placeM(M, s, m.o, dec.hh || SH).scale(SV.set((dec.hw || SW) / W, 1, 1))); // the pieces of roof there are, mirrored
         putWall(wallKey, s, far); // the far wall as the real ones: mirror glass, the sky through it (opaque, it read as a roof)
         if (dec.arch && STYLE.arch !== "hex") { { put("post", s, m.o - W + 0.1, H / 2); put("post", s, m.o + W - 0.1, H / 2); put("beam", s, m.o, H - 0.18); put("sill", s, m.o, 0.025); } }
       }

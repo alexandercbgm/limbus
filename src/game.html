@@ -861,17 +861,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     { sky: "#0a0003", hor: "#040001", gnd: "#40000c", surf: "#0c0003", wall: "#160006", line: "#ff1030", lineI: 0.95, frame: "#0a0002", frameE: "#ff0828", frameEI: 0.95,
       rail: "#3a0410", sleeper: "#140206", glass: "#ff1838", glassO: 0.5, edge: "#ff90a0", fogN: 5, fogF: 62, hemiS: "#ff3050", hemiG: "#200006", hemiI: 0.6, sunI: 0.35,
       dust: "#ff2a44", block: "#2a0008", cart: "#200408", accent: "#ff1030" },
-    { sky: "#4a0010", hor: "#2a0008", gnd: "#160004", surf: "#5a0616", wall: "#480412", line: "#ff3a54", lineI: 0.35, frame: "#280006", frameE: "#e0102c", frameEI: 0.4,
+    { sky: "#4a0010", hor: "#2a0008", gnd: "#160004", surf: "#5a0616", wall: "#480412", line: "#ff3a54", lineI: 0.35, frame: "#5a0014", frameE: "#ff1a3a", frameEI: 0.45,
       rail: "#8a1a2c", sleeper: "#300810", glass: "#ff4a64", glassO: 0.44, edge: "#ffc0c8", fogN: 9, fogF: 80, hemiS: "#ff8090", hemiG: "#280006", hemiI: 0.75, sunI: 0.5,
       dust: "#ff6a7c", block: "#6a0818", cart: "#40101a", accent: "#ff4a64" },
-    { sky: "#9a0a22", hor: "#b8142e", gnd: "#5a0412", surf: "#e0c4c8", wall: "#a8142c", line: "#ffffff", lineI: 0.1, frame: "#6a0418", frameE: "#ff2a44", frameEI: 0.2,
-      rail: "#b03040", sleeper: "#7a1a28", glass: "#ff8a9a", glassO: 0.44, edge: "#ffffff", fogN: 13, fogF: 96, hemiS: "#ffffff", hemiG: "#901828", hemiI: 0.95, sunI: 0.75,
+    { sky: "#9a0a22", hor: "#b8142e", gnd: "#5a0412", surf: "#e0c4c8", wall: "#a8142c", line: "#ffffff", lineI: 0.1, frame: "#8c021c", frameE: "#d80e2a", frameEI: 0.16,
+      rail: "#b03040", sleeper: "#8c0a22", glass: "#ff8a9a", glassO: 0.44, edge: "#ffffff", fogN: 13, fogF: 96, hemiS: "#ffffff", hemiG: "#901828", hemiI: 0.95, sunI: 0.75,
       dust: "#ffd0d6", block: "#c01a34", cart: "#5a1420", accent: "#ffffff" },
-    { sky: "#d81a36", hor: "#f06070", gnd: "#a80c22", surf: "#fbeef0", wall: "#d82a42", line: "#ffd0d6", lineI: 0.25, frame: "#9a0820", frameE: "#ff4a60", frameEI: 0.3,
-      rail: "#d06070", sleeper: "#e8b0b8", glass: "#ffb0bc", glassO: 0.4, edge: "#ffffff", fogN: 16, fogF: 108, hemiS: "#ffffff", hemiG: "#e07080", hemiI: 1.05, sunI: 0.85,
+    { sky: "#d81a36", hor: "#f06070", gnd: "#a80c22", surf: "#fbeef0", wall: "#d82a42", line: "#ffd0d6", lineI: 0.25, frame: "#a8041f", frameE: "#e0102c", frameEI: 0.14,
+      rail: "#d06070", sleeper: "#a80e28", glass: "#ffb0bc", glassO: 0.4, edge: "#ffffff", fogN: 16, fogF: 108, hemiS: "#ffffff", hemiG: "#e07080", hemiI: 1.05, sunI: 0.85,
       dust: "#ffffff", block: "#e8304a", cart: "#7a1a28", accent: "#ff3a54" },
-    { sky: "#ff2a46", hor: "#ffd8dc", gnd: "#f0a0aa", surf: "#ffffff", wall: "#ff4a60", line: "#ffffff", lineI: 0.45, frame: "#c8102e", frameE: "#ff8090", frameEI: 0.55,
-      rail: "#f0a0aa", sleeper: "#fcdce0", glass: "#ffc0c8", glassO: 0.36, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#ffb0b8", hemiI: 1.15, sunI: 0.9,
+    { sky: "#ff2a46", hor: "#ffd8dc", gnd: "#f0a0aa", surf: "#ffffff", wall: "#ff4a60", line: "#ffffff", lineI: 0.45, frame: "#b8061f", frameE: "#f01434", frameEI: 0.18,
+      rail: "#f0a0aa", sleeper: "#c01430", glass: "#ffc0c8", glassO: 0.36, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#ffb0b8", hemiI: 1.15, sunI: 0.9,
       dust: "#ffe0e4", block: "#ff5068", cart: "#8a2030", accent: "#ff2040" },
   ];
 
@@ -1127,6 +1127,23 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         return c;
       }
       const float SUN_R = 0.05;
+      // Rubinus: the sky as the inside of a cut ruby, triangular facets in its reds, pomegranate juice to garnet black, a few
+      // flashing rose-white; each facet shimmers slowly, the seams between them thin and dark. Drawn at full size (renderSky)
+      vec3 rubySky(vec3 n) {
+        float lum = dot(top, vec3(0.3, 0.55, 0.15));
+        vec2 p = vec2(atan(n.z, n.x) / 6.2832 * 18.0 + t * 0.008, asin(clamp(n.y, -1.0, 1.0)) / 3.1416 * 18.0 / 1.6);
+        vec2 sk = vec2(p.x - p.y * 0.57735, p.y * 1.1547);
+        vec2 cl = floor(sk), f = fract(sk); float up = step(f.x + f.y, 1.0);
+        float e = up > 0.5 ? min(min(f.x, f.y), 1.0 - f.x - f.y) : min(min(1.0 - f.x, 1.0 - f.y), f.x + f.y - 1.0);
+        float s = h3(vec3(cl, up + 2.0));
+        vec3 dark = vec3(0.16, 0.0, 0.025), juice = vec3(0.56, 0.01, 0.08), bright = vec3(0.92, 0.06, 0.17), flash = vec3(1.0, 0.72, 0.8);
+        vec3 col = s < 0.35 ? mix(dark, juice, s / 0.35) : s < 0.88 ? mix(juice, bright, (s - 0.35) / 0.53) : s < 0.95 ? bright : flash;
+        col *= 0.82 + 0.28 * sin(t * 0.55 + s * 41.0); // each facet catches the light in its turn
+        col *= s < 0.95 ? 0.45 + 0.75 * lum : 0.75 + 0.35 * lum;
+        float seam = 1.0 - smoothstep(px * 2.2, px * 4.5, e * 0.35); // ~a pixel wide, whatever the screen
+        col = mix(col, col * 0.35, seam * 0.8);
+        return mix(hor, col, smoothstep(-0.02, 0.1, n.y)); // low down, into the fog's colour
+      }
       // Speculum's black hole, rendered once into a picture (tools/render_blackhole.js: 0.4 rad each way, its shadow 0.108
       // rad across, from 24 hole-radii off) and shown at BH_K of that size in the direction bhd, turned by bhRot; round it
       // the sky is bent outward as it would be, weakly, by 2 / b, and dimmed where it would be smeared thin
@@ -1153,7 +1170,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       const vec3 SUN_AZ = vec3(0.819, 0.0, -0.574); // 55 degrees right of the track's start (-z)
       void main(){ vec3 n = normalize(vP); float h = n.y;
-        if (mode > 8.5) { gl_FragColor = vec4(blackHole(n), 1.0); return; } // Speculum: its own sky alone, none of the rest worked out under it
+        if (mode > 8.5) { gl_FragColor = vec4(blackHole(n), 1.0); return; }
+        if (mode > 5.5 && mode < 6.5) { gl_FragColor = vec4(rubySky(n), 1.0); return; } // Rubinus: its own sky alone // Speculum: its own sky alone, none of the rest worked out under it
         vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, bot, pow(-h, 0.5));
         float lum = dot(top, vec3(0.3, 0.55, 0.15)), m = floor(mode + 0.5), night = 1.0 - smoothstep(0.08, 0.45, lum);
         vec3 sd = normalize(vec3(0.35, 0.32, -0.88));
@@ -1254,7 +1272,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const bufSize = new THREE.Vector2();
   function renderSky() {
     renderer.getDrawingBufferSize(bufSize);
-    const w = Math.max(2, Math.round(bufSize.x / 2)), h = Math.max(2, Math.round(bufSize.y / 2));
+    const div = skyUni.mode.value === 6 ? 1.5 : 2; // Rubinus's facets want their seams sharper: two thirds of the screen's size
+    const w = Math.max(2, Math.round(bufSize.x / div)), h = Math.max(2, Math.round(bufSize.y / div));
     if (skyRT.width !== w || skyRT.height !== h) skyRT.setSize(w, h);
     skyUni.px.value = camera.fov * Math.PI / 180 / h; // the angle one of its pixels spans
     renderer.setRenderTarget(skyRT); renderer.render(skyScene, camera); renderer.setRenderTarget(null);
@@ -1436,6 +1455,34 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   if (PHONE) { redGlow.opacity = 0.42; redGlow.color.set(0xe0281a); impEdgeMat.color.set(0xd8341c); blueGlow.opacity *= 0.7; } // and their halos and the imps' cages, on a phone
   const glassWallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, transparent: true, opacity: 0.3, roughness: 0.08, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide });
   const quartzMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.78, roughness: 0.12, metalness: 0.35, flatShading: true });
+  // Rubinus: rubies, as cut stones are: a flat table on top, the crown's facets sloping down to the girdle, a thin girdle,
+  // the pavilion's facets running down to a point. outline: the girdle, [x, z] counterclockwise, about 1 across
+  function gemGeo(outline, table = 0.56, crown = 0.26, pav = 0.62) {
+    const pos = [], n = outline.length, T = outline.map(([x, z]) => [x * table, crown, z * table]), G = outline.map(([x, z]) => [x, 0, z]), B = outline.map(([x, z]) => [x, -0.05, z]);
+    const tri = (a, b, c) => pos.push(...a, ...b, ...c);
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      tri([0, crown, 0], T[j], T[i]); // the table
+      tri(T[i], T[j], G[j]); tri(T[i], G[j], G[i]); // the crown
+      tri(G[i], G[j], B[j]); tri(G[i], B[j], B[i]); // the girdle
+      tri(B[i], B[j], [0, -pav, 0]); // the pavilion, to the culet
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals(); // unshared corners: every facet flat
+    // each facet its own depth of red, as a cut stone throws back the light: garnet dark to bright, now and then one flashing rose-white
+    const col = [], nt = pos.length / 9; let seed = n * 7 + 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < nt; i++) { const r = rnd(), c = r > 0.92 ? [2.2, 1.4, 1.55] : [0.45 + r * 1.1, 0.45 + r * 0.9, 0.45 + r * 0.95]; for (let v = 0; v < 3; v++) col.push(...c); }
+    g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+    return g;
+  }
+  const ring = (k, rx, rz, a0 = 0) => [...Array(k).keys()].map(i => [Math.cos(a0 + i / k * TAU) * rx, -Math.sin(a0 + i / k * TAU) * rz]);
+  const cutRect = (w, h, c) => [[w, h - c], [w - c, h], [-w + c, h], [-w, h - c], [-w, -h + c], [-w + c, -h], [w - c, -h], [w, -h + c]].map(([x, z]) => [x, -z]);
+  const GEM_CUTS = { // the cuts of the pictures: round brilliant, octagon, emerald, asscher, oval, pear
+    gRound: gemGeo(ring(16, 0.62, 0.62)), gOct: gemGeo(ring(8, 0.62, 0.62, Math.PI / 8)), gEmer: gemGeo(cutRect(0.42, 0.66, 0.14), 0.62, 0.22, 0.5),
+    gAsch: gemGeo(cutRect(0.56, 0.56, 0.18), 0.6, 0.28, 0.6), gOval: gemGeo(ring(16, 0.48, 0.68)),
+    gPear: gemGeo([[0, 0.86], [0.24, 0.46], [0.42, 0.1], [0.5, -0.22], [0.44, -0.5], [0.26, -0.68], [0, -0.74], [-0.26, -0.68], [-0.44, -0.5], [-0.5, -0.22], [-0.42, 0.1], [-0.24, 0.46]].map(([x, z]) => [x, -z])),
+  };
+  const RUBY_COL = new THREE.Color(0xa8001e); // pomegranate juice: deep, a touch toward crimson
+  const rubyMat = new THREE.MeshStandardMaterial({ color: RUBY_COL, emissive: 0x2a0005, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.88, vertexColors: true });
   const prismMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.72, roughness: 0.1, metalness: 0.25, flatShading: true });
   const sigilMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8 });
   const stationMat = new THREE.MeshStandardMaterial({ map: floorTex.map, roughness: 0.6, metalness: 0.1 });
@@ -1487,7 +1534,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     shellMat.color.copy(cur.block).lerp(cur.frame, 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
-    glassWallMat.color.copy(cur.wall); glassWallMat.emissive.copy(cur.line).multiplyScalar(Math.max(0.15, cur.lineI));
+    const rubyWalls = LEVEL.id === "rubinus"; // its fence: a little less clear, its lines brighter, so it shows
+    glassWallMat.opacity = rubyWalls ? 0.38 : 0.3;
+    glassWallMat.color.copy(cur.wall); glassWallMat.emissive.copy(cur.line).multiplyScalar(Math.max(0.15, cur.lineI) * (rubyWalls ? 1.8 : 1));
     quartzMat.color.copy(cur.frame).lerp(cur.glass, 0.3); quartzMat.emissive.copy(cur.frame).multiplyScalar(0.25); // Vitrum's crystals: the frames' sapphire, lit a little from within
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
@@ -1624,6 +1673,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
     prism: inst(new THREE.OctahedronGeometry(0.75, 0), prismMat, 260),
+    gRound: inst(GEM_CUTS.gRound, rubyMat, 60), gOct: inst(GEM_CUTS.gOct, rubyMat, 60), gEmer: inst(GEM_CUTS.gEmer, rubyMat, 60), // Rubinus: rubies over the abyss
+    gAsch: inst(GEM_CUTS.gAsch, rubyMat, 60), gOval: inst(GEM_CUTS.gOval, rubyMat, 60), gPear: inst(GEM_CUTS.gPear, rubyMat, 60),
     // Vitrum, out over the abyss: crystals of quartz, six-sided, pointed at both ends, 2 high and 0.64 across before they're scaled
     quartz: inst(new THREE.LatheGeometry([[0, -1], [0.32, -0.62], [0.32, 0.62], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 160),
     // and a cluster's: one point, the flat foot at the origin (2 long before it's scaled)
@@ -1781,6 +1832,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (let i = 0; i < nb; i++) {
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
       const side = h1 < 0.5 ? -1 : 1, tall = z < 0.4 && h3 < 0.35 && STYLE.blocks === "cube";
+      if (STYLE.blocks === "ruby") { // a cut ruby, one of six cuts, any way about, turning slowly
+        const r = 1.8 + h2 * 3.0;
+        d.blocks.push({ key: ["gRound", "gOct", "gEmer", "gAsch", "gOval", "gPear"][Math.floor(hash(k * 13 + i * 3) * 6)], u: side * (SW + 3 + h2 * 20), v: -8 + h3 * 20, sx: r, sy: r, sz: r, rx: h1 * TAU, ry: h2 * TAU, spin: (h3 - 0.5) * 0.4 });
+        continue;
+      }
       d.blocks.push({
         u: side * (SW + 3 + h2 * 20), v: tall ? -14 + h3 * 10 : -8 + h3 * 20,
         sx: 0.8 + h2 * 4, sy: tall ? 18 + h1 * 14 : 0.8 + h3 * 4, sz: 0.8 + h1 * 4,
@@ -4019,7 +4075,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const arm = new THREE.Mesh(wtArmGeo, LEVEL.gateIron ? gateIronMat : frameMat); arm.position.set(x, yTop + 0.08, z / 2); grp.add(arm);
       const brace = new THREE.Mesh(wtBraceGeo, LEVEL.gateIron ? gateIronMat : frameMat); brace.position.set(x, yTop - 0.45, z * 0.3); brace.rotation.x = -Math.atan2(0.9, z * 0.6); grp.add(brace); // a strut down to the wall
       const ch = makeChain(yTop - yW - 0.45, 1, wtChainMat); ch.position.set(x, yTop, z); grp.add(ch);
-      const wt = new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt);
+      const wt = LEVEL.id === "rubinus" ? new THREE.Mesh(GEM_CUTS.gPear, rubyMat) : new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt);
+      if (LEVEL.id === "rubinus") { wt.scale.setScalar(0.62); wt.rotation.x = Math.PI / 2; } // Rubinus: a ruby drop, its point up to the chain, its table to us
       lf.wt = { x, z, yTop, yW, grp, ch, wt, vy: 0, down: false, wp: new THREE.Vector3(), A: new THREE.Vector3(), B: new THREE.Vector3() };
     }
     leaves.forEach(lf => { lf.hp = 2; }); // the first ball cracks a leaf, the second breaks it
@@ -4771,7 +4828,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       feats: ["Хлещущие ветви с кристаллами", "После проезда Gemini на складе стоит вдвое дешевле", "Финал Vindemia: сбор урожая"],
       req: { after: "initium", fare: 15 }, map: { x: 185, y: 440, label: "t" } }, // the first branch: Initium opens it
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
-      style: { arch: "tri", blocks: "prism", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0x5a0012, gateIron: true,
+      style: { arch: "tri", blocks: "ruby", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0xa00a24, gateIron: true,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
         shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0],
         grams: [0.7, 1, 1.2] }, // and glass blocks on chains, as in Labyrinthus

@@ -540,7 +540,7 @@ html.night, .night body { background: #03060d; }
   box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.16), 0 30px 80px -20px rgba(0, 0, 0, 0.8); }
 .night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; }
 .night #map circle[fill="#ffffff"], .night #map circle[fill="#fffaf0"], .night #map rect[fill="#fffaf0"] { fill: #0c1628; }
-.night .map-under [stroke="#ffffff"] { stroke: #000000; } .night .map-under [fill="#ffffff"] { fill: #000000; } /* the casings black by night */
+.night .map-under [stroke="#ffffff"] { stroke: #000000; } .night #map circle.case { stroke: #000000; } /* the casings black by night */
 .night #map circle[fill="#e6ecee"] { fill: #18233a; }
 .night #map circle.ring[fill="#10242e"] { fill: #dff6ff; } /* a finished station: lit, as it is dark by day */
 .night #map path[stroke="#10242e"] { stroke: #dff6ff; } .night #map path[stroke="#ffffff"] { stroke: #0c1628; }
@@ -685,7 +685,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.88</div>
+      <div class="credit version">v1.0.89</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -863,7 +863,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.88`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.89`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6144,7 +6144,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += ring(p, lv.gift ? LINE_GOLD : LINE_BR, 2.5, d); // rings round the depot till the first purchase
       if (first) for (const d of [0, 1.2]) out += ring(p, "url(#firstRing)", 2.5, d); // till the first ride, as round the depot
       else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 20, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
-      under += `<circle cx="${p.x}" cy="${p.y}" r="24.2" fill="#ffffff"/>`; // a thin casing round the station, under the lines, so a line runs into the ring unbroken
+      out += `<circle class="case" cx="${p.x}" cy="${p.y}" r="23.6" fill="none" stroke="#ffffff" stroke-width="1.2"/>`; // a thin casing all round the station, over the lines that run into it
       if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/>`; // a transfer's face, under its inner circle
       out += `<circle class="ring${hub ? " inner" : ""}" style="transform-origin:${p.x}px ${p.y}px" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
       if (hub && lv.id === "initium") out += `<path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
@@ -6157,7 +6157,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     svg.innerHTML = out; document.documentElement.classList.add("mapready");
     // under the rings: the lines' casings
-    const und = $("mapUnder"); und.setAttribute("viewBox", svg.getAttribute("viewBox")); und.innerHTML = under; // the casings of the lines and, thin, of the stations
+    const und = $("mapUnder"); und.setAttribute("viewBox", svg.getAttribute("viewBox")); und.innerHTML = under; // the lines' casings (the stations' are drawn with them, over the lines)
     placeRings();
     svg.querySelectorAll(".station").forEach(g => {
       const open = e => openSheet(byId(g.dataset.id), false, e && e.clientX !== undefined ? e : g.getBoundingClientRect());

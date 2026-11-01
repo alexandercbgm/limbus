@@ -5188,7 +5188,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // same speed and arc as always (44 plus the cart's own speed, a small lift), but the cart's speed is
     // added along the aim, so the ball no longer drifts toward the rails on targets off to the side
     const v = dir.clone().multiplyScalar(44 + speedNow * Math.max(0, dir.dot(_T))); v.y += 1.6;
-    const b = { mesh: m, v, p0: from.clone(), life: 0, hit: false, vol, iron: progress.weapon === "ferrum" };
+    // eye: its first stretch is tested from the eye, not the muzzle, so glass right at the cart, nearer than the muzzle
+    // already is, still takes the ball (it was born past it and flew on through)
+    const b = { mesh: m, v, p0: from.clone(), eye: camera.getWorldPosition(new THREE.Vector3()), life: 0, hit: false, vol, iron: progress.weapon === "ferrum" };
     if (b.iron) { m.material = ironBallMat; m.scale.setScalar(1.3); }
     ballsArr.push(b);
     return b;
@@ -5735,7 +5737,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // balls fly in world space; hits are tested in each pane's own frame
     for (let i = ballsArr.length - 1; i >= 0; i--) {
       const b = ballsArr[i], pos = b.mesh.position;
-      b.p0.copy(pos);
+      b.p0.copy(b.eye || pos); b.eye = null;
       b.v.y -= G * dt;
       if (b.sp) { // spiralling triplex ball: its center flies like any ball, it circles around that center
         const sp = b.sp, t = b.life + dt, r = sp.r0 + (TRI_R - sp.r0) * (1 - Math.exp(-t * 5)), a = sp.phase + TRI_SPIN * t;

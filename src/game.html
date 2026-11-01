@@ -243,7 +243,7 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
 @keyframes mapwait { to { visibility: visible; } }
 /* a phone held sideways (the app, Telegram): the head, the scheme's card and the scheme itself kept clear of the strip on the right
    where the phone's own Back, Home and Recents buttons come up over the page */
-@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) { .menu-in { padding-right: max(40px, var(--safe-right, env(safe-area-inset-right, 0px))); } }
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) { .menu-in, .overlay.sheet { padding-right: max(40px, var(--safe-right, env(safe-area-inset-right, 0px))); } } /* the stations', the depot's and the armoury's cards end on the same line */
 .tgphone .menu-in { padding-top: var(--safe-top, 0px); } /* Telegram on a phone: the head right under its Close and ⋮ buttons, the scheme taller by as much */
 /* ---- the menu's finish: soft layered shadows instead of single hard ones, rounder corners, glass plates with a lit top edge ---- */
 .menu::before, .videobg .menu::before { background:

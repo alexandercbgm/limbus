@@ -323,7 +323,7 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
 @keyframes mapwait { to { visibility: visible; } }
 /* a phone held sideways (the app, Telegram): the head, the scheme's card and the scheme itself kept clear of the strip on the right
    where the phone's own Back, Home and Recents buttons come up over the page */
-@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) { .menu-in { padding-right: max(40px, var(--safe-right, env(safe-area-inset-right, 0px))); } }
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 560px) { .menu-in, .overlay.sheet { padding-right: max(40px, var(--safe-right, env(safe-area-inset-right, 0px))); } } /* the stations', the depot's and the armoury's cards end on the same line */
 .tgphone .menu-in { padding-top: var(--safe-top, 0px); } /* Telegram on a phone: the head right under its Close and ⋮ buttons, the scheme taller by as much */
 /* ---- the menu's finish: soft layered shadows instead of single hard ones, rounder corners, glass plates with a lit top edge ---- */
 .menu::before, .videobg .menu::before { background:
@@ -690,7 +690,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.131</div>
+      <div class="credit version">v1.0.132</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -868,7 +868,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.131`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.132`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));

@@ -688,7 +688,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.102</div>
+      <div class="credit version">v1.0.103</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.102`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.103`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -4217,7 +4217,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const WT_Z = 1.3, wtArmGeo = new THREE.BoxGeometry(0.16, 0.16, WT_Z + 0.1), wtBraceGeo = new THREE.BoxGeometry(0.1, 0.1, Math.hypot(0.9, WT_Z * 0.6));
   const wtChainMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.45, metalness: 0.7 }); // the rubies hang on black chains
   const gateIronMat = new THREE.MeshStandardMaterial({ color: 0x1c1c22, roughness: 0.35, metalness: 0.8 });
-  const rubyWeightGeo = facetColours(new THREE.DodecahedronGeometry(0.5, 0), 5);
+  const rubyWeightGeo = (() => { // Rubinus's counterweight: twelve faces, two six-sided pyramids base to base, a point up to the chain and one down
+    const pos = [], r = 0.42, h = 0.62, V = [...Array(6).keys()].map(i => [Math.cos(i * TAU / 6) * r, 0, -Math.sin(i * TAU / 6) * r]);
+    for (let i = 0; i < 6; i++) { const A = V[i], B = V[(i + 1) % 6]; pos.push(0, h, 0, ...A, ...B, 0, -h, 0, ...B, ...A); }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+    return facetColours(g, 5);
+  })();
   const weightGeo = new THREE.OctahedronGeometry(0.45, 0), weightMat = new THREE.MeshStandardMaterial({ color: 0x8a0a20, emissive: 0xff1a40, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.4, flatShading: true });
   function dropWeight(g, lf) {
     const w = lf.wt; if (w.down) return;

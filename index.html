@@ -688,7 +688,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.96</div>
+      <div class="credit version">v1.0.97</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.96`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.97`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1573,6 +1573,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     shellMat.color.copy(cur.block).lerp(cur.frame, 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
+    endMirrorMat.color.copy(cur.wall); endMirrorMat.emissive.copy(cur.line).multiplyScalar(Math.max(0.15, cur.lineI));
     glassWallMat.color.copy(cur.wall); glassWallMat.emissive.copy(cur.line).multiplyScalar(Math.max(0.15, cur.lineI));
     quartzMat.color.copy(cur.frame).lerp(cur.glass, 0.3); quartzMat.emissive.copy(cur.frame).multiplyScalar(0.25); // Vitrum's crystals: the frames' sapphire, lit a little from within
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
@@ -2044,6 +2045,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const t = new THREE.CanvasTexture(c); t.anisotropy = renderer.capabilities.getMaxAnisotropy();
     return t;
   }
+  const endMirrorMat = new THREE.MeshStandardMaterial({ map: wallTex.map, roughness: 0.15, metalness: 0.35, side: THREE.DoubleSide }); // its colour the walls' (applyPalette)
   function buildStation() {
     stationParts.forEach(p => scene.remove(p.obj)); stationParts.length = 0;
     const add = (geo, mat, s, u, v) => { const m = new THREE.Mesh(geo, mat); m.matrixAutoUpdate = false; scene.add(m); stationParts.push({ obj: m, s, u, v }); return m; };
@@ -2062,6 +2064,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     add(new THREE.PlaneGeometry(4.6, 1.15), new THREE.MeshBasicMaterial({ map: signTexture(LEVEL), side: THREE.DoubleSide }), END_S - 24, 0, 4.5);
     const rod = new THREE.CylinderGeometry(0.03, 0.03, 0.6, 8);
     [-1.9, 1.9].forEach(u => add(rod, frameMat, END_S - 24, u, 5.2));
+    // Speculum: past the station a sheet of mirror glass across the way, facing us, so nothing shows beyond the track's end,
+    // nor beyond the ends of the corridor's reflections in the side walls
+    if (LEVEL.id === "speculum") add(new THREE.PlaneGeometry(2 * (3 * SW + 0.6), SH + 0.6), endMirrorMat, END_S + 18, 0, (SH + 0.6) / 2 - 0.1); // as wide as the corridor and its reflection either side
     if (LEVEL.line === "branch") {
       add(new THREE.BoxGeometry(2.2, 0.7, 0.5), frameMat, END_S + 2.2, 0, 0.75);
       [-0.6, 0, 0.6].forEach(u => add(new THREE.BoxGeometry(0.34, 0.12, 0.52), accentMat, END_S + 2.2, u, 0.85));

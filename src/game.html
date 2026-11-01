@@ -1502,10 +1502,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return geo;
   }
   // a step cut (the emerald): a long octagon, three steps down from the table to the girdle, alike on both sides
-  function stepGeo(w, h, c) {
+  function stepGeo(w, h, c, k = 1) { // k: how deep the steps reach in from the girdle
     const pos = [], g = 0.03, tri = (a, b, cc) => pos.push(...a, ...b, ...cc);
     const oct = (d, y) => [[w - d, h - c - d * 0.41], [w - c - d * 0.41, h - d], [-w + c + d * 0.41, h - d], [-w + d, h - c - d * 0.41], [-w + d, -h + c + d * 0.41], [-w + c + d * 0.41, -h + d], [w - c - d * 0.41, -h + d], [w - d, -h + c + d * 0.41]].map(([x, z]) => [x, y, -z]);
-    const steps = [[0, 0], [0.07, 0.06], [0.14, 0.11], [0.2, 0.15]], ring = (s, sgn, y0) => steps.map(([d, y]) => oct(d, y0 + sgn * y));
+    const steps = [[0, 0], [0.07 * k, 0.06], [0.14 * k, 0.11], [0.2 * k, 0.15]], ring = (s, sgn, y0) => steps.map(([d, y]) => oct(d, y0 + sgn * y));
     for (const [sgn, y0] of [[1, 0], [-1, -g]]) { const R = ring(steps, sgn, y0);
       for (let r = 0; r + 1 < R.length; r++) for (let i = 0; i < 8; i++) { const j = (i + 1) % 8; tri(R[r][i], R[r][j], R[r + 1][j]); tri(R[r][i], R[r + 1][j], R[r + 1][i]); }
       const T = R[R.length - 1], ty = y0 + sgn * steps[steps.length - 1][1]; for (let i = 0; i < 8; i++) tri([0, ty, 0], T[i], T[(i + 1) % 8]); } // the table
@@ -1520,6 +1520,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     gPear: brilliantGeo(th => ellipseR(0.48, 0.62)(th) * (1 + 0.5 * Math.pow(Math.max(0, Math.sin(th)), 5)), { hc: 0.18, twoFaced: true, front: true }),
     gOval: brilliantGeo(ellipseR(0.46, 0.68), { hc: 0.18, twoFaced: true, front: true }),
     gEmer: stepGeo(0.44, 0.62, 0.13),
+    gSq: stepGeo(0.5, 0.5, 0.17, 1.3), // a square step cut, its corners cut deep: the gates' counterweights
   };
   const RUBY_COL = new THREE.Color(0xa8001e); // pomegranate juice: deep, a touch toward crimson
   const rubyMat = new THREE.MeshStandardMaterial({ color: RUBY_COL, emissive: 0x2a0005, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.7, vertexColors: true }); // see-through to the sky behind; only its near facets drawn, in depth
@@ -4130,7 +4131,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const brace = new THREE.Mesh(wtBraceGeo, LEVEL.gateIron ? gateIronMat : frameMat); brace.position.set(x, yTop - 0.45, z * 0.3); brace.rotation.x = -Math.atan2(0.9, z * 0.6); grp.add(brace); // a strut down to the wall
       const ruby = LEVEL.id === "rubinus", top = ruby ? WT_H : 0.45; // the chain reaches down to the stone's top
       const ch = makeChain(yTop - yW - top, 1, wtChainMat); ch.position.set(x, yTop, z); grp.add(ch);
-      const wt = ruby ? new THREE.Mesh(GEM_CUTS.gEmer, rubyWeightMat) : new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt);
+      const wt = ruby ? new THREE.Mesh(GEM_CUTS.gSq, rubyWeightMat) : new THREE.Mesh(weightGeo, weightMat); wt.position.set(x, yW, z); grp.add(wt);
       if (ruby) wt.scale.setScalar(WT_SC);
       lf.wt = { x, z, yTop, yW, top, ruby, floor: ruby ? WT_H : 0.45, grp, ch, wt, vy: 0, down: false, wp: new THREE.Vector3(), A: new THREE.Vector3(), B: new THREE.Vector3() };
     }
@@ -4170,8 +4171,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // hung against the gate's pale wall a see-through ruby looked washed out: these are nearly solid, and glow deeper
   const rubyWeightMat = new THREE.MeshStandardMaterial({ color: 0xc00022, emissive: 0x7a0010, roughness: 0.08, metalness: 0.25, transparent: true, opacity: 0.8, vertexColors: true });
   const rubyChipMat = new THREE.MeshStandardMaterial({ color: 0xc00022, emissive: 0x7a0010, roughness: 0.08, metalness: 0.25, transparent: true, opacity: 0.85 }); // its splinters
-  // Rubinus's counterweights, alike on every gate: emerald-cut rubies, upright, the table to the track; how far one reaches above and below its middle
-  const WT_SC = 0.6, WT_H = new THREE.Box3().setFromBufferAttribute(GEM_CUTS.gEmer.attributes.position).max.y * WT_SC;
+  // Rubinus's counterweights, alike on every gate: square step-cut rubies, upright, the table to the track; how far one reaches above and below its middle
+  const WT_SC = 0.6, WT_H = new THREE.Box3().setFromBufferAttribute(GEM_CUTS.gSq.attributes.position).max.y * WT_SC;
   const weightGeo = new THREE.OctahedronGeometry(0.45, 0), weightMat = new THREE.MeshStandardMaterial({ color: 0x8a0a20, emissive: 0xff1a40, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.4, flatShading: true });
   function dropWeight(g, lf, smash = false) { // smash: the stone itself was hit, and bursts where it hangs; else the chain was, and it falls
     const w = lf.wt; if (w.down) return;
@@ -4460,7 +4461,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let wheels = [], wheelsDone = 0, triStep = 0, wavesDone = 0, tessGrids = [], tessRow = 0;
   // Tessera's stones: round brilliant rubies, deep and saturated; lit, they burn bright ruby
   const TILE_GEO = brilliantGeo(() => 0.56, { hc: 0.2, hp: 0.5, front: true });
-  const tileDimMat = new THREE.MeshStandardMaterial({ color: 0x9a0020, emissive: 0x3a0008, roughness: 0.1, metalness: 0.25, transparent: true, opacity: 0.88, vertexColors: true });
+  const tileDimMat = new THREE.MeshStandardMaterial({ color: 0x3a0a12, roughness: 0.12, metalness: 0.3, vertexColors: true }); // unlit: near-black glass, its cut in the glints; lit, the light comes on inside
   const tileLitMat = new THREE.MeshStandardMaterial({ color: 0xff0a2a, emissive: 0xa00014, emissiveIntensity: 0.55, roughness: 0.08, metalness: 0.2, vertexColors: true }); // bright, yet its facets still show
   const tileChipMat = new THREE.MeshStandardMaterial({ color: 0xd0002a, emissive: 0x80000f, roughness: 0.1, metalness: 0.2 });
   const tileGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0xff0020, transparent: true, opacity: 0.4, depthWrite: false });

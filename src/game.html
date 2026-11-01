@@ -1132,7 +1132,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // the sky is bent outward as it would be, weakly, by 2 / b, and dimmed where it would be smeared thin
       const float BH_K = 0.47, BH_TAN = 0.42, BH_L = 24.0 / 0.47;
       vec3 bhStars(vec3 n) { // the first picture's sky: a dusty Milky Way, brown and grey with dark lanes, across behind the hole, and dense stars
-        return galaxyAx(n, vec3(0.62, 0.55, 0.47), 0.5, normalize(cross(bhd, vec3(1.0, 0.8, 0.0)))) + galaxy(n, vec3(0.5, 0.47, 0.42), 0.25) +
+        return galaxyAx(n, vec3(0.62, 0.55, 0.47), 0.55, normalize(cross(bhd, vec3(1.0, 0.8, 0.0)))) +
           vec3(0.9, 0.92, 1.0) * starAt(n, 320.0, 0.965) * 0.55 + vec3(0.003, 0.003, 0.004);
       }
       vec3 blackHole(vec3 n) {
@@ -1147,10 +1147,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           q = vec2(q.x * cr.x - q.y * cr.y, q.x * cr.y + q.y * cr.x);
           if (abs(q.x) < 1.0 && abs(q.y) < 1.0) { vec4 tx = texture2D(bhTex, q * 0.5 + 0.5); sky = mix(sky, tx.rgb, tx.a); }
         }
-        return sky;
+        // low down it goes into the haze of the level's own fog: where the drawn track ends far ahead, the sky beyond
+        // showed through as a dark window
+        return mix(hor, sky, smoothstep(-0.02, 0.12, n.y));
       }
       const vec3 SUN_AZ = vec3(0.819, 0.0, -0.574); // 55 degrees right of the track's start (-z)
       void main(){ vec3 n = normalize(vP); float h = n.y;
+        if (mode > 8.5) { gl_FragColor = vec4(blackHole(n), 1.0); return; } // Speculum: its own sky alone, none of the rest worked out under it
         vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, bot, pow(-h, 0.5));
         float lum = dot(top, vec3(0.3, 0.55, 0.15)), m = floor(mode + 0.5), night = 1.0 - smoothstep(0.08, 0.45, lum);
         vec3 sd = normalize(vec3(0.35, 0.32, -0.88));
@@ -1240,7 +1243,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           c += galaxy(n, vec3(0.45, 0.55, 0.95), dome * 1.1);
           c += ((fxc * rays * fall * 0.9 + vec3(1.0) * pow(sdot, 10.0) * 0.5) * amt * (1.0 - 0.75 * dome) + vec3(1.0) * pow(sdot, 200.0) * 2.5 * amt) * sunK; // the rays fade over the stars
         }
-        if (m == 9.0) c = blackHole(n); // Speculum: in place of all the rest
         gl_FragColor = vec4(c, 1.0); }`,
   }));
   sky.frustumCulled = false;
@@ -1616,7 +1618,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     sill: inst(new THREE.BoxGeometry(2 * W, 0.05, 0.36), frameMat, 90),
     pyrL: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(-Math.PI / 2), spikeMat, 90), // pyramid out of the left wall, pointing +u
     pyrR: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(Math.PI / 2), spikeMat, 90),
-    gwall: inst(new THREE.BoxGeometry(0.08, H, SL + 0.03), glassWallMat, 280),
+    // a pane of glass for a wall: one sheet, not a thin box, whose ends stacked into dozens of see-through layers far off
+    gwall: inst(new THREE.PlaneGeometry(SL + 0.03, H).rotateY(Math.PI / 2), glassWallMat, 280),
     hexpane: inst(new THREE.PlaneGeometry(HEXPANE_R, SL + 0.02).rotateX(Math.PI / 2), glassWallMat, 420), // Vitrum: a face of the hexagon glazed, 2 m of it
     hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames

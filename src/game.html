@@ -2422,6 +2422,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const brS = LEVEL.id === "labyrinthus" && !spawnGroupKind && branchAt(s); // the branches: crosses and blocks on the rich one, plain glass on the quiet
     if (brS) { const opts = brS === "rich" ? ["rotor", "rotor2", "grams", "grams"] : ["center", "center", "sides", "triple"]; pat = opts[Math.floor(Math.random() * opts.length)]; }
     if (!spawnGroupKind && !brS && !hall && LEVEL.every) for (const k in LEVEL.every) if (s - (lastPat[k] ?? 0) > LEVEL.every[k]) { pat = k; break; }
+    // just inside a hall, nothing fixed to its walls or vault: from the narrower, lower corridor the hall's end wall hides them
+    // till the cart is all but on them, with no time to shoot (Carcer's laser bars and grids, wall axes, grates on chains)
+    if (hall && !spawnGroupKind && s - hallStart(s) < HALL_ENTRY + (pat === "axes" ? 9 : 0) && ["lrow", "lgrid", "axes", "grate1", "grate2", "grate3"].includes(pat)) pat = Math.random() < 0.6 ? "center" : "triple";
     lastPat[pat] = s; patCount[pat] = (patCount[pat] || 0) + 1; // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
@@ -5033,7 +5036,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота, над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее. Над мостом вращаются лазерные мельницы и парят планки с тремя лазерами, огромные шестерни опускают зубья на рельсы и парят стеклянные блоки.",
       feats: ["Ворота из тёмного стекла: откройте их вертушками", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
       req: { after: "tao" }, map: { x: 770, y: 190, label: "t" } },
-    { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "lockstep_carnage", len: 1200, pal: PAL_CARCER, finale: "custodes",
+    { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 1200, pal: PAL_CARCER, finale: "custodes",
       // corridors only link the halls; the halls, wider and higher, hold the traps
       style: { arch: "square", blocks: "cube", glassWalls: false }, halls: true, crystalMul: 2.0, armor: 1, driftMul: 1.2, lightMul: 2.0, speedMul: 0.88, spaceMul: 1.4, thorns: { from: 0.45, mul: 0.8 }, decoyMul: 0.5,
       pats: { bars: [0.8, 1, 1.2], imps: [0.2, 0.4, 0.9], shutter: [0.5, 1.2, 1.5], reinf: [0.5, 1, 1.5], center: [2, 2, 1.5], double: [0.5, 1, 1.2], slider: [1, 1.5, 1.5],
@@ -5220,6 +5223,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return out;
   }
   function inHall(s) { for (const [a, b] of HALLS) if (s >= a && s < b) return true; return false; }
+  function hallStart(s) { for (const [a, b] of HALLS) if (s >= a && s < b) return a; return -1e9; }
+  const HALL_ENTRY = 26; // how far into a hall things on its walls and vault still can't be seen in time from the corridor
   function setLevel(lv) {
     LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
     [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;

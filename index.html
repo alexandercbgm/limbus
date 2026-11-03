@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.137</div>
+      <div class="credit version">v1.0.138</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -872,7 +872,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.137`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.138`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1152,7 +1152,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const r of gone.splice(0)) if (!r.parent) r.traverse(o => { if (o.geometry && !used.has(o.geometry)) o.geometry.dispose(); });
   }
   scene.fog = new THREE.Fog(0xe8ebec, 16, 100);
-  const camera = new THREE.PerspectiveCamera(70, 1, 0.08, 520);
+  const camera = new THREE.PerspectiveCamera(70, 1, 0.4, 520); // nothing of the cart or the cannon in sight is nearer than a metre: a near plane well out gives the depth five times the precision (a phone's fought at joints and at a pane's foot)
   camera.matrixAutoUpdate = true;
   scene.add(camera);
   const hemi = new THREE.HemisphereLight(0xffffff, 0xc8d2d7, 1.0);
@@ -2368,7 +2368,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   const inPane = (p, x, y, m = 0) => (Math.abs(x) <= p.w / 2 + m && Math.abs(y) <= p.h / 2 + m) || (p.cross && Math.abs(y) <= p.w / 2 + m && Math.abs(x) <= p.h / 2 + m);
   // thick: a solid piece of glass that deep, centred on its plane (a solid cross is as thick as an arm is wide)
+  // a pane over the rails keeps its foot clear of them (their tops are at 0.26): a short one is raised, a tall one standing on the
+  // floor stops short above them, its top where it was; so one sliding across the track passes over the rails, not through them
+  const RAIL_CLEAR = 0.42;
   function addPane(o) {
+    if (o.rot !== undefined) { // a turning bar or cross: its arms' whole reach kept over the rails
+      const reach = Math.hypot(o.w, o.h) / 2, need = RAIL_CLEAR - (o.v - reach);
+      if (Math.abs(o.u) - reach < 0.95 && need > 0) o.v += need;
+    } else if (o.rise === undefined) {
+      const ax = o.move ? o.move.axis : null, over = ax === "u" || ax === "shutter" || Math.abs(o.u) - o.w / 2 < 0.95;
+      const need = RAIL_CLEAR - (o.v - (ax === "v" ? Math.abs(o.move.amp) : 0) - o.h / 2);
+      if (over && need > 0) { if (o.h > 5) { o.h -= need; o.v += need / 2; } else o.v += need; }
+    }
     const sh = o.thick && (o.cross ? crossShape(o.w, o.h) : new THREE.Shape([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => new THREE.Vector2(x * o.w / 2, y * o.h / 2))));
     const geo = o.thick ? new THREE.ExtrudeGeometry(sh, { depth: o.thick, bevelEnabled: false }).translate(0, 0, -o.thick / 2) : o.cross ? new THREE.ShapeGeometry(crossShape(o.w, o.h)) : new THREE.PlaneGeometry(o.w, o.h);
     const eg = new THREE.EdgesGeometry(geo), reinf = (o.hp || 1) > 1;
@@ -2684,8 +2695,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return getDecor(k).arch && Math.abs(s - sa) < 1 ? sa + (s < sa ? -1 : 1) : s;
   }
   // tunnels for a sequence of bars, [u, v, length] each: one wide, 2 side by side, 2 one over another, 3 in a row, 4 in a square
-  const BAR_LANES = [[[0, 2.9, 5.6]], [[-1.6, 2.6, 3.0], [1.6, 2.6, 3.0]], [[0, 1.6, 2.6], [0, 4.3, 2.6]], [[-2.8, 2.6, 2.6], [0, 2.6, 2.6], [2.8, 2.6, 2.6]],
-    [[-1.5, 1.6, 2.6], [1.5, 1.6, 2.6], [-1.5, 4.3, 2.6], [1.5, 4.3, 2.6]]];
+  // (a lane low over the rails is lifted clear of them by addPane: the upper lanes stand high enough that the two never meet)
+  const BAR_LANES = [[[0, 2.9, 5.6]], [[-1.6, 2.6, 3.0], [1.6, 2.6, 3.0]], [[0, 1.6, 2.6], [0, 4.45, 2.6]], [[-2.8, 2.6, 2.6], [0, 2.6, 2.6], [2.8, 2.6, 2.6]],
+    [[-1.5, 1.6, 2.6], [1.5, 1.6, 2.6], [-1.5, 4.45, 2.6], [1.5, 4.45, 2.6]]];
   const pickLanes = () => BAR_LANES[Math.random() < 0.3 ? 0 : 1 + Math.floor(Math.random() * 4)], barH = w => w > 5 ? 0.55 : 0.45;
   const tumbleKind = p => Math.random() < p ? (Math.random() < 0.5 ? "axis" : "diag") : null; // turning about the track and tumbling as well
   function addGlassBar(s, o, tumble, t = {}) {

@@ -3850,7 +3850,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // a barred door's leaf bears a sign: a ball, its motion lines under it, bowing a steel sheet up; grey while barred, lit like
   // the targets once the bolt is gone (faded in), out once the leaf swings. Drawn in cm about its middle, y up, then scaled
   function leafMarks(parent, z, flip) {
-    const g = new THREE.Group(); g.position.set(DOOR_W / 2, LEAF_H - (LEAF_H - DOOR_FOOT) * 0.42, z); if (flip) g.rotation.y = Math.PI; g.scale.setScalar(0.0125); parent.add(g);
+    // the sign in the middle of the leaf, nearer the aim, above the bolt
+    const g = new THREE.Group(); g.position.set(DOOR_W / 2, (LEAF_H + DOOR_FOOT) / 2, z); if (flip) g.rotation.y = Math.PI; g.scale.setScalar(0.0125); parent.add(g);
     const pos = [], line = (pts, w) => { for (let k = 0; k + 1 < pts.length; k++) { const [ax, ay] = pts[k], [bx, by] = pts[k + 1], l = Math.hypot(bx - ax, by - ay), nx = -(by - ay) / l * w / 2, ny = (bx - ax) / l * w / 2, ex = (bx - ax) / l * w / 4, ey = (by - ay) / l * w / 4;
       pos.push(ax + nx - ex, ay + ny - ey, 0, ax - nx - ex, ay - ny - ey, 0, bx - nx + ex, by - ny + ey, 0, ax + nx - ex, ay + ny - ey, 0, bx - nx + ex, by - ny + ey, 0, bx + nx + ex, by + ny + ey, 0); } };
     const quadC = (p0, c, p1, n = 8) => Array.from({ length: n + 1 }, (_, k) => { const t = k / n, u = 1 - t; return [u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0], u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1]]; });

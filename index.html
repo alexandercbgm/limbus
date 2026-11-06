@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.161</div>
+      <div class="credit version">v1.0.162</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.161`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.162`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2435,7 +2435,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     glow.scale.setScalar(2.2); g.add(core); g.add(cage); g.add(glow); scene.add(g);
     imps.push({ s, bu: u, bv: v, u, v, phase: Math.random() * TAU, group: g, core, cage, alive: true, wp: new THREE.Vector3() });
   }
-  function dropShard(s) { scene.remove(s.mesh); if (!s.shared) s.mesh.geometry.dispose(); }
+  function dropShard(s) { scene.remove(s.mesh); if (!s.shared) { s.mesh.geometry.dispose(); s.mesh.children.forEach(c => c.geometry && c.geometry.dispose()); } }
   function clearDynamic() {
     panes.forEach(removePane); panes = [];
     crystals.forEach(c => scene.remove(c.group)); crystals = [];
@@ -2766,7 +2766,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function shatterRect(p, lx, ly, impL) {
     const hw = p.w / 2, hh = p.h / 2;
     lx = clamp(lx, -hw + 0.03, hw - 0.03); ly = clamp(ly, -hh + 0.03, hh - 0.03);
-    const area = p.w * p.h, n = Math.round(clamp(6 + area * 0.45, 8, 16));
+    const area = p.w * p.h, n = Math.round(clamp(6 + area * 0.5, 8, 20));
     const step = TAU / n, base = Math.random() * TAU, angs = [];
     for (let i = 0; i < n; i++) angs.push(base + i * step + (Math.random() - 0.5) * step * 0.55);
     angs.sort((a, b) => a - b);
@@ -2792,6 +2792,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     Sound.shatter(clamp(area / 9, 0.6, 1.6));
   }
+  const SHARD_T = 0.04;
   function makeShard(pts, p, Ip, impL) {
     const pts2 = [];
     pts.forEach(q => { const l = pts2[pts2.length - 1]; if (!l || Math.hypot(q.x - l.x, q.y - l.y) > 1e-4) pts2.push(q); });
@@ -2800,8 +2801,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     let cx = 0, cy = 0;
     pts2.forEach(q => { cx += q.x; cy += q.y; });
     cx /= pts2.length; cy /= pts2.length;
-    const geo = new THREE.ShapeGeometry(new THREE.Shape(pts2.map(q => new THREE.Vector2(q.x - cx, q.y - cy))));
-    const m = new THREE.Mesh(geo, p.mat);
+    // a piece of glass as thick as glass, with its edges catching the light, not a flat film fluttering like torn plastic
+    const geo = new THREE.ExtrudeGeometry(new THREE.Shape(pts2.map(q => new THREE.Vector2(q.x - cx, q.y - cy))), { depth: SHARD_T, bevelEnabled: false }).translate(0, 0, -SHARD_T / 2);
+    const m = new THREE.Mesh(geo, p.mat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), p.mat === glassMat ? edgeMat : reinfEdgeMat));
+    let size = 0; pts2.forEach(q => { size = Math.max(size, Math.hypot(q.x - cx, q.y - cy)); });
     m.position.copy(p.C).addScaledVector(p.R, cx).addScaledVector(p.U, cy);
     m.quaternion.copy(p.q);
     scene.add(m);
@@ -2813,8 +2816,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       .addScaledVector(p.U, dy * spd + impL.y * 0.06 + 0.6)
       .addScaledVector(p.T, impL.z * (0.15 + Math.random() * 0.25));
     shards.push({
-      mesh: m, life: 2.4 + Math.random() * 1.2, v, fs: p.s, fo: 0,
-      w: new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6),
+      mesh: m, life: 2.4 + Math.random() * 1.2, v, fs: p.s, fo: SHARD_T / 2,
+      w: new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6).multiplyScalar(1 / (1 + size * 1.2)), // a big piece turns slowly, heavy
     });
     if (shards.length > MAX_SHARDS) dropShard(shards.shift());
   }
@@ -3530,7 +3533,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const spot = new THREE.Sprite(lightSpotMat); spot.scale.setScalar(0.8); g.add(spot); g.userData.spot = spot; return g;
   }
   const mirDiscGeo = new THREE.CylinderGeometry(1, 1, 0.06, 40), mirRingGeo = new THREE.TorusGeometry(1, 0.07, 8, 40).rotateX(Math.PI / 2), mirPivotGeo = new THREE.SphereGeometry(0.07, 12, 8);
-  const RAINBOW = [0xff3b5c, 0xff9a2e, 0xffe94a, 0x4fe37f, 0x3db8ff, 0x8a6bff].map(c => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.95, depthWrite: false }));
   const mirFlareMat = new THREE.SpriteMaterial({ map: (() => { // a four-pointed star of light with a soft glow
     const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), r = g.createRadialGradient(64, 64, 0, 64, 64, 40);
     r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.3, "rgba(255,240,200,0.6)"); r.addColorStop(1, "rgba(255,230,170,0)"); g.fillStyle = r; g.fillRect(0, 0, 128, 128);
@@ -3628,7 +3630,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       g.add(new THREE.Mesh(spPrismGeo, spPrismMat)); g.add(new THREE.LineSegments(spPrismEdge, spPrismEdgeMat));
       const glow = new THREE.Sprite(spPrismGlowMat); glow.scale.setScalar(1.3); g.add(glow);
       pr.beams = Array.from({ length: 7 }, () => { const b = lightBeam(); set.root.add(b); return b; });
-      pr.rainbow = RAINBOW.map(m => { const r = new THREE.Mesh(beamGeo, m); r.scale.set(1.7, 1, 1.7); set.root.add(r); return r; }); // the light out of the prism, split into colours
       pr.flares = Array.from({ length: 6 }, () => { const f = new THREE.Sprite(mirFlareMat); f.scale.setScalar(1.7); set.root.add(f); return f; }); // where it strikes a mirror
       pr.wp = new THREE.Vector3();
       for (const m of pr.mirrors) {
@@ -3660,17 +3661,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (const m of pr.mirrors) if (m.alive) { m.g.updateMatrixWorld(true); m.inv.copy(m.g.matrixWorld).invert(); m.wp.setFromMatrixPosition(m.g.matrixWorld); }
         const segs = pr.alive ? tracePrism(set, pr).segs : [];
         pr.beams.forEach((b, i) => {
-          const sg = segs[i]; if (!sg || i === 0) { b.visible = false; return; } // the first leg is drawn as the rainbow
+          const sg = segs[i]; if (!sg) { b.visible = false; return; }
           const [a, c, e, f] = sg, len = Math.hypot(e - a, f - c);
           b.position.set(a, c, 0); b.rotation.z = Math.atan2(-(e - a), f - c); setBeamLen(b, len);
-        });
-        // the first leg: six colours fanned a little apart at the prism, gathered again into white light at the first mirror
-        const s0 = segs[0];
-        pr.rainbow.forEach((r, k) => {
-          if (!s0) { r.visible = false; return; }
-          const [a, c, e, f] = s0, L = Math.hypot(e - a, f - c), px = -(f - c) / L, py = (e - a) / L, o = (k - 2.5) * 0.06;
-          const sa = a + px * o, sc = c + py * o, dl = Math.hypot(e - sa, f - sc);
-          r.visible = true; r.position.set(sa, sc, 0); r.rotation.z = Math.atan2(-(e - sa), f - sc); r.scale.y = dl;
         });
         pr.flares.forEach((fl, i) => { const sg = segs[i]; fl.visible = !!sg && i < segs.length - 1; if (fl.visible) fl.position.set(sg[2], sg[3], 0); }); // a star at each bounce
         pr.segs = segs;

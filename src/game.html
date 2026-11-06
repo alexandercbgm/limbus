@@ -3836,6 +3836,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return out;
   }
   const outline = (geo, parent) => { const l = new THREE.LineSegments(new THREE.EdgesGeometry(geo), doorLineMat); parent.add(l); return l; };
+  // a barred door's leaf, once its bolt is gone, is a target as a whole: an aiming frame's four corners round its face, and a
+  // small cross at its middle; grey while barred, lit like the targets after, out once it swings (the same materials)
+  const markGeo = new THREE.PlaneGeometry(1, 1);
+  function leafMarks(parent, z, flip) {
+    const g = new THREE.Group(); g.position.set(DOOR_W / 2, LEAF_H / 2, z); if (flip) g.rotation.y = Math.PI; parent.add(g);
+    const out = [], bar = (x, y, w, h) => { const m = new THREE.Mesh(markGeo, targetOff); m.position.set(x, y, 0); m.scale.set(w, h, 1); g.add(m); out.push(m); };
+    const IN = 0.26, L = 0.9, T = 0.14, hx = DOOR_W / 2 - IN, hy = LEAF_H / 2 - IN; // inset from the edges, arm length, thickness
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) { bar(sx * (hx - L / 2), sy * (hy - T / 2), L, T); bar(sx * (hx - T / 2), sy * (hy - L / 2), T, L); }
+    bar(0, 0, 0.68, 0.08); bar(0, 0, 0.08, 0.68);
+    return out;
+  }
   const doorTarget = (parent, x, y, z, on) => { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
     const r = new THREE.Mesh(targetGeo, on ? targetOn : targetOff), d = new THREE.Mesh(targetDotGeo, on ? targetOn : targetOff); g.add(r); g.add(d); return [r, d]; };
   // Speculum: panes, crystals and hanging blocks reflected in both mirror walls. Each gets two copies (sharing its geometry and
@@ -3905,7 +3916,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const hinge = new THREE.Group(); hinge.position.x = sd * DOOR_W; hinge.rotation.y = sd < 0 ? 0 : Math.PI; root.add(hinge);
         hinge.add(new THREE.Mesh(cellLeafGeo, doorMatC)); outline(cellLeafGeo, hinge);
         const br = new THREE.Mesh(bracketGeo, darkSteelMat); br.position.set(DOOR_W - 0.9, BOLT_V, 0.14); hinge.add(br);
-        const tg = doorTarget(hinge, DOOR_W / 2, LEAF_H * 0.58, sd < 0 ? 0.09 : -0.09, false); if (sd > 0) tg.forEach(m => { m.rotation.y = Math.PI; });
+        const tg = leafMarks(hinge, sd < 0 ? 0.08 : -0.08, sd > 0); // the whole leaf framed as the target: hit it anywhere
         dr.leaves.push({ sd, hinge, ang: 0, opening: false, tg });
       }
       const bolt = new THREE.Mesh(boltGeo, targetOn); bolt.position.set(0, BOLT_V, 0.24); root.add(bolt); dr.bolt = bolt;

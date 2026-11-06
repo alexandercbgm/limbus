@@ -754,7 +754,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   // ---------- constants ----------
   const TAU = Math.PI * 2, W = 4.2, H = 6.6, CAM_V = 1.8;
-  const DOOR_FOOT = 0.42, FLAP_FOOT = 0.28; // doors and gates stop short of the rails (their tops are at 0.26); a flap just over them, to lie on them when it falls
+  const DOOR_FOOT = 0.42; // doors and gates whose leaves stand side by side stop short of the rails (their tops are at 0.26)
   // W and H are the room the game is played in; the shell of walls, floor and ceiling may stand further out (SW, SH),
   // where a level's frames are bigger than the tunnel (Vitrum, Speculum, Rubinus). Set for each level in setLevel.
   let SW = W, SH = H;
@@ -1054,7 +1054,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const canvas = document.getElementById("game");
   // no edge smoothing on phones and tablets: at their 2–3× pixels it hardly shows and it costs every frame
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !matchMedia("(pointer: coarse)").matches });
-  renderer.localClippingEnabled = true; // the round gates' leaves are cut off over the rails
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
   const scene = new THREE.Scene();
   // three keeps every geometry it has drawn until it is disposed, so each run left its gates, panes and chains in
@@ -3810,7 +3809,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the bolt holds, balls on the leaves only knock. No door gives way to balls on the steel alone. A door still shut when the cart comes is burst for GATE_COST.
   let doors = [], doorPlan = [];
   const DOOR_W = W - 0.12, FLAP_H = H - 2.9, LEAF_H = H - 0.35, BOLT_V = 2.0; // a low flap: its chains run long and plain to see
-  const flapGeo = new THREE.BoxGeometry(2 * DOOR_W, FLAP_H - FLAP_FOOT, 0.16).translate(0, (FLAP_H - FLAP_FOOT) / 2, 0); // hung FLAP_FOOT up, it turns about its foot
+  const flapGeo = new THREE.BoxGeometry(2 * DOOR_W, FLAP_H, 0.16).translate(0, FLAP_H / 2, 0);
   const cellLeafGeo = new THREE.BoxGeometry(DOOR_W, LEAF_H - DOOR_FOOT, 0.14).translate(DOOR_W / 2, (LEAF_H + DOOR_FOOT) / 2, 0); // its hinge at x = 0
   const strapGeo = new THREE.BoxGeometry(1, 0.16, 0.05), doorLintelGeo = new THREE.BoxGeometry(2 * W + 0.4, 0.34, 0.34), boltGeo = new THREE.BoxGeometry(2.8, 0.3, 0.24), bracketGeo = new THREE.BoxGeometry(0.26, 0.44, 0.16);
   // the doors are drawn plainly: dark steel panels outlined in light, and what is to be shot glows
@@ -3906,10 +3905,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         return g; });
       dr.steam = Array.from({ length: 12 }, (_, i) => { const sp = new THREE.Sprite(steamMat); const k = i / 12; sp.userData = { u: (k - 0.5) * 2 * (SW + 1.5) + rand(-0.6, 0.6), v: rand(0.4, 2.0), z: rand(-4, 2.5), sc: rand(2.6, 4.6), ph: rand(0, TAU) }; root.add(sp); return sp; });
     } else if (o.kind === "flap") { // a plain steel flap, an eye at each top corner, and long bright chains up to the lintel
-      const leaf = new THREE.Group(); leaf.position.y = FLAP_FOOT; root.add(leaf); leaf.add(new THREE.Mesh(flapGeo, doorMatC)); outline(flapGeo, leaf);
+      const leaf = new THREE.Group(); root.add(leaf); leaf.add(new THREE.Mesh(flapGeo, doorMatC)); outline(flapGeo, leaf);
       dr.leaf = leaf;
       for (const x of Math.random() < 0.5 ? [0] : [-DOOR_W / 3, DOOR_W / 3]) { // one chain in the middle, or two at the thirds
-        const eye = new THREE.Mesh(eyeGeo, targetOn); eye.position.set(x, FLAP_H - FLAP_FOOT + 0.08, 0.05); eye.scale.setScalar(1.4); leaf.add(eye);
+        const eye = new THREE.Mesh(eyeGeo, targetOn); eye.position.set(x, FLAP_H + 0.08, 0.05); eye.scale.setScalar(1.4); leaf.add(eye);
         const L = H - 0.34 - FLAP_H - 0.1, m = makeChain(L, 2.3, doorChainMat); m.position.set(x, H - 0.34, 0.05); root.add(m);
         dr.chains.push({ x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() });
       }
@@ -3944,7 +3943,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     DL.copy(q).applyMatrix4(dr.inv);
     if (dr.bolted && Math.abs(DL.y - BOLT_V) < 0.3 + r && Math.abs(DL.x) < 1.5 && Math.abs(DL.z - 0.24) < 0.25 + r) return { bolt: true };
     if (Math.abs(DL.z) > 0.12 + r) return null;
-    if (dr.kind === "flap") return dr.ang < 0.35 && Math.abs(DL.x) < DOOR_W && DL.y > FLAP_FOOT && DL.y < FLAP_H ? { leaf: true } : null;
+    if (dr.kind === "flap") return dr.ang < 0.35 && Math.abs(DL.x) < DOOR_W && DL.y > 0 && DL.y < FLAP_H ? { leaf: true } : null;
     const lh = dr.kind === "tall" ? LEAF_T : LEAF_H;
     for (const lf of dr.leaves) if (lf.ang < 0.3 && DL.y > DOOR_FOOT && DL.y < lh && (lf.sd < 0 ? DL.x < 0 && DL.x > -DOOR_W : DL.x >= 0 && DL.x < DOOR_W))
       return { lf, onT: dr.kind === "tall" && Math.hypot(DL.x - lf.tx, DL.y - lf.ty) < TG_HIT + r };
@@ -4116,7 +4115,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const buttonMat = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff8a00, emissiveIntensity: 0.8, roughness: 0.4, side: THREE.DoubleSide }); // a cup shows its inside too
   const pressedMat = new THREE.MeshStandardMaterial({ color: 0x40e890, emissive: 0x20c070, emissiveIntensity: 0.9, roughness: 0.4, side: THREE.DoubleSide });
   const GATE_LH = GATE_H - DOOR_FOOT, GATE_MID = DOOR_FOOT + GATE_LH / 2; // the leaves from just over the rails to the lintel
-  const hDoorGeo = new THREE.BoxGeometry(BRIDGE_W, GATE_LH, GATE_D), vDoorGeo = new THREE.BoxGeometry(2 * BRIDGE_W, GATE_LH / 2, GATE_D);
+  const hDoorGeo = new THREE.BoxGeometry(BRIDGE_W, GATE_LH, GATE_D), vDoorGeo = new THREE.BoxGeometry(2 * BRIDGE_W, GATE_H / 2, GATE_D);
   const postGeo = new THREE.BoxGeometry(0.4, GATE_H + 0.4, 0.5), lintelGeo = new THREE.BoxGeometry(2 * BRIDGE_W + 1.2, 0.4, 0.5);
   const irisRingGeo = new THREE.TorusGeometry(IRIS_R + 0.12, 0.16, 8, 64);
   const bulkheadMat = new THREE.MeshStandardMaterial({ color: 0xe8e8ee, roughness: 0.35, metalness: 0.6, side: THREE.DoubleSide });
@@ -4221,10 +4220,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (nb === 2) spots.push(...[-1, 1].map(sd => round ? { a: Math.PI / 2 - sd * 0.33, rad: spots[0].rad } : { u: sd * 1.5, v: spots[0].v, along: "u" }));
     const order = nb === 0 ? [] : nb === 1 ? [0] : nb === 2 ? [3, 4] : [0, 1, 2];
     const g = { s, kind, k, root, leaves, buttons: [], pr: 0, opening: false, passed: false, dead: false, weights };
-    if (round) { // the round gates' circle reaches below the floor: their leaves cut off just over the rails, each gate with a plane of its own
-      g.clip = new THREE.Plane(); g.edges = [];
-      for (const lf of leaves) lf.m.traverse(o => { if (!o.material) return; o.material = o.material.clone(); o.material.clippingPlanes = [g.clip]; if (o.isLineSegments) g.edges.push(o.material); });
-    }
     leaves.forEach(lf => { lf.pr = 0; });
     const yA0 = 1.9 + Math.random() * 0.4; // where both anchors of a gate come down to, their chains alike
     if (weights) for (const lf of leaves) { // an anchor for each leaf, its chain run out of a round hawse in the bulkhead, an orange target over it:
@@ -4309,13 +4304,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the leaf still covering the point (x, y) of the gate's plane, or null
   function gateLeafAt(g, x, y) {
     const p = g.pr;
-    if (g.kind === "iris" || g.kind === "taiji") { const d = Math.hypot(x, y - IRIS_V); return (d < IRIS_R && y >= DOOR_FOOT && d > (IRIS_R + 0.15) * p) || (!STYLE.bridge && d >= IRIS_R && Math.abs(x) < SW && y > 0 && y < SH) ? g.leaves[0] : null; }
-    if (Math.abs(x) > BRIDGE_W + 0.1 || y < DOOR_FOOT || y > GATE_H + 0.1) return null;
-    const lf = g.kind === "h" ? g.leaves[x < 0 ? 0 : 1] : g.leaves[y < GATE_MID ? 0 : 1];
+    if (g.kind === "iris" || g.kind === "taiji") { const d = Math.hypot(x, y - IRIS_V); return (d < IRIS_R && d > (IRIS_R + 0.15) * p) || (!STYLE.bridge && d >= IRIS_R && Math.abs(x) < SW && y > 0 && y < SH) ? g.leaves[0] : null; }
+    if (Math.abs(x) > BRIDGE_W + 0.1 || y < (g.kind === "h" ? DOOR_FOOT : 0) || y > GATE_H + 0.1) return null; // side-by-side leaves stop over the rails
+    const lf = g.kind === "h" ? g.leaves[x < 0 ? 0 : 1] : g.leaves[y < GATE_H / 2 ? 0 : 1];
     if (lf.broken) return null;
     if (lf.hinge) return lf.pr < 0.45 ? lf : null; // a swinging leaf: closed till it has turned well away
     if (g.kind === "h") return Math.abs(x) > BRIDGE_W * smooth5(lf.pr) ? lf : null;
-    return y < GATE_MID - (GATE_H / 2 + 0.3) * p || y > GATE_MID + (GATE_H / 2 + 0.3) * p ? lf : null;
+    return y < GATE_H / 2 - (GATE_H / 2 + 0.3) * p || y > GATE_H / 2 + (GATE_H / 2 + 0.3) * p ? lf : null;
   }
   function hitLeaf(g, lf, at, vel, gx, gy) {
     Sound.knock(); chips(at, g.kind === "iris" || g.kind === "taiji" ? laserBaseMat : doorMat, 4, vel); return; // gate leaves don't break: a ball only knocks on them
@@ -4528,7 +4523,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const lf of g.leaves) { if (g.opening || lf.opening) lf.pr = Math.min(1, lf.pr + dt / 0.65); }
       const p = smooth5(g.pr);
       setObj(g.root, g.s, 0, 0);
-      if (g.clip) { g.clip.setFromNormalAndCoplanarPoint(tmpV.set(0, 1, 0).transformDirection(g.root.matrix), tmpV2.set(0, DOOR_FOOT, 0).applyMatrix4(g.root.matrix)); g.edges.forEach(m => m.color.copy(edgeMat.color)); }
       for (const lf of g.leaves) {
         if (g.kind !== "iris") lf.m.scale.setScalar(lf.m.scale.x + (1 - lf.m.scale.x) * Math.min(1, dt * 10));
         if (lf.hinge) lf.hinge.rotation.y = -lf.sd * 1.65 * smooth5(lf.pr); // swings away from the cart
@@ -4539,7 +4533,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             if (w.len === w.L0) Sound.tone(90, 0.2, 0.15); }
           w.tp.set(w.x, HAWSE_V + HAWSE_TG, 0.1).applyMatrix4(g.root.matrix);
         }
-        else if (g.kind === "v") lf.m.position.set(0, GATE_MID + lf.sd * (GATE_LH / 4 + (GATE_H / 2 + 0.3) * p), 0);
+        else if (g.kind === "v") lf.m.position.set(0, GATE_H / 2 + lf.sd * (GATE_H / 4 + (GATE_H / 2 + 0.3) * p), 0);
         // each half moves far enough that its head and eye clear the doorway, and shrinks to stay behind the bulkhead
         else if (lf.taiji) { // the halves part, turning back against the gate's spin, so neither passes through the other
           const r = (IRIS_R + 0.8) * p, sc = 1 - 0.58 * p, sw = -1.5 * p * (2 - p);

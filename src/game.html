@@ -2988,7 +2988,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const dr = spawnDoor({ s, kind: "bolt" }); dr.esc = true;
       dr.leaves.forEach(l => l.tg.forEach(m => { m.visible = false; })); // the bolt opens the cell outright: the leaves bear no sign
       dr.boltAmp = 1.3; dr.boltF = Math.min(2.6, 1.1 + 0.12 * superWave) * (Math.random() < 0.5 ? -1 : 1); dr.boltPh = rand(0, TAU);
-      return rand(20, 24);
+      const gap = rand(20, 24); // and two crystals in the stretch to the next cell, apart, anywhere across the corridor
+      const a = rand(6, gap / 2 - 1), b = rand(gap / 2 + 1, gap - 6), u = rand(-2.6, 2.6);
+      addCrystal(s + a, u, rand(1.4, 4.2), 2); addCrystal(s + b, Math.max(-2.6, Math.min(2.6, -u + rand(-0.8, 0.8))), rand(1.4, 4.2), 2);
+      return gap;
     }
     if (f === "custodes") {
       superWave++;

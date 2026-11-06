@@ -3847,14 +3847,23 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const outline = (geo, parent) => { const l = new THREE.LineSegments(new THREE.EdgesGeometry(geo), doorLineMat); parent.add(l); return l; };
   // a barred door's leaf, once its bolt is gone, is a target as a whole: an aiming frame's four thin corners round its face and a
   // thin cross at its middle; grey while barred, lit like the targets after, out once it swings (the same materials)
-  const markGeo = new THREE.PlaneGeometry(1, 1);
-  function leafMarks(parent, z, flip) {
+  function leafMarks(parent, z, flip) { // a thin frame round the leaf and thin diagonal hatching inside it, the two leaves' in a chevron
     const g = new THREE.Group(); g.position.set(DOOR_W / 2, (LEAF_H + DOOR_FOOT) / 2, z); if (flip) g.rotation.y = Math.PI; parent.add(g);
-    const out = [], bar = (x, y, w, h) => { const m = new THREE.Mesh(markGeo, targetOff); m.position.set(x, y, 0); m.scale.set(w, h, 1); g.add(m); out.push(m); };
-    const IN = 0.26, L = 0.9, T = 0.08, hx = DOOR_W / 2 - IN, hy = (LEAF_H - DOOR_FOOT) / 2 - IN; // inset from the edges, arm length, thickness
-    for (const sx of [-1, 1]) for (const sy of [-1, 1]) { bar(sx * (hx - L / 2), sy * (hy - T / 2), L, T); bar(sx * (hx - T / 2), sy * (hy - L / 2), T, L); }
-    bar(0, 0, 0.68, 0.08); bar(0, 0, 0.08, 0.68);
-    return out;
+    const IN = 0.26, T = 0.05, GAP = 0.44, hx = DOOR_W / 2 - IN, hy = (LEAF_H - DOOR_FOOT) / 2 - IN; // inset from the edges, line width, hatch spacing
+    const pos = [], quad = (ax, ay, bx, by) => { // a strip of width T from (ax, ay) to (bx, by)
+      const dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy), nx = -dy / l * T / 2, ny = dx / l * T / 2;
+      pos.push(ax + nx, ay + ny, 0, ax - nx, ay - ny, 0, bx - nx, by - ny, 0, ax + nx, ay + ny, 0, bx - nx, by - ny, 0, bx + nx, by + ny, 0);
+    };
+    quad(-hx - T / 2, hy, hx + T / 2, hy); quad(-hx - T / 2, -hy, hx + T / 2, -hy); quad(-hx, -hy, -hx, hy); quad(hx, -hy, hx, hy);
+    const sg = flip ? -1 : 1, step = GAP * Math.SQRT2; // the left leaf's hatching runs \, the right's /: x + sg·y = c
+    for (let c = -(hx + hy) + step / 2; c < hx + hy; c += step) {
+      const pts = [];
+      for (const y of [-hy, hy]) { const x = c - sg * y; if (x >= -hx && x <= hx) pts.push([x, y]); }
+      for (const x of [-hx, hx]) { const y = (c - x) * sg; if (y > -hy && y < hy) pts.push([x, y]); }
+      if (pts.length >= 2) quad(pts[0][0], pts[0][1], pts[1][0], pts[1][1]);
+    }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    const m = new THREE.Mesh(geo, targetOff); g.add(m); return [m]; // one draw for all of it
   }
   const doorTarget = (parent, x, y, z, on) => { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
     const r = new THREE.Mesh(targetGeo, on ? targetOn : targetOff), d = new THREE.Mesh(targetDotGeo, on ? targetOn : targetOff); g.add(r); g.add(d); return [r, d]; };

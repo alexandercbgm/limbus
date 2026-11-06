@@ -3910,8 +3910,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       dr.leaf = leaf;
       for (const x of Math.random() < 0.5 ? [0] : [-DOOR_W / 3, DOOR_W / 3]) { // one chain in the middle, or two at the thirds
         const eye = new THREE.Mesh(eyeGeo, targetOn); eye.position.set(x, FLAP_H - FLAP_FOOT + 0.08, 0.05); eye.scale.setScalar(1.4); leaf.add(eye);
-        const top = new THREE.Mesh(eyeGeo, targetOn); top.position.set(x, H - 0.5, 0.05); top.scale.setScalar(1.4); root.add(top); // a ring under the lintel holds it up
-        const L = H - 0.66 - FLAP_H - 0.1, m = makeChain(L, 2.3, doorChainMat); m.position.set(x, H - 0.66, 0.05); root.add(m);
+        // a ring under the lintel, three links, the ring on the leaf: the first link hooked through the top ring, the last through
+        // the leaf's, each link square to the next and the end ones square to their rings
+        const RR = 0.16 * 1.4, ringY = H - 0.34 - RR + 0.02, eyeY = FLAP_H + 0.08, grip = 0.05; // ring radius (eyes are scaled 1.4); how far a link reaches past a ring's wire
+        const top = new THREE.Mesh(eyeGeo, targetOn); top.position.set(x, ringY, 0.05); top.scale.setScalar(1.4); root.add(top);
+        const y0 = ringY - RR + grip, y1 = eyeY + RR - grip, n = 3, k = (y0 - y1) / (LINK * (n - 1) + 2 * (LINK / 2 + 0.032)); // links sized to span exactly
+        const m = makeChain(n * LINK * k - 0.01, k, doorChainMat); m.position.set(x, y0 - (LINK / 2 + 0.032) * k + 0.5 * LINK * k, 0.05); root.add(m);
+        m.children.forEach((l, i) => { l.rotation.y = i % 2 ? 0 : Math.PI / 2; });
         dr.chains.push({ x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() });
       }
     } else { // two steel leaves barred by a glowing bolt; once it is gone, each leaf lights up a target
@@ -6131,9 +6136,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
     for (let i = shards.length - 1; i >= 0; i--) {
       const s = shards[i], pos = s.mesh.position;
-      s.v.y -= G * dt;
-      pos.addScaledVector(s.v, dt);
-      s.mesh.rotation.x += s.w.x * dt; s.mesh.rotation.y += s.w.y * dt; s.mesh.rotation.z += s.w.z * dt;
+      if (!s.rest) {
+        s.v.y -= G * dt;
+        pos.addScaledVector(s.v, dt);
+        s.mesh.rotation.x += s.w.x * dt; s.mesh.rotation.y += s.w.y * dt; s.mesh.rotation.z += s.w.z * dt;
+      } else if (s.restQ) s.mesh.quaternion.slerp(s.restQ, Math.min(1, dt * 12)); // a piece at rest settles flat on its face, then lies still
       // the floor under a piece is the track's where the piece now is, as the track is now: the rails ahead bend with the karma,
       // so a floor taken once where the glass stood left pieces hanging in the air over a dip or sunk under a rise. Over the
       // void beside a bridge there is none, and a piece born under the deck (a pane rising from below) has none either
@@ -6143,8 +6150,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (!s.seen) { s.seen = true; if (h < -0.15) s.fs = undefined; }
         else if (h < 0 && !(STYLE.bridge && Math.abs(tmpV.dot(_R)) > BRIDGE_W + 0.2)) {
           pos.addScaledVector(_U, -h);
-          s.v.multiplyScalar(0.5); s.v.addScaledVector(_U, -1.25 * s.v.dot(_U)); s.w.multiplyScalar(0.6);
-        }
+          if (s.rest) {} else {
+            s.v.multiplyScalar(0.5); s.v.addScaledVector(_U, -1.25 * s.v.dot(_U)); s.w.multiplyScalar(0.6);
+            if (s.v.length() < 1.2) { // too slow to bounce again: it comes to rest (it had hopped on the floor every frame, forever)
+              s.rest = true; s.v.set(0, 0, 0); s.w.set(0, 0, 0);
+              const z = tmpV2.set(0, 0, 1).applyQuaternion(s.mesh.quaternion), up = _U.clone(); if (z.dot(up) < 0) up.negate();
+              s.restQ = new THREE.Quaternion().setFromUnitVectors(z, up).multiply(s.mesh.quaternion);
+            }
+          }
+        } else if (s.rest && h > 0) pos.addScaledVector(_U, -h); // and stays on the floor as the track under it shifts
       }
       s.life -= dt;
       if (s.life <= 0) { dropShard(s); shards.splice(i, 1); }

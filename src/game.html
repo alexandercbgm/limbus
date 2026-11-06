@@ -3809,6 +3809,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the bolt holds, balls on the leaves only knock. No door gives way to balls on the steel alone. A door still shut when the cart comes is burst for GATE_COST.
   let doors = [], doorPlan = [];
   const DOOR_W = W - 0.12, FLAP_H = H - 2.9, LEAF_H = H - 0.35, BOLT_V = 2.0; // a low flap: its chains run long and plain to see
+  const EYE_OUT = (0.16 + 0.05) * 1.4, EYE_IN = 2 * EYE_OUT / 3; // a ring's outer radius; how far its middle stands off what it is sunk in (a third of it inside)
   const FLAP_T = 0.16, FLAP_FOOT = 0.27 + FLAP_T / 2; // the flap hangs with its hinge this high, so it falls onto the rails (tops at 0.26), not through them to the floor
   const flapGeo = new THREE.BoxGeometry(2 * DOOR_W, FLAP_H - FLAP_FOOT, FLAP_T).translate(0, (FLAP_H - FLAP_FOOT) / 2, 0); // its top where it was
   const cellLeafGeo = new THREE.BoxGeometry(DOOR_W, LEAF_H - DOOR_FOOT, 0.14).translate(DOOR_W / 2, (LEAF_H + DOOR_FOOT) / 2, 0); // its hinge at x = 0
@@ -3909,13 +3910,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const leaf = new THREE.Group(); leaf.position.y = FLAP_FOOT; root.add(leaf); leaf.add(new THREE.Mesh(flapGeo, doorMatC)); outline(flapGeo, leaf);
       dr.leaf = leaf;
       for (const x of Math.random() < 0.5 ? [0] : [-DOOR_W / 3, DOOR_W / 3]) { // one chain in the middle, or two at the thirds
-        const eye = new THREE.Mesh(eyeGeo, targetOn); eye.position.set(x, FLAP_H - FLAP_FOOT + 0.08, 0.05); eye.scale.setScalar(1.4); leaf.add(eye);
+        // the leaf's ring sunk a third into its top edge, in its thickness, not stuck on its face
+        const eye = new THREE.Mesh(eyeGeo, targetOn); eye.position.set(x, FLAP_H - FLAP_FOOT + EYE_OUT - EYE_IN, 0); eye.scale.setScalar(1.4); leaf.add(eye);
         // a ring under the lintel, three links, the ring on the leaf: the first link hooked through the top ring, the last through
         // the leaf's, each link square to the next and the end ones square to their rings
-        const RR = 0.16 * 1.4, ringY = H - 0.34 - RR + 0.02, eyeY = FLAP_H + 0.08, grip = 0.05; // ring radius (eyes are scaled 1.4); how far a link reaches past a ring's wire
-        const top = new THREE.Mesh(eyeGeo, targetOn); top.position.set(x, ringY, 0.05); top.scale.setScalar(1.4); root.add(top);
+        const RR = 0.16 * 1.4, ringY = H - 0.34 - EYE_OUT + EYE_IN, eyeY = FLAP_H + EYE_OUT - EYE_IN, grip = 0.05; // both rings sunk a third of their height
+        const top = new THREE.Mesh(eyeGeo, targetOn); top.position.set(x, ringY, 0); top.scale.setScalar(1.4); root.add(top);
         const y0 = ringY - RR + grip, y1 = eyeY + RR - grip, n = 3, k = (y0 - y1) / (LINK * (n - 1) + 2 * (LINK / 2 + 0.032)); // links sized to span exactly
-        const m = makeChain(n * LINK * k - 0.01, k, doorChainMat); m.position.set(x, y0 - (LINK / 2 + 0.032) * k + 0.5 * LINK * k, 0.05); root.add(m);
+        const m = makeChain(n * LINK * k - 0.01, k, doorChainMat); m.position.set(x, y0 - (LINK / 2 + 0.032) * k + 0.5 * LINK * k, 0); root.add(m);
         m.children.forEach((l, i) => { l.rotation.y = i % 2 ? 0 : Math.PI / 2; });
         dr.chains.push({ x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() });
       }
@@ -3966,7 +3968,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function updateDoors(dt) {
     for (const dr of doors) {
       setObj(dr.root, dr.s, 0, 0); dr.root.updateMatrixWorld(true); dr.inv.copy(dr.root.matrixWorld).invert();
-      for (const c of dr.chains) { c.A.set(c.x, H - 0.34, 0.05); dr.root.localToWorld(c.A); c.B.set(c.x, FLAP_H + 0.1, 0.05); dr.root.localToWorld(c.B); }
+      for (const c of dr.chains) { c.A.set(c.x, H - 0.34, 0); dr.root.localToWorld(c.A); c.B.set(c.x, FLAP_H + 0.1, 0); dr.root.localToWorld(c.B); }
       if (dr.markMat && dr.markT < 1) { dr.markT = Math.min(1, dr.markT + dt / 0.35); dr.markMat.color.copy(targetOff.color).lerp(targetOn.color, smooth5(dr.markT)); }
       if (dr.kind === "flap" && dr.open && dr.ang < Math.PI / 2) { // it falls away from the cart, faster and faster, and lies flat in the hall
         dr.angV += 3.2 * Math.cos(dr.ang) * dt + 0.6 * dt; dr.ang = Math.min(Math.PI / 2, dr.ang + dr.angV * dt);

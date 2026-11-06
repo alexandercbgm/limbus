@@ -3929,7 +3929,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (dr.chains.every(x => !x.alive)) { dr.open = true; Sound.tone(110, 0.4, 0.15, "sawtooth", 0, 60); pop(T("створка падает", "the flap falls"), "info"); }
   }
   function doorBoltBreak(dr, at) {
-    dr.bolted = false; dr.bolt.visible = false; dr.leaves.forEach(l => l.tg.forEach(m => { m.material = targetOn; })); // now the leaves are the targets
+    dr.bolted = false; dr.bolt.visible = false; // now the leaves are the targets: their marks light up, quickly but smoothly
+    dr.markMat = targetOff.clone(); dr.markT = 0; dr.leaves.forEach(l => l.tg.forEach(m => { m.material = dr.markMat; }));
     Sound.shatter(0.5); Sound.tone(300, 0.15, 0.1, "square", 0, 120); chips(at, ironMat, 10, tmpV2.set(0, 1, 2)); addScore(20); pop(T("засов сбит", "bolt broken"), "info");
   }
   function doorLeafHit(dr, lf, at, vel, onT) {
@@ -3960,6 +3961,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const dr of doors) {
       setObj(dr.root, dr.s, 0, 0); dr.root.updateMatrixWorld(true); dr.inv.copy(dr.root.matrixWorld).invert();
       for (const c of dr.chains) { c.A.set(c.x, H - 0.34, 0.05); dr.root.localToWorld(c.A); c.B.set(c.x, FLAP_H + 0.1, 0.05); dr.root.localToWorld(c.B); }
+      if (dr.markMat && dr.markT < 1) { dr.markT = Math.min(1, dr.markT + dt / 0.35); dr.markMat.color.copy(targetOff.color).lerp(targetOn.color, smooth5(dr.markT)); }
       if (dr.kind === "flap" && dr.open && dr.ang < Math.PI / 2) { // it falls away from the cart, faster and faster, and lies flat in the hall
         dr.angV += 3.2 * Math.cos(dr.ang) * dt + 0.6 * dt; dr.ang = Math.min(Math.PI / 2, dr.ang + dr.angV * dt);
         if (dr.ang >= Math.PI / 2) { Sound.slam(); chips(new THREE.Vector3().setFromMatrixPosition(dr.root.matrixWorld), doorMatC, 10, tmpV2.set(0, 2, 0)); if (!reduceMotion && Math.abs(dr.s - sC) < 30) shakeT = Math.max(shakeT, 0.2); }

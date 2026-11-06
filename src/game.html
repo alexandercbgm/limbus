@@ -3849,7 +3849,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // thin cross at its middle; grey while barred, lit like the targets after, out once it swings (the same materials)
   // once its bolt is gone a barred door's leaf glows as the bolt did, only softer: an orange sheet over its face, faded in;
   // dark while barred, and out again once it swings
-  const LEAF_GLOW = 0.42, leafGlowOff = new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0, depthWrite: false });
+  const LEAF_GLOW = 0.75, leafGlowOff = new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0, depthWrite: false });
   function leafMarks(parent, z, flip) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(DOOR_W - 0.16, LEAF_H - DOOR_FOOT - 0.16), leafGlowOff);
     m.position.set(DOOR_W / 2, (LEAF_H + DOOR_FOOT) / 2, z); if (flip) m.rotation.y = Math.PI; parent.add(m); return [m];

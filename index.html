@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.148</div>
+      <div class="credit version">v1.0.149</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.148`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.149`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3996,7 +3996,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       dr.leaf = leaf;
       for (const x of Math.random() < 0.5 ? [0] : [-DOOR_W / 3, DOOR_W / 3]) { // one chain in the middle, or two at the thirds
         const eye = new THREE.Mesh(eyeGeo, targetOn); eye.position.set(x, FLAP_H - FLAP_FOOT + 0.08, 0.05); eye.scale.setScalar(1.4); leaf.add(eye);
-        const L = H - 0.34 - FLAP_H - 0.1, m = makeChain(L, 2.3, doorChainMat); m.position.set(x, H - 0.34, 0.05); root.add(m);
+        const top = new THREE.Mesh(eyeGeo, targetOn); top.position.set(x, H - 0.5, 0.05); top.scale.setScalar(1.4); root.add(top); // a ring under the lintel holds it up
+        const L = H - 0.66 - FLAP_H - 0.1, m = makeChain(L, 2.3, doorChainMat); m.position.set(x, H - 0.66, 0.05); root.add(m);
         dr.chains.push({ x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() });
       }
     } else { // two steel leaves barred by a glowing bolt; once it is gone, each leaf lights up a target

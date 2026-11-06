@@ -3443,6 +3443,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const [geo, mat] of [[beamGeo, lightCoreMat], [beamHaloGeo, lightHaloMat], [beamGlowGeo, lightGlowMat]]) { const m = new THREE.Mesh(geo, mat); m.scale.set(0.75, 1, 0.75); g.add(m); } // a quarter finer than a laser
     const spot = new THREE.Sprite(lightSpotMat); spot.scale.setScalar(0.8); g.add(spot); g.userData.spot = spot; return g;
   }
+  const mirDiscGeo = new THREE.CylinderGeometry(1, 1, 0.06, 40), mirRingGeo = new THREE.TorusGeometry(1, 0.07, 8, 40).rotateX(Math.PI / 2), mirPivotGeo = new THREE.SphereGeometry(0.07, 12, 8);
+  const RAINBOW = [0xff3b5c, 0xff9a2e, 0xffe94a, 0x4fe37f, 0x3db8ff, 0x8a6bff].map(c => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.95, depthWrite: false }));
+  const mirFlareMat = new THREE.SpriteMaterial({ map: (() => { // a four-pointed star of light with a soft glow
+    const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), r = g.createRadialGradient(64, 64, 0, 64, 64, 40);
+    r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.3, "rgba(255,240,200,0.6)"); r.addColorStop(1, "rgba(255,230,170,0)"); g.fillStyle = r; g.fillRect(0, 0, 128, 128);
+    g.globalCompositeOperation = "lighter"; for (const [w, h] of [[128, 5], [5, 128], [70, 2], [2, 70]]) { const lg = g.createRadialGradient(64, 64, 0, 64, 64, Math.max(w, h) / 2); lg.addColorStop(0, "rgba(255,255,255,0.95)"); lg.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = lg; g.fillRect(64 - w / 2, 64 - h / 2, w, h); }
+    return new THREE.CanvasTexture(c); })(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
   const spMirGeos = {};
   const spMirGeo = len => spMirGeos[len] || (spMirGeos[len] = new THREE.BoxGeometry(len, 0.07, MIR_D));
   const faceGeos = {}, mirrorFaceGeo = len => faceGeos[len] || (faceGeos[len] = new THREE.PlaneGeometry(len - 0.12, MIR_D - 0.12));
@@ -3535,11 +3542,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       g.add(new THREE.Mesh(spPrismGeo, spPrismMat)); g.add(new THREE.LineSegments(spPrismEdge, spPrismEdgeMat));
       const glow = new THREE.Sprite(spPrismGlowMat); glow.scale.setScalar(1.3); g.add(glow);
       pr.beams = Array.from({ length: 7 }, () => { const b = lightBeam(); set.root.add(b); return b; });
+      pr.rainbow = RAINBOW.map(m => { const r = new THREE.Mesh(beamGeo, m); r.scale.set(1.7, 1, 1.7); set.root.add(r); return r; }); // the light out of the prism, split into colours
+      pr.flares = Array.from({ length: 6 }, () => { const f = new THREE.Sprite(mirFlareMat); f.scale.setScalar(1.7); set.root.add(f); return f; }); // where it strikes a mirror
       pr.wp = new THREE.Vector3();
       for (const m of pr.mirrors) {
         const mg = new THREE.Group(); mg.position.set(m.u, m.v, 0); mg.rotation.z = Math.atan2(m.nu, -m.nv); set.root.add(mg); // its face along (−nv, nu)
-        const geo = spMirGeo(m.len); mg.add(new THREE.Mesh(geo, spMirrorMat)); mg.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), spMirrorEdgeMat));
-        for (const y of [-0.037, 0.037]) { const f = new THREE.Mesh(mirrorFaceGeo(m.len), mirrorFaceMat); f.rotation.x = Math.PI / 2; f.position.y = y; mg.add(f); } // the silvered faces inside the frame
+        // a telescope's mirror: a polished disc (oval for a long one) in a steel ring, on two pivots at its ends
+        const disc = new THREE.Group(); disc.scale.set(m.len / 2, 1, MIR_D / 2); mg.add(disc);
+        disc.add(new THREE.Mesh(mirDiscGeo, [spMirrorMat, mirrorFaceMat, mirrorFaceMat])); disc.add(new THREE.Mesh(mirRingGeo, spMirrorMat));
+        for (const sx of [-1, 1]) { const pv = new THREE.Mesh(mirPivotGeo, spMirrorMat); pv.position.x = sx * (m.len / 2 + 0.07); mg.add(pv); }
         m.g = mg; m.inv = new THREE.Matrix4(); m.wp = new THREE.Vector3();
       }
     }
@@ -3563,10 +3574,19 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (const m of pr.mirrors) if (m.alive) { m.g.updateMatrixWorld(true); m.inv.copy(m.g.matrixWorld).invert(); m.wp.setFromMatrixPosition(m.g.matrixWorld); }
         const segs = pr.alive ? tracePrism(set, pr).segs : [];
         pr.beams.forEach((b, i) => {
-          const sg = segs[i]; if (!sg) { b.visible = false; return; }
+          const sg = segs[i]; if (!sg || i === 0) { b.visible = false; return; } // the first leg is drawn as the rainbow
           const [a, c, e, f] = sg, len = Math.hypot(e - a, f - c);
           b.position.set(a, c, 0); b.rotation.z = Math.atan2(-(e - a), f - c); setBeamLen(b, len);
         });
+        // the first leg: six colours fanned a little apart at the prism, gathered again into white light at the first mirror
+        const s0 = segs[0];
+        pr.rainbow.forEach((r, k) => {
+          if (!s0) { r.visible = false; return; }
+          const [a, c, e, f] = s0, L = Math.hypot(e - a, f - c), px = -(f - c) / L, py = (e - a) / L, o = (k - 2.5) * 0.06;
+          const sa = a + px * o, sc = c + py * o, dl = Math.hypot(e - sa, f - sc);
+          r.visible = true; r.position.set(sa, sc, 0); r.rotation.z = Math.atan2(-(e - sa), f - sc); r.scale.y = dl;
+        });
+        pr.flares.forEach((fl, i) => { const sg = segs[i]; fl.visible = !!sg && i < segs.length - 1; if (fl.visible) fl.position.set(sg[2], sg[3], 0); }); // a star at each bounce
         pr.segs = segs;
       }
       if (state === "play" && !set.passed && set.s <= sC + 0.5) {

@@ -3847,12 +3847,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const outline = (geo, parent) => { const l = new THREE.LineSegments(new THREE.EdgesGeometry(geo), doorLineMat); parent.add(l); return l; };
   // a barred door's leaf, once its bolt is gone, is a target as a whole: an aiming frame's four thin corners round its face and a
   // thin cross at its middle; grey while barred, lit like the targets after, out once it swings (the same materials)
-  // once its bolt is gone a barred door's leaf glows as the bolt did, only softer: an orange sheet over its face, faded in;
-  // dark while barred, and out again once it swings
-  const LEAF_GLOW = 0.75, leafGlowOff = new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0, depthWrite: false });
+  // a barred door's leaf bears a sign: a ball, its motion lines under it, bowing a steel sheet up; grey while barred, lit like
+  // the targets once the bolt is gone (faded in), out once the leaf swings. Drawn in cm about its middle, y up, then scaled
   function leafMarks(parent, z, flip) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(DOOR_W - 0.16, LEAF_H - DOOR_FOOT - 0.16), leafGlowOff);
-    m.position.set(DOOR_W / 2, (LEAF_H + DOOR_FOOT) / 2, z); if (flip) m.rotation.y = Math.PI; parent.add(m); return [m];
+    const g = new THREE.Group(); g.position.set(DOOR_W / 2, LEAF_H - (LEAF_H - DOOR_FOOT) * 0.42, z); if (flip) g.rotation.y = Math.PI; g.scale.setScalar(0.0125); parent.add(g);
+    const pos = [], line = (pts, w) => { for (let k = 0; k + 1 < pts.length; k++) { const [ax, ay] = pts[k], [bx, by] = pts[k + 1], l = Math.hypot(bx - ax, by - ay), nx = -(by - ay) / l * w / 2, ny = (bx - ax) / l * w / 2, ex = (bx - ax) / l * w / 4, ey = (by - ay) / l * w / 4;
+      pos.push(ax + nx - ex, ay + ny - ey, 0, ax - nx - ex, ay - ny - ey, 0, bx - nx + ex, by - ny + ey, 0, ax + nx - ex, ay + ny - ey, 0, bx - nx + ex, by - ny + ey, 0, bx + nx + ex, by + ny + ey, 0); } };
+    const quadC = (p0, c, p1, n = 8) => Array.from({ length: n + 1 }, (_, k) => { const t = k / n, u = 1 - t; return [u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0], u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1]]; });
+    line([[-120, 50], [-60, 50], ...quadC([-60, 50], [-45, 50], [-36, 70], 4).slice(1), ...quadC([-36, 70], [0, 130], [36, 70], 12).slice(1), ...quadC([36, 70], [45, 50], [60, 50], 4).slice(1), [120, 50]], 9.3); // the sheet, bowed up
+    for (const [a, b] of [[[0, -18], [0, -68]], [[-30, -10], [-45, -53]], [[30, -10], [45, -53]]]) line([a, b], 6.7); // the motion lines
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    const m = new THREE.Mesh(geo, targetOff), ball = new THREE.Mesh(new THREE.CircleGeometry(34, 24), targetOff); ball.position.y = 44; g.add(m); g.add(ball);
+    return [m, ball];
   }
   const doorTarget = (parent, x, y, z, on) => { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
     const r = new THREE.Mesh(targetGeo, on ? targetOn : targetOff), d = new THREE.Mesh(targetDotGeo, on ? targetOn : targetOff); g.add(r); g.add(d); return [r, d]; };
@@ -3942,17 +3948,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function doorBoltBreak(dr, at) {
     dr.bolted = false; dr.bolt.visible = false; // now the leaves are the targets: their marks light up, quickly but smoothly
-    dr.markMat = leafGlowOff.clone(); dr.markT = 0; dr.leaves.forEach(l => l.tg.forEach(m => { m.material = dr.markMat; }));
+    dr.markMat = targetOff.clone(); dr.markT = 0; dr.leaves.forEach(l => l.tg.forEach(m => { m.material = dr.markMat; }));
     Sound.shatter(0.5); Sound.tone(300, 0.15, 0.1, "square", 0, 120); chips(at, ironMat, 10, tmpV2.set(0, 1, 2)); addScore(20);
     if (!dr.esc) { pop(T("засов сбит", "bolt broken"), "info"); return; }
-    dr.open = true; dr.leaves.forEach(l => { l.opening = true; l.tg.forEach(m => { m.material = leafGlowOff; }); }); dr.markMat = null; // Effugium: the cell opens
+    dr.open = true; dr.leaves.forEach(l => { l.opening = true; l.tg.forEach(m => { m.material = targetOff; }); }); dr.markMat = null; // Effugium: the cell opens
     let gain = 2; gatesInRow++; bestCombo = Math.max(bestCombo, gatesInRow); if (gatesInRow % 3 === 0) { gain += 3; wavesDone++; }
     balls += gain; superGain += gain; updateCount(); updateCombo(); karmaGain(0.03); Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80);
     pop(gain > 2 ? T(`+${gain} · три двери подряд`, `+${gain} · three doors in a row`) : T("+2 · дверь открыта", "+2 · door open"), "gain");
   }
   function doorLeafHit(dr, lf, at, vel, onT) {
     if (dr.bolted || lf.opening || (dr.kind === "tall" && !onT)) { Sound.knock(); chips(at, doorMatC, 4, vel); return; } // barred, or off a tall leaf's target: a ball only knocks
-    lf.opening = true; lf.tg.forEach(m => { m.material = dr.kind === "bolt" ? leafGlowOff : targetOff; }); Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); chips(at, doorMatC, 6, vel); addScore(15);
+    lf.opening = true; lf.tg.forEach(m => { m.material = targetOff; }); Sound.tone(140, 0.3, 0.12, "sawtooth", 0, 80); chips(at, doorMatC, 6, vel); addScore(15);
     if (dr.leaves.every(l => l.opening)) { dr.open = true; balls += 2; updateCount(); karmaGain(0.04); pop(T("+2 · ворота открыты", "+2 · gate open"), "gain"); }
   }
   // what a point (world) touches on a door: a chain, the bolt, a leaf, or nothing; in the door's own frame for leaves
@@ -3979,7 +3985,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       setObj(dr.root, dr.s, 0, 0); dr.root.updateMatrixWorld(true); dr.inv.copy(dr.root.matrixWorld).invert();
       for (const c of dr.chains) { c.A.set(c.x, H - 0.34, 0); dr.root.localToWorld(c.A); c.B.set(c.x, FLAP_H + 0.1, 0); dr.root.localToWorld(c.B); }
       if (dr.boltAmp && dr.bolted) { dr.boltV = BOLT_V + 0.9 + dr.boltAmp * Math.sin(time * dr.boltF + dr.boltPh); dr.bolt.position.y = dr.boltV; } // Effugium: the bolt slides up and down
-      if (dr.markMat && dr.markT < 1) { dr.markT = Math.min(1, dr.markT + dt / 0.35); dr.markMat.opacity = LEAF_GLOW * smooth5(dr.markT); }
+      if (dr.markMat && dr.markT < 1) { dr.markT = Math.min(1, dr.markT + dt / 0.35); dr.markMat.color.copy(targetOff.color).lerp(targetOn.color, smooth5(dr.markT)); }
       if (dr.kind === "flap" && dr.open && dr.ang < Math.PI / 2) { // it falls away from the cart, faster and faster, and lies flat in the hall
         dr.angV += 3.2 * Math.cos(dr.ang) * dt + 0.6 * dt; dr.ang = Math.min(Math.PI / 2, dr.ang + dr.angV * dt);
         if (dr.ang >= Math.PI / 2) { Sound.slam(); chips(new THREE.Vector3().setFromMatrixPosition(dr.root.matrixWorld), doorMatC, 10, tmpV2.set(0, 2, 0)); if (!reduceMotion && Math.abs(dr.s - sC) < 30) shakeT = Math.max(shakeT, 0.2); }

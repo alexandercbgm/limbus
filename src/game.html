@@ -807,21 +807,20 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const smooth5 = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (x * 6 - 15) + 10);
   // Speculum's two bridges: out of the mirror halls through a tall gate onto a bridge over the void, and back through a tall
   // gate into the halls. Midway along each the track turns over about a line along it, whole turns drawn out over 150 m or so:
-  // on the first about the riders' own heads (a heartline roll: the world turns about the eye), on the second about a line
-  // SCREW_R over the rails (a corkscrew: the cart swings round it). tw0..tw1 the turning stretch, r its axis over the rails,
-  // piers where the deck is upright again under the axis
+  // corkscrews, the cart swinging round a line over the rails: the first three tighter turns one way, the second two wide
+  // ones the other. tw0..tw1 the turning stretch, r its axis over the rails, piers where the deck is upright again under it
   let SPANS = [];
-  const SCREW_R = 10, SPAN_LEAD = 34;
+  const SPAN_LEAD = 34;
   function planSpans() {
     SPANS = [];
     if (LEVEL.id !== "speculum") return;
-    const mk = (a, kind, turns, len, dir) => {
-      const tw0 = a + SPAN_LEAD, tw1 = tw0 + len, sp = { a, b: tw1 + SPAN_LEAD, tw0, tw1, kind, turns, dir, r: kind === "roll" ? CAM_V : SCREW_R, piers: [] };
+    const mk = (a, turns, len, r, dir) => {
+      const tw0 = a + SPAN_LEAD, tw1 = tw0 + len, sp = { a, b: tw1 + SPAN_LEAD, tw0, tw1, turns, dir, r, piers: [] };
       for (let k = 0; k <= turns; k++) { let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (spanPhase(m) * turns < k) lo = m; else hi = m; } sp.piers.push(tw0 + (lo + hi) / 2 * len); }
       SPANS.push(sp);
     };
-    mk(Math.round(MAIN_LEN * 0.2), "roll", 3, 165, 1);
-    mk(Math.round(MAIN_LEN * 0.56), "screw", 2, 150, -1);
+    mk(Math.round(MAIN_LEN * 0.2), 3, 180, 7.5, 1);
+    mk(Math.round(MAIN_LEN * 0.56), 2, 160, 11, -1);
   }
   // how far through its turns a bridge is, x the way along its turning stretch: it eases into turning over the first fifth, turns
   // evenly, and eases out over the last fifth (an even turn reads as the track's own; the middle turn had come round twice as fast)
@@ -836,7 +835,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const _T0 = new THREE.Vector3();
   function tangent0(s) { const p = pitchAt(s), y = yawAt(s); return _T0.set(-Math.sin(y) * Math.cos(p), Math.sin(p), -Math.cos(y) * Math.cos(p)); }
   // how much longer the rails run than that line, where they wind round it
-  function twistStretch(s) { const r = twistR(s); if (!r) return 1; const d = twistAt(s + 0.5) - twistAt(s - 0.5); return Math.hypot(1, r * d); }
+  function twistStretch(s) { // (the turn taken on past the stretch's ends: twistAt drops back to 0 there, a whole number of turns,
+    // and across that drop the rails had seemed a hundred times longer, the cart all but stopped at the end of the turns)
+    for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) { const L = sp.tw1 - sp.tw0, d = sp.turns * TAU * (spanPhase((s + 0.5 - sp.tw0) / L) - spanPhase((s - 0.5 - sp.tw0) / L)); return Math.hypot(1, sp.r * d); }
+    return 1;
+  }
   function twistR(s) { for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) return sp.r; return 0; }
   const forkYaw = (f, s) => FORK_ANG * smooth5((s - f.s) / FORK_LEN);
   const forkRate = (f, s) => { const x = (s - f.s) / FORK_LEN; return x > 0 && x < 1 ? FORK_ANG * 30 * x * x * (1 - x) * (1 - x) / FORK_LEN : 0; };
@@ -1636,7 +1639,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // Everything on the track lives in track space (s along the rails, u to the right, v up) and is mapped into
   // the world every frame. The pitch ahead of the cart bends toward the karma trend, so the rails visibly
   // tilt up or down as you score or take damage.
-  const PA = new Float64Array(NS * 3); // where the track turns over: the line it turns about
   const PP = new Float64Array(NS * 3), PR = new Float64Array(NS * 3), PU = new Float64Array(NS * 3), PT = new Float64Array(NS * 3);
   let sBase = 0;
   const cartPos = new THREE.Vector3();
@@ -1680,9 +1682,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     // where the track turns over, the rails swing round a line r over where they'd be: P += r (U0 - U), U0 the up untwisted
     if (SPANS.length) for (let j = 0; j < NS; j++) {
-      const s = sBase + j * DS, tw = twistAt(s), k = j * 3; if (!tw) { const sp = spanAt(s), r = sp ? sp.r : 0; for (let q = 0; q < 3; q++) PA[k + q] = PP[k + q] + r * PU[k + q]; continue; }
+      const s = sBase + j * DS, tw = twistAt(s), k = j * 3; if (!tw) continue;
       const r = twistR(s), c = Math.cos(tw), sn = Math.sin(tw);
-      for (let q = 0; q < 3; q++) { const u0 = PU[k + q] * c + PR[k + q] * sn; PA[k + q] = PP[k + q] + r * u0; PP[k + q] += r * (u0 - PU[k + q]); } // PA: the axis
+      for (let q = 0; q < 3; q++) PP[k + q] += r * (PU[k + q] * c + PR[k + q] * sn - PU[k + q]);
     }
     // and there the rails' heading is where they now run (they had pointed along the line, the cart going on at a slant):
     // T from the points either side, U square to it, R across
@@ -1763,7 +1765,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const ceilGeo = new THREE.PlaneGeometry(2 * W, SL + 0.02); ceilGeo.rotateX(Math.PI / 2);
   const HEXPANE_R = 4.84, HEXPANE_A = HEXPANE_R * Math.cos(Math.PI / 6), HEXPANE_V = 4.2; // the glazing just inside the hexagonal frames: its side and its apothem
   const concreteMat = new THREE.MeshStandardMaterial({ color: 0x7c8591, roughness: 0.92, metalness: 0 }); // Speculum's bridges
-  const SPAN_HEX = 7.2, SPAN_APO = SPAN_HEX * Math.cos(Math.PI / 6), _R0 = new THREE.Vector3(), _U0 = new THREE.Vector3(), _A = new THREE.Vector3(), _B = new THREE.Vector3(), _D = new THREE.Vector3(), _E = new THREE.Vector3(), _X = new THREE.Vector3();
+  const _D = new THREE.Vector3(), _E = new THREE.Vector3(), _X = new THREE.Vector3();
   const I = {
     ceil: inst(ceilGeo, surfMat, 320), // room for the mirrored pieces too (Speculum); Vitrum's of clear glass (setLevel)
     sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 560),
@@ -1807,8 +1809,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     skeel: inst(new THREE.BoxGeometry(2, 1.1, SL + 0.25), concreteMat, 100), // the corkscrew's spiral arch, its posts,
     sstrut: inst(new THREE.BoxGeometry(0.4, 1, 0.4), concreteMat, 100),
     scap: inst(new THREE.BoxGeometry(1, 1, 1), concreteMat, 20), // pier caps and platforms,
-    sring: inst(hexFrameGeo(SPAN_HEX, 0.34), frameMat, 24), // the roll's hexagonal frames,
-    rleg: inst(new THREE.BoxGeometry(0.36, PYLON_H, 0.36), frameMat, 100), // their legs and clamps
+
     girder: inst(new THREE.BoxGeometry(2 * BRIDGE_W, 0.5, 0.4), frameMat, 30),
     bush: inst(new THREE.IcosahedronGeometry(0.75, 0), bushMat, 260), // clumps of foliage floating in Hortus
   };
@@ -1997,27 +1998,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
     const putWall = (key, s, u, hh = SH) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, hh / 2).scale(SV.set(1, hh / H, 1))); }; // as tall as the shell (or the hall)
-    // Speculum's heartline roll turns inside hexagonal steel frames round its axis, one every 10 m, as the halls' frames are, a
-    // flat edge down; each stands on two legs splayed down into the void from its lower corners, and the deck is clamped to it
-    // at both its edges. The frames stand upright in the world, square to the line the track turns about
-    const spanRing = (sp, s) => {
-      const f = Math.max(0, Math.min(NS - 1.0001, (s - sBase) / DS)), i = f | 0, w = f - i, a = i * 3, b = a + 3;
-      _A.set(PA[a] + (PA[b] - PA[a]) * w, PA[a + 1] + (PA[b + 1] - PA[a + 1]) * w, PA[a + 2] + (PA[b + 2] - PA[a + 2]) * w);
-      const T0 = tangent0(s); _R0.set(-T0.z, 0, T0.x).normalize(); _U0.crossVectors(_R0, T0); _nT.copy(T0).negate();
-      I.sring.setMatrixAt(n.sring++, M.makeBasis(_R0, _U0, _nT).setPosition(_A));
-      const beam = (from, dir, len) => { // a strut from a point along a unit direction
-        _X.crossVectors(dir, _nT).normalize();
-        I.rleg.setMatrixAt(n.rleg++, M.makeBasis(_X, dir, _nT).setPosition(_E.copy(from).addScaledVector(dir, len / 2)).scale(SV.set(1, len / PYLON_H, 1)));
-      };
-      frameAt(s);
-      for (const sd of [-1, 1]) {
-        const th = -Math.PI / 2 + sd * Math.PI / 6, foot = _B.copy(_A).addScaledVector(_R0, SPAN_HEX * Math.cos(th)).addScaledVector(_U0, SPAN_HEX * Math.sin(th)); // a lower corner
-        beam(foot, _D.copy(_U0).multiplyScalar(-Math.cos(0.22)).addScaledVector(_R0, sd * Math.sin(0.22)).normalize(), PYLON_H); // a leg, splayed
-        const edge = _B.copy(_P).addScaledVector(_R, sd * (SW + 0.05)).addScaledVector(_U, -0.27), out = _D.copy(edge).sub(_A), r0 = out.length(); out.normalize();
-        const ang = Math.atan2(out.dot(_U0), out.dot(_R0)), rel = ((ang + Math.PI / 2) % (Math.PI / 3) + Math.PI / 3) % (Math.PI / 3) - Math.PI / 6; // off the nearest side's normal
-        beam(edge, out, SPAN_APO / Math.cos(rel) - r0); // the clamp from the deck's edge out to the frame
-      }
-    };
     // Speculum's corkscrew rides on a spiral concrete arch under its deck, a turn of it from pier to pier: deep under the deck
     // over each pier (there the deck is upright, at the bottom of a turn), up under it at the crown half a turn on, with
     // spandrel posts between. Its piers are reinforced; at its two ends the deck widens into a platform on heavy columns
@@ -2029,7 +2009,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (k % 2 === 0 && dp > 0.8) for (const u of [-1.1, 1.1]) I.sstrut.setMatrixAt(n.sstrut++, placeM(M, s, u, -0.52 - dp / 2).scale(SV.set(1, dp, 1)));
     };
     const spanPiers = () => {
-      for (const sp of SPANS) if (sp.kind === "screw") sp.piers.forEach((ps, i) => {
+      for (const sp of SPANS) sp.piers.forEach((ps, i) => {
         if (ps < sC - 30 || ps > sC + AHEAD - 4) return;
         const end = i === 0 || i === sp.piers.length - 1, top = -0.52 - archDepth(sp, ps) - 1.1;
         for (const u of [-1.7, 1.7]) I.spier.setMatrixAt(n.spier++, placeM(M, ps, u, top - PYLON_H / 2).scale(SV.set(1.7, 1, 1.7))); // two columns under the arch's springing
@@ -2095,9 +2075,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const sp = dec.span;
         if (twistAt(s - SL) || twistAt(s + SL)) { for (let q = 0; q < 4; q++) for (const u of [-SW, SW]) I.kerb.setMatrixAt(n.kerb++, placeM(M, s - SL / 2 + (q + 0.5) * SL / 4, u, 0.1).scale(SV.set(1, 1, (SL / 4 + 0.03) / (SL + 0.03)))); }
         else { put("kerb", s, -SW, 0.1); put("kerb", s, SW, 0.1); }
-        if (k % 4 === 0 && (s < sp.tw0 - (sp.kind === "screw" ? 18 : 3) || s > sp.tw1 + (sp.kind === "screw" ? 18 : 3))) for (const sd of [-1, 1]) put("spier", s, sd * (SW - 0.9), -0.5 - PYLON_H / 2);
-        if (sp.kind === "roll" && k % 5 === 0 && s > sp.tw0 - 6 && s < sp.tw1 + 6) spanRing(sp, s);
-        if (sp.kind === "screw") spanArch(sp, k, s);
+        if (k % 4 === 0 && (s < sp.tw0 - 18 || s > sp.tw1 + 18)) for (const sd of [-1, 1]) put("spier", s, sd * (SW - 0.9), -0.5 - PYLON_H / 2);
+        spanArch(sp, k, s);
       }
       if (dec.pyr && dec.pyr.side !== open) put(dec.pyr.side < 0 ? "pyrL" : "pyrR", s, dec.pyr.side * (SW - 0.25), dec.pyr.v);
       if (STYLE.rebar && !dec.hw) { // rods of rebar out of broken concrete, and caged sodium lamps every 10 m

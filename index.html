@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.169</div>
+      <div class="credit version">v1.0.170</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.169`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.170`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2757,6 +2757,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     Sound.shatter(1.4); Sound.crash();
   }
   function shatter(p, lx, ly, impL) {
+    // the pieces keep the pane's own motion (a sliding pane's slide) on top of the push of the blow: the new pieces are the ones
+    // after the last piece there was (old pieces only ever leave from the front)
+    const last = shards[shards.length - 1];
+    shatterPane(p, lx, ly, impL);
+    if (p.vel && p.vel.lengthSq() > 1e-4) for (let i = shards.lastIndexOf(last) + 1; i < shards.length; i++) shards[i].v.add(p.vel);
+  }
+  function shatterPane(p, lx, ly, impL) {
     if (p.maxhp > 1 && !p.cross) { crumblePane(p, lx, ly); return; } // armoured glass crumbles into chunks, as a slab on a chain does
     if (p.thick) { chunkPane(p, lx, ly, impL); return; }
     removePane(p);
@@ -2854,7 +2861,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const v = new THREE.Vector3()
       .addScaledVector(p.R, dx * spd + impL.x * 0.06)
       .addScaledVector(p.U, dy * spd + impL.y * 0.06 + 0.6)
-      .addScaledVector(p.T, impL.z * (0.15 + Math.random() * 0.25));
+      .addScaledVector(p.T, Math.min(impL.z * (0.15 + Math.random() * 0.25), SHARD_FWD_THIN * (0.2 + 0.8 * Math.random()) / (0.8 + d * 0.35)));
     shards.push({
       mesh: m, life: 2.4 + Math.random() * 1.2, v, fs: p.s, fo: SHARD_T / 2, fwd: SHARD_FWD_THIN,
       w: new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6).multiplyScalar(1 / (1 + size * 1.2)), // a big piece turns slowly, heavy
@@ -5594,8 +5601,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function karmaLoss(x) { pending -= x * LOSS_MUL; }
 
   const ndc = new THREE.Vector3(), rayDir = new THREE.Vector3(), target = new THREE.Vector3(), muzzle = new THREE.Vector3(), camInv = new THREE.Matrix4();
-  function aimGun(g) {
-    aimLocal.copy(target).applyMatrix4(camInv).sub(g.c.position).normalize();
+  const aimFar = new THREE.Vector3();
+  function aimGun(g) { // the barrel points where the cursor does (32 m off), even when the ball goes to something nearer
+    aimLocal.copy(aimFar).applyMatrix4(camInv).sub(g.c.position).normalize();
     g.yaw.rotation.y = clamp(Math.atan2(-aimLocal.x, -aimLocal.z), -1.2, 1.2);
     g.pitch.rotation.x = clamp(Math.asin(clamp(aimLocal.y, -1, 1)), -0.3, 0.9);
     g.c.updateMatrixWorld(true);
@@ -5642,6 +5650,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // (below and beside the eye) passed beside or behind a thing close by (an axe, a block) that the cursor was right on
     const near = rayHits(camera.position, rayDir).find(h => h.d > 1.2);
     target.copy(camera.position).addScaledVector(rayDir, near ? Math.min(32, near.d) : 32);
+    aimFar.copy(camera.position).addScaledVector(rayDir, 32);
     camInv.copy(camera.matrixWorld).invert();
     const guns = progress.weapon === "gemini" ? GUNS : [GUNS[0]], vol = {};
     for (const g of guns) {
@@ -5982,7 +5991,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       setObj(p.group, p.s, p.u, p.v);
       frameAt(p.s);
+      const pc = p.C.clone();
       p.R.copy(_R); p.U.copy(_U); p.T.copy(_T); p.C.copy(_P).addScaledVector(_R, p.u).addScaledVector(_U, p.v);
+      if (!p.vel) p.vel = new THREE.Vector3();
+      else if (dt > 0) p.vel.subVectors(p.C, pc).divideScalar(dt); // how fast it slides, for its pieces to keep
       if (p.rot !== undefined) { // a rotor bar: turn it about the track axis, and maybe tumble it about an axis of its own
         p.rot += p.spin * dt;
         if (p.turn) { p.turn.b += p.turn.w * dt; p.group.matrix.multiply(M2.makeRotationY(p.turn.b)); } // a potter's wheel under it: about the upright, fixed

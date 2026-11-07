@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.167</div>
+      <div class="credit version">v1.0.168</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.167`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.168`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2732,7 +2732,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // each part splits into a few big irregular shards: wedges fanned out from a point somewhere inside it, each as thick
     // as the glass, or a little less where it chipped
     for (const [x, y, sx, sy] of parts) {
-      const hx = sx / 2, hy = sy / 2, ix = x + rand(-0.35, 0.35) * hx, iy = y + rand(-0.35, 0.35) * hy, k = sx * sy > 1 ? 4 : 3;
+      const hx = sx / 2, hy = sy / 2, hit = Math.abs(lx - x) < hx && Math.abs(ly - y) < hy, k = sx * sy > 1 ? 4 : 3;
+      const ix = hit ? clamp(lx, x - 0.8 * hx, x + 0.8 * hx) : x + rand(-0.35, 0.35) * hx, iy = hit ? clamp(ly, y - 0.8 * hy, y + 0.8 * hy) : y + rand(-0.35, 0.35) * hy; // the part struck splits from the blow
       const angs = Array.from({ length: k }, (_, i) => (i + rand(0.2, 0.8)) * TAU / k + rand(0, 0.3)).sort((u, v) => u - v);
       const edgeAt = a => { const dx = Math.cos(a), dy = Math.sin(a), tx = dx > 1e-9 ? (x + hx - ix) / dx : dx < -1e-9 ? (x - hx - ix) / dx : Infinity, ty = dy > 1e-9 ? (y + hy - iy) / dy : dy < -1e-9 ? (y - hy - iy) / dy : Infinity, t = Math.min(tx, ty); return [ix + dx * t, iy + dy * t]; };
       const corners = [[x - hx, y - hy], [x + hx, y - hy], [x + hx, y + hy], [x - hx, y + hy]].map(c => ({ c, a: Math.atan2(c[1] - iy, c[0] - ix) }));
@@ -2756,7 +2757,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     Sound.shatter(1.4); Sound.crash();
   }
   function shatter(p, lx, ly, impL) {
-    if (p.maxhp > 1 && !p.cross) { crumblePane(p, impL); return; } // armoured glass crumbles into chunks, as a slab on a chain does
+    if (p.maxhp > 1 && !p.cross) { crumblePane(p, lx, ly); return; } // armoured glass crumbles into chunks, as a slab on a chain does
     if (p.thick) { chunkPane(p, lx, ly, impL); return; }
     removePane(p);
     if (p.cross) { // a cross breaks as its two bars
@@ -2797,17 +2798,38 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     Sound.shatter(clamp(area / 9, 0.6, 1.6));
   }
   const SHARD_T = 0.04, SHARD_FWD = 3.5; // a piece's thickness; the most it flies on along the track
-  function crumblePane(p, impL) {
-    removePane(p);
-    const n = Math.min(40, Math.round(p.w * p.h * 2.5)), d = p.thick || 0.1; // fewer, bigger: about 2.5 times a slab's chunks
+  // a solid piece of glass bursts as Vitrum's crossbow slabs do: eight wedges fanned from the point struck to its edge, each cut
+  // again across, each as thick as the glass and edged; the pieces fly out from the blow. M places the glass: its face in x, y,
+  // its depth along z, its outline a w by h rectangle about the origin
+  function burstSolid(M, w, h, depth, ix, iy, mat, edgeM, s, push = 1) {
+    const P = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]], n = 8, a0 = rand(0, TAU);
+    ix = clamp(ix, -w / 2 + 0.05, w / 2 - 0.05); iy = clamp(iy, -h / 2 + 0.05, h / 2 - 0.05);
+    const edgeAt = a => { const dx = Math.cos(a), dy = Math.sin(a); let best = 1e9;
+      for (let i = 0; i < 4; i++) { const [x1, y1] = P[i], [x2, y2] = P[(i + 1) % 4], ex = x2 - x1, ey = y2 - y1, den = dx * ey - dy * ex; if (Math.abs(den) < 1e-9) continue;
+        const t = ((x1 - ix) * ey - (y1 - iy) * ex) / den, u = ((x1 - ix) * dy - (y1 - iy) * dx) / den; if (t > 0 && u >= 0 && u <= 1) best = Math.min(best, t); }
+      return [ix + dx * best, iy + dy * best]; };
+    const vAng = P.map(([x, y]) => Math.atan2(y - iy, x - ix)), q = new THREE.Quaternion().setFromRotationMatrix(M), ctr = new THREE.Vector3(ix, iy, 0).applyMatrix4(M);
+    frameAt(s);
     for (let i = 0; i < n; i++) {
-      const m = new THREE.Mesh(chunkGeo, p.mat), x = rand(-p.w / 2, p.w / 2), y = rand(-p.h / 2, p.h / 2);
-      m.position.copy(p.C).addScaledVector(p.R, x).addScaledVector(p.U, y).addScaledVector(p.T, rand(-d / 2, d / 2));
-      m.rotation.set(rand(0, TAU), rand(0, TAU), rand(0, TAU)); m.scale.set(rand(2, 3.4), rand(1.8, 3), d / 0.12 * rand(0.7, 1)); scene.add(m);
-      const v = new THREE.Vector3().addScaledVector(p.R, x * rand(0.6, 1.6)).addScaledVector(p.U, y * rand(0.6, 1.6) + rand(-0.5, 1)).addScaledVector(p.T, Math.sign(impL.z || 1) * rand(0.5, 2.5));
-      shards.push({ mesh: m, shared: true, life: rand(1.4, 2.4), v, w: new THREE.Vector3(rand(-9, 9), rand(-9, 9), rand(-9, 9)), fs: p.s, fo: 0 });
+      const s0 = a0 + i * TAU / n + rand(-0.12, 0.12), s1 = a0 + (i + 1) * TAU / n + rand(-0.12, 0.12) * (i + 1 < n ? 1 : 0);
+      const mid = P.filter((c, k) => { const r = ((vAng[k] - s0) % TAU + TAU) % TAU; return r > 1e-6 && r < s1 - s0 - 1e-6; })
+        .sort((a, b) => (((Math.atan2(a[1] - iy, a[0] - ix) - s0) % TAU + TAU) % TAU) - (((Math.atan2(b[1] - iy, b[0] - ix) - s0) % TAU + TAU) % TAU));
+      const rim = [edgeAt(s0), ...mid, edgeAt(s1)], cut = rand(0.38, 0.55), inner = rim.map(([x, y]) => [ix + (x - ix) * cut, iy + (y - iy) * cut]);
+      for (const pg of [[[ix, iy], ...inner], [...rim, ...inner.slice().reverse()]]) {
+        let cx = 0, cy = 0; pg.forEach(([x, y]) => { cx += x; cy += y; }); cx /= pg.length; cy /= pg.length;
+        const dd = depth * rand(0.75, 1), geo = new THREE.ExtrudeGeometry(new THREE.Shape(pg.map(([x, y]) => new THREE.Vector2(x - cx, y - cy))), { depth: dd, bevelEnabled: false }).translate(0, 0, -dd / 2);
+        const m = new THREE.Mesh(geo, mat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeM));
+        m.position.set(cx, cy, 0).applyMatrix4(M); m.quaternion.copy(q); scene.add(m);
+        const v = m.position.clone().sub(ctr).multiplyScalar(rand(0.5, 1.1) * push); v.addScaledVector(_T, rand(1, 3)).y += rand(0.3, 2);
+        shards.push({ mesh: m, life: rand(2.2, 3.0), v, w: new THREE.Vector3(rand(-3, 3), rand(-3, 3), rand(-3, 3)), fs: s, fo: depth / 2 });
+      }
     }
     if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
+  }
+  // armoured glass: bursts as a solid slab, from where it was struck
+  function crumblePane(p, lx, ly) {
+    removePane(p);
+    burstSolid(p.group.matrix, p.w, p.h, p.thick || 0.1, lx, ly, p.mat, reinfEdgeMat, p.s);
     Sound.thickGlass(); Sound.shatter(1);
   }
   function makeShard(pts, p, Ip, impL) {
@@ -2963,8 +2985,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
   }
   // the slab is thick tempered glass: it crumbles into many small chunks that rain down and bounce
-  function burstSlab(hg) {
+  function burstSlab(hg, at) {
     hg.body.updateMatrixWorld(true);
+    if (!hg.bars && !hg.laser) { // a glass slab: from the blow (or anywhere, if the cart or the floor broke it), its face in x, y, its depth d along z
+      const l = at ? at.clone().applyMatrix4(new THREE.Matrix4().copy(hg.body.matrixWorld).invert()) : new THREE.Vector3(rand(-0.3, 0.3) * hg.w, rand(-0.3, 0.3) * hg.h, 0);
+      burstSolid(new THREE.Matrix4().copy(hg.body.matrixWorld), hg.w, hg.h, hg.d, l.x, l.y, monoMat, edgeMat, hg.s, 0.8);
+      scene.remove(hg.body); Sound.thickGlass(); return;
+    }
     const c = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld);
     const n = Math.round(hg.w * hg.h * 9);
     for (let i = 0; i < n; i++) {
@@ -3006,7 +3033,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     else hg.omega += side * (hg.kind === "pendulum" ? 0.55 : 0.62) * hg.kArm; // two well-timed hits swing a gate clear of the cart
     hg.hp--; Sound.clink(); Sound.tone(220, 0.15, 0.1); chips(at, monoMat, 6, vel);
     if (hg.hp > 0) return;
-    hg.alive = false; burstSlab(hg); scene.remove(hg.root);
+    hg.alive = false; burstSlab(hg, at); scene.remove(hg.root);
     addScore(40); karmaGain(0.06); stats.broken++;
   }
   function hangerCrash(hg) {

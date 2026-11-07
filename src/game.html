@@ -2710,11 +2710,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const P0 = edge(a0), P1 = edge(a1);
       const mid = corners.map(c => ({ c, rel: ((c.a - a0) % TAU + TAU) % TAU }))
         .filter(o => o.rel > 1e-6 && o.rel < span - 1e-6).sort((a, b) => a.rel - b.rel).map(o => o.c);
-      const r1 = 0.22 + Math.random() * 0.2, r2 = Math.min(0.86, r1 + 0.22 + Math.random() * 0.22);
-      const A1 = lerp2(Ip, P0, r1), B1 = lerp2(Ip, P1, r1), A2 = lerp2(Ip, P0, r2), B2 = lerp2(Ip, P1, r2);
-      makeShard([Ip, A1, B1], p, Ip, impL);
-      makeShard([A1, A2, B2, B1], p, Ip, impL);
-      makeShard([A2, P0, ...mid, P1, B2], p, Ip, impL);
+      // a long needle from the blow out to near the edge, and what is left out at the edge (with any corner of the pane in it)
+      // fanned into triangles too, so every piece is sharp: no blunt polygons at the rim
+      const r = 0.6 + Math.random() * 0.22, A = lerp2(Ip, P0, r), B = lerp2(Ip, P1, r), rim = [A, P0, ...mid, P1, B];
+      makeShard([Ip, A, B], p, Ip, impL);
+      for (let j = 1; j + 1 < rim.length; j++) makeShard([rim[0], rim[j], rim[j + 1]], p, Ip, impL);
     }
     Sound.shatter(clamp(area / 9, 0.6, 1.6));
   }

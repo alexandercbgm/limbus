@@ -3644,15 +3644,22 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const mirrorFaceMat = new THREE.MeshBasicMaterial({ map: mirrorFaceTex, side: THREE.DoubleSide });
   const spMirrorEdgeMat = new THREE.LineBasicMaterial({ color: 0x2a3c66 });
   const lightCoreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
-  const lightHaloMat = new THREE.MeshBasicMaterial({ color: 0xffe9a8, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-  const lightGlowMat = new THREE.MeshBasicMaterial({ color: 0xffd070, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  // the halo and glow laid over what is behind them, not added to it: over the dark the two come to the same, but added onto the
+  // pale haze of the bright halls (low down, over the deck and the walls) they ran up to white, and the beam showed a white halo there
+  const lightHaloMat = new THREE.MeshBasicMaterial({ color: 0xffe9a8, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide });
+  const lightGlowMat = new THREE.MeshBasicMaterial({ color: 0xffd070, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide });
   // a beam of light fades out over the last few metres before the eye: one that ran across the cart close by the eye swelled, in
   // perspective, into a broad white wedge
-  const nearFade = (mat, a, b) => { mat.onBeforeCompile = sh => {
+  // and a light that adds itself fades into the haze by going out, not by turning the haze's colour: mixed toward the fog as other
+  // things are, in the pale halls (the fog near white) a beam past 16 m took on white and its golden halo went white with it
+  const FOG_ADD = THREE.ShaderChunk.fog_fragment.replace("gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );", "gl_FragColor.rgb *= 1.0 - fogFactor;");
+  const addFog = sh => { sh.fragmentShader = sh.fragmentShader.replace("#include <fog_fragment>", FOG_ADD); };
+  const nearFade = (mat, a, b, add) => { mat.onBeforeCompile = sh => {
     sh.vertexShader = sh.vertexShader.replace("void main() {", "varying float vNearZ;\nvoid main() {").replace("#include <project_vertex>", "#include <project_vertex>\n  vNearZ = -mvPosition.z;");
     sh.fragmentShader = sh.fragmentShader.replace("void main() {", "varying float vNearZ;\nvoid main() {").replace("#include <dithering_fragment>", "#include <dithering_fragment>\n  gl_FragColor.a *= smoothstep(" + a.toFixed(2) + ", " + b.toFixed(2) + ", vNearZ);");
+    if (add) addFog(sh);
   }; return mat; };
-  [lightCoreMat, lightHaloMat, lightGlowMat].forEach(m => nearFade(m, 1.0, 6.0));
+  nearFade(lightCoreMat, 1.0, 6.0, true); [lightHaloMat, lightGlowMat].forEach(m => nearFade(m, 1.0, 6.0)); // the core adds its light; the halo is laid on
   const lightSpotMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xfff0b0, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
   const spPrismGlowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xcfe8ff, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending });
   const spPrismGlowMat2 = new THREE.SpriteMaterial({ map: glowTex, color: 0xcfe8ff, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }); // the standing prisms'
@@ -3669,6 +3676,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.3, "rgba(255,240,200,0.6)"); r.addColorStop(1, "rgba(255,230,170,0)"); g.fillStyle = r; g.fillRect(0, 0, 128, 128);
     g.globalCompositeOperation = "lighter"; for (const [w, h] of [[128, 5], [5, 128], [70, 2], [2, 70]]) { const lg = g.createRadialGradient(64, 64, 0, 64, 64, Math.max(w, h) / 2); lg.addColorStop(0, "rgba(255,255,255,0.95)"); lg.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = lg; g.fillRect(64 - w / 2, 64 - h / 2, w, h); }
     return new THREE.CanvasTexture(c); })(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  [lightSpotMat, mirFlareMat, spPrismGlowMat, spPrismGlowMat2].forEach(m => { m.onBeforeCompile = addFog; }); // their glows go out into the haze too
   const spMirGeos = {};
   const spMirGeo = len => spMirGeos[len] || (spMirGeos[len] = new THREE.BoxGeometry(len, 0.07, MIR_D));
   const faceGeos = {}, mirrorFaceGeo = len => faceGeos[len] || (faceGeos[len] = new THREE.PlaneGeometry(len - 0.12, MIR_D - 0.12));
@@ -3734,14 +3742,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return { segs, mirrorsHit: hit };
   }
   function addPrisms(s, n) {
-    n = Math.min(2, n || (Math.random() < 0.55 ? 1 : 2)); // one prism or two
+    n = Math.min(2, n || 2); // Speculum's prisms always come in pairs (a set of one only when asked for one)
     const set = { s, prisms: [], taken: [], cost: 0, passed: false, root: new THREE.Group() };
     set.root.matrixAutoUpdate = false; scene.add(set.root);
     // four mirrors at most in a set; and each beam must run as it was planned, past the other prism's mirrors, or the set
     // is laid out again (a beam glancing off a neighbour's mirror ran off anywhere, or went short and seemed to go out)
-    for (let tr = 0; tr < 25; tr++) {
+    for (let tr = 0; tr < 60; tr++) {
       set.prisms = []; set.taken = []; set.mirror = null;
-      const nn = tr < 20 ? n : 1;
+      const nn = n;
       for (let i = 0; i < nn; i++) {
         const used = set.prisms.reduce((a, p) => a + p.mirrors.length, 0), maxK = nn === 2 && i === 0 ? 2 : Math.min(3, 4 - used);
         if (maxK < 1) break;
@@ -3752,7 +3760,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       set.mirror = null;
       const asPlanned = set.prisms.every(pr => { const a = tracePrism(set, pr).segs, b = tracePrism(set, pr, true).segs; return a.length === b.length && a.every((sg, j) => sg.every((x, q) => Math.abs(x - b[j][q]) < 1e-3)); });
-      if (set.prisms.length === nn && asPlanned) break; // a pair that cannot be made symmetric is laid out again; at last one prism alone
+      if (set.prisms.length === nn && asPlanned) break; // a pair that cannot be made symmetric is laid out again
       set.prisms = [];
     }
     if (!set.prisms.length) { scene.remove(set.root); return null; }
@@ -5352,8 +5360,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       feats: ["Ворота инь-ян: кнопки раздвигают половины", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
-      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 230 }, // prisms are sure to come, a third fewer than they had come
-      pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], prisms: [0.7, 1.0, 1.25],
+      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300 }, // prisms are sure to come: about half as many sets as at first, each a pair
+      pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], prisms: [0.52, 0.75, 0.92],
         tallgate: [0.6, 0.9, 1.1], gate: [0.4, 0.6, 0.8], pendulum: [0.4, 0.6, 0.8] }, // and tall gates, and monoliths on chains as in Vitrum
       turns: [[100, 50, 40], [210, 60, -55], [330, 50, 45], [450, 70, -70], [590, 50, 50], [700, 60, -45], [820, 50, 40],
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],

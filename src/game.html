@@ -3641,8 +3641,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const mirrorFaceMat = new THREE.MeshBasicMaterial({ map: mirrorFaceTex, side: THREE.DoubleSide });
   const spMirrorEdgeMat = new THREE.LineBasicMaterial({ color: 0x2a3c66 });
   const lightCoreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
-  const lightHaloMat = new THREE.MeshBasicMaterial({ color: 0xffe9a8, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-  const lightGlowMat = new THREE.MeshBasicMaterial({ color: 0xffd070, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  // the core adds its light; the halo and glow are laid on as pale gold, not added: added, on a white deck, a pale wall or bright
+  // sky the sum ran up to white, and the beam had a white halo instead of a golden one
+  const lightHaloMat = new THREE.MeshBasicMaterial({ color: 0xffcf5a, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide });
+  const lightGlowMat = new THREE.MeshBasicMaterial({ color: 0xffc040, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide });
   const lightSpotMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xfff0b0, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
   const spPrismGlowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xcfe8ff, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending });
   function lightBeam() {

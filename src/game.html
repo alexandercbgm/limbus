@@ -2685,7 +2685,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function shatterRect(p, lx, ly, impL) {
     const hw = p.w / 2, hh = p.h / 2;
     lx = clamp(lx, -hw + 0.03, hw - 0.03); ly = clamp(ly, -hh + 0.03, hh - 0.03);
-    const area = p.w * p.h, n = Math.round(clamp(6 + area * 0.45, 8, 16));
+    const area = p.w * p.h, n = Math.round(clamp(6 + area * 0.5, 8, 20));
     const step = TAU / n, base = Math.random() * TAU, angs = [];
     for (let i = 0; i < n; i++) angs.push(base + i * step + (Math.random() - 0.5) * step * 0.55);
     angs.sort((a, b) => a - b);
@@ -2711,7 +2711,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     Sound.shatter(clamp(area / 9, 0.6, 1.6));
   }
-  const SHARD_T = 0.04, SHARD_FWD = 3.5; // a piece's thickness; the most it flies on along the track
+  const SHARD_T = 0.04, SHARD_FWD = 3.5, SHARD_FWD_THIN = 9.5; // a piece's thickness; the most it flies on along the track
+  // (a thin pane's pieces fly on nearly as fast as the cart, so the burst stays in view, but never overtake it)
   // a solid piece of glass bursts as Vitrum's crossbow slabs do: eight wedges fanned from the point struck to its edge, each cut
   // again across, each as thick as the glass and edged; the pieces fly out from the blow. M places the glass: its face in x, y,
   // its depth along z, its outline a w by h rectangle about the origin
@@ -2769,7 +2770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       .addScaledVector(p.U, dy * spd + impL.y * 0.06 + 0.6)
       .addScaledVector(p.T, impL.z * (0.15 + Math.random() * 0.25));
     shards.push({
-      mesh: m, life: 2.4 + Math.random() * 1.2, v, fs: p.s, fo: SHARD_T / 2,
+      mesh: m, life: 2.4 + Math.random() * 1.2, v, fs: p.s, fo: SHARD_T / 2, fwd: SHARD_FWD_THIN,
       w: new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6).multiplyScalar(1 / (1 + size * 1.2)), // a big piece turns slowly, heavy
     });
     if (shards.length > MAX_SHARDS) dropShard(shards.shift());
@@ -6224,7 +6225,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const s = shards[i], pos = s.mesh.position;
       // a piece takes some of the ball's push, but never more than a few m/s on along the track: it had flown on down the
       // corridor faster than the cart and kept ahead of it (the ball carries 45-60 m/s); one rule for every kind of piece
-      if (!s.capped) { s.capped = true; frameAt(sC); const f = s.v.dot(_T); if (f > SHARD_FWD) s.v.addScaledVector(_T, SHARD_FWD - f); }
+      if (!s.capped) { s.capped = true; frameAt(sC); const f = s.v.dot(_T), cap = s.fwd || SHARD_FWD; if (f > cap) s.v.addScaledVector(_T, cap - f); }
       if (!s.rest) {
         s.v.y -= G * dt;
         pos.addScaledVector(s.v, dt);

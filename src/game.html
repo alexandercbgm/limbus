@@ -3625,7 +3625,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // beam runs straight on past it, maybe clear of the cart, maybe not. The cart pays once a set, as for lasers: 3 balls,
   // a ball more for any other beam across it, 6 at most.
   let prismSets = [];
-  const PRISM_R = 0.26, PRISM_H = 0.9, PRISM_TIP = 0.42, MIR_D = 1.0, PRISM_K = 2 / 3, PRISM_HIT = 0.42 * PRISM_K + 0.04;
+  const PRISM_R = 0.26, PRISM_H = 0.9, PRISM_TIP = 0.42, MIR_D = 1.0, PRISM_HIT = 0.42;
   const spPrismGeo = (() => { const g = [new THREE.CylinderGeometry(PRISM_R, PRISM_R, PRISM_H, 6, 1, true), new THREE.ConeGeometry(PRISM_R, PRISM_TIP, 6, 1, true).translate(0, (PRISM_H + PRISM_TIP) / 2, 0),
     new THREE.ConeGeometry(PRISM_R, PRISM_TIP, 6, 1, true).rotateX(Math.PI).translate(0, -(PRISM_H + PRISM_TIP) / 2, 0)];
     const pos = []; for (const x of g) { const n = x.toNonIndexed(); pos.push(...n.attributes.position.array); }
@@ -3754,9 +3754,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     if (!set.prisms.length) { scene.remove(set.root); return null; }
     for (const pr of set.prisms) {
-      const g = new THREE.Group(); g.position.set(pr.u, pr.v, 0); g.scale.setScalar(PRISM_K); set.root.add(g); pr.g = g; // a third smaller than it was
+      const g = new THREE.Group(); g.position.set(pr.u, pr.v, 0); set.root.add(g); pr.g = g;
       g.add(new THREE.Mesh(spPrismGeo, spPrismMat)); g.add(new THREE.LineSegments(spPrismEdge, spPrismEdgeMat));
-      const glow = new THREE.Sprite(spPrismGlowMat2); glow.scale.setScalar(0.9); g.add(glow); // a soft glow about it, not a white blot on the pale halls
+      const glow = new THREE.Sprite(spPrismGlowMat2); glow.scale.setScalar(1.0); g.add(glow); // a soft glow about it, not a white blot on the pale halls
       pr.beams = Array.from({ length: 7 }, () => { const b = lightBeam(); set.root.add(b); return b; });
       pr.flares = Array.from({ length: 6 }, () => { const f = new THREE.Sprite(mirFlareMat); f.scale.setScalar(1.7); set.root.add(f); return f; }); // where it strikes a mirror
       pr.wp = new THREE.Vector3();
@@ -5348,8 +5348,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       feats: ["Ворота инь-ян: кнопки раздвигают половины", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
-      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 140 }, // prisms are sure to come
-      pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], prisms: [0.9, 1.3, 1.6],
+      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 270 }, // prisms are sure to come, a third fewer than they had come
+      pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], prisms: [0.5, 0.7, 0.9],
         tallgate: [0.6, 0.9, 1.1], gate: [0.4, 0.6, 0.8], pendulum: [0.4, 0.6, 0.8] }, // and tall gates, and monoliths on chains as in Vitrum
       turns: [[100, 50, 40], [210, 60, -55], [330, 50, 45], [450, 70, -70], [590, 50, 50], [700, 60, -45], [820, 50, 40],
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],

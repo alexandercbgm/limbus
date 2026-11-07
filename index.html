@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.174</div>
+      <div class="credit version">v1.0.175</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.174`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.175`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -891,6 +891,34 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const FORK_LEN = 40, FORK_ANG = 0.6, GHOST_N = 100, FORK_OPEN = 24;
   let forks = [];
   const smooth5 = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (x * 6 - 15) + 10);
+  // Speculum's two bridges: out of the mirror halls through a tall gate onto a bridge over the void, and back through a tall
+  // gate into the halls. Midway along each the track turns over about a line along it, whole turns drawn out over 150 m or so:
+  // on the first about the riders' own heads (a heartline roll: the world turns about the eye), on the second about a line
+  // SCREW_R over the rails (a corkscrew: the cart swings round it). tw0..tw1 the turning stretch, r its axis over the rails,
+  // piers where the deck is upright again under the axis
+  let SPANS = [];
+  const SCREW_R = 10, SPAN_LEAD = 34;
+  function planSpans() {
+    SPANS = [];
+    if (LEVEL.id !== "speculum") return;
+    const mk = (a, kind, turns, len, dir) => {
+      const tw0 = a + SPAN_LEAD, tw1 = tw0 + len, sp = { a, b: tw1 + SPAN_LEAD, tw0, tw1, kind, turns, dir, r: kind === "roll" ? CAM_V : SCREW_R, piers: [] };
+      for (let k = 0; k <= turns; k++) { let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (spanPhase(m) * turns < k) lo = m; else hi = m; } sp.piers.push(tw0 + (lo + hi) / 2 * len); }
+      SPANS.push(sp);
+    };
+    mk(Math.round(MAIN_LEN * 0.2), "roll", 3, 165, 1);
+    mk(Math.round(MAIN_LEN * 0.56), "screw", 2, 150, -1);
+  }
+  // how far through its turns a bridge is, x the way along its turning stretch: it eases into turning over the first fifth, turns
+  // evenly, and eases out over the last fifth (an even turn reads as the track's own; the middle turn had come round twice as fast)
+  function spanPhase(x) {
+    const e = 0.2, G = y => y * y * y * y * (y * (y - 3) + 2.5); // the integral of smooth5
+    const I = x <= 0 ? 0 : x < e ? e * G(x / e) : x < 1 - e ? e / 2 + x - e : x < 1 ? 1 - e - e * G((1 - x) / e) : 1 - e;
+    return I / (1 - e);
+  }
+  function spanAt(s) { for (const sp of SPANS) if (s > sp.a && s < sp.b) return sp; return null; }
+  function twistAt(s) { for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) return sp.dir * sp.turns * TAU * spanPhase((s - sp.tw0) / (sp.tw1 - sp.tw0)); return 0; }
+  function twistR(s) { for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) return sp.r; return 0; }
   const forkYaw = (f, s) => FORK_ANG * smooth5((s - f.s) / FORK_LEN);
   const forkRate = (f, s) => { const x = (s - f.s) / FORK_LEN; return x > 0 && x < 1 ? FORK_ANG * 30 * x * x * (1 - x) * (1 - x) / FORK_LEN : 0; };
   function yawAt(s) {
@@ -1702,9 +1730,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const f of forks) { const d = s - f.s; if (d > -30 && d < GHOST_N + 10) r *= d < -15 ? smooth5((-15 - d) / 15) : d > GHOST_N - 5 ? smooth5((d - GHOST_N + 5) / 15) : 0; }
     return r;
   }
-  function basisInto(s, j) { basisFill(s, yawAt(s), bankRateAt(s), PT, PR, PU, j); }
-  function basisFill(s, yaw, yawRate, PT, PR, PU, j, pitch) {
-    const p = pitch === undefined ? pitchAt(s) : pitch, roll = clamp(yawRate * 3.2, -0.16, 0.16);
+  function basisInto(s, j) { basisFill(s, yawAt(s), bankRateAt(s), PT, PR, PU, j, undefined, twistAt(s)); }
+  function basisFill(s, yaw, yawRate, PT, PR, PU, j, pitch, tw = 0) {
+    const p = pitch === undefined ? pitchAt(s) : pitch, roll = clamp(yawRate * 3.2, -0.16, 0.16) + tw; // tw: a bridge's turn over
     const cp = Math.cos(p), sp = Math.sin(p), cy = Math.cos(yaw), sy = Math.sin(yaw);
     const tx = -sy * cp, ty = sp, tz = -cy * cp;
     let rx = cy, ry = 0, rz = -sy;
@@ -1729,6 +1757,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (let j = BACK - 1; j >= 0; j--) {
       const a = (j + 1) * 3, b = j * 3;
       for (let c = 0; c < 3; c++) PP[b + c] = PP[a + c] - (PT[a + c] + PT[b + c]) * 0.5 * DS;
+    }
+    // where the track turns over, the rails swing round a line r over where they'd be: P += r (U0 - U), U0 the up untwisted
+    if (SPANS.length) for (let j = 0; j < NS; j++) {
+      const s = sBase + j * DS, tw = twistAt(s); if (!tw) continue;
+      const r = twistR(s), c = Math.cos(tw), sn = Math.sin(tw), k = j * 3;
+      for (let q = 0; q < 3; q++) PP[k + q] += r * (PU[k + q] * c + PR[k + q] * sn - PU[k + q]);
     }
   }
   const _P = new THREE.Vector3(), _R = new THREE.Vector3(), _U = new THREE.Vector3(), _T = new THREE.Vector3(), _nT = new THREE.Vector3(), _C = new THREE.Vector3();
@@ -1798,6 +1832,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function inst(geo, mat, max) { const m = new THREE.InstancedMesh(geo, mat, max); m.frustumCulled = false; m.count = 0; scene.add(m); return m; }
   const ceilGeo = new THREE.PlaneGeometry(2 * W, SL + 0.02); ceilGeo.rotateX(Math.PI / 2);
   const HEXPANE_R = 4.84, HEXPANE_A = HEXPANE_R * Math.cos(Math.PI / 6), HEXPANE_V = 4.2; // the glazing just inside the hexagonal frames: its side and its apothem
+  const concreteMat = new THREE.MeshStandardMaterial({ color: 0x7c8591, roughness: 0.92, metalness: 0 }); // Speculum's bridges
+  const SPAN_RING = 6.5, _R0 = new THREE.Vector3(), _U0 = new THREE.Vector3(), _A = new THREE.Vector3(), _B = new THREE.Vector3(), _D = new THREE.Vector3(), _E = new THREE.Vector3(), _X = new THREE.Vector3();
   const I = {
     ceil: inst(ceilGeo, surfMat, 320), // room for the mirrored pieces too (Speculum); Vitrum's of clear glass (setLevel)
     sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 560),
@@ -1837,6 +1873,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     wire: inst(new THREE.TorusGeometry(0.42, 0.016, 4, 18), wireMat, 900), // coils of barbed wire along a hall's sides
     safety: inst(new THREE.BoxGeometry(0.07, 0.03, SL + 0.03), safetyMat, 200),
     pylon: inst(new THREE.BoxGeometry(0.45, PYLON_H, 0.45), frameMat, 60),
+    spier: inst(new THREE.BoxGeometry(1, PYLON_H, 1), concreteMat, 40), // Speculum's bridges: piers,
+    skeel: inst(new THREE.BoxGeometry(2, 1.1, SL + 0.25), concreteMat, 100), // the corkscrew's spiral arch, its posts,
+    sstrut: inst(new THREE.BoxGeometry(0.4, 1, 0.4), concreteMat, 100),
+    scap: inst(new THREE.BoxGeometry(1, 1, 1), concreteMat, 20), // pier caps and platforms,
+    sring: inst(new THREE.TorusGeometry(SPAN_RING, 0.26, 10, 72), frameMat, 24), // the roll's rings,
+    rleg: inst(new THREE.BoxGeometry(0.36, PYLON_H, 0.36), frameMat, 100), // their legs and clamps
     girder: inst(new THREE.BoxGeometry(2 * BRIDGE_W, 0.5, 0.4), frameMat, 30),
     bush: inst(new THREE.IcosahedronGeometry(0.75, 0), bushMat, 260), // clumps of foliage floating in Hortus
   };
@@ -1853,11 +1895,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.down = down; scene.add(m);
     return m;
   }
-  function fillStrip(strip, s0, s1, frame, v, uo = 0, hw = W) {
+  function fillStrip(strip, s0, s1, frame, v, uo = 0, hwF = W) {
     const g = strip.geometry, pos = g.attributes.position.array, nor = g.attributes.normal.array, uv = g.attributes.uv.array;
     const maxSeg = pos.length / 6 - 1, seg = Math.max(0, Math.min(maxSeg, Math.floor((s1 - s0) / DS))), sg = strip.down ? -1 : 1;
     for (let i = 0; i <= seg; i++) {
       const s = s0 + i * DS; frame(s);
+      const hw = typeof hwF === "function" ? hwF(s) : hwF; // a strip may narrow to nothing (Speculum's mirrored floor, over a bridge)
       _C.copy(_P).addScaledVector(_U, v).addScaledVector(_R, uo);
       const k = i * 6, q = i * 4;
       pos[k] = _C.x - _R.x * hw; pos[k + 1] = _C.y - _R.y * hw; pos[k + 2] = _C.z - _R.z * hw;
@@ -1872,6 +1915,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const STRIP_N = AHEAD + 20;
   const endCap = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide })); // fogged through, so the fog's colour
   endCap.matrixAutoUpdate = false; endCap.frustumCulled = false; endCap.visible = false; scene.add(endCap);
+  const deckStrip = makeStrip(STRIP_N, concreteMat, true);
   const floorStrip = makeStrip(STRIP_N, surfMat, false), vaultStrip = makeStrip(STRIP_N, surfMat, true);
   const gFloorStrip = makeStrip(GHOST_N, surfMat, false), gVaultStrip = makeStrip(GHOST_N, surfMat, true);
   // a mirror wall reflects the corridor to an offset of 2 × (SW + 0.12) on its side (set with the level)
@@ -1885,6 +1929,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     d = { wl: !station && hash(seg * 3 + 1) < wallP, wr: !station && hash(seg * 3 + 2) < wallP, ceil: !station && hash(seg * 7 + 5) < ceilP,
       arch: !station && k % 4 === 0, pyr: null, blocks: [] };
     if (STYLE.bridge) d.wl = d.wr = d.ceil = false; // Abyssus: a bare bridge over the void
+    const spn = !station && spanAt(s);
+    if (spn) { d.wl = d.wr = d.ceil = false; d.span = spn; } // Speculum's bridges
+    if (SPANS.some(x => Math.abs(s - x.a) < 5 || Math.abs(s - x.b) < 5)) d.arch = false; // no frame through a bridge's gate
     // Vitrum (bare): no flat walls or roof; where they'd stand, panes of glass close the hexagon's sides and top instead
     if (STYLE.open && !station) { // Labyrinthus: walled passages that now and then open into a wide hall
       const hall = hash(seg * 13 + 7) < 0.55 && s > 70 && s < MAIN_LEN - 40 && !forks.some(f => Math.abs(s - f.s) < 80);
@@ -2020,6 +2067,49 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
     const putWall = (key, s, u, hh = SH) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, hh / 2).scale(SV.set(1, hh / H, 1))); }; // as tall as the shell (or the hall)
+    // Speculum's heartline roll hangs in steel rings round its axis, one every 10 m, each on two legs splayed down into the void;
+    // the deck is clamped to each ring at both its edges. Rings and legs stand upright in the world: their frame is the track's
+    // untwisted (R0, U0), the ring's centre on the axis
+    const spanRing = (sp, s) => {
+      frameAt(s); const tw = twistAt(s), c = Math.cos(tw), sn = Math.sin(tw);
+      _R0.copy(_R).multiplyScalar(c).addScaledVector(_U, -sn); _U0.copy(_U).multiplyScalar(c).addScaledVector(_R, sn);
+      _A.copy(_P).addScaledVector(_U, sp.r); _nT.copy(_T).negate();
+      I.sring.setMatrixAt(n.sring++, M.makeBasis(_R0, _U0, _nT).setPosition(_A));
+      const beam = (from, dir, len) => { // a strut from a point along a unit direction
+        _X.crossVectors(dir, _nT).normalize();
+        I.rleg.setMatrixAt(n.rleg++, M.makeBasis(_X, dir, _nT).setPosition(_E.copy(from).addScaledVector(dir, len / 2)).scale(SV.set(1, len / PYLON_H, 1)));
+      };
+      for (const sd of [-1, 1]) {
+        const th = -Math.PI / 2 + sd * 0.8, foot = _B.copy(_A).addScaledVector(_R0, SPAN_RING * Math.cos(th)).addScaledVector(_U0, SPAN_RING * Math.sin(th));
+        beam(foot, _D.copy(_U0).multiplyScalar(-Math.cos(0.22)).addScaledVector(_R0, sd * Math.sin(0.22)).normalize(), PYLON_H); // a leg, splayed
+        const edge = _B.copy(_P).addScaledVector(_R, sd * (SW + 0.05)).addScaledVector(_U, -0.27), out = _D.copy(edge).sub(_A), r0 = out.length();
+        beam(edge, out.normalize(), SPAN_RING - r0); // the clamp from the deck's edge out to the ring
+      }
+    };
+    // Speculum's corkscrew rides on a spiral concrete arch under its deck, a turn of it from pier to pier: deep under the deck
+    // over each pier (there the deck is upright, at the bottom of a turn), up under it at the crown half a turn on, with
+    // spandrel posts between. Its piers are reinforced; at its two ends the deck widens into a platform on heavy columns
+    const archDepth = (sp, s) => { const ph = Math.abs(twistAt(s)) / TAU, f = ph - Math.floor(ph); return 0.7 + 2.6 * (0.5 + 0.5 * Math.cos(TAU * f)); };
+    const spanArch = (sp, k, s) => {
+      if (s < sp.tw0 - 9 || s > sp.tw1 + 9) return;
+      const dp = archDepth(sp, s), sl = Math.atan(-(archDepth(sp, s + 0.5) - archDepth(sp, s - 0.5)));
+      I.skeel.setMatrixAt(n.skeel++, placeM(M, s, 0, -0.52 - dp - 0.55).multiply(M2.makeRotationX(sl)));
+      if (k % 2 === 0 && dp > 0.8) for (const u of [-1.1, 1.1]) I.sstrut.setMatrixAt(n.sstrut++, placeM(M, s, u, -0.52 - dp / 2).scale(SV.set(1, dp, 1)));
+    };
+    const spanPiers = () => {
+      for (const sp of SPANS) if (sp.kind === "screw") sp.piers.forEach((ps, i) => {
+        if (ps < sC - 30 || ps > sC + AHEAD - 4) return;
+        const end = i === 0 || i === sp.piers.length - 1, top = -0.52 - archDepth(sp, ps) - 1.1;
+        for (const u of [-1.7, 1.7]) I.spier.setMatrixAt(n.spier++, placeM(M, ps, u, top - PYLON_H / 2).scale(SV.set(1.7, 1, 1.7))); // two columns under the arch's springing
+        I.scap.setMatrixAt(n.scap++, placeM(M, ps, 0, top + 0.4).scale(SV.set(6, 1.2, 4.5)));
+        if (end) { // the platform: the deck widened, on four heavy columns
+          const pc = ps + (i === 0 ? -8 : 8);
+          I.scap.setMatrixAt(n.scap++, placeM(M, pc, 0, -0.62).scale(SV.set(2 * SW + 6, 0.7, 18)));
+          for (const ds of [-6, 6]) for (const u of [-1, 1]) I.spier.setMatrixAt(n.spier++, placeM(M, pc + ds, u * (SW + 1.6), -0.97 - PYLON_H / 2).scale(SV.set(1.5, 1, 1.5)));
+          for (const u of [-1, 1]) I.scap.setMatrixAt(n.scap++, placeM(M, pc, u * (SW + 2.7), 0.25).scale(SV.set(0.3, 0.3, 18))); // its rail
+        }
+      });
+    };
     const wallKey = STYLE.glassWalls ? "gwall" : "wall", blockKey = STYLE.blocks === "quartz" ? "quartz" : STYLE.blocks === "prism" ? "prism" : STYLE.blocks === "coin" ? "coin" : STYLE.blocks === "bush" ? "bush" : STYLE.blocks === "drop" ? "drop" : "block";
     const k0 = Math.floor((sC - 10) / SL), k1 = Math.floor((sC + AHEAD - 4) / SL);
     for (let k = k0; k <= k1; k++) {
@@ -2055,7 +2145,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           put("safety", s, sd * (W + 0.35), 0.02);
         }
       }
-      if (dec.arch && !open && !dec.hw) {
+      if (dec.arch && !open && !dec.hw && !dec.span) {
         if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
         else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY).scale(SV.set(RING_SX, RING_SY, RING_SX))); // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
         else if (STYLE.arch === "tri") { const tr = triAt(s); for (let e = 0; e < 3; e++) { const A = tr[e], B = tr[(e + 1) % 3], L = Math.hypot(B[0] - A[0], B[1] - A[1]);
@@ -2065,6 +2155,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (STYLE.bridge) { // kerbs along the deck, and every 8 m a pair of pylons down into the void
         put("kerb", s, -BRIDGE_W, 0.1); put("kerb", s, BRIDGE_W, 0.1);
         if (dec.arch) { put("pylon", s, -BRIDGE_W + 0.3, -PYLON_H / 2); put("pylon", s, BRIDGE_W - 0.3, -PYLON_H / 2); put("girder", s, 0, -0.35); }
+      }
+      if (dec.span) { // Speculum's bridges: the deck a slab (it shows as one hanging overhead), kerbs, the approaches on plain piers
+        const sp = dec.span;
+        put("kerb", s, -SW, 0.1); put("kerb", s, SW, 0.1);
+        if (k % 4 === 0 && (s < sp.tw0 - (sp.kind === "screw" ? 18 : 3) || s > sp.tw1 + (sp.kind === "screw" ? 18 : 3))) for (const sd of [-1, 1]) put("spier", s, sd * (SW - 0.9), -0.5 - PYLON_H / 2);
+        if (sp.kind === "roll" && k % 5 === 0 && s > sp.tw0 - 6 && s < sp.tw1 + 6) spanRing(sp, s);
+        if (sp.kind === "screw") spanArch(sp, k, s);
       }
       if (dec.pyr && dec.pyr.side !== open) put(dec.pyr.side < 0 ? "pyrL" : "pyrR", s, dec.pyr.side * (SW - 0.25), dec.pyr.v);
       if (STYLE.rebar && !dec.hw) { // rods of rebar out of broken concrete, and caged sodium lamps every 10 m
@@ -2090,6 +2187,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const key = b.key || blockKey; I[key].setMatrixAt(n[key]++, M);
       }
     }
+    if (SPANS.length) spanPiers();
+    // the deck's underside (it shows when the deck hangs overhead), drawn as a strip so it twists smoothly with the rails
+    deckStrip.visible = SPANS.length > 0;
+    if (deckStrip.visible) fillStrip(deckStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, -0.52, 0, s => spanAt(s) ? SW + 0.2 : 0);
     fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, STYLE.bridge ? BRIDGE_W : LEVEL.halls ? HALL_W : STYLE.floorW || SW); // Vitrum: as wide as the hexagon's bottom edge
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H); else vaultStrip.visible = false;
     { // where a walled and roofed corridor (Labyrinthus, Carcer) stops being drawn, far ahead, the sky showed through its open
@@ -2105,11 +2206,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (!STYLE.mirror) continue;
       // the mirrors end as the finale is announced (its banner up); then plain glass to the finale's end; then only the track's floor to the station
       const mEnd = Math.min(Math.floor(sC) + AHEAD - 4, MIRROR_END());
-      fillStrip(m.floor, Math.floor(sC) - 10, mEnd, frameAt, 0, m.o, SW);
-      if (STYLE.closed) fillStrip(m.vault, Math.floor(sC) - 10, mEnd, frameAt, H, m.o); else m.vault.visible = false; // a roof in the mirror only where there is one over the track
+      const mw = s => spanAt(s) ? 0 : SW; // none over a bridge: no mirror there
+      fillStrip(m.floor, Math.floor(sC) - 10, mEnd, frameAt, 0, m.o, mw);
+      if (STYLE.closed) fillStrip(m.vault, Math.floor(sC) - 10, mEnd, frameAt, H, m.o, mw); else m.vault.visible = false; // a roof in the mirror only where there is one over the track
       const far = m.o + Math.sign(m.o) * (SW + 0.12);
       for (let k = k0; k <= Math.min(k1, Math.floor(mEnd / SL) - 1); k++) {
         const dec = getDecor(k), s = k * SL + SL / 2;
+        if (dec.span) continue;
         put("sleeper", s - 0.5, m.o, 0.06); put("sleeper", s + 0.5, m.o, 0.06);
         put("rail", s, m.o - 0.72, 0.19); put("rail", s, m.o + 0.72, 0.19);
         if (dec.ceil && !STYLE.closed && !STYLE.bare) I.ceil.setMatrixAt(n.ceil++, placeM(M, s, m.o, dec.hh || SH).scale(SV.set((dec.hw || SW) / W, 1, 1))); // the pieces of roof there are, mirrored
@@ -2515,6 +2618,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // just inside a hall, nothing fixed to its walls or vault: from the narrower, lower corridor the hall's end wall hides them
     // till the cart is all but on them, with no time to shoot (Carcer's laser bars and grids, wall axes, grates on chains)
     if (hall && !spawnGroupKind && s - hallStart(s) < HALL_ENTRY + (pat === "axes" ? 9 : 0) && ["lrow", "lgrid", "axes", "grate1", "grate2", "grate3"].includes(pat)) pat = Math.random() < 0.6 ? "center" : "triple";
+    const spn = !spawnGroupKind && spanAt(s);
+    if (spn) { // on Speculum's bridges only glass that stands on the deck or turns over it: nothing on chains, nothing off the walls
+      if (s < spn.a + 16 || s > spn.b - 8) return;
+      const opts = ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
+    }
     lastPat[pat] = s; patCount[pat] = (patCount[pat] || 0) + 1; // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
@@ -2687,7 +2795,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (Math.random() < Math.min(0.95, lerp(0.85, 0.3, d) * cm)) {
       const val = d < 0.65 ? CRYSTAL_VAL : CRYSTAL_DARK;
       // in the mirror halls a crystal may hang beside its reflection, the two mirrored about the track
-      const twin = LEVEL.mirages && Math.random() < LEVEL.mirages, cu = twin ? (Math.random() < 0.5 ? -1 : 1) * rand(1.2, 2.8) : rand(-2.8, 2.8), cv = rand(1.1, 4.6);
+      const twin = LEVEL.mirages && !spanAt(cs) && Math.random() < LEVEL.mirages, cu = twin ? (Math.random() < 0.5 ? -1 : 1) * rand(1.2, 2.8) : rand(-2.8, 2.8), cv = rand(1.1, 4.6);
       const c0 = clearOfArch(cs);
       addCrystal(c0, cu, cv, val);
       if (twin) addMirage(c0, -cu, cv, val);
@@ -4043,7 +4151,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!mirrorCopies.length) return;
     mirrorCopies = mirrorCopies.filter(m => { if (m.obj.parent) return true; m.copies.forEach(c => scene.remove(c.c)); return false; });
     for (const m of mirrorCopies) {
-      const s = m.sOf(), on = s < MIRROR_END() && s > sC - 4 && s < sC + 60; // near ones only: behind the frosted glass the far ones are lost in the haze
+      const s = m.sOf(), on = s < MIRROR_END() && !spanAt(s) && s > sC - 4 && s < sC + 60; // near ones only: behind the frosted glass the far ones are lost in the haze
       m.copies.forEach(c => { c.c.visible = on && m.obj.visible; });
       if (!on || !m.obj.visible) continue;
       m.obj.updateMatrixWorld(true); frameAt(s);
@@ -4073,7 +4181,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const tg = doorTarget(hinge, DOOR_W / 2, TALL_TV, sd < 0 ? 0.1 : -0.1, true); tg.forEach(m => { m.scale.setScalar(2); if (sd > 0) m.rotation.y = Math.PI; });
         dr.leaves.push({ sd, hinge, ang: 0, opening: false, tg, tgG: tg[0].parent, a: rand(0, TAU), w: -sd * w, tx: 0, ty: 0 });
       }
-      if (STYLE.mirror && o.s < MIRROR_END()) dr.mirrors = [-1, 1].map(k => { // its reflection in each mirror wall: frame, leaves and their targets,
+      if (STYLE.mirror && o.s < MIRROR_END() && !spanAt(o.s)) dr.mirrors = [-1, 1].map(k => { // its reflection in each mirror wall: frame, leaves and their targets,
         // following the real ones (updateDoors); mirrored, so each real leaf shows as the other side's
         const g = new THREE.Group(); g.matrixAutoUpdate = false; g.userData.o = k * 2 * (SW + 0.12); g.userData.leaves = []; scene.add(g);
         for (const sd of [-1, 1]) { const p = new THREE.Mesh(tallPostGeo, tallFrameMat); p.position.set(sd * (W + 0.5), (LEAF_T + 1.6) / 2, -0.1); g.add(p); outline(tallPostGeo, p);
@@ -5442,6 +5550,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, STYLE.floor || { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", mirror: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
+    planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
+    if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind: "tall" }, { s: sp.b, kind: "tall" }]); }
     buildStation();
   }
 
@@ -6345,7 +6455,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         frameAt(s.fs); s.fs += tmpV.copy(pos).sub(_P).dot(_T); frameAt(s.fs); tmpV.copy(pos).sub(_P);
         const h = tmpV.dot(_U) - s.fo - 0.03;
         if (!s.seen) { s.seen = true; if (h < -0.15) s.fs = undefined; }
-        else if (h < 0 && !(STYLE.bridge && Math.abs(tmpV.dot(_R)) > BRIDGE_W + 0.2)) {
+        else if (h < 0 && !((STYLE.bridge || spanAt(s.fs)) && Math.abs(tmpV.dot(_R)) > (STYLE.bridge ? BRIDGE_W : SW) + 0.2)) {
           pos.addScaledVector(_U, -h);
           if (s.rest) {} else {
             s.v.multiplyScalar(0.5); s.v.addScaledVector(_U, -1.25 * s.v.dot(_U)); s.w.multiplyScalar(0.6);

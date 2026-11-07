@@ -3391,7 +3391,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function setBeamLen(g, len) {
     g.visible = len > 0.02; if (g.userData.spot.userData.on === undefined) g.userData.spot.userData.on = g.userData.spot.visible;
     g.userData.spot.visible = g.userData.spot.userData.on && len < BEAM_FAR - 1;
-    g.children.forEach(m => { if (m.isMesh) m.scale.y = Math.max(0.01, len); });
+    g.children.forEach(m => { if (m.isMesh) { const tr = m.userData.trim || 0; m.scale.y = Math.max(0.01, len - 2 * tr); m.position.y = tr; } }); // a halo stops short of the ends by its width
     g.userData.spot.position.y = len; g.userData.spot.scale.setScalar(0.7 + 0.25 * Math.sin(time * 30 + len));
   }
   // how far a beam from (u, v) along (du, dv) runs before it meets a wall, the floor or the vault (BEAM_FAR if nothing within max)
@@ -3617,7 +3617,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const spPrismGlowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xcfe8ff, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending });
   function lightBeam() {
     const g = new THREE.Group();
-    for (const [geo, mat] of [[beamGeo, lightCoreMat], [beamHaloGeo, lightHaloMat], [beamGlowGeo, lightGlowMat]]) { const m = new THREE.Mesh(geo, mat); m.scale.set(0.75, 1, 0.75); g.add(m); } // a quarter finer than a laser
+    // a quarter finer than a laser. Its halo and glow stop short of its ends by their own width: where a beam struck a mirror and
+    // went on, the two legs' glows overlapped there, added up, and the beam seemed twice as thick at the mirror
+    for (const [geo, mat, tr] of [[beamGeo, lightCoreMat, 0], [beamHaloGeo, lightHaloMat, 0.05], [beamGlowGeo, lightGlowMat, 0.15]]) { const m = new THREE.Mesh(geo, mat); m.scale.set(0.75, 1, 0.75); m.userData.trim = tr; g.add(m); }
     const spot = new THREE.Sprite(lightSpotMat); spot.scale.setScalar(0.8); g.add(spot); g.userData.spot = spot; return g;
   }
   const mirDiscGeo = new THREE.CylinderGeometry(1, 1, 0.06, 40), mirRingGeo = new THREE.TorusGeometry(1, 0.07, 8, 40).rotateX(Math.PI / 2), mirPivotGeo = new THREE.SphereGeometry(0.07, 12, 8);
@@ -3752,6 +3754,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           const sg = segs[i]; if (!sg) { b.visible = false; return; }
           const [a, c, e, f] = sg, len = Math.hypot(e - a, f - c);
           b.position.set(a, c, 0); b.rotation.z = Math.atan2(-(e - a), f - c); setBeamLen(b, len);
+          if (i < segs.length - 1) b.userData.spot.visible = false; // at a mirror the star shows, no spot of its own on top
         });
         pr.flares.forEach((fl, i) => { const sg = segs[i]; fl.visible = !!sg && i < segs.length - 1; if (fl.visible) fl.position.set(sg[2], sg[3], 0); }); // a star at each bounce
         pr.segs = segs;

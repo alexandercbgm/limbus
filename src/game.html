@@ -2469,7 +2469,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     gates.forEach(g => scene.remove(g.root)); gates = []; lastGateS = -1e9;
     catas.forEach(c => { scene.remove(c.root); scene.remove(c.slab); if (c.shot) scene.remove(c.ball); if (c.beam) { scene.remove(c.beam); scene.remove(c.dot); } }); catas = []; lastCataS = -1e9;
     rams.forEach(r => scene.remove(r.root)); rams = []; hmills.forEach(m => scene.remove(m.root)); hmills = []; doors.forEach(dropDoor); doors = [];
-    spinners.forEach(x => scene.remove(x.root)); spinners = []; lblocks.forEach(x => scene.remove(x.root)); lblocks = []; lbars.forEach(x => x.bars.forEach(b => scene.remove(b.root))); lbars = []; prismSets.forEach(x => scene.remove(x.root)); prismSets = []; gears.forEach(x => x.gears.forEach(g => { scene.remove(g.root); scene.remove(g.pin.root); })); gears = []; barBits.forEach(x => scene.remove(x.root)); barBits = [];
+    pgears.forEach(x => scene.remove(x.root)); pgears = []; spinners.forEach(x => scene.remove(x.root)); spinners = []; lblocks.forEach(x => scene.remove(x.root)); lblocks = []; lbars.forEach(x => x.bars.forEach(b => scene.remove(b.root))); lbars = []; prismSets.forEach(x => scene.remove(x.root)); prismSets = []; gears.forEach(x => x.gears.forEach(g => { scene.remove(g.root); scene.remove(g.pin.root); })); gears = []; barBits.forEach(x => scene.remove(x.root)); barBits = [];
     wheels.forEach(w => scene.remove(w.ring)); wheels = [];
     pendingHits = [];
     beamMat.opacity = 0;
@@ -2519,6 +2519,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function spawnGroupAt(s) {
     // Carcer's doors come up as the track reaches them, and nothing else is set down right at one
     while (doorPlan.length && doorPlan[0].s < s + 12) spawnDoor(doorPlan.shift());
+    while (pgPlan.length && pgPlan[0] < s + 12) addPrismGear(pgPlan.shift());
+    if (pgears.some(g => Math.abs(g.s - s) < 8)) return; // nothing under a prism gear
     if (doors.some(dr => Math.abs(dr.s - s) < 9)) return;
     if ([...gates, ...doors].some(g => s > g.s - 1 && s < g.s + GATE_CLEAR)) return; // just past a gate nothing is set down: the gate hid it till the cart was on it
     if (catas.some(c => s > c.cs - 6 && s < c.s + GATE_CLEAR)) return; // nor between a catapult and its glass, nor just past it
@@ -4075,7 +4077,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         MIR_M.set(1 - 2 * x * x, -2 * x * y, -2 * x * z, d * x, -2 * y * x, 1 - 2 * y * y, -2 * y * z, d * y, -2 * z * x, -2 * z * y, 1 - 2 * z * z, d * z, 0, 0, 0, 1);
         c.c.matrix.multiplyMatrices(MIR_M, m.obj.matrixWorld); c.c.matrixWorldNeedsUpdate = true;
         for (let i = 1; i < m.src.length && i < c.nodes.length; i++) { const a = m.src[i], b = c.nodes[i];
-          b.visible = a.visible && !a.isLineSegments && !a.isSprite; if (!b.visible) continue; if (a.material) b.material = a.material; // no outlines nor glows: lost behind the glass, and each a draw
+          b.visible = a.visible && !a.isLineSegments && !a.isSprite && !a.userData.noMirror; if (!b.visible) continue; if (a.material) b.material = a.material; // no outlines nor glows: lost behind the glass, and each a draw
           if (a.matrixAutoUpdate) { b.position.copy(a.position); b.quaternion.copy(a.quaternion); b.scale.copy(a.scale); } else b.matrix.copy(a.matrix); }
       }
     }
@@ -4317,6 +4319,65 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (set.gears.every(g => g.s < sC - 8)) { set.dead = true; set.gears.forEach(g => { scene.remove(g.root); scene.remove(g.pin.root); }); }
     }
     gears = gears.filter(x => !x.dead);
+  }
+
+  // ---------- Speculum: the prism gear ----------
+  // Twice in the mirror halls, past each corkscrew, a gear of polished chrome hangs over the middle of the track, turning
+  // slowly in the plane across it: a disc with six hexagonal windows of mirror and a hexagonal hub, and for teeth ten glass
+  // prisms, each a four-sided frustum, a straight beam of light shining on out of its tip as the lasers of Nox's and Lux's
+  // mills do. Shoot the prisms whose beams would sweep across the cart: one hit breaks one. A beam across the cart burns as a
+  // laser does, once a gear. In the mirror walls the gear turns too, without its beams
+  let pgears = [], pgPlan = [];
+  const PG_R = 2.0, PG_V = 5.6, PG_N = 10, PG_L = 0.95, PG_D = 0.34, PG_SPIN = 0.32, PG_WIN = 1.25;
+  const hexPath = (P, cx, cy, r, rev) => { for (let k = 0; k < 6; k++) { const a = (rev ? 6 - k : k) * TAU / 6 + Math.PI / 6; P[k ? "lineTo" : "moveTo"](cx + Math.cos(a) * r, cy + Math.sin(a) * r); } return P; };
+  const pgDiscGeo = (() => { const sh = new THREE.Shape(); sh.absarc(0, 0, PG_R, 0, TAU, false);
+    for (let i = 0; i < 6; i++) { const a = i * TAU / 6; sh.holes.push(hexPath(new THREE.Path(), Math.cos(a) * PG_WIN, Math.sin(a) * PG_WIN, 0.46, true)); }
+    sh.holes.push(hexPath(new THREE.Path(), 0, 0, 0.5, true)); // the hub's seat
+    return new THREE.ExtrudeGeometry(sh, { depth: PG_D, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2, curveSegments: 48 }).translate(0, 0, -PG_D / 2); })();
+  const pgWinGeo = new THREE.CircleGeometry(0.47, 6).rotateZ(Math.PI / 6); // a window's mirror
+  const pgHubGeo = new THREE.CylinderGeometry(0.56, 0.56, PG_D + 0.36, 6).rotateX(Math.PI / 2);
+  const pgRimGeo = new THREE.TorusGeometry(PG_R - 0.16, 0.05, 6, 72), pgLineMat = new THREE.MeshBasicMaterial({ color: 0xd8ecff });
+  const pgPrismGeo = new THREE.CylinderGeometry(0.15, 0.3, PG_L, 4, 1).rotateY(Math.PI / 4).translate(0, PG_R - 0.05 + PG_L / 2, 0), pgPrismEdge = new THREE.EdgesGeometry(pgPrismGeo, 20);
+  function addPrismGear(s) {
+    const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
+    const rotor = new THREE.Group(); root.add(rotor);
+    rotor.add(new THREE.Mesh(pgDiscGeo, chromeMat)); rotor.add(new THREE.Mesh(pgHubGeo, spMirrorMat));
+    for (let i = 0; i < 6; i++) for (const z of [-1, 1]) { const a = i * TAU / 6, m = new THREE.Mesh(pgWinGeo, mirrorFaceMat); m.position.set(Math.cos(a) * PG_WIN, Math.sin(a) * PG_WIN, z * 0.02); rotor.add(m); }
+    for (const z of [-1, 1]) { const r = new THREE.Mesh(pgRimGeo, pgLineMat); r.position.z = z * (PG_D / 2 + 0.06); rotor.add(r); }
+    const teeth = Array.from({ length: PG_N }, (_, i) => {
+      const g = new THREE.Group(); g.rotation.z = i * TAU / PG_N; rotor.add(g);
+      g.add(new THREE.Mesh(pgPrismGeo, spPrismMat)); g.add(new THREE.LineSegments(pgPrismEdge, spPrismEdgeMat));
+      const glow = new THREE.Sprite(spPrismGlowMat); glow.scale.setScalar(0.7); glow.position.y = PG_R + PG_L; g.add(glow);
+      const beam = lightBeam(); beam.position.y = PG_R + PG_L; beam.traverse(o => { o.userData.noMirror = true; }); g.add(beam); // no beams in the mirrors
+      return { i, g, beam, alive: true, wp: new THREE.Vector3(), du: 0, dv: 1, len: 0 };
+    });
+    const pg = { s, root, rotor, teeth, a: rand(0, TAU), spin: PG_SPIN * (Math.random() < 0.5 ? -1 : 1), hit: false, wp: new THREE.Vector3() };
+    pgears.push(pg); mirrorReg(root, () => pg.s);
+    clearZone(s - 4, s + 4);
+    for (let k = Math.floor((s - 5) / SL); k <= Math.floor((s + 5) / SL); k++) getDecor(k).arch = false; // no frame through its prisms
+    return pg;
+  }
+  function breakPgTooth(pg, t, at) {
+    t.alive = false; t.g.visible = false; setBeamLen(t.beam, 0);
+    Sound.shatter(0.9); Sound.tone(1200, 0.2, 0.08, "sine", 0, 500); chips(at, spPrismMat, 14, tmpV2.set(0, 1, 0)); addScore(20); karmaGain(0.03);
+  }
+  function updatePrismGears(dt) {
+    for (const pg of pgears) {
+      pg.a += pg.spin * dt; pg.rotor.rotation.z = pg.a;
+      setObj(pg.root, pg.s, 0, PG_V); pg.root.updateMatrixWorld(true); pg.wp.setFromMatrixPosition(pg.root.matrixWorld);
+      const r0 = PG_R + PG_L;
+      for (const t of pg.teeth) {
+        const an = pg.a + t.i * TAU / PG_N + Math.PI / 2; t.du = Math.cos(an); t.dv = Math.sin(an); // the prism's line, out from the hub
+        t.len = t.alive ? beamReach(t.du * r0, PG_V + t.dv * r0, t.du, t.dv, MILL_L, pg.s) : 0; setBeamLen(t.beam, t.len);
+        t.wp.set(0, PG_R + PG_L * 0.45, 0); t.g.localToWorld(t.wp);
+      }
+      if (state === "play" && !pg.hit && Math.abs(pg.s - sC) < 0.6) for (const t of pg.teeth) if (t.alive && !pg.hit) {
+        const ax = t.du * r0, ay = PG_V + t.dv * r0;
+        if (beamHitsCart(ax, ay, ax + t.du * t.len, ay + t.dv * t.len)) { pg.hit = true; laserHit(); }
+      }
+      if (pg.s < sC - 8) { pg.dead = true; scene.remove(pg.root); }
+    }
+    pgears = pgears.filter(x => !x.dead);
   }
 
   // ---------- Abyssus: gates ----------
@@ -5466,6 +5527,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
+    pgPlan = SPANS.map(sp => sp.b + 75); // Speculum's prism gears: in the halls past each corkscrew
     if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind: "tall" }, { s: sp.b, kind: "tall" }]); }
     buildStation();
   }
@@ -5760,6 +5822,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const c of sp.cones) if (c.alive) { tmpV.copy(c.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.13) hits.push({ d, kind: "cone", x: sp, c }); }
       tmpV.copy(sp.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < MILL_HUB ** 2) hits.push({ d, kind: "hub", x: sp });
     }
+    for (const pg of pgears) {
+      for (const t of pg.teeth) if (t.alive) { tmpV.copy(t.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.16) hits.push({ d, kind: "pgtooth", x: pg, t }); }
+      tmpV.copy(pg.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < PG_R * PG_R) hits.push({ d, kind: "hub", x: pg });
+    }
     for (const lb of lblocks) if (lb.alive) { tmpV.copy(lb.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < ORB_HIT ** 2) hits.push({ d, kind: "lblock", x: lb }); }
     for (const set of gears) if (Math.abs(set.s - sC) < 130) for (const gr of set.gears) for (const t of gr.teeth) if (t.alive) { const rs = raySeg(o, dir, t.A, t.B); if (rs.dist < gr.K.w0 / 2 && rs.d > 0 && rs.d < LASER_LEN) hits.push({ d: rs.d, kind: "tooth", x: gr, t }); }
     for (const set of prismSets) if (Math.abs(set.s - sC) < 130) for (const pr of set.prisms) {
@@ -5815,6 +5881,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       else if (h.kind === "door") { const at = tmpV.copy(o).addScaledVector(dir, h.d).clone(); doorStrike(h.x, h.t, at, vel); if (!h.t.c) { end = h.d; break; } } // a chain cut lets the beam on
       else if (h.kind === "ramchain" && h.c.alive) { breakRamChain(h.x, h.c, tmpV.copy(o).addScaledVector(dir, h.d).clone()); end = h.d; break; } // one chain per shot
       else if (h.kind === "handle" && h.arm.alive) breakHandle(h.x, h.arm, tmpV.copy(o).addScaledVector(dir, h.d).clone());
+      else if (h.kind === "pgtooth" && h.t.alive) { breakPgTooth(h.x, h.t, h.t.wp.clone()); end = h.d; break; }
       else if (h.kind === "cone" && h.c.alive) { killCone(h.x, h.c, h.c.wp.clone()); end = h.d; break; }
       else if (h.kind === "hub") { end = h.d; break; }
       else if (h.kind === "lblock" && h.x.alive) { hitLaserBlock(h.x); end = h.d; break; }
@@ -6055,7 +6122,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     panes = panes.filter(p => p.alive);
 
-    updateBoughs(dt); updateWheels(dt); updateGates(dt); updateCatapults(dt); updateLasers(dt); updateTessera(dt); updateRams(dt); updateDoors(dt); updateGears(dt);
+    updateBoughs(dt); updateWheels(dt); updateGates(dt); updateCatapults(dt); updateLasers(dt); updatePrismGears(dt); updateTessera(dt); updateRams(dt); updateDoors(dt); updateGears(dt);
     mirageMat.opacity = 0.5 + 0.18 * Math.sin(time * 7.5);
     for (const c of crystals) {
       if (!c.alive) continue;
@@ -6276,6 +6343,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const c = sp.cones.find(x => x.alive && pathDist(x.wp) < 0.3 + R_BALL);
         if (c) { mark(); killCone(sp, c, c.wp.clone()); dead = true; break; }
         if (pathDist(sp.wp) < MILL_HUB + R_BALL) { mark(); Sound.clink(); chips(sp.wp, laserBaseMat, 4, b.v); dead = true; break; } // the hub takes the ball and stays
+      }
+      if (!dead) for (const pg of pgears) {
+        const t = pg.teeth.find(x => x.alive && pathDist(x.wp) < 0.36 + R_BALL);
+        if (t) { mark(); breakPgTooth(pg, t, t.wp.clone()); dead = true; break; }
+        if (pathDist(pg.wp) < PG_R) { mark(); Sound.clink(); chips(pg.wp, chromeMat, 4, b.v); dead = true; break; } // the disc takes the ball and stays
       }
       if (!dead) for (const lb of lblocks) if (lb.alive && pathDist(lb.wp) < ORB_HIT + R_BALL) { mark(); hitLaserBlock(lb); dead = true; break; }
       if (!dead) for (const set of gears) {

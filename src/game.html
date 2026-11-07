@@ -960,10 +960,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
 
   // ---------- sound: synthesized effects + background track ----------
-  const MENU_TRACK = "menu_glass_horizon";
+  const MENU_TRACK = "menu_refractive_hour";
   const Sound = {
     ctx: null, master: null, muted: (() => { try { return !!localStorage.getItem("limbus-muted"); } catch (e) { return false; } })(), noise: null, music: null, musicLP: null, musicGain: null, fallback: null,
-    buffers: {}, elements: {}, track: null, at: 0, at0: 0, t0: 0, want: "menu_glass_horizon", // the menu's own track (a level plays its own)
+    buffers: {}, elements: {}, track: null, at: 0, at0: 0, t0: 0, want: "menu_refractive_hour", // the menu's own track (a level plays its own)
     init() {
       if (this.ctx) { if (this.ctx.state === "suspended") this.ctx.resume(); this.play(this.want); return; }
       const AC = window.AudioContext || window.webkitAudioContext;

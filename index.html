@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.164</div>
+      <div class="credit version">v1.0.165</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.164`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.165`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2373,6 +2373,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // floor stops short above them, its top where it was; so one sliding across the track passes over the rails, not through them
   const RAIL_CLEAR = 0.42;
   function addPane(o) {
+    // armoured glass is thick: one and a half times the band between its two frames (the inner one is 0.86 the size)
+    if ((o.hp || 1) > 1 && !o.thick && !o.cross && o.rot === undefined) o.thick = 1.5 * 0.07 * Math.min(o.w, o.h);
     if (o.rot !== undefined) { // a turning bar or cross: its arms' whole reach kept over the rails
       const reach = Math.hypot(o.w, o.h) / 2, need = RAIL_CLEAR - (o.v - reach);
       if (Math.abs(o.u) - reach < 0.95 && need > 0) o.v += need;
@@ -2753,6 +2755,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     Sound.shatter(1.4); Sound.crash();
   }
   function shatter(p, lx, ly, impL) {
+    if (p.maxhp > 1 && !p.cross) { crumblePane(p, impL); return; } // armoured glass crumbles into chunks, as a slab on a chain does
     if (p.thick) { chunkPane(p, lx, ly, impL); return; }
     removePane(p);
     if (p.cross) { // a cross breaks as its two bars
@@ -2793,6 +2796,19 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     Sound.shatter(clamp(area / 9, 0.6, 1.6));
   }
   const SHARD_T = 0.04, SHARD_FWD = 3.5; // a piece's thickness; the most it flies on along the track
+  function crumblePane(p, impL) {
+    removePane(p);
+    const n = Math.min(140, Math.round(p.w * p.h * 9)), d = p.thick || 0.1;
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(chunkGeo, p.mat), x = rand(-p.w / 2, p.w / 2), y = rand(-p.h / 2, p.h / 2);
+      m.position.copy(p.C).addScaledVector(p.R, x).addScaledVector(p.U, y).addScaledVector(p.T, rand(-d / 2, d / 2));
+      m.rotation.set(rand(0, TAU), rand(0, TAU), rand(0, TAU)); m.scale.setScalar(rand(0.6, 1.4)); scene.add(m);
+      const v = new THREE.Vector3().addScaledVector(p.R, x * rand(0.6, 1.6)).addScaledVector(p.U, y * rand(0.6, 1.6) + rand(-0.5, 1)).addScaledVector(p.T, Math.sign(impL.z || 1) * rand(0.5, 2.5));
+      shards.push({ mesh: m, shared: true, life: rand(1.4, 2.4), v, w: new THREE.Vector3(rand(-9, 9), rand(-9, 9), rand(-9, 9)), fs: p.s, fo: 0 });
+    }
+    if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
+    Sound.thickGlass(); Sound.shatter(1);
+  }
   function makeShard(pts, p, Ip, impL) {
     const pts2 = [];
     pts.forEach(q => { const l = pts2[pts2.length - 1]; if (!l || Math.hypot(q.x - l.x, q.y - l.y) > 1e-4) pts2.push(q); });
@@ -2839,7 +2855,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (let j = 0; j < 3; j++) {
         const ex = p.cross ? Math.max(p.w, p.h) / 2 : p.w / 2, ey = p.cross ? ex : p.h / 2;
         const nx = clamp(x + Math.cos(a + rand(-0.4, 0.4)) * len / 3, -ex, ex), ny = clamp(y + Math.sin(a + rand(-0.4, 0.4)) * len / 3, -ey, ey);
-        pts.push(x, y, 0.01, nx, ny, 0.01); x = nx; y = ny;
+        const z = (p.thick || 0) / 2 + 0.01; pts.push(x, y, z, nx, ny, z); x = nx; y = ny; // on the face toward the cart
       }
     }
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));

@@ -2671,11 +2671,20 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     Sound.shatter(1.4); Sound.crash();
   }
   function shatter(p, lx, ly, impL) {
-    // the pieces keep the pane's own motion (a sliding pane's slide) on top of the push of the blow: the new pieces are the ones
-    // after the last piece there was (old pieces only ever leave from the front)
+    // the pieces keep the pane's own motion on top of the push of the blow: each flies on as its own bit of the pane was moving
+    // (a slide, or a turning bar's sweep, faster out at its tips) and keeps turning with it. The new pieces are the ones after
+    // the last piece there was (old pieces only ever leave from the front)
     const last = shards[shards.length - 1];
     shatterPane(p, lx, ly, impL);
-    if (p.vel && p.vel.lengthSq() > 1e-4) for (let i = shards.lastIndexOf(last) + 1; i < shards.length; i++) shards[i].v.add(p.vel);
+    if (!p.pm || !(p.pdt > 0)) return;
+    const inv = new THREE.Matrix4().copy(p.group.matrix).invert(), was = new THREE.Vector3(), mv = new THREE.Vector3();
+    for (let i = shards.lastIndexOf(last) + 1; i < shards.length; i++) {
+      const s = shards[i];
+      was.copy(s.mesh.position).applyMatrix4(inv).applyMatrix4(p.pm);
+      mv.subVectors(s.mesh.position, was).divideScalar(p.pdt);
+      if (mv.lengthSq() < 900) s.v.add(mv); // not a leap (a pane just placed)
+      if (p.rot !== undefined) s.w.z += p.spin;
+    }
   }
   function shatterPane(p, lx, ly, impL) {
     if (p.maxhp > 1 && !p.cross) { crumblePane(p, lx, ly); return; } // armoured glass crumbles into chunks, as a slab on a chain does
@@ -5895,6 +5904,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // panes
     for (const p of panes) {
       if (!p.alive) continue;
+      if (!p.pm) p.pm = new THREE.Matrix4(); p.pm.copy(p.group.matrix); p.pdt = dt; // where it was a frame ago, for its pieces to keep its motion
       if (p.move) {
         const sn = Math.sin(time * p.move.freq + p.move.phase);
         if (p.move.axis === "u") p.u = p.bu + p.move.amp * sn;
@@ -5907,10 +5917,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       setObj(p.group, p.s, p.u, p.v);
       frameAt(p.s);
-      const pc = p.C.clone();
       p.R.copy(_R); p.U.copy(_U); p.T.copy(_T); p.C.copy(_P).addScaledVector(_R, p.u).addScaledVector(_U, p.v);
-      if (!p.vel) p.vel = new THREE.Vector3();
-      else if (dt > 0) p.vel.subVectors(p.C, pc).divideScalar(dt); // how fast it slides, for its pieces to keep
       if (p.rot !== undefined) { // a rotor bar: turn it about the track axis, and maybe tumble it about an axis of its own
         p.rot += p.spin * dt;
         if (p.turn) { p.turn.b += p.turn.w * dt; p.group.matrix.multiply(M2.makeRotationY(p.turn.b)); } // a potter's wheel under it: about the upright, fixed

@@ -4325,7 +4325,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
 
   // ---------- Speculum: the prism gear ----------
-  // Twice in the mirror halls, past each corkscrew, a gear of polished steel hangs over the middle of the track, turning
+  // Three times in the mirror halls, before the first corkscrew and past each, a gear of polished steel hangs over the middle of the track, turning
   // slowly in the plane across it: a disc as Nox's are, and for teeth ten short glass prisms, each a four-sided frustum, a straight beam of light shining on out of its tip as the lasers of Nox's and Lux's
   // mills do. Shoot the prisms whose beams would sweep across the cart: one hit breaks one. A beam across the cart burns as a
   // laser does, once a gear. In the mirror walls the gear turns too, without its beams
@@ -5527,7 +5527,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
-    pgPlan = SPANS.map(sp => sp.b + 75); // Speculum's prism gears: in the halls past each corkscrew
+    pgPlan = SPANS.length ? [SPANS[0].a - 120, ...SPANS.map(sp => sp.b + 75)] : []; // Speculum's prism gears: in the first halls, before the first bridge, and past each corkscrew
     if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind: "tall" }, { s: sp.b, kind: "tall" }]); }
     buildStation();
   }

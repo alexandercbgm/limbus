@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.179</div>
+      <div class="credit version">v1.0.180</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.179`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.180`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -4411,28 +4411,25 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
 
   // ---------- Speculum: the prism gear ----------
-  // Twice in the mirror halls, past each corkscrew, a gear of polished chrome hangs over the middle of the track, turning
-  // slowly in the plane across it: a disc with six hexagonal windows of mirror and a hexagonal hub, and for teeth ten glass
-  // prisms, each a four-sided frustum, a straight beam of light shining on out of its tip as the lasers of Nox's and Lux's
+  // Twice in the mirror halls, past each corkscrew, a gear of polished steel hangs over the middle of the track, turning
+  // slowly in the plane across it: a disc as Nox's are, and for teeth ten short glass prisms, each a four-sided frustum, a straight beam of light shining on out of its tip as the lasers of Nox's and Lux's
   // mills do. Shoot the prisms whose beams would sweep across the cart: one hit breaks one. A beam across the cart burns as a
   // laser does, once a gear. In the mirror walls the gear turns too, without its beams
   let pgears = [], pgPlan = [];
-  const PG_R = 2.0, PG_V = 5.6, PG_N = 10, PG_L = 0.95, PG_D = 0.34, PG_SPIN = 0.32, PG_WIN = 1.25;
-  const hexPath = (P, cx, cy, r, rev) => { for (let k = 0; k < 6; k++) { const a = (rev ? 6 - k : k) * TAU / 6 + Math.PI / 6; P[k ? "lineTo" : "moveTo"](cx + Math.cos(a) * r, cy + Math.sin(a) * r); } return P; };
-  const pgDiscGeo = (() => { const sh = new THREE.Shape(); sh.absarc(0, 0, PG_R, 0, TAU, false);
-    for (let i = 0; i < 6; i++) { const a = i * TAU / 6; sh.holes.push(hexPath(new THREE.Path(), Math.cos(a) * PG_WIN, Math.sin(a) * PG_WIN, 0.46, true)); }
-    sh.holes.push(hexPath(new THREE.Path(), 0, 0, 0.5, true)); // the hub's seat
-    return new THREE.ExtrudeGeometry(sh, { depth: PG_D, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2, curveSegments: 48 }).translate(0, 0, -PG_D / 2); })();
-  const pgWinGeo = new THREE.CircleGeometry(0.47, 6).rotateZ(Math.PI / 6); // a window's mirror
-  const pgHubGeo = new THREE.CylinderGeometry(0.56, 0.56, PG_D + 0.36, 6).rotateX(Math.PI / 2);
-  const pgRimGeo = new THREE.TorusGeometry(PG_R - 0.16, 0.05, 6, 72), pgLineMat = new THREE.MeshBasicMaterial({ color: 0xd8ecff });
-  const pgPrismGeo = new THREE.CylinderGeometry(0.15, 0.3, PG_L, 4, 1).rotateY(Math.PI / 4).translate(0, PG_R - 0.05 + PG_L / 2, 0), pgPrismEdge = new THREE.EdgesGeometry(pgPrismGeo, 20);
+  const PG_R = 2.0, PG_V = 5.6, PG_N = 10, PG_L = 0.48, PG_D = 0.34, PG_SPIN = 0.32;
+  // its disc one of Nox's three (holes, spokes, slots), never the same twice running, scaled down; of polished steel in the
+  // halls' cold blue, not mirror-bright
+  const PG_K = PG_R / GEAR_ROOT;
+  const pgSteelMat = new THREE.MeshStandardMaterial({ color: 0x9aabc2, roughness: 0.26, metalness: 0.85, emissive: 0x1e2e46, emissiveIntensity: 0.4 });
+  const pgRingMat = new THREE.MeshStandardMaterial({ color: 0x70829c, roughness: 0.22, metalness: 0.9, emissive: 0x18263c, emissiveIntensity: 0.4 });
+  const pgPrismGeo = new THREE.CylinderGeometry(0.15, 0.27, PG_L, 4, 1).rotateY(Math.PI / 4).translate(0, PG_R - 0.05 + PG_L / 2, 0), pgPrismEdge = new THREE.EdgesGeometry(pgPrismGeo, 20);
+  let lastPgKind = "";
   function addPrismGear(s) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
     const rotor = new THREE.Group(); root.add(rotor);
-    rotor.add(new THREE.Mesh(pgDiscGeo, chromeMat)); rotor.add(new THREE.Mesh(pgHubGeo, spMirrorMat));
-    for (let i = 0; i < 6; i++) for (const z of [-1, 1]) { const a = i * TAU / 6, m = new THREE.Mesh(pgWinGeo, mirrorFaceMat); m.position.set(Math.cos(a) * PG_WIN, Math.sin(a) * PG_WIN, z * 0.02); rotor.add(m); }
-    for (const z of [-1, 1]) { const r = new THREE.Mesh(pgRimGeo, pgLineMat); r.position.z = z * (PG_D / 2 + 0.06); rotor.add(r); }
+    const kinds = Object.keys(GEAR_KINDS).filter(k => k !== lastPgKind), kind = kinds[Math.floor(Math.random() * kinds.length)]; lastPgKind = kind;
+    const disc = new THREE.Mesh(GEAR_KINDS[kind].disc, pgSteelMat); disc.scale.set(PG_K, PG_K, PG_D / GEAR_D); rotor.add(disc);
+    for (const z of [-1, 1]) for (const g of [gearRingGeo, gearRimGeo]) { const r = new THREE.Mesh(g, pgRingMat); r.scale.setScalar(PG_K); r.position.z = z * (PG_D / 2 + 0.03); rotor.add(r); } // raised rings on its faces, as Nox's
     const teeth = Array.from({ length: PG_N }, (_, i) => {
       const g = new THREE.Group(); g.rotation.z = i * TAU / PG_N; rotor.add(g);
       g.add(new THREE.Mesh(pgPrismGeo, spPrismMat)); g.add(new THREE.LineSegments(pgPrismEdge, spPrismEdgeMat));
@@ -6436,7 +6433,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (!dead) for (const pg of pgears) {
         const t = pg.teeth.find(x => x.alive && pathDist(x.wp) < 0.36 + R_BALL);
         if (t) { mark(); breakPgTooth(pg, t, t.wp.clone()); dead = true; break; }
-        if (pathDist(pg.wp) < PG_R) { mark(); Sound.clink(); chips(pg.wp, chromeMat, 4, b.v); dead = true; break; } // the disc takes the ball and stays
+        if (pathDist(pg.wp) < PG_R) { mark(); Sound.clink(); chips(pg.wp, pgSteelMat, 4, b.v); dead = true; break; } // the disc takes the ball and stays
       }
       if (!dead) for (const lb of lblocks) if (lb.alive && pathDist(lb.wp) < ORB_HIT + R_BALL) { mark(); hitLaserBlock(lb); dead = true; break; }
       if (!dead) for (const set of gears) {

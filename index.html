@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.189</div>
+      <div class="credit version">v1.0.190</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.189`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.190`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1084,13 +1084,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (this.track !== id) return;
         const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true;
         this.at0 = id === MENU_TRACK ? (this.at || 0) % buf.duration : 0; this.t0 = this.ctx.currentTime;
-        src.connect(this.musicLP); src.start(0, this.at0);
+        if (id === MENU_TRACK) { // the menu's track comes in over its first second, not all at once (its loop itself is seamless)
+          const fade = this.ctx.createGain(), t = this.ctx.currentTime; fade.gain.setValueAtTime(0, t); fade.gain.linearRampToValueAtTime(1, t + 1);
+          src.connect(fade); fade.connect(this.musicLP);
+        } else src.connect(this.musicLP);
+        src.start(0, this.at0);
         this.music = src;
       } catch (e) {
         // no WebAudio decoding: play the track through a plain audio element instead (no karma filter then)
         const el = document.getElementById("music-" + id), type = (el && el.dataset.type) || "audio/mpeg"; // the media type build.py embedded
         const a = this.elements[id] || (this.elements[id] = new Audio(URL.createObjectURL(new Blob([bytes], { type }))));
         a.loop = true; a.volume = this.muted ? 0 : 0.5; if (id !== MENU_TRACK) a.currentTime = 0; a.play().catch(() => {});
+        if (id === MENU_TRACK && !this.muted) { a.volume = 0; const t0 = performance.now(), up = () => { if (this.fallback !== a || this.muted) return; const k = Math.min(1, (performance.now() - t0) / 1000); a.volume = 0.5 * k; if (k < 1) requestAnimationFrame(up); }; requestAnimationFrame(up); } // eased in too
         this.fallback = a;
       }
     },

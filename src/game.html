@@ -998,13 +998,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (this.track !== id) return;
         const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true;
         this.at0 = id === MENU_TRACK ? (this.at || 0) % buf.duration : 0; this.t0 = this.ctx.currentTime;
-        src.connect(this.musicLP); src.start(0, this.at0);
+        if (id === MENU_TRACK) { // the menu's track comes in over its first second, not all at once (its loop itself is seamless)
+          const fade = this.ctx.createGain(), t = this.ctx.currentTime; fade.gain.setValueAtTime(0, t); fade.gain.linearRampToValueAtTime(1, t + 1);
+          src.connect(fade); fade.connect(this.musicLP);
+        } else src.connect(this.musicLP);
+        src.start(0, this.at0);
         this.music = src;
       } catch (e) {
         // no WebAudio decoding: play the track through a plain audio element instead (no karma filter then)
         const el = document.getElementById("music-" + id), type = (el && el.dataset.type) || "audio/mpeg"; // the media type build.py embedded
         const a = this.elements[id] || (this.elements[id] = new Audio(URL.createObjectURL(new Blob([bytes], { type }))));
         a.loop = true; a.volume = this.muted ? 0 : 0.5; if (id !== MENU_TRACK) a.currentTime = 0; a.play().catch(() => {});
+        if (id === MENU_TRACK && !this.muted) { a.volume = 0; const t0 = performance.now(), up = () => { if (this.fallback !== a || this.muted) return; const k = Math.min(1, (performance.now() - t0) / 1000); a.volume = 0.5 * k; if (k < 1) requestAnimationFrame(up); }; requestAnimationFrame(up); } // eased in too
         this.fallback = a;
       }
     },

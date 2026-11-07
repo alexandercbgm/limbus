@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.181</div>
+      <div class="credit version">v1.0.182</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.181`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.182`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1892,6 +1892,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     safety: inst(new THREE.BoxGeometry(0.07, 0.03, SL + 0.03), safetyMat, 200),
     pylon: inst(new THREE.BoxGeometry(0.45, PYLON_H, 0.45), frameMat, 60),
     spier: inst(new THREE.BoxGeometry(1, PYLON_H, 1), concreteMat, 40), // Speculum's bridges: piers,
+    // its sleepers near black and faintly lit of themselves: the halls' pale ones were lost on the pale deck (the halls' light is
+    // strong: a mid grey turned to white where the deck faced it), and over the top of a turn, in the dusk, lit only from below,
+    // they were lost on it again
+    ssleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), new THREE.MeshLambertMaterial({ color: 0x161b23, emissive: 0x27303e }), 300),
     skeel: inst(new THREE.BoxGeometry(2, 1.1, SL + 0.25), concreteMat, 100), // the corkscrew's spiral arch, its posts,
     sstrut: inst(new THREE.BoxGeometry(0.4, 1, 0.4), concreteMat, 100),
     scap: inst(new THREE.BoxGeometry(1, 1, 1), concreteMat, 20), // pier caps and platforms,
@@ -1933,6 +1937,29 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const endCap = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide })); // fogged through, so the fog's colour
   endCap.matrixAutoUpdate = false; endCap.frustumCulled = false; endCap.visible = false; scene.add(endCap);
   const deckStrip = makeStrip(STRIP_N, concreteMat, true);
+  // the top of a bridge's deck, finer than a strip: a strip's metre-long quads, twisted where the track turns over, sagged or
+  // bulged by a quarter of a metre between their corners, and the bulge hid the sleepers. Half-metre rows, eight quads across
+  const DECK_COLS = 8, DECK_STEP = 0.5;
+  const deckTop = (() => { const maxSeg = (STRIP_N) * 2, nr = DECK_COLS + 1, g = new THREE.BufferGeometry(), idx = [];
+    for (let i = 0; i < maxSeg; i++) for (let c = 0; c < DECK_COLS; c++) { const a = i * nr + c, b = a + 1, d = a + nr, e = d + 1; idx.push(a, b, d, b, e, d); }
+    g.setIndex(idx); const nv = (maxSeg + 1) * nr;
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(nv * 3), 3)); g.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(nv * 3), 3)); g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(nv * 2), 2));
+    const m = new THREE.Mesh(g, surfMat); m.frustumCulled = false; m.visible = false; scene.add(m); m.maxSeg = maxSeg; return m; })();
+  function fillDeckTop(s0, s1, hwF) {
+    const g = deckTop.geometry, pos = g.attributes.position.array, nor = g.attributes.normal.array, uv = g.attributes.uv.array, nr = DECK_COLS + 1;
+    const seg = Math.max(0, Math.min(deckTop.maxSeg, Math.floor((s1 - s0) / DECK_STEP)));
+    for (let i = 0; i <= seg; i++) {
+      const s = s0 + i * DECK_STEP, hw = hwF(s); frameAt(s);
+      for (let c = 0; c < nr; c++) {
+        const u = -hw + 2 * hw * c / DECK_COLS, k = (i * nr + c) * 3, q = (i * nr + c) * 2;
+        pos[k] = _P.x + _R.x * u; pos[k + 1] = _P.y + _R.y * u; pos[k + 2] = _P.z + _R.z * u;
+        nor[k] = _U.x; nor[k + 1] = _U.y; nor[k + 2] = _U.z; uv[q] = c / DECK_COLS; uv[q + 1] = s / SL;
+      }
+    }
+    g.setDrawRange(0, seg * DECK_COLS * 6);
+    g.attributes.position.needsUpdate = g.attributes.normal.needsUpdate = g.attributes.uv.needsUpdate = true;
+    deckTop.visible = seg > 0;
+  }
   const floorStrip = makeStrip(STRIP_N, surfMat, false), vaultStrip = makeStrip(STRIP_N, surfMat, true);
   const gFloorStrip = makeStrip(GHOST_N, surfMat, false), gVaultStrip = makeStrip(GHOST_N, surfMat, true);
   // a mirror wall reflects the corridor to an offset of 2 × (SW + 0.12) on its side (set with the level)
@@ -2114,7 +2141,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const dec = getDecor(k), s = k * SL + SL / 2;
       // under an up-down gate the track is cut by a slot that takes the lower leaf: no sleeper there, the rails broken
       const slot = gates.find(g => g.kind === "v" && Math.abs(g.s - s) < SL / 2 + 0.3);
-      for (const ss of [s - 0.5, s + 0.5]) if (!slot || Math.abs(ss - slot.s) > SLOT_W / 2 + 0.18) put("sleeper", ss, 0, 0.06);
+      for (const ss of [s - 0.5, s + 0.5]) if (!slot || Math.abs(ss - slot.s) > SLOT_W / 2 + 0.18) put(dec.span ? "ssleeper" : "sleeper", ss, 0, 0.06);
       if (!slot && SPANS.length && (twistAt(s - SL) || twistAt(s + SL))) { // where the track turns over, in short pieces, so they follow it round
         for (let q = 0; q < 4; q++) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, s - SL / 2 + (q + 0.5) * SL / 4, u, 0.19).scale(SV.set(1, 1, (SL / 4 + 0.04) / (SL + 0.04))));
       }
@@ -2192,7 +2219,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // the deck's underside (it shows when the deck hangs overhead), drawn as a strip so it twists smoothly with the rails
     deckStrip.visible = SPANS.length > 0;
     if (deckStrip.visible) fillStrip(deckStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, -0.52, 0, s => spanAt(s) ? SW + 0.2 : 0);
-    fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, STYLE.bridge ? BRIDGE_W : LEVEL.halls ? HALL_W : STYLE.floorW || SW); // Vitrum: as wide as the hexagon's bottom edge
+    const floorW = STYLE.bridge ? BRIDGE_W : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // Vitrum: as wide as the hexagon's bottom edge
+    const onDeck = s => !!(spanAt(s) || spanAt(s - 1) || spanAt(s + 1));
+    fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length ? s => (spanAt(s) && spanAt(s - 1) && spanAt(s + 1) ? 0 : floorW) : floorW); // over a bridge, its deck instead
+    if (SPANS.length) fillDeckTop(Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, s => onDeck(s) ? SW : 0); else deckTop.visible = false;
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H); else vaultStrip.visible = false;
     { // where a walled and roofed corridor (Labyrinthus, Carcer) stops being drawn, far ahead, the sky showed through its open
       // end as a window: a cap closes it there, past the fog's far edge, so it's all fog's colour
@@ -2707,8 +2737,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (let i = 0; i < n; i++) { const k = i % 2 ? -first : first; addPane({ s: s - i * 6, u: k * (SW / 2 + 0.25), v: SH / 2, w: SW + 0.4, h: SH - 0.3 }); }
         break;
       }
-      case "tallgate": // Speculum: a tall gate midway between the hexagonal frames, the frames near it cleared
-        if (s - lastGateS > GATE_GAP && !doors.some(dr => Math.abs(dr.s - s) < GATE_GAP)) { const sg = Math.round((s - 5) / 8) * 8 + 5; for (let kk = Math.floor((sg - 4) / SL); kk <= Math.floor((sg + 4) / SL); kk++) getDecor(kk).arch = false; spawnDoor({ s: sg, kind: "tall" }); lastGateS = sg; }
+      case "tallgate": // Speculum: a tall gate midway between the hexagonal frames, the frames near it cleared; never near a bridge's gates
+        if (s - lastGateS > GATE_GAP && !doors.some(dr => Math.abs(dr.s - s) < GATE_GAP) && !SPANS.some(sp => Math.abs(sp.a - s) < GATE_GAP + 20 || Math.abs(sp.b - s) < GATE_GAP + 20)) { const sg = Math.round((s - 5) / 8) * 8 + 5; for (let kk = Math.floor((sg - 4) / SL); kk <= Math.floor((sg + 4) / SL); kk++) getDecor(kk).arch = false; spawnDoor({ s: sg, kind: "tall" }); lastGateS = sg; }
         else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) });
         break;
       case "abspin": { const side = Math.random() < 0.5 ? -1 : 1; addSpinner(s, side, Math.random() < 0.5 ? -1 : 1); break; } // Abyssus: a laser mill beside the bridge
@@ -5396,7 +5426,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       feats: ["Ворота инь-ян: кнопки раздвигают половины", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
-      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45,
+      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 140 }, // prisms are sure to come
       pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], prisms: [0.9, 1.3, 1.6],
         tallgate: [0.6, 0.9, 1.1], gate: [0.4, 0.6, 0.8], pendulum: [0.4, 0.6, 0.8] }, // and tall gates, and monoliths on chains as in Vitrum
       turns: [[100, 50, 40], [210, 60, -55], [330, 50, 45], [450, 70, -70], [590, 50, 50], [700, 60, -45], [820, 50, 40],

@@ -2286,6 +2286,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // a pane over the rails keeps its foot clear of them (their tops are at 0.26): a short one is raised, a tall one standing on the
   // floor stops short above them, its top where it was; so one sliding across the track passes over the rails, not through them
   const RAIL_CLEAR = 0.42;
+  const TWIN_AMP = 2.0 - 2.2 / 2 - 0.05; // twin panes 2.2 m wide about ±2 m: at their closest 10 cm apart (they swung 1 m and overlapped by 20 cm)
   function addPane(o) {
     // armoured glass is thick: one and a half times the band between its two frames (the inner one is 0.86 the size)
     if ((o.hp || 1) > 1 && !o.thick && !o.cross && o.rot === undefined) o.thick = 1.5 * 0.07 * Math.min(o.w, o.h);
@@ -2525,7 +2526,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "prisms": if (!addPrisms(s)) addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break; // Speculum: light through prisms off mirrors
       case "twins": { // two panes mirrored about the track that close and part like doors
         const freq = rand(0.9, 1.3) * (1 + 0.3 * d), phase = rand(0, TAU);
-        [-1, 1].forEach(k => addPane({ s, u: k * 2.0, v: CAM_V + 0.2, w: 2.2, h: 2.9, move: { axis: "u", amp: k * 1.0, freq, phase } }));
+        [-1, 1].forEach(k => addPane({ s, u: k * 2.0, v: CAM_V + 0.2, w: 2.2, h: 2.9, move: { axis: "u", amp: k * TWIN_AMP, freq, phase } })); // closed, 10 cm apart
         break;
       }
       case "lift": addPane({ s, u: 0, v: 3.1, w: 3.4, h: 2.2, move: { axis: "v", amp: 1.6, freq: rand(1.1, 1.7), phase: rand(0, TAU) } }); break;
@@ -4747,7 +4748,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     addSigil(s, u, v); addSigil(s, -u, v);
     const a = sigils[sigils.length - 2], b = sigils[sigils.length - 1];
     a.pair = b; b.pair = a; b.phase = a.phase; a.mir = 1; b.mir = -1;
-    if (superWave % 3 === 0) [-1, 1].forEach(k => addPane({ s: s + 6, u: k * 2.0, v: CAM_V + 0.2, w: 2.2, h: 2.9, move: { axis: "u", amp: k * 1.0, freq: 1.1, phase: rand(0, TAU) } }));
+    if (superWave % 3 === 0) [-1, 1].forEach(k => addPane({ s: s + 6, u: k * 2.0, v: CAM_V + 0.2, w: 2.2, h: 2.9, move: { axis: "u", amp: k * TWIN_AMP, freq: 1.1, phase: rand(0, TAU) } }));
   }
   function hitPairSigil(g, b) {
     g.alive = false; g.hit = true; scene.remove(g.group);

@@ -3662,12 +3662,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   nearFade(lightCoreMat, 1.0, 6.0, true); [lightHaloMat, lightGlowMat].forEach(m => nearFade(m, 1.0, 6.0)); // the core adds its light; the halo is laid on
   const lightSpotMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xfff0b0, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
   const spPrismGlowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xcfe8ff, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending });
+  const prismHeartMat = new THREE.MeshBasicMaterial({ color: 0xffb43c }); // a core of gold light inside the glass
+  const prismHeartGlowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xffb040, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending });
   const spPrismGlowMat2 = new THREE.SpriteMaterial({ map: glowTex, color: 0xcfe8ff, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }); // the standing prisms'
   function lightBeam() {
     const g = new THREE.Group();
     // a quarter finer than a laser. Its halo and glow stop short of its ends by their own width: where a beam struck a mirror and
     // went on, the two legs' glows overlapped there, added up, and the beam seemed twice as thick at the mirror
-    for (const [geo, mat, tr] of [[beamGeo, lightCoreMat, 0], [beamHaloGeo, lightHaloMat, 0.05], [beamGlowGeo, lightGlowMat, 0.15]]) { const m = new THREE.Mesh(geo, mat); m.scale.set(0.75, 1, 0.75); m.userData.trim = tr; g.add(m); }
+    // the core twice and the halo half as thick again as they were; the glow as it was
+    for (const [geo, mat, tr, k] of [[beamGeo, lightCoreMat, 0, 1.5], [beamHaloGeo, lightHaloMat, 0.08, 1.125], [beamGlowGeo, lightGlowMat, 0.15, 0.75]]) { const m = new THREE.Mesh(geo, mat); m.scale.set(k, 1, k); m.userData.trim = tr; g.add(m); }
     const spot = new THREE.Sprite(lightSpotMat); spot.scale.setScalar(0.8); g.add(spot); g.userData.spot = spot; return g;
   }
   const mirDiscGeo = new THREE.CylinderGeometry(1, 1, 0.06, 40), mirRingGeo = new THREE.TorusGeometry(1, 0.07, 8, 40).rotateX(Math.PI / 2), mirPivotGeo = new THREE.SphereGeometry(0.07, 12, 8);
@@ -3676,7 +3679,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.3, "rgba(255,240,200,0.6)"); r.addColorStop(1, "rgba(255,230,170,0)"); g.fillStyle = r; g.fillRect(0, 0, 128, 128);
     g.globalCompositeOperation = "lighter"; for (const [w, h] of [[128, 5], [5, 128], [70, 2], [2, 70]]) { const lg = g.createRadialGradient(64, 64, 0, 64, 64, Math.max(w, h) / 2); lg.addColorStop(0, "rgba(255,255,255,0.95)"); lg.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = lg; g.fillRect(64 - w / 2, 64 - h / 2, w, h); }
     return new THREE.CanvasTexture(c); })(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
-  [lightSpotMat, mirFlareMat, spPrismGlowMat, spPrismGlowMat2].forEach(m => { m.onBeforeCompile = addFog; }); // their glows go out into the haze too
+  [lightSpotMat, mirFlareMat, spPrismGlowMat, spPrismGlowMat2, prismHeartGlowMat].forEach(m => { m.onBeforeCompile = addFog; }); // their glows go out into the haze too
   const spMirGeos = {};
   const spMirGeo = len => spMirGeos[len] || (spMirGeos[len] = new THREE.BoxGeometry(len, 0.07, MIR_D));
   const faceGeos = {}, mirrorFaceGeo = len => faceGeos[len] || (faceGeos[len] = new THREE.PlaneGeometry(len - 0.12, MIR_D - 0.12));
@@ -3768,6 +3771,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const g = new THREE.Group(); g.position.set(pr.u, pr.v, 0); set.root.add(g); pr.g = g;
       g.add(new THREE.Mesh(spPrismGeo, spPrismMat)); g.add(new THREE.LineSegments(spPrismEdge, spPrismEdgeMat));
       const glow = new THREE.Sprite(spPrismGlowMat2); glow.scale.setScalar(1.0); g.add(glow); // a soft glow about it, not a white blot on the pale halls
+      const heart = new THREE.Mesh(spPrismGeo, prismHeartMat); heart.scale.set(0.42, 0.62, 0.42); heart.renderOrder = -1; g.add(heart); // and at its heart, through the glass, the light its beam comes out of
+      const hg = new THREE.Sprite(prismHeartGlowMat); hg.scale.setScalar(0.55); g.add(hg);
       pr.beams = Array.from({ length: 7 }, () => { const b = lightBeam(); set.root.add(b); return b; });
       pr.flares = Array.from({ length: 6 }, () => { const f = new THREE.Sprite(mirFlareMat); f.scale.setScalar(1.7); set.root.add(f); return f; }); // where it strikes a mirror
       pr.wp = new THREE.Vector3();

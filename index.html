@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.163</div>
+      <div class="credit version">v1.0.164</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.163`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.164`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2792,7 +2792,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     Sound.shatter(clamp(area / 9, 0.6, 1.6));
   }
-  const SHARD_T = 0.04;
+  const SHARD_T = 0.04, SHARD_FWD = 3.5; // a piece's thickness; the most it flies on along the track
   function makeShard(pts, p, Ip, impL) {
     const pts2 = [];
     pts.forEach(q => { const l = pts2[pts2.length - 1]; if (!l || Math.hypot(q.x - l.x, q.y - l.y) > 1e-4) pts2.push(q); });
@@ -5593,7 +5593,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1, 0.5);
     camera.updateMatrixWorld();
     rayDir.copy(ndc).unproject(camera).sub(camera.position).normalize();
-    target.copy(camera.position).addScaledVector(rayDir, 32);
+    // the balls go to what the cursor is on, if anything is, nearer than 32 m: aimed at a point 32 m off, a ball from the muzzle
+    // (below and beside the eye) passed beside or behind a thing close by (an axe, a block) that the cursor was right on
+    const near = rayHits(camera.position, rayDir).find(h => h.d > 1.2);
+    target.copy(camera.position).addScaledVector(rayDir, near ? Math.min(32, near.d) : 32);
     camInv.copy(camera.matrixWorld).invert();
     const guns = progress.weapon === "gemini" ? GUNS : [GUNS[0]], vol = {};
     for (const g of guns) {
@@ -6261,6 +6264,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
     for (let i = shards.length - 1; i >= 0; i--) {
       const s = shards[i], pos = s.mesh.position;
+      // a piece takes some of the ball's push, but never more than a few m/s on along the track: it had flown on down the
+      // corridor faster than the cart and kept ahead of it (the ball carries 45-60 m/s); one rule for every kind of piece
+      if (!s.capped) { s.capped = true; frameAt(sC); const f = s.v.dot(_T); if (f > SHARD_FWD) s.v.addScaledVector(_T, SHARD_FWD - f); }
       if (!s.rest) {
         s.v.y -= G * dt;
         pos.addScaledVector(s.v, dt);

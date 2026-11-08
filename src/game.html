@@ -6913,8 +6913,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     out = out.replace(/<(circle|path) class="(ring|hub)([^"]*)" style="transform-origin:([\d.]+)px ([\d.]+)px"([^>]*?)\/>/g, (m, tag, cls, more, x, y) => {
       const r = cls === "hub" ? 21 : /inner/.test(more) ? 17 : 20.5, w = cls === "hub" ? 4 : 5;
       const arc = (A0, A1, rr) => `M${(+x + rr * Math.cos(A0)).toFixed(2)} ${(+y + rr * Math.sin(A0)).toFixed(2)}A${rr} ${rr} 0 0 1 ${(+x + rr * Math.cos(A1)).toFixed(2)} ${(+y + rr * Math.sin(A1)).toFixed(2)}`;
-      const band = cls === "hub" && tag === "path" ? "" : `<circle class="glass" cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#ffffff" stroke-width="${w * 0.45}" stroke-opacity="0.22" pointer-events="none"/><circle class="glass" cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#ffffff" stroke-width="0.9" stroke-opacity="0.6" pointer-events="none"/>`;
-      return m.replace(/ stroke="(#[0-9a-fA-F]{3,6})"/, ' stroke="$1" stroke-opacity="0.82"') + band +
+      // (a ring stays opaque: see-through, the lines running in under it showed through as dark gaps in it)
+      const d = tag === "path" && (m.match(/ d="([^"]*)"/) || [])[1], shape = (sw, op) => d ? `<path class="glass" d="${d}" fill="none" stroke="#ffffff" stroke-width="${sw}" stroke-opacity="${op}" pointer-events="none"/>`
+        : `<circle class="glass" cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#ffffff" stroke-width="${sw}" stroke-opacity="${op}" pointer-events="none"/>`;
+      const band = shape(w * 0.45, 0.22) + shape(0.9, 0.6); // Initium's outer ring, two half circles, banded along each
+      return m + band +
         `<path class="glass" d="${arc(Math.PI * 1.1, Math.PI * 1.45, r)}" fill="none" stroke="#ffffff" stroke-width="${w * 0.55}" stroke-opacity="0.85" stroke-linecap="round" pointer-events="none"/>`; });
     out += `<g id="cxFront" pointer-events="none"></g>`; under = `<g id="cxBack"></g>` + under; // crystals over the scheme, and under even the lines' casings
     svg.innerHTML = out; document.documentElement.classList.add("mapready");

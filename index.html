@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.191</div>
+      <div class="credit version">v1.0.192</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.191`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.192`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2454,10 +2454,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const z of [0.0, 0.165]) { const band = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.011, 8, 36), darkMat); band.position.z = z; bg.add(band); } // dark rings round it, front and back
       const back = cyl(0.03, 0.008, darkMat, 18); back.position.z = 0.245; bg.add(back); // a small hub on its back
       // the barrel, turned in one piece: out of the breech, the thick third with its swell, a taper, the slim two thirds, a lip at the muzzle
-      const L = lathe([[0, -0.02], [0.085, -0.02], [0.085, -0.3], [0.104, -0.33], [0.104, -0.52], [0.085, -0.55], [0.085, -0.66], [0.064, -0.72],
+      const L = lathe([[0, -0.02], [0.085, -0.02], [0.085, -0.62], [0.104, -0.65], [0.104, -0.84], [0.085, -0.87], [0.085, -0.98], [0.064, -1.04],
         [0.064, -1.62], [0.07, -1.63], [0.07, -1.68], [0.048, -1.68], [0.048, -1.66], [0, -1.66]].map(([r, z]) => [r, -z]), 36).rotateX(-Math.PI / 2);
-      bg.add(new THREE.Mesh(L, shellMat));
-      for (const z of [-0.3, -0.55, -0.69]) { const rg = new THREE.Mesh(new THREE.TorusGeometry(z < -0.6 ? 0.072 : z < -0.4 ? 0.1 : 0.088, 0.007, 6, 32), z === -0.69 ? accentMat : darkMat); rg.position.z = z - 0.01; bg.add(rg); } // rings at its steps
+      bg.add(new THREE.Mesh(L, shellMat)); // (the swell far enough out that, run right back, it stays in front of the shield)
+      for (const z of [-0.62, -0.87, -1.01]) { const rg = new THREE.Mesh(new THREE.TorusGeometry(z < -0.95 ? 0.072 : z < -0.7 ? 0.1 : 0.088, 0.007, 6, 32), z === -1.01 ? accentMat : darkMat); rg.position.z = z - 0.01; bg.add(rg); } // rings at its steps
       const bore = cyl(0.046, 0.01, accentMat, 20); bore.position.z = -1.665; bg.add(bore);
     }
     // Lumen: a slender emitter with cooling fins and a glowing lens
@@ -5942,7 +5942,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const first = rayHits(camera.position, rayDir)[0], aim = camera.position.clone().addScaledVector(rayDir, first ? first.d : 60);
         fireLaser(from, aim.sub(from).normalize()); continue;
       }
-      const dir = target.clone().sub(from).normalize();
+      // Gemini's two balls fly side by side, both along the line from between its muzzles to the target, not meeting at it
+      const dir = progress.weapon === "gemini" ? target.clone().sub(GUNS[0].barrel.localToWorld(GEM_MUZZLE[0].clone().add(GEM_MUZZLE[1]).multiplyScalar(0.5))).normalize() : target.clone().sub(from).normalize();
       if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
       else launch(from, dir, vol);
     }
@@ -6666,8 +6667,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     gemKick.t = Math.max(0, gemKick.t - dt * 3);
     if (progress.weapon === "gemini") { // its barrels run back and out in turn; the turret twists and the barrels kick up, and settle
       const g = GUNS[0], bars = [], _c = g.models.gemini.traverse(o => { if (o.name === "gbar" && o.parent.visible) bars.push(o); }), e = gemKick.t, w = Math.sin(e * Math.PI); // 0 → 1 → 0 over the kick
-      // the barrel that fired runs back fast into the cradle and returns slower
-      bars.forEach((b, i) => { const mine = (i === 0) === (gemKick.side < 0), k = 1 - e, run = k < 0.12 ? k / 0.12 : Math.max(0, 1 - (k - 0.12) / 0.7);
+      // both barrels fire together: they run back fast along the cradle and return slower
+      bars.forEach((b, i) => { const mine = true, k = 1 - e, run = k < 0.12 ? k / 0.12 : Math.max(0, 1 - (k - 0.12) / 0.7);
         b.position.z = (mine ? 0.34 : 0.02) * smooth5(run); }); // out past the cradle's end
       g.models.gemini.rotation.y = gemKick.side * 0.05 * w; g.models.gemini.rotation.x = 0.06 * w;
     }

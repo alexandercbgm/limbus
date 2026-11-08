@@ -2340,12 +2340,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // rounded cradle that the barrels' ends slide into. Each barrel is a group named "gbar"
     const box = (w, h, d, mat, x, y, z, g) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); g.add(m); return m; };
     const SH_Z = -0.3, SH_H = 0.44, SH_T = 0.045, LEAN = 0.6; // where the face stands, its height and thickness, how far its top leans back per metre
-    // the shield: its face a plate with an arch cut up from its foot for each barrel (square, its top corners rounded), so the
+    // the shield: its face a plate with an arch cut up from its foot for each barrel (its top round, the barrel's shape), so the
     // barrels run back through it, not through the plate; the two cheeks plates meeting the face's ends. All leaning to the gunner
-    const GX = 0.22, FW = 0.4, CK = [0.22, 0.26], AH = 0.125, AT = 0.17 + 0.125, AR = 0.05; // the barrels' spread; the face's half width; the cheeks' run; an arch's half width, top, corner
+    const GX = 0.14, FW = 0.4, CK = [0.22, 0.26], AH = 0.115, AY = 0.17; // the barrels' spread; the face's half width; the cheeks' run; an arch's half width (its top a half circle round the barrel), the barrel's height in it
     const shield = (() => {
       const f = new THREE.Shape(); f.moveTo(-FW, 0);
-      for (const x0 of [-GX, GX]) { f.lineTo(x0 - AH, 0); f.lineTo(x0 - AH, AT - AR); f.quadraticCurveTo(x0 - AH, AT, x0 - AH + AR, AT); f.lineTo(x0 + AH - AR, AT); f.quadraticCurveTo(x0 + AH, AT, x0 + AH, AT - AR); f.lineTo(x0 + AH, 0); }
+      for (const x0 of [-GX, GX]) { f.lineTo(x0 - AH, 0); f.lineTo(x0 - AH, AY); f.absarc(x0, AY, AH, Math.PI, 0, true); f.lineTo(x0 + AH, 0); }
       f.lineTo(FW, 0); f.lineTo(FW, SH_H); f.lineTo(-FW, SH_H); f.closePath();
       const ex = { depth: SH_T, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 3, curveSegments: 8 };
       const parts = [new THREE.ExtrudeGeometry(f, ex)];
@@ -2407,7 +2407,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   cannonB.traverse(o => { if (o.material === ringMat) accelRings.push(o); });
   const GUNS = [cannon, cannonB].map(c => ({ c, yaw: c.getObjectByName("yaw"), pitch: c.getObjectByName("pitch"), barrel: c.getObjectByName("barrel"),
     models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), ferrum: c.getObjectByName("m_ferrum") } }));
-  const GEM_MUZZLE = [new THREE.Vector3(-0.22, 0, -1.7), new THREE.Vector3(0.22, 0, -1.7)]; // where each barrel's ball leaves
+  const GEM_MUZZLE = [new THREE.Vector3(-0.14, 0, -1.7), new THREE.Vector3(0.14, 0, -1.7)]; // where each barrel's ball leaves
   function setWeaponVisual(id) {
     const twin = id === "gemini";
     // Gemini is one turret in the middle; the second gun goes with it, unseen, its ball leaving by the other barrel
@@ -5864,7 +5864,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         fireLaser(from, aim.sub(from).normalize()); continue;
       }
       // Gemini's two balls fly side by side, both along the line from between its muzzles to the target, not meeting at it
-      const dir = progress.weapon === "gemini" ? target.clone().sub(GUNS[0].barrel.localToWorld(GEM_MUZZLE[0].clone().add(GEM_MUZZLE[1]).multiplyScalar(0.5))).normalize() : target.clone().sub(from).normalize();
+      // (the two open a little, so that by the aim they are a ball and a bit apart and never close again)
+      let dir;
+      if (progress.weapon === "gemini") { const mid = GUNS[0].barrel.localToWorld(GEM_MUZZLE[0].clone().add(GEM_MUZZLE[1]).multiplyScalar(0.5)), side = from.clone().sub(mid);
+        dir = target.clone().addScaledVector(side.normalize(), 0.26).sub(from).normalize(); } // each aimed 26 cm out to its own side of the aim
+      else dir = target.clone().sub(from).normalize();
       if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
       else launch(from, dir, vol);
     }

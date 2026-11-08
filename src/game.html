@@ -2342,7 +2342,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const SH_Z = -0.3, SH_H = 0.44, SH_T = 0.045, LEAN = 0.6; // where the face stands, its height and thickness, how far its top leans back per metre
     // the shield: its face a plate with an arch cut up from its foot for each barrel (its top round, the barrel's shape), so the
     // barrels run back through it, not through the plate; the two cheeks plates meeting the face's ends. All leaning to the gunner
-    const GX = 0.14, FW = 0.4, CK = [0.22, 0.26], AH = 0.115, AY = 0.17; // the barrels' spread; the face's half width; the cheeks' run; an arch's half width (its top a half circle round the barrel), the barrel's height in it
+    const GX = 0.16, FW = 0.4, CK = [0.22, 0.26], AH = 0.115, AY = 0.17; // the barrels' spread; the face's half width; the cheeks' run; an arch's half width (its top a half circle round the barrel), the barrel's height in it
     const shield = (() => {
       const f = new THREE.Shape(); f.moveTo(-FW, 0);
       for (const x0 of [-GX, GX]) { f.lineTo(x0 - AH, 0); f.lineTo(x0 - AH, AY); f.absarc(x0, AY, AH, Math.PI, 0, true); f.lineTo(x0 + AH, 0); }
@@ -2356,7 +2356,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const out = g || parts; const shear = new THREE.Matrix4().set(1, 0, 0, 0, 0, 1, 0, 0, 0, LEAN, 1, 0, 0, 0, 0, 1); // lean its top toward the gunner
       (Array.isArray(out) ? out : [out]).forEach(q => { q.applyMatrix4(shear); q.computeVertexNormals(); }); return out; })();
     for (const q of Array.isArray(shield) ? shield : [shield]) { const m = new THREE.Mesh(q, shellMat); m.position.set(0, -0.17, SH_Z); mG.add(m); }
-    const topLine = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-FW - CK[0], CK[1]], [-FW, 0], [FW, 0], [FW + CK[0], CK[1]]].map(([x, z]) => new THREE.Vector3(x, SH_H + 0.024, z + LEAN * (SH_H + 0.024) - 0.01)), false, "catmullrom", 0.0), 60, 0.008, 6, false), accentMat);
+    // a lit line along the middle of the shield's top edge, sunk half into it (it had floated a little in front of the edge)
+    const topLine = (() => {
+      const a = Math.atan2(CK[1], CK[0]), T = SH_T / 2, Y = SH_H + 0.012;
+      const nl = [Math.sin(a), Math.cos(a)], nr = [-Math.sin(a), Math.cos(a)], nf = [0, 1]; // each plate's inward normal in plan
+      const miter = (p, q) => { const x = p[0] + q[0], z = p[1] + q[1], l = Math.hypot(x, z), c = (p[0] * q[0] + p[1] * q[1] + 1) / 2, k = 1 / Math.sqrt(c); return [x / l * k, z / l * k]; };
+      const pts = [[-FW - CK[0], CK[1], nl], [-FW, 0, miter(nl, nf)], [FW, 0, miter(nr, nf)], [FW + CK[0], CK[1], nr]].map(([x, z, n]) => new THREE.Vector3(x + n[0] * T, Y, z + n[1] * T + LEAN * Y));
+      const path = new THREE.CurvePath(); for (let k = 0; k < 3; k++) path.add(new THREE.LineCurve3(pts[k], pts[k + 1]));
+      return new THREE.Mesh(new THREE.TubeGeometry(path, 60, 0.0055, 6, false), accentMat); })();
     topLine.position.set(0, -0.17, SH_Z); mG.add(topLine);
     // the cradle: a low rounded bed under the breeches, behind the shield's foot, a fine lit line along each edge of its top
     // the cradle: one dark piece, a trough in it under each breech that the breech slides back along, a fine lit line along each lip
@@ -2375,10 +2382,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const z of [0.0, 0.165]) { const band = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.011, 8, 36), darkMat); band.position.z = z; bg.add(band); } // dark rings round it, front and back
       const back = cyl(0.03, 0.008, darkMat, 18); back.position.z = 0.245; bg.add(back); // a small hub on its back
       // the barrel, turned in one piece: out of the breech, the thick third with its swell, a taper, the slim two thirds, a lip at the muzzle
-      const L = lathe([[0, -0.02], [0.085, -0.02], [0.085, -0.62], [0.104, -0.65], [0.104, -0.84], [0.085, -0.87], [0.085, -0.98], [0.064, -1.04],
+      const L = lathe([[0, -0.02], [0.085, -0.02], [0.085, -0.56], [0.104, -0.59], [0.104, -0.78], [0.085, -0.81], [0.085, -0.92], [0.064, -0.98],
         [0.064, -1.62], [0.07, -1.63], [0.07, -1.68], [0.048, -1.68], [0.048, -1.66], [0, -1.66]].map(([r, z]) => [r, -z]), 36).rotateX(-Math.PI / 2);
       bg.add(new THREE.Mesh(L, shellMat)); // (the swell far enough out that, run right back, it stays in front of the shield)
-      for (const z of [-0.62, -0.87, -1.01]) { const rg = new THREE.Mesh(new THREE.TorusGeometry(z < -0.95 ? 0.072 : z < -0.7 ? 0.1 : 0.088, 0.007, 6, 32), z === -1.01 ? accentMat : darkMat); rg.position.z = z - 0.01; bg.add(rg); } // rings at its steps
+      for (const z of [-0.56, -0.81, -0.95]) { const rg = new THREE.Mesh(new THREE.TorusGeometry(z < -0.9 ? 0.072 : z < -0.7 ? 0.1 : 0.088, 0.007, 6, 32), z === -0.95 ? accentMat : darkMat); rg.position.z = z - 0.01; bg.add(rg); } // rings at its steps
       const bore = cyl(0.046, 0.01, accentMat, 20); bore.position.z = -1.665; bg.add(bore);
     }
     // Lumen: a slender emitter with cooling fins and a glowing lens
@@ -2407,7 +2414,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   cannonB.traverse(o => { if (o.material === ringMat) accelRings.push(o); });
   const GUNS = [cannon, cannonB].map(c => ({ c, yaw: c.getObjectByName("yaw"), pitch: c.getObjectByName("pitch"), barrel: c.getObjectByName("barrel"),
     models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), ferrum: c.getObjectByName("m_ferrum") } }));
-  const GEM_MUZZLE = [new THREE.Vector3(-0.14, 0, -1.7), new THREE.Vector3(0.14, 0, -1.7)]; // where each barrel's ball leaves
+  const GEM_MUZZLE = [new THREE.Vector3(-0.16, 0, -1.7), new THREE.Vector3(0.16, 0, -1.7)]; // where each barrel's ball leaves
   function setWeaponVisual(id) {
     const twin = id === "gemini";
     // Gemini is one turret in the middle; the second gun goes with it, unseen, its ball leaving by the other barrel

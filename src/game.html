@@ -166,8 +166,8 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .station .ring, .station .hub { transform-box: view-box; }
 /* under the pointer a station's ring glows in its own colour (its colour is set as the element's color), about as far out as
    it used to thicken */
-.station .ring, .station .hub { transition: filter 0.15s; }
-.station.hot .ring:not(.inner), .station.hot .hub { filter: drop-shadow(0 0 2.5px currentColor) drop-shadow(0 0 1px currentColor); }
+.station .halo { opacity: 0; transition: opacity 0.15s; filter: drop-shadow(0 0 2.5px currentColor) drop-shadow(0 0 1px currentColor); pointer-events: none; }
+.station.hot .halo { opacity: 1; } /* a copy of the outer ring under the rest, glowing: the rings over it hide the glow inward */
 /* rings spreading from stations: plain round boxes in a layer under the scheme, grown and faded on the graphics card alone
    (an SVG shape's transform is laid out again every frame; a box's is not) */
 .map-scroll { position: relative; z-index: 0; } #map { position: relative; } /* its layers stack inside it, under the tools */
@@ -6886,6 +6886,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const outer = !hub ? stroke : lv.id === "initium" ? (uy < 0 ? LINE_GOLD : HUB_RING.initium) : HUB_RING[lv.id];
         if (c.toLowerCase() === outer.toLowerCase()) out += `<line x1="${p.x}" y1="${p.y}" x2="${p.x + ux * 25}" y2="${p.y + uy * 25}" stroke="${c}" stroke-width="8"/>`;
       }
+      // the glow under the pointer: over the casing, under the station's face and rings, which hide it inward
+      { const hr = hub ? 21 : 20.5, hw = hub ? 4 : 5, half = (c, s) => `<path class="halo" style="color:${c}" d="M${p.x - s * hr} ${p.y}A${hr} ${hr} 0 0 1 ${p.x + s * hr} ${p.y}" fill="none" stroke="${c}" stroke-width="${hw}"/>`;
+        out += hub && lv.id === "initium" ? half(LINE_GOLD, 1) + half(HUB_RING.initium, -1) : `<circle class="halo" style="color:${hub ? HUB_RING[lv.id] : stroke}" cx="${p.x}" cy="${p.y}" r="${hr}" fill="none" stroke="${hub ? HUB_RING[lv.id] : stroke}" stroke-width="${hw}"/>`; }
       if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/>`; // a transfer's face, under its inner circle
       out += `<circle class="ring${hub ? " inner" : ""}${dark ? " done" : ""}" style="transform-origin:${p.x}px ${p.y}px" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
       if (hub && lv.id === "initium") out += `<path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below

@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.201</div>
+      <div class="credit version">v1.0.202</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.201`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.202`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2411,13 +2411,22 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     });
     const core = cyl(0.01, 0.6, accentMat, 8); core.position.z = -0.54; mB.add(core);
     [-0.4, -0.58, -0.76].forEach(z => { const r = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.008, 6, 36), ringMat); r.position.z = z; mB.add(r); accelRings.push(r); });
-    // Triplex: a rotary cluster of three short barrels held by two clamps
-    const mT = new THREE.Group(); mT.name = "m_triplex"; mT.position.z = -0.52; barrel.add(mT);
+    // Triplex, half as big again as it was: a drum of a body, a cylinder with its square edges rounded off; out of its front a
+    // rotary cluster of three barrels round a hub, held by two clamps, each barrel turned with a flared muzzle and a lit ring
+    const mTB = new THREE.Group(); mTB.name = "m_triplex_body"; barrel.add(mTB);
+    const RB = 0.16, LB = 0.44, CR = 0.05; // the drum's radius, length, the rounding of its edges
+    const prof = [[0, -LB / 2]]; for (let i = 0; i <= 6; i++) { const a = -Math.PI / 2 + i / 6 * Math.PI / 2; prof.push([RB - CR + CR * Math.cos(a), -LB / 2 + CR + CR * Math.sin(a)]); }
+    for (let i = 0; i <= 6; i++) { const a = i / 6 * Math.PI / 2; prof.push([RB - CR + CR * Math.cos(a), LB / 2 - CR + CR * Math.sin(a)]); } prof.push([0, LB / 2]);
+    const drum = new THREE.Mesh(lathe(prof, 40).rotateX(-Math.PI / 2), shellMat); drum.position.z = 0.02; mTB.add(drum);
+    for (const z of [-0.1, 0.12]) { const bd = new THREE.Mesh(new THREE.TorusGeometry(RB + 0.002, 0.006, 6, 48), accentMat); bd.position.z = z; mTB.add(bd); }
+    const mT = new THREE.Group(); mT.name = "m_triplex"; mT.position.z = -0.2; mT.scale.setScalar(1.5); barrel.add(mT);
+    const hubT = cyl(0.03, 0.56, darkMat, 16); hubT.position.z = -0.3; mT.add(hubT);
     [0, 2.094, 4.189].forEach(a => {
-      const b = cyl(0.045, 0.62, darkMat); b.position.set(Math.cos(a) * 0.072, Math.sin(a) * 0.072, 0); mT.add(b);
-      const tip = cyl(0.05, 0.05, accentMat); tip.position.set(Math.cos(a) * 0.072, Math.sin(a) * 0.072, -0.32); mT.add(tip);
+      const x = Math.cos(a) * 0.072, y = Math.sin(a) * 0.072;
+      const b = new THREE.Mesh(lathe([[0.036, 0], [0.036, 0.5], [0.042, 0.52], [0.046, 0.56], [0.03, 0.56], [0.03, 0.54]], 18).rotateX(-Math.PI / 2), darkMat); b.position.set(x, y, -0.04); mT.add(b);
+      const tip = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.006, 6, 20), accentMat); tip.position.set(x, y, -0.52); mT.add(tip);
     });
-    [-0.16, 0.12].forEach(z => { const c = cyl(0.135, 0.06, shellMat, 24); c.position.z = z; mT.add(c); });
+    [-0.08, -0.42].forEach(z => { const c = new THREE.Mesh(lathe([[0.1, -0.025], [0.118, -0.018], [0.118, 0.018], [0.1, 0.025]], 30).rotateX(-Math.PI / 2), shellMat); c.position.z = z; mT.add(c); });
     // Gemini: a twin-barrelled turret (one, firing a ball from each barrel)
     const mG = new THREE.Group(); mG.name = "m_gemini"; barrel.add(mG);
     // a twin naval gun behind a three-faced shield, one piece: a broad face and two cheeks swept back from it, all leaning
@@ -2499,14 +2508,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const cannonB = cannon.clone(); cart.add(cannonB);
   cannonB.traverse(o => { if (o.material === ringMat) accelRings.push(o); });
   const GUNS = [cannon, cannonB].map(c => ({ c, yaw: c.getObjectByName("yaw"), pitch: c.getObjectByName("pitch"), barrel: c.getObjectByName("barrel"),
-    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), ferrum: c.getObjectByName("m_ferrum") } }));
+    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), ferrum: c.getObjectByName("m_ferrum") } }));
   const GEM_MUZZLE = [new THREE.Vector3(-0.16, 0, -1.7), new THREE.Vector3(0.16, 0, -1.7)]; // where each barrel's ball leaves
   function setWeaponVisual(id) {
     const twin = id === "gemini";
     // Gemini is one turret in the middle; the second gun goes with it, unseen, its ball leaving by the other barrel
     GUNS[0].c.position.x = 0; GUNS[1].c.position.x = 0; GUNS[1].c.visible = false;
-    GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin; }); }); // Gemini's breeches would show the gimbal's fork through them
-    GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id; });
+    GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin && id !== "triplex"; g.models.triplex_body.visible = id === "triplex"; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin; }); }); // Gemini's breeches would show the gimbal's fork through them
+    GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k === id + "_body"; });
     const w = WEAPONS[id];
     $("wpn").textContent = `${w.name} · −${w.cost}`;
   }
@@ -5904,7 +5913,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.yaw.rotation.y = clamp(Math.atan2(-aimLocal.x, -aimLocal.z), -1.2, 1.2);
     g.pitch.rotation.x = clamp(Math.asin(clamp(aimLocal.y, -1, 1)), -0.3, 0.9);
     g.c.updateMatrixWorld(true);
-    return g.barrel.localToWorld(progress.weapon === "gemini" ? GEM_MUZZLE[GUNS.indexOf(g)].clone() : new THREE.Vector3(0, 0, -0.8));
+    return g.barrel.localToWorld(progress.weapon === "gemini" ? GEM_MUZZLE[GUNS.indexOf(g)].clone() : new THREE.Vector3(0, 0, progress.weapon === "triplex" ? -1.02 : -0.8));
   }
   function launch(from, dir, vol) {
     const m = new THREE.Mesh(ballGeo, ballMat);
@@ -5926,7 +5935,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function launchTriplex(g, from, dir, vol) {
     const e1 = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion), e2 = new THREE.Vector3();
     e1.addScaledVector(dir, -e1.dot(dir)).normalize(); e2.crossVectors(e1, dir).normalize();
-    const rot = g.models.triplex.rotation.z, r0 = 0.072 * g.c.scale.x;
+    const rot = g.models.triplex.rotation.z, r0 = 0.072 * 1.5 * g.c.scale.x;
     for (let i = 0; i < 3; i++) {
       const b = launch(from, dir, vol), c = from.clone();
       b.sp = { c, phase: rot + i * TAU / 3, e1, e2, r0 };

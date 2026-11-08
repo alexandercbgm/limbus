@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.192</div>
+      <div class="credit version">v1.0.193</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.192`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.193`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2426,28 +2426,35 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // rounded cradle that the barrels' ends slide into. Each barrel is a group named "gbar"
     const box = (w, h, d, mat, x, y, z, g) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); g.add(m); return m; };
     const SH_Z = -0.3, SH_H = 0.44, SH_T = 0.045, LEAN = 0.6; // where the face stands, its height and thickness, how far its top leans back per metre
+    // the shield: its face a plate with an arch cut up from its foot for each barrel (square, its top corners rounded), so the
+    // barrels run back through it, not through the plate; the two cheeks plates meeting the face's ends. All leaning to the gunner
+    const GX = 0.22, FW = 0.4, CK = [0.22, 0.26], AH = 0.125, AT = 0.17 + 0.125, AR = 0.05; // the barrels' spread; the face's half width; the cheeks' run; an arch's half width, top, corner
     const shield = (() => {
-      const P = [[-0.56, 0.26], [-0.34, 0], [0.34, 0], [0.56, 0.26]]; // its plan: the face, the cheeks running back
-      const off = (a, b, k) => { const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz); return [-dz / l * k, dx / l * k]; };
-      const inner = P.map((p, i) => { const a = P[Math.max(0, i - 1)], b = P[Math.min(P.length - 1, i + 1)], [nx, nz] = off(a, b, SH_T); return [p[0] - nx, p[1] - nz]; });
-      const s = new THREE.Shape(); P.forEach(([x, z], i) => s[i ? "lineTo" : "moveTo"](x, -z)); inner.slice().reverse().forEach(([x, z]) => s.lineTo(x, -z)); s.closePath();
-      const g = new THREE.ExtrudeGeometry(s, { depth: SH_H, bevelEnabled: true, bevelThickness: 0.022, bevelSize: 0.016, bevelSegments: 4, curveSegments: 4 }).rotateX(-Math.PI / 2);
-      g.applyMatrix4(new THREE.Matrix4().set(1, 0, 0, 0, 0, 1, 0, 0, 0, LEAN, 1, 0, 0, 0, 0, 1)); // lean its top toward the gunner
-      g.computeVertexNormals(); return g; })();
-    const sh = new THREE.Mesh(shield, shellMat); sh.position.set(0, -0.17, SH_Z); mG.add(sh);
-    const topLine = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-0.56, 0.26], [-0.34, 0], [0.34, 0], [0.56, 0.26]].map(([x, z]) => new THREE.Vector3(x, SH_H + 0.024, z + LEAN * (SH_H + 0.024) - 0.01)), false, "catmullrom", 0.0), 60, 0.008, 6, false), accentMat);
+      const f = new THREE.Shape(); f.moveTo(-FW, 0);
+      for (const x0 of [-GX, GX]) { f.lineTo(x0 - AH, 0); f.lineTo(x0 - AH, AT - AR); f.quadraticCurveTo(x0 - AH, AT, x0 - AH + AR, AT); f.lineTo(x0 + AH - AR, AT); f.quadraticCurveTo(x0 + AH, AT, x0 + AH, AT - AR); f.lineTo(x0 + AH, 0); }
+      f.lineTo(FW, 0); f.lineTo(FW, SH_H); f.lineTo(-FW, SH_H); f.closePath();
+      const ex = { depth: SH_T, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 3, curveSegments: 8 };
+      const parts = [new THREE.ExtrudeGeometry(f, ex)];
+      const L = Math.hypot(CK[0], CK[1]), a = Math.atan2(CK[1], CK[0]);
+      for (const sd of [-1, 1]) { const r = new THREE.Shape(); const x0 = sd > 0 ? 0 : -L, x1 = sd > 0 ? L : 0; r.moveTo(x0, 0); r.lineTo(x1, 0); r.lineTo(x1, SH_H); r.lineTo(x0, SH_H); r.closePath();
+        parts.push(new THREE.ExtrudeGeometry(r, ex).rotateY(-sd * a).translate(sd * FW, 0, 0)); }
+      const g = THREE.BufferGeometryUtils ? THREE.BufferGeometryUtils.mergeBufferGeometries(parts) : null;
+      const out = g || parts; const shear = new THREE.Matrix4().set(1, 0, 0, 0, 0, 1, 0, 0, 0, LEAN, 1, 0, 0, 0, 0, 1); // lean its top toward the gunner
+      (Array.isArray(out) ? out : [out]).forEach(q => { q.applyMatrix4(shear); q.computeVertexNormals(); }); return out; })();
+    for (const q of Array.isArray(shield) ? shield : [shield]) { const m = new THREE.Mesh(q, shellMat); m.position.set(0, -0.17, SH_Z); mG.add(m); }
+    const topLine = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-FW - CK[0], CK[1]], [-FW, 0], [FW, 0], [FW + CK[0], CK[1]]].map(([x, z]) => new THREE.Vector3(x, SH_H + 0.024, z + LEAN * (SH_H + 0.024) - 0.01)), false, "catmullrom", 0.0), 60, 0.008, 6, false), accentMat);
     topLine.position.set(0, -0.17, SH_Z); mG.add(topLine);
     // the cradle: a low rounded bed under the breeches, behind the shield's foot, a fine lit line along each edge of its top
     // the cradle: one dark piece, a trough in it under each breech that the breech slides back along, a fine lit line along each lip
     const CR_Z0 = 0.025, CR_L = 0.24, TR_R = 0.112; // from just behind the breeches' front rings, so each ring shows whole
-    const crShape = (() => { const s = new THREE.Shape(); s.moveTo(-0.27, -0.2); s.lineTo(0.27, -0.2); s.lineTo(0.27, 0);
-      s.lineTo(0.14 + TR_R, 0); s.absarc(0.14, 0, TR_R, 0, -Math.PI, true); s.lineTo(-0.14 + TR_R, 0); s.absarc(-0.14, 0, TR_R, 0, -Math.PI, true); s.lineTo(-0.27, 0); s.closePath(); return s; })();
+    const crShape = (() => { const s = new THREE.Shape(); const W2 = GX + TR_R + 0.035; s.moveTo(-W2, -0.2); s.lineTo(W2, -0.2); s.lineTo(W2, 0);
+      s.lineTo(GX + TR_R, 0); s.absarc(GX, 0, TR_R, 0, -Math.PI, true); s.lineTo(-GX + TR_R, 0); s.absarc(-GX, 0, TR_R, 0, -Math.PI, true); s.lineTo(-W2, 0); s.closePath(); return s; })();
     const cr = new THREE.Mesh(new THREE.ExtrudeGeometry(crShape, { depth: CR_L, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 2, curveSegments: 24 }), darkMat);
     cr.position.set(0, 0, CR_Z0); mG.add(cr);
-    for (const x of [-0.252, -0.028, 0.028, 0.252]) box(0.0025, 0.0015, CR_L, accentMat, x, 0.0095, CR_Z0 + CR_L / 2, mG);
+    for (const x of [-GX - TR_R, -GX + TR_R, GX - TR_R, GX + TR_R]) box(0.0025, 0.0015, CR_L, accentMat, x, 0.0095, CR_Z0 + CR_L / 2, mG);
     for (const sd of [-1, 1]) {
-      const x = sd * 0.14;
-      const coll = new THREE.Mesh(lathe([[0.086, 0.09], [0.112, 0.09], [0.122, 0.07], [0.122, 0.0], [0.086, 0.0], [0.086, 0.09]], 36).rotateX(-Math.PI / 2).applyMatrix4(new THREE.Matrix4().set(1, 0, 0, 0, 0, 1, 0, 0, 0, LEAN, 1, 0, 0, 0, 0, 1)), shellMat); coll.position.set(x, 0, SH_Z + LEAN * 0.17 + 0.012); mG.add(coll); // (it runs forward from there) // its back cut to the plate's lean, so it sits on it all round // the collar on the face, where the barrel goes through it (it ends inside the plate: poking out behind, only its top had shown)
+      const x = sd * GX;
+      // (no collar: each barrel runs through its arch in the shield)
       const bg = new THREE.Group(); bg.name = "gbar"; bg.position.set(x, 0, 0); mG.add(bg);
       // the breech: a round body the barrel comes out of, a dark band round its front, a hub on its back
       const br = new THREE.Mesh(lathe([[0, -0.03], [0.09, -0.03], [0.1, -0.02], [0.1, 0.195], [0.09, 0.225], [0.05, 0.24], [0, 0.24]], 36).rotateX(Math.PI / 2), shellMat); bg.add(br); // (turned to run back, toward the gunner) // a long round breech, its back rounded off
@@ -2486,7 +2493,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   cannonB.traverse(o => { if (o.material === ringMat) accelRings.push(o); });
   const GUNS = [cannon, cannonB].map(c => ({ c, yaw: c.getObjectByName("yaw"), pitch: c.getObjectByName("pitch"), barrel: c.getObjectByName("barrel"),
     models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), ferrum: c.getObjectByName("m_ferrum") } }));
-  const GEM_MUZZLE = [new THREE.Vector3(-0.14, 0, -1.7), new THREE.Vector3(0.14, 0, -1.7)]; // where each barrel's ball leaves
+  const GEM_MUZZLE = [new THREE.Vector3(-0.22, 0, -1.7), new THREE.Vector3(0.22, 0, -1.7)]; // where each barrel's ball leaves
   function setWeaponVisual(id) {
     const twin = id === "gemini";
     // Gemini is one turret in the middle; the second gun goes with it, unseen, its ball leaving by the other barrel

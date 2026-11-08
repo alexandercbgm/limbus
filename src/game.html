@@ -2326,7 +2326,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const core = cyl(0.01, 0.6, accentMat, 8); core.position.z = -0.54; mB.add(core);
     [-0.4, -0.58, -0.76].forEach(z => { const r = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.008, 6, 36), ringMat); r.position.z = z; mB.add(r); accelRings.push(r); });
     // Triplex, half as big again as it was: a drum of a body, a cylinder with its square edges rounded off; out of its front a
-    // rotary cluster of three barrels round a hub, held by two clamps, each barrel turned with a flared muzzle and a lit ring
+    // rotary cluster of three barrels held by two discs
     const mTB = new THREE.Group(); mTB.name = "m_triplex_body"; barrel.add(mTB);
     const RB = 0.16, LB = 0.44, CR = 0.05; // the drum's radius, length, the rounding of its edges
     const prof = [[0, -LB / 2]]; for (let i = 0; i <= 6; i++) { const a = -Math.PI / 2 + i / 6 * Math.PI / 2; prof.push([RB - CR + CR * Math.cos(a), -LB / 2 + CR + CR * Math.sin(a)]); }
@@ -2334,13 +2334,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const drum = new THREE.Mesh(lathe(prof, 40).rotateX(-Math.PI / 2), shellMat); drum.position.z = 0.02; mTB.add(drum);
     for (const z of [-0.1, 0.12]) { const bd = new THREE.Mesh(new THREE.TorusGeometry(RB + 0.002, 0.006, 6, 48), accentMat); bd.position.z = z; mTB.add(bd); }
     const mT = new THREE.Group(); mT.name = "m_triplex"; mT.position.z = -0.2; mT.scale.setScalar(1.5); barrel.add(mT);
-    const hubT = cyl(0.03, 0.56, darkMat, 16); hubT.position.z = -0.3; mT.add(hubT);
-    [0, 2.094, 4.189].forEach(a => {
-      const x = Math.cos(a) * 0.072, y = Math.sin(a) * 0.072;
-      const b = new THREE.Mesh(lathe([[0.036, 0], [0.036, 0.5], [0.042, 0.52], [0.046, 0.56], [0.03, 0.56], [0.03, 0.54]], 18).rotateX(-Math.PI / 2), darkMat); b.position.set(x, y, -0.04); mT.add(b);
-      const tip = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.006, 6, 20), accentMat); tip.position.set(x, y, -0.52); mT.add(tip);
+    [0, 2.094, 4.189].forEach(a => { // the barrels and their clamping discs as they were, only bigger (the group is scaled)
+      const b = cyl(0.045, 0.62, darkMat); b.position.set(Math.cos(a) * 0.072, Math.sin(a) * 0.072, -0.32); mT.add(b);
+      const tip = cyl(0.05, 0.05, accentMat); tip.position.set(Math.cos(a) * 0.072, Math.sin(a) * 0.072, -0.64); mT.add(tip);
     });
-    [-0.08, -0.42].forEach(z => { const c = new THREE.Mesh(lathe([[0.1, -0.025], [0.118, -0.018], [0.118, 0.018], [0.1, 0.025]], 30).rotateX(-Math.PI / 2), shellMat); c.position.z = z; mT.add(c); });
+    [-0.48, -0.2].forEach(z => { const c = cyl(0.135, 0.06, shellMat, 24); c.position.z = z; mT.add(c); });
     // Gemini: a twin-barrelled turret (one, firing a ball from each barrel)
     const mG = new THREE.Group(); mG.name = "m_gemini"; barrel.add(mG);
     // a twin naval gun behind a three-faced shield, one piece: a broad face and two cheeks swept back from it, all leaning
@@ -5827,7 +5825,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.yaw.rotation.y = clamp(Math.atan2(-aimLocal.x, -aimLocal.z), -1.2, 1.2);
     g.pitch.rotation.x = clamp(Math.asin(clamp(aimLocal.y, -1, 1)), -0.3, 0.9);
     g.c.updateMatrixWorld(true);
-    return g.barrel.localToWorld(progress.weapon === "gemini" ? GEM_MUZZLE[GUNS.indexOf(g)].clone() : new THREE.Vector3(0, 0, progress.weapon === "triplex" ? -1.02 : -0.8));
+    return g.barrel.localToWorld(progress.weapon === "gemini" ? GEM_MUZZLE[GUNS.indexOf(g)].clone() : new THREE.Vector3(0, 0, progress.weapon === "triplex" ? -1.2 : -0.8));
   }
   function launch(from, dir, vol) {
     const m = new THREE.Mesh(ballGeo, ballMat);

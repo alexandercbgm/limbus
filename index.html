@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.198</div>
+      <div class="credit version">v1.0.199</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.198`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.199`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -7003,9 +7003,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // (a ring stays opaque: see-through, the lines running in under it showed through as dark gaps in it)
       const d = tag === "path" && (m.match(/ d="([^"]*)"/) || [])[1], shape = (sw, op) => d ? `<path class="glass" d="${d}" fill="none" stroke="#fffffe" stroke-width="${sw}" stroke-opacity="${op}" pointer-events="none"/>`
         : `<circle class="glass" cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#fffffe" stroke-width="${sw}" stroke-opacity="${op}" pointer-events="none"/>`;
+      // (a lone ring's glint between its old width and a transfer's outer one)
       const band = shape(w * 0.45, 0.22) + shape(0.9, 0.6); // Initium's outer ring, two half circles, banded along each
       return m + band +
-        `<path class="glass" d="${arc(Math.PI * 1.1, Math.PI * 1.45, r)}" fill="none" stroke="#fffffe" stroke-width="${w * 0.55}" stroke-opacity="0.85" stroke-linecap="round" pointer-events="none"/>`; });
+        `<path class="glass" d="${arc(Math.PI * 1.1, Math.PI * 1.45, r)}" fill="none" stroke="#fffffe" stroke-width="${cls === "hub" || /inner/.test(more) ? w * 0.55 : 2.48}" stroke-opacity="0.85" stroke-linecap="round" pointer-events="none"/>`; });
     out += `<g id="cxFront" pointer-events="none"></g>`; under = `<g id="cxBack"></g>` + under; // crystals over the scheme, and under even the lines' casings
     svg.innerHTML = out; document.documentElement.classList.add("mapready");
     // under the rings: the lines' casings

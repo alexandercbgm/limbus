@@ -2329,9 +2329,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // rotary cluster of three barrels held by two discs
     const mTB = new THREE.Group(); mTB.name = "m_triplex_body"; barrel.add(mTB);
     const RB = 0.16, LB = 0.52, CR = 0.05, CF = 0.014; // the drum's radius, length, the rounding of its back edge, the small chamfer of its front
-    const prof = [[0, -LB / 2], [RB - CF, -LB / 2], [RB, -LB / 2 + CF]]; // its front cut square (the barrels go into it)
-    for (let i = 0; i <= 6; i++) { const a = i / 6 * Math.PI / 2; prof.push([RB - CR + CR * Math.cos(a), LB / 2 - CR + CR * Math.sin(a)]); } prof.push([0, LB / 2]);
-    const drum = new THREE.Mesh(lathe(prof, 40).rotateX(-Math.PI / 2), shellMat); drum.position.z = -0.02; mTB.add(drum);
+    const prof2 = [[0, -LB / 2]]; for (let i = 0; i <= 6; i++) { const a = -Math.PI / 2 + i / 6 * Math.PI / 2; prof2.push([RB - CR + CR * Math.cos(a), -LB / 2 + CR + CR * Math.sin(a)]); } // its back (to the gunner, +z) rounded
+    prof2.push([RB, LB / 2 - CF], [RB - CF, LB / 2], [0, LB / 2]); // its front cut square
+    const drum = new THREE.Mesh(lathe(prof2, 40).rotateX(-Math.PI / 2), shellMat); drum.position.z = -0.02; mTB.add(drum);
     const face = cyl(0.13, 0.01, darkMat, 36); face.position.z = -0.02 - LB / 2 - 0.004; mTB.add(face); // a dark socket in its front face, where the barrels go in
     for (const z of [-0.14, 0.1]) { const bd = new THREE.Mesh(new THREE.TorusGeometry(RB + 0.002, 0.006, 6, 48), accentMat); bd.position.z = z; mTB.add(bd); }
     // and on a mount of its own, black: a yoke of two arms holding the drum by its sides (they turn with it) on a turntable,

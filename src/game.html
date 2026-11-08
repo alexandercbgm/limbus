@@ -6903,22 +6903,23 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "gift" ? LINE_GOLD : st === "open" || st === "opened" || st === "locked" ? LINE_MAIN : "#7a8d95"}">${tag.toUpperCase()}</text>`;
       out += `</g>`;
     }
+    // (its white is #fffffe: the night theme turns the scheme's pure white strokes, its casings, dark)
     // glass: every built line and every station's ring drawn as a tube of coloured glass: its colour a little clear, a paler
     // band down its middle and a thin bright line in that, and on each ring a glint on its upper left
     out = out.replace(/<(line|polyline)\b([^>]*?)stroke="(#[0-9a-fA-F]{3,6})" stroke-width="8"([^>]*?)\/>/g, (m, tag, a, c, b) => {
       if (/stroke-dasharray/.test(m)) return m;
       return `<${tag}${a}stroke="${c}" stroke-width="8" stroke-opacity="0.78"${b}/>` +
-        `<${tag}${a}stroke="#ffffff" stroke-width="3.6" stroke-opacity="0.22"${b}/>` +
-        `<${tag}${a}stroke="#ffffff" stroke-width="1.1" stroke-opacity="0.7"${b}/>`; });
+        `<${tag}${a}stroke="#fffffe" stroke-width="3.6" stroke-opacity="0.22"${b}/>` +
+        `<${tag}${a}stroke="#fffffe" stroke-width="1.1" stroke-opacity="0.7"${b}/>`; });
     out = out.replace(/<(circle|path) class="(ring|hub)([^"]*)" style="transform-origin:([\d.]+)px ([\d.]+)px"([^>]*?)\/>/g, (m, tag, cls, more, x, y) => {
       const r = cls === "hub" ? 21 : /inner/.test(more) ? 17 : 20.5, w = cls === "hub" ? 4 : 5;
       const arc = (A0, A1, rr) => `M${(+x + rr * Math.cos(A0)).toFixed(2)} ${(+y + rr * Math.sin(A0)).toFixed(2)}A${rr} ${rr} 0 0 1 ${(+x + rr * Math.cos(A1)).toFixed(2)} ${(+y + rr * Math.sin(A1)).toFixed(2)}`;
       // (a ring stays opaque: see-through, the lines running in under it showed through as dark gaps in it)
-      const d = tag === "path" && (m.match(/ d="([^"]*)"/) || [])[1], shape = (sw, op) => d ? `<path class="glass" d="${d}" fill="none" stroke="#ffffff" stroke-width="${sw}" stroke-opacity="${op}" pointer-events="none"/>`
-        : `<circle class="glass" cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#ffffff" stroke-width="${sw}" stroke-opacity="${op}" pointer-events="none"/>`;
+      const d = tag === "path" && (m.match(/ d="([^"]*)"/) || [])[1], shape = (sw, op) => d ? `<path class="glass" d="${d}" fill="none" stroke="#fffffe" stroke-width="${sw}" stroke-opacity="${op}" pointer-events="none"/>`
+        : `<circle class="glass" cx="${x}" cy="${y}" r="${r}" fill="none" stroke="#fffffe" stroke-width="${sw}" stroke-opacity="${op}" pointer-events="none"/>`;
       const band = shape(w * 0.45, 0.22) + shape(0.9, 0.6); // Initium's outer ring, two half circles, banded along each
       return m + band +
-        `<path class="glass" d="${arc(Math.PI * 1.1, Math.PI * 1.45, r)}" fill="none" stroke="#ffffff" stroke-width="${w * 0.55}" stroke-opacity="0.85" stroke-linecap="round" pointer-events="none"/>`; });
+        `<path class="glass" d="${arc(Math.PI * 1.1, Math.PI * 1.45, r)}" fill="none" stroke="#fffffe" stroke-width="${w * 0.55}" stroke-opacity="0.85" stroke-linecap="round" pointer-events="none"/>`; });
     out += `<g id="cxFront" pointer-events="none"></g>`; under = `<g id="cxBack"></g>` + under; // crystals over the scheme, and under even the lines' casings
     svg.innerHTML = out; document.documentElement.classList.add("mapready");
     // under the rings: the lines' casings

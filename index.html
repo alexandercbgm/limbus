@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.225</div>
+      <div class="credit version">v1.0.226</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.225`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.226`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2511,16 +2511,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const cr = new THREE.Mesh(new THREE.ExtrudeGeometry(crShape, { depth: CR_L, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 2, curveSegments: 24 }), darkMat);
     cr.position.set(0, 0, CR_Z0); mG.add(cr);
     // its mount, black: two posts up from the turntable to trunnions either side of the cradle, and tubes from each trunnion to
-    // the shield's back and the cradle's side, and along under them from the cradle's foot to the shield's
+    // the shield's back and the cradle's side (the gun itself does not run back: its barrels do, along the cradle)
     const TX = 0.36, tube = (g, p, q, r) => { const d = q.clone().sub(p), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 12), darkMat);
       m.position.copy(p).add(q).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); g.add(m); return m; };
     const V = (x, y, z) => new THREE.Vector3(x, y, z);
     for (const sd of [-1, 1]) {
       tube(gemTurn, V(sd * TX, -0.11, 0.02), V(sd * TX, 0.09, 0), 0.03); // the post (in the turntable's frame: the trunnion at 0.09)
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.07, 20).rotateZ(Math.PI / 2), darkMat); hub.position.set(sd * TX, 0, 0); mG.add(hub);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.07, 20).rotateZ(Math.PI / 2), darkMat); hub.position.set(sd * TX, 0.09, 0); gemTurn.add(hub); // on the post: it stays put as the gun kicks
       tube(mG, V(sd * TX, 0, 0), V(sd * 0.3, -0.06, -0.2), 0.02); // to the shield's back
       tube(mG, V(sd * TX, 0, 0), V(sd * 0.31, -0.1, 0.17), 0.02); // to the cradle's side
-      tube(mG, V(sd * 0.24, -0.19, 0.06), V(sd * 0.24, -0.15, -0.24), 0.018); // under, the cradle's foot to the shield's
     }
     // the lit lines along the troughs' lips: flat strips with soft edges (a texture fading out to either side), not hair-thin
     // boxes, which a phone drew in steps; their colour is the accent's own Color, so they follow it
@@ -6856,7 +6855,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         b.position.z = (mine ? 0.34 : 0.02) * smooth5(run); }); // out past the cradle's end
       g.models.gemini.rotation.y = gemKick.side * 0.05 * w; g.models.gemini.rotation.x = 0.06 * w;
     }
-    GUNS.forEach(g => { g.barrel.position.z = recoil * 0.14; g.models.triplex.rotation.z += dt * triSpin; });
+    GUNS.forEach(g => { g.barrel.position.z = progress.weapon === "gemini" ? 0 : recoil * 0.14; g.models.triplex.rotation.z += dt * triSpin; });
     flashSprite.material.opacity = Math.max(0, flashSprite.material.opacity - dt * 9);
     accelRings.forEach((r, i) => { r.scale.setScalar(1 + recoil * 0.35 * (1 - i * 0.25)); r.rotation.z += dt * (1.5 + i); });
     if (progress.weapon === "radius") { // the rod pulses, beads of light run down it; on a shot a flash runs down it, the rod flares, the mercury drops and fills again

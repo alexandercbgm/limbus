@@ -164,7 +164,7 @@ Crystals banked on finished levels pay fares and buy cannons and upgrades at the
 | Triplex | Тройник | 3 | 60 | three balls in a triangle; a crystal pays for each that hits |
 | Gemini | Близнецы | 2 | 90 | a second cannon: a pair; both hit — double pay |
 | Lumen | Луч | 2 | 140 | an instant laser through every pane on its line |
-| Ferrum | Железо | 2 | not sold | freed in Carcer: an iron shot that goes through glass |
+| Ferrum | Железо | 2 | not sold | freed in Carcer: a mortar firing chain shot, two iron balls on a spinning chain that go through glass |
 
 | Upgrade | | Per level | Levels ◆ |
 |---|---|---|---|

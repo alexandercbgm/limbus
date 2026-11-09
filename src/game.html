@@ -2319,21 +2319,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const band = new THREE.Mesh(new THREE.TorusGeometry(0.142, 0.006, 6, 40), accentMat); band.position.z = 0.1; band.name = "band"; barrel.add(band);
     const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.05, 32).rotateX(Math.PI / 2), darkMat); collar.position.z = -0.21; collar.name = "collar"; barrel.add(collar);
     const cyl = (r, len, mat, segs) => new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, segs || 16).rotateX(Math.PI / 2), mat);
-    // Ballista: twin rails with a glowing core and accelerator rings
+    // Ballista: a Gauss gun: a long slim barrel out of a dark collar, six coils threaded on it, each a dark drum with a lit band,
+    // a little smaller toward the muzzle; as it fires they flare one after another from the body out to the muzzle
     const mB = new THREE.Group(); mB.name = "m_ballista"; barrel.add(mB);
-    // longer rails, tapering toward the muzzle; a pulse of light runs along each when it fires; three rings, smaller toward the
-    // muzzle, that light up one after another as the shot runs through them
-    [-1, 1].forEach(s => {
-      const rg = new THREE.ExtrudeGeometry(rrect(0.05, 0.08, 0.018), { depth: 0.8, bevelEnabled: false, curveSegments: 6 }), pa = rg.attributes.position;
-      for (let i = 0; i < pa.count; i++) { const k = 0.65 + 0.35 * pa.getZ(i) / 0.8; pa.setY(i, pa.getY(i) * k); } rg.computeVertexNormals(); // lower toward the muzzle (z 0 there)
-      const rail = new THREE.Mesh(rg, darkMat); rail.position.set(s * 0.062, 0, -1.04); mB.add(rail);
-      const glow = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.022, 0.78), accentMat); glow.position.set(s * 0.036, 0, -0.64); mB.add(glow);
-      const pulse = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.034, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })); pulse.name = "bpulse"; pulse.position.set(s * 0.036, 0, -0.3); mB.add(pulse);
-    });
-    const core = cyl(0.01, 0.8, accentMat, 8); core.position.z = -0.64; mB.add(core);
-    [[-0.46, 0.108], [-0.7, 0.092], [-0.94, 0.076]].forEach(([z, r], i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, 0.008, 6, 36), ringMat.clone()); m.name = "bring" + i; m.position.z = z; mB.add(m); accelRings.push(m); });
-    // its body a drum as Triplex's, on a black yoke over a single post
-    const mBB = new THREE.Group(); mBB.name = "m_ballista_body"; barrel.add(mBB);
+    const gCol = new THREE.Mesh(lathe([[0.075, 0], [0.1, 0.02], [0.1, 0.07], [0.085, 0.09]], 32).rotateX(-Math.PI / 2), darkMat); gCol.position.z = -0.22; mB.add(gCol);
+    const gBar = new THREE.Mesh(lathe([[0.032, 0], [0.026, 0.86], [0.034, 0.87], [0.034, 0.92], [0.02, 0.92], [0.02, 0.9]], 18).rotateX(-Math.PI / 2), shellMat); gBar.position.z = -0.28; mB.add(gBar);
+    for (let i = 0; i < 6; i++) {
+      const z = -0.36 - i * 0.13, r = 0.085 - i * 0.006;
+      const coil = new THREE.Mesh(lathe([[r * 0.55, -0.035], [r, -0.03], [r, 0.03], [r * 0.55, 0.035]], 28).rotateX(-Math.PI / 2), darkMat); coil.position.z = z; mB.add(coil);
+      const band = new THREE.Mesh(new THREE.TorusGeometry(r + 0.002, 0.01, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffffff })); band.name = "gcoil" + i; band.position.z = z; mB.add(band);
+    }
+    const gTip = cyl(0.022, 0.01, accentMat, 16); gTip.position.z = -1.205; mB.add(gTip);
     // Triplex, its barrels a quarter bigger than they were: a drum of a body, a cylinder with its square edges rounded off; out of its front a
     // rotary cluster of three barrels held by two discs
     const mTB = new THREE.Group(); mTB.name = "m_triplex_body"; barrel.add(mTB);
@@ -2359,12 +2355,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, d.length(), 10), darkMat); leg.position.copy(top).add(foot).multiplyScalar(0.5); leg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); mTL.add(leg);
       const ft = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 8), darkMat); ft.position.copy(foot); mTL.add(ft);
     }
-    mTB.children.forEach(c => mBB.add(c.clone()));
-    const mBY = mTY.clone(); mBY.name = "m_ballista_yoke"; yawG.add(mBY);
-    const mBP = new THREE.Group(); mBP.name = "m_ballista_post"; cannon.add(mBP);
-    const post = cyl(0.05, 0.6, darkMat, 18); post.rotation.set(0, 0, 0); post.geometry = new THREE.CylinderGeometry(0.045, 0.06, 0.6, 18); post.position.y = -0.47; mBP.add(post);
-    const collarP = cyl(0.075, 0.05, darkMat, 24); collarP.rotation.set(0, 0, 0); collarP.geometry = new THREE.CylinderGeometry(0.075, 0.075, 0.05, 24); collarP.position.y = -0.19; mBP.add(collarP);
-    const footP = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 0.06, 28), darkMat); footP.position.y = -0.78; mBP.add(footP);
     const mT = new THREE.Group(); mT.name = "m_triplex"; mT.position.z = -0.25; mT.scale.setScalar(1.25); barrel.add(mT); // its barrels' back ends sunk into the drum's face
     [0, 2.094, 4.189].forEach(a => { // the barrels and their clamping discs as they were, only bigger (the group is scaled)
       const b = cyl(0.045, 0.62, darkMat); b.position.set(Math.cos(a) * 0.072, Math.sin(a) * 0.072, -0.32); mT.add(b);
@@ -2454,14 +2444,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const cannonB = cannon.clone(); cart.add(cannonB);
   cannonB.traverse(o => { if (o.material === ringMat) accelRings.push(o); });
   const GUNS = [cannon, cannonB].map(c => ({ c, yaw: c.getObjectByName("yaw"), pitch: c.getObjectByName("pitch"), barrel: c.getObjectByName("barrel"),
-    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), ballista_body: c.getObjectByName("m_ballista_body"), ballista_yoke: c.getObjectByName("m_ballista_yoke"), ballista_post: c.getObjectByName("m_ballista_post"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), ferrum: c.getObjectByName("m_ferrum") } }));
+    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), ferrum: c.getObjectByName("m_ferrum") } }));
   const GEM_MUZZLE = [new THREE.Vector3(-0.16, 0, -1.7), new THREE.Vector3(0.16, 0, -1.7)]; // where each barrel's ball leaves
   function setWeaponVisual(id) {
     const twin = id === "gemini";
     // Gemini is one turret in the middle; the second gun goes with it, unseen, its ball leaving by the other barrel
     GUNS[0].c.position.x = 0; GUNS[1].c.position.x = 0; GUNS[1].c.visible = false;
-    GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin && id !== "triplex" && id !== "ballista"; g.models.triplex_body.visible = id === "triplex"; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin; }); }); // Gemini's breeches would show the gimbal's fork through them
-    GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k.startsWith(id + "_"); g.c.children.concat(g.yaw.children).forEach(o => { if (o.name === "dish") o.visible = id !== "triplex" && id !== "ballista"; }); if (id === "triplex" || id === "ballista") g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = false; }); }); // Triplex stands on its own black mount
+    GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin && id !== "triplex"; g.models.triplex_body.visible = id === "triplex"; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin; }); }); // Gemini's breeches would show the gimbal's fork through them
+    GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k.startsWith(id + "_"); g.c.children.concat(g.yaw.children).forEach(o => { if (o.name === "dish") o.visible = id !== "triplex"; }); if (id === "triplex") g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = false; }); }); // Triplex stands on its own black mount
     const w = WEAPONS[id];
     $("wpn").textContent = `${w.name} · −${w.cost}`;
   }
@@ -5859,7 +5849,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.yaw.rotation.y = clamp(Math.atan2(-aimLocal.x, -aimLocal.z), -1.2, 1.2);
     g.pitch.rotation.x = clamp(Math.asin(clamp(aimLocal.y, -1, 1)), -0.3, 0.9);
     g.c.updateMatrixWorld(true);
-    return g.barrel.localToWorld(progress.weapon === "gemini" ? GEM_MUZZLE[GUNS.indexOf(g)].clone() : new THREE.Vector3(0, 0, progress.weapon === "triplex" ? -1.08 : progress.weapon === "ballista" ? -1.04 : -0.8));
+    return g.barrel.localToWorld(progress.weapon === "gemini" ? GEM_MUZZLE[GUNS.indexOf(g)].clone() : new THREE.Vector3(0, 0, progress.weapon === "triplex" ? -1.08 : progress.weapon === "ballista" ? -1.2 : -0.8));
   }
   function launch(from, dir, vol) {
     const m = new THREE.Mesh(ballGeo, ballMat);
@@ -6650,10 +6640,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     GUNS.forEach(g => { g.barrel.position.z = recoil * 0.14; g.models.triplex.rotation.z += dt * triSpin; g.models.radius.children.forEach(o => { if (o.name === "lens") o.rotation.z += dt * 3; }); });
     flashSprite.material.opacity = Math.max(0, flashSprite.material.opacity - dt * 9);
     accelRings.forEach((r, i) => { r.scale.setScalar(1 + recoil * 0.35 * (1 - i * 0.25)); r.rotation.z += dt * (1.5 + i); });
-    if (progress.weapon === "ballista") { // a shot runs out along the rails: a pulse slides to the muzzle, the rings flare one after another
-      const k = time - lastShotT, mb = GUNS[0].models.ballista;
-      mb.children.forEach(o => { if (o.name === "bpulse") { const f = clamp(k / 0.16, 0, 1); o.position.z = -0.3 - f * 0.7; o.material.opacity = f < 1 ? 0.95 : 0; }
-        else if (o.name && o.name.startsWith("bring")) { const i = +o.name.slice(5), e = Math.max(0, 1 - Math.abs(k - 0.03 - i * 0.05) / 0.07); o.material.opacity = Math.min(1, ringMat.opacity + e); o.material.color.copy(ringMat.color).lerp(WHITE, e); o.scale.multiplyScalar(1 + e * 0.25); } });
+    if (progress.weapon === "ballista") { // the coils flare one after another, body to muzzle, as a shot runs out through them
+      const k = time - lastShotT;
+      GUNS[0].models.ballista.children.forEach(o => { if (o.name && o.name.startsWith("gcoil")) { const i = +o.name.slice(5), e = Math.max(0, 1 - Math.abs(k - i * 0.035) / 0.06);
+        o.material.color.copy(accentMat.color).lerp(WHITE, e); o.scale.setScalar(1 + e * 0.3); } });
     }
     ringMat.opacity = 0.65 + 0.25 * Math.sin(time * 6) + recoil * 0.3;
     if (recoil === 0) { const k = 1 - Math.exp(-dt * 0.8); GUNS.forEach(g => { g.yaw.rotation.y -= g.yaw.rotation.y * k; g.pitch.rotation.x -= (g.pitch.rotation.x - 0.08) * k; }); }

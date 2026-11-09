@@ -2323,13 +2323,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // a little smaller toward the muzzle; as it fires they flare one after another from the body out to the muzzle
     const mB = new THREE.Group(); mB.name = "m_ballista"; barrel.add(mB);
     const gCol = new THREE.Mesh(lathe([[0.1, 0], [0.13, 0.02], [0.13, 0.07], [0.115, 0.09]], 32).rotateX(-Math.PI / 2), darkMat); gCol.position.z = -0.22; mB.add(gCol);
-    const gBar = new THREE.Mesh(lathe([[0.056, 0], [0.048, 0.86], [0.058, 0.87], [0.058, 0.92], [0.036, 0.92], [0.036, 0.9]], 22).rotateX(-Math.PI / 2), shellMat); gBar.position.z = -0.28; mB.add(gBar);
+    const gBar = new THREE.Mesh(lathe([[0.056, 0], [0.048, 0.87], [0, 0.87]], 22).rotateX(-Math.PI / 2), shellMat); gBar.position.z = -0.28; mB.add(gBar);
     for (let i = 0; i < 6; i++) {
       const z = -0.36 - i * 0.13, r = 0.112 - i * 0.006;
       const coil = new THREE.Mesh(lathe([[r * 0.55, -0.035], [r, -0.03], [r, 0.03], [r * 0.55, 0.035]], 28).rotateX(-Math.PI / 2), darkMat); coil.position.z = z; mB.add(coil);
       const band = new THREE.Mesh(new THREE.TorusGeometry(r + 0.002, 0.01, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffffff })); band.name = "gcoil" + i; band.position.z = z; mB.add(band);
     }
-    const gTip = cyl(0.038, 0.01, accentMat, 16); gTip.position.z = -1.205; mB.add(gTip);
+    const gTip = cyl(0.053, 0.05, accentMat, 22); gTip.position.z = -1.175; mB.add(gTip); // its end lit, as Triplex's are
     // Triplex, its barrels a quarter bigger than they were: a drum of a body, a cylinder with its square edges rounded off; out of its front a
     // rotary cluster of three barrels held by two discs
     const mTB = new THREE.Group(); mTB.name = "m_triplex_body"; barrel.add(mTB);

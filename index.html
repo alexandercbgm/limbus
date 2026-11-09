@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.207</div>
+      <div class="credit version">v1.0.208</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.207`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.208`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2442,11 +2442,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const tip = cyl(0.05, 0.05, accentMat); tip.position.set(Math.cos(a) * 0.072, Math.sin(a) * 0.072, -0.64); mT.add(tip);
     });
     [-0.48, -0.2].forEach(z => { const c = cyl(0.135, 0.06, shellMat, 24); c.position.z = z; mT.add(c); });
-    // a dark shroud round the barrels' back half, between the two discs, slotted, standing still while they turn inside it
-    const mTS = new THREE.Group(); mTS.name = "m_triplex_shroud"; mTS.position.z = -0.25; mTS.scale.setScalar(1.25); barrel.add(mTS);
-    const shr = new THREE.Mesh(new THREE.CylinderGeometry(0.128, 0.128, 0.22, 32, 1, true).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x16191d, roughness: 0.35, metalness: 0.6, side: THREE.DoubleSide }));
-    shr.position.z = -0.34; mTS.add(shr);
-    for (let k = 0; k < 6; k++) { const a = k / 6 * TAU + Math.PI / 6, sl = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.004, 0.15), accentMat); sl.position.set(Math.cos(a) * 0.129, Math.sin(a) * 0.129, -0.34); sl.rotation.z = a + Math.PI / 2; mTS.add(sl); } // its lit slots
     // Gemini: a twin-barrelled turret (one, firing a ball from each barrel)
     const mG = new THREE.Group(); mG.name = "m_gemini"; barrel.add(mG);
     // a twin naval gun behind a three-faced shield, one piece: a broad face and two cheeks swept back from it, all leaning
@@ -2528,7 +2523,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const cannonB = cannon.clone(); cart.add(cannonB);
   cannonB.traverse(o => { if (o.material === ringMat) accelRings.push(o); });
   const GUNS = [cannon, cannonB].map(c => ({ c, yaw: c.getObjectByName("yaw"), pitch: c.getObjectByName("pitch"), barrel: c.getObjectByName("barrel"),
-    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), triplex_shroud: c.getObjectByName("m_triplex_shroud"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), ferrum: c.getObjectByName("m_ferrum") } }));
+    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), ferrum: c.getObjectByName("m_ferrum") } }));
   const GEM_MUZZLE = [new THREE.Vector3(-0.16, 0, -1.7), new THREE.Vector3(0.16, 0, -1.7)]; // where each barrel's ball leaves
   function setWeaponVisual(id) {
     const twin = id === "gemini";
@@ -6711,7 +6706,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
     // cannon: recoil and drift back to center
     recoil = Math.max(0, recoil - dt * 6);
-    // Triplex's barrels wind up fast while it fires and run down slowly after (each shot also kicks the cluster back into the drum)
+    // Triplex's barrels wind up fast while it fires and run down slowly after
     const triFiring = time - lastShotT < 0.3; triSpin += ((triFiring ? 26 : 1) - triSpin) * (1 - Math.exp(-dt * (triFiring ? 7 : 1.4)));
     gemKick.t = Math.max(0, gemKick.t - dt * 3);
     if (progress.weapon === "gemini") { // its barrels run back and out in turn; the turret twists and the barrels kick up, and settle
@@ -6721,7 +6716,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         b.position.z = (mine ? 0.34 : 0.02) * smooth5(run); }); // out past the cradle's end
       g.models.gemini.rotation.y = gemKick.side * 0.05 * w; g.models.gemini.rotation.x = 0.06 * w;
     }
-    GUNS.forEach(g => { g.barrel.position.z = recoil * 0.14; g.models.triplex.rotation.z += dt * triSpin; g.models.triplex.position.z = -0.25 + recoil * 0.07; g.models.triplex_shroud.position.z = -0.25 + recoil * 0.07; g.models.radius.children.forEach(o => { if (o.name === "lens") o.rotation.z += dt * 3; }); });
+    GUNS.forEach(g => { g.barrel.position.z = recoil * 0.14; g.models.triplex.rotation.z += dt * triSpin; g.models.radius.children.forEach(o => { if (o.name === "lens") o.rotation.z += dt * 3; }); });
     flashSprite.material.opacity = Math.max(0, flashSprite.material.opacity - dt * 9);
     accelRings.forEach((r, i) => { r.scale.setScalar(1 + recoil * 0.35 * (1 - i * 0.25)); r.rotation.z += dt * (1.5 + i); });
     ringMat.opacity = 0.65 + 0.25 * Math.sin(time * 6) + recoil * 0.3;

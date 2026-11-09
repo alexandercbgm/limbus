@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.217</div>
+      <div class="credit version">v1.0.218</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.217`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.218`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2511,28 +2511,42 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const z of [-0.56, -0.81, -0.95]) { const rg = new THREE.Mesh(new THREE.TorusGeometry(z < -0.9 ? 0.072 : z < -0.7 ? 0.1 : 0.088, 0.007, 6, 32), z === -0.95 ? accentMat : darkMat); rg.position.z = z - 0.01; bg.add(rg); } // rings at its steps
       const bore = cyl(0.046, 0.01, accentMat, 20); bore.position.z = -1.665; bg.add(bore);
     }
-    // Lumen: a rifle on a mount. Its barrel a thin rod that glows and pulses, lying in a channel between two black rails; a dark
-    // receiver at its back held in the fork. On a shot a flash runs along the rod, and a needle of silver gas leaves its end
+    // Lumen: a rifle on a mount. A wedge of a receiver with a vial of mercury standing on its back and a keel under it; out of its
+    // front two black rails, pointed at their ends, and lying in the channel between them the barrel, a glowing rod that pulses
+    // with light running down it to the muzzle. On a shot a flash runs along the rod and a needle of mercury leaves its end
     const mR = new THREE.Group(); mR.name = "m_radius"; barrel.add(mR);
-    const RZ0 = -0.13, RZ1 = -1.16; // where the rails start and end
-    const recv = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(0.2, 0.15, 0.045), { depth: 0.34, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.01, bevelSegments: 3, curveSegments: 8 }), darkMat);
-    recv.position.z = -0.15; mR.add(recv);
-    for (const x of [-0.07, 0.07]) { const ln = new THREE.Mesh(new THREE.PlaneGeometry(0.012, 0.3).rotateX(-Math.PI / 2), softLineMat); ln.position.set(x, 0.0862, 0.02); mR.add(ln); } // lit lines along its top
-    const sock = cyl(0.03, 0.02, accentMat, 20); sock.position.z = -0.168; mR.add(sock); // where the rod comes out of it
-    for (const sd of [-1, 1]) { // the rails, and a lit cap on each one's end
-      const rl = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(0.02, 0.042, 0.007), { depth: RZ0 - RZ1, bevelEnabled: false, curveSegments: 6 }), darkMat);
-      rl.position.set(sd * 0.034, -0.016, RZ1); mR.add(rl); // low, so that from the side the rod shows over them
-      const cap = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.042, 0.008), accentMat); cap.position.set(sd * 0.034, -0.016, RZ1 - 0.004); mR.add(cap);
+    const side = (pts, w, x) => { // a side outline (z, y) given a thickness w across, centred on x
+      const sh = new THREE.Shape(); sh.moveTo(pts[0][0], pts[0][1]); for (const [z, y] of pts.slice(1)) sh.lineTo(z, y); sh.closePath();
+      return new THREE.ExtrudeGeometry(sh, { depth: w, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2, curveSegments: 6 }).rotateY(-Math.PI / 2).translate(x + w / 2, 0, 0); };
+    mR.add(new THREE.Mesh(side([[0.2, -0.06], [0.22, -0.02], [0.2, 0.06], [0.12, 0.075], [-0.1, 0.06], [-0.2, 0.03], [-0.2, -0.035], [-0.12, -0.06]], 0.15, 0), darkMat)); // the receiver
+    mR.add(new THREE.Mesh(side([[-0.12, -0.055], [-0.2, -0.04], [-0.78, -0.04], [-0.2, -0.1], [-0.1, -0.08]], 0.05, 0), darkMat)); // the keel under the rails
+    for (const sd of [-1, 1]) { // lit cells along each of its flanks, and a lit line along each rail's outer face
+      for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.022, 0.05), accentMat); c.position.set(sd * 0.082, 0.005, 0.12 - i * 0.075); mR.add(c); }
+      const rl = new THREE.Mesh(side([[-0.17, 0.012], [-1.12, 0.012], [-1.24, -0.012], [-1.14, -0.04], [-0.17, -0.04]], 0.022, sd * 0.042), darkMat); mR.add(rl);
+      const ln = new THREE.Mesh(new THREE.PlaneGeometry(0.009, 0.92).rotateX(-Math.PI / 2).rotateZ(-sd * Math.PI / 2), softLineMat); ln.position.set(sd * (0.042 + 0.0175), -0.014, -0.63); mR.add(ln);
     }
-    { const fl = new THREE.Mesh(new THREE.BoxGeometry(0.098, 0.012, RZ0 - RZ1), darkMat); fl.position.set(0, -0.042, (RZ0 + RZ1) / 2); mR.add(fl); } // the channel's floor
-    for (const z of [-0.42, -0.8]) { const br = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.01, 6, 20, Math.PI).rotateZ(Math.PI), darkMat); br.position.set(0, -0.02, z); mR.add(br); } // brackets round under it
-    const rodL = -0.17 - RZ1 + 0.01;
-    const rod = cyl(0.013, rodL, new THREE.MeshBasicMaterial({ color: 0xffffff }), 12); rod.position.set(0, 0.004, -0.17 - rodL / 2); rod.name = "rrod"; mR.add(rod);
-    const halo = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, rodL, 16, 1, true).rotateX(Math.PI / 2),
+    for (const z of [-0.5, -0.86]) { const br = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.011, 6, 20, Math.PI).rotateZ(Math.PI), darkMat); br.position.set(0, -0.02, z); mR.add(br); } // brackets round under the channel
+    // the vial: lying along the receiver's left flank, sunk a little into it, glass with a dark cap and a lit foot ring, the mercury
+    // in it (it drops as a shot takes some and fills again)
+    const vG = new THREE.Group(); vG.rotation.x = -Math.PI / 2; vG.position.set(-0.097, 0.012, 0.1); mR.add(vG); // its foot at the back, its cap forward
+    const vFoot = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.044, 0.022, 24), darkMat); vFoot.position.y = 0.011; vG.add(vFoot);
+    const vRing = new THREE.Mesh(new THREE.TorusGeometry(0.038, 0.005, 6, 28).rotateX(Math.PI / 2), accentMat); vRing.position.y = 0.024; vG.add(vRing);
+    const vGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.12, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }));
+    vGlass.position.y = 0.082; vG.add(vGlass);
+    const vCap = new THREE.Mesh(lathe([[0, 0.026], [0.022, 0.026], [0.036, 0.01], [0.036, 0], [0, 0]], 24), darkMat); vCap.position.y = 0.142; vG.add(vCap);
+    const merc = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.027, 0.11, 24).translate(0, 0.055, 0), new THREE.MeshStandardMaterial({ color: 0xc9d0d6, roughness: 0.18, metalness: 0.75, emissive: 0x3a4046 }));
+    merc.position.y = 0.024; merc.name = "rmerc"; vG.add(merc);
+    // the barrel: the rod, its halo, beads of light running down it, the flash of a shot, a lit collar at its end
+    const RZ0 = -0.19, RZ1 = -1.17, rodL = RZ0 - RZ1;
+    const rod = cyl(0.02, rodL, new THREE.MeshBasicMaterial({ color: 0xffffff }), 14); rod.position.set(0, 0.006, (RZ0 + RZ1) / 2); rod.name = "rrod"; mR.add(rod);
+    const halo = new THREE.Mesh(new THREE.CylinderGeometry(0.044, 0.044, rodL, 18, 1, true).rotateX(Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3, depthWrite: false, blending: THREE.AdditiveBlending }));
     halo.position.copy(rod.position); halo.name = "rhalo"; mR.add(halo);
+    for (let i = 0; i < 3; i++) { const bd = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+      bd.scale.setScalar(0.11); bd.name = "rbead" + i; mR.add(bd); }
     const pulse = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
-    pulse.scale.setScalar(0.2); pulse.name = "rpulse"; mR.add(pulse);
+    pulse.scale.setScalar(0.24); pulse.name = "rpulse"; mR.add(pulse);
+    const mz = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.007, 6, 24), accentMat); mz.position.set(0, 0.006, RZ1 - 0.005); mR.add(mz);
     // Ferrum: a howitzer, a short fat barrel with a wide bore for its iron shot, hooped, a swell at the muzzle,
     // and recoil cylinders under it
     const mF = new THREE.Group(); mF.name = "m_ferrum"; barrel.add(mF);
@@ -2564,23 +2578,46 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 1, 8, 1, true).rotateX(Math.PI / 2), beamMat);
   beam.frustumCulled = false; scene.add(beam);
-  // Lumen's shot: a needle of silver gas runs from the muzzle down the line of fire; behind it the gas it leaves hangs as a trail
-  // of puffs that swell, drift up and evaporate
+  // Lumen's shot: a needle of mercury runs from the muzzle down the line of fire, and leaves behind it a sharp silver thread that
+  // hangs a moment, swells, wavers and breaks up into pieces, which thin to wisps and are gone
   const needle = { t0: -9, o: new THREE.Vector3(), dir: new THREE.Vector3(0, 0, -1), end: 0 };
-  const GAS_N = 1400, gasPos = new Float32Array(GAS_N * 3), gasBirth = new Float32Array(GAS_N).fill(-99), gasSeed = new Float32Array(GAS_N * 3);
+  const NEEDLE_T = 0.08, TRAIL_LIFE = 1.3; // how long the needle takes to run its whole length; how long a stretch of thread lasts
+  const trailGeo = new THREE.CylinderGeometry(1, 1, 1, 10, 160, true).rotateX(Math.PI / 2).translate(0, 0, 0.5); // runs z 0 → 1
+  const trails = [0, 1, 2, 3, 4, 5, 6, 7].map(() => {
+    const m = new THREE.Mesh(trailGeo, new THREE.ShaderMaterial({ transparent: true, depthWrite: false,
+      uniforms: { uT: { value: 99 }, uLen: { value: 1 }, uSeed: { value: 0 } },
+      vertexShader: `uniform float uT, uLen, uSeed; varying float vAge, vD; varying vec3 vN, vV;
+        void main() { float t = position.z, d = t * uLen, age = uT - ${NEEDLE_T.toFixed(3)} * t; vAge = age; vD = d;
+          float a = max(age, 0.0), r = (0.009 + d * 0.0034) * (1.0 + a * 1.6);
+          vec2 w = vec2(sin(d * 0.9 + uSeed) + 0.5 * sin(d * 2.3 + uSeed * 1.7), cos(d * 0.7 + uSeed * 2.1) + 0.5 * cos(d * 1.9 + uSeed)) * a * a * (0.05 + d * 0.004);
+          vec3 p = vec3(position.xy * r + w, d); vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          vN = normalMatrix * vec3(position.xy, 0.0); vV = -mv.xyz; gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `uniform float uSeed; varying float vAge, vD; varying vec3 vN, vV;
+        float h(float i) { return fract(sin(i * 127.1 + uSeed * 31.7) * 43758.5453); }
+        float vn(float x) { float i = floor(x), f = fract(x); return mix(h(i), h(i + 1.0), f * f * (3.0 - 2.0 * f)); }
+        void main() { if (vAge < 0.0) discard; float k = vAge / ${TRAIL_LIFE.toFixed(2)}; if (k > 1.0) discard;
+          float n = 0.6 * vn(vD * 1.3) + 0.4 * vn(vD * 5.0 + 7.0), cut = k * 1.25 - 0.18;
+          float e = smoothstep(cut, cut + 0.12, n); if (e <= 0.0) discard;
+          float f = abs(dot(normalize(vN), normalize(vV)));
+          vec3 c = mix(vec3(0.5, 0.54, 0.58), vec3(1.0), pow(f, 1.2)); c = mix(c, vec3(1.0), exp(-vAge * 10.0));
+          gl_FragColor = vec4(c, e * (1.0 - k) * mix(1.0, 0.6, k) * (0.55 + 0.45 * f)); }` }));
+    m.frustumCulled = false; m.visible = false; scene.add(m); return m; });
+  let trailI = 0;
+  // and as the thread breaks up, puffs of it thin and drift off
+  const GAS_N = 900, gasPos = new Float32Array(GAS_N * 3), gasBirth = new Float32Array(GAS_N).fill(-99), gasSeed = new Float32Array(GAS_N * 3);
   let gasI = 0;
   const gasGeo = new THREE.BufferGeometry(); gasGeo.setAttribute("position", new THREE.BufferAttribute(gasPos, 3));
   gasGeo.setAttribute("birth", new THREE.BufferAttribute(gasBirth, 1)); gasGeo.setAttribute("seed", new THREE.BufferAttribute(gasSeed, 3));
   const gasMat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false,
-    uniforms: { uT: { value: 0 }, uScale: { value: 500 }, uMap: { value: glowTex }, uCol: { value: new THREE.Color(0xaab3bd) } },
-    vertexShader: `attribute float birth; attribute vec3 seed; uniform float uT, uScale; varying float vA, vF;
-      void main() { float a = uT - birth, life = 0.9 + seed.z * 0.7, k = clamp(a / life, 0.0, 1.0);
-        vec3 p = position + vec3(seed.x * 0.22, 0.18 + 0.12 * seed.y, seed.y * 0.22) * sqrt(k) * life;
+    uniforms: { uT: { value: 0 }, uScale: { value: 500 }, uMap: { value: glowTex }, uCol: { value: new THREE.Color(0xb4bcc4) } },
+    vertexShader: `attribute float birth; attribute vec3 seed; uniform float uT, uScale; varying float vA;
+      void main() { float a = uT - birth, life = 0.7 + seed.z * 0.6, k = clamp(a / life, 0.0, 1.0);
+        vec3 p = position + vec3(seed.x * 0.16, 0.14 + 0.08 * seed.y, seed.y * 0.16) * sqrt(k) * life;
         vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;
-        vA = a < 0.0 || a > life ? 0.0 : pow(1.0 - k, 1.6) * min(1.0, a * 30.0) * 0.6; vF = 1.0 - k;
-        gl_PointSize = min((0.055 + 0.3 * sqrt(k)) * uScale / max(0.1, -mv.z), 0.1 * uScale); }`,
-    fragmentShader: `uniform sampler2D uMap; uniform vec3 uCol; varying float vA, vF;
-      void main() { float t = texture2D(uMap, gl_PointCoord).a; gl_FragColor = vec4(mix(uCol, vec3(1.0), vF * vF * 0.8), t * vA); }` });
+        vA = a < 0.0 || a > life ? 0.0 : sin(k * 3.1416) * 0.32;
+        gl_PointSize = min((0.05 + 0.2 * sqrt(k)) * uScale / max(0.1, -mv.z), 0.08 * uScale); }`,
+    fragmentShader: `uniform sampler2D uMap; uniform vec3 uCol; varying float vA;
+      void main() { gl_FragColor = vec4(uCol, texture2D(uMap, gl_PointCoord).a * vA); }` });
   const gas = new THREE.Points(gasGeo, gasMat); gas.frustumCulled = false; scene.add(gas);
   const needleHead = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xf2f6fa, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
   needleHead.visible = false; scene.add(needleHead); // the needle's bright point
@@ -2589,16 +2626,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     gasPos[i * 3] = at.x; gasPos[i * 3 + 1] = at.y; gasPos[i * 3 + 2] = at.z; gasBirth[i] = birth;
     gasSeed[i * 3] = sx; gasSeed[i * 3 + 1] = sy; gasSeed[i * 3 + 2] = sz;
   }
-  const NEEDLE_T = 0.08; // how long the needle takes to run its whole length
   function shootNeedle(o, dir, end) {
     needle.t0 = time + 0.03; needle.o.copy(o); needle.dir.copy(dir); needle.end = end; // it leaves once the flash is down the rod
+    const tr = trails[trailI]; trailI = (trailI + 1) % trails.length;
+    tr.position.copy(o); tr.lookAt(tmpV.copy(o).add(dir)); tr.updateMatrixWorld();
+    tr.material.uniforms.uLen.value = end; tr.material.uniforms.uSeed.value = Math.random() * 100; tr.userData.t0 = needle.t0; tr.visible = true;
     const at = new THREE.Vector3();
-    for (let d = 0.05, n = 0; d < end && n < 420; n++) { // the trail: thick near, sparser far off (where a puff covers more)
-      at.copy(o).addScaledVector(dir, d); at.x += rand(-0.02, 0.02); at.y += rand(-0.02, 0.02); at.z += rand(-0.02, 0.02);
-      puff(at, needle.t0 + NEEDLE_T * d / end, rand(-1, 1), rand(-1, 1), Math.random()); d += 0.05 + d * 0.012;
+    for (let d = 0.3, n = 0; d < end && n < 220; n++) { // wisps where it breaks up, a while after the needle has passed
+      at.copy(o).addScaledVector(dir, d);
+      puff(at, needle.t0 + NEEDLE_T * d / end + 0.35 + Math.random() * 0.5, rand(-1, 1), rand(-1, 1), Math.random()); d += 0.12 + d * 0.025;
     }
     at.copy(o).addScaledVector(dir, end);
-    for (let n = 0; n < 14; n++) puff(at, needle.t0 + NEEDLE_T, rand(-2.5, 2.5), rand(-1, 2.5), 0.4 + Math.random() * 0.6); // a burst where it struck
+    for (let n = 0; n < 12; n++) puff(at, needle.t0 + NEEDLE_T, rand(-2.5, 2.5), rand(-1, 2.5), 0.4 + Math.random() * 0.6); // a burst where it struck
     for (const a of [gasGeo.attributes.position, gasGeo.attributes.birth, gasGeo.attributes.seed]) a.needsUpdate = true;
   }
 
@@ -2735,7 +2774,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     pgears.forEach(x => scene.remove(x.root)); pgears = []; spinners.forEach(x => scene.remove(x.root)); spinners = []; lblocks.forEach(x => scene.remove(x.root)); lblocks = []; lbars.forEach(x => x.bars.forEach(b => scene.remove(b.root))); lbars = []; prismSets.forEach(x => scene.remove(x.root)); prismSets = []; gears.forEach(x => x.gears.forEach(g => { scene.remove(g.root); scene.remove(g.pin.root); })); gears = []; barBits.forEach(x => scene.remove(x.root)); barBits = [];
     wheels.forEach(w => scene.remove(w.ring)); wheels = [];
     pendingHits = [];
-    beamMat.opacity = 0; needle.t0 = -9; needleHead.visible = false; gasBirth.fill(-99); gasGeo.attributes.birth.needsUpdate = true;
+    beamMat.opacity = 0; needle.t0 = -9; needleHead.visible = false; trails.forEach(t => { t.visible = false; }); gasBirth.fill(-99); gasGeo.attributes.birth.needsUpdate = true;
     ballsArr.forEach(b => scene.remove(b.mesh)); ballsArr = [];
     shards.forEach(dropShard); shards = [];
     decor.clear();
@@ -6562,11 +6601,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const ph of pendingHits) { ph.t -= dt; if (ph.t <= 0) ph.pay(ph.hits); }
     pendingHits = pendingHits.filter(ph => ph.t > 0);
     { // the needle: a bright streak a few metres long running out to where it struck, then gone into its trail
-      const k = (time - needle.t0) / NEEDLE_T, head = needle.end * clamp(k, 0, 1), tail = Math.min(head, Math.max(0, head - 12) + needle.end * clamp((k - 1) / 0.6, 0, 1));
+      const k = (time - needle.t0) / NEEDLE_T, head = needle.end * clamp(k, 0, 1), tail = Math.min(head, Math.max(0, head - 5) + needle.end * clamp((k - 1) / 0.3, 0, 1));
       beam.visible = k >= 0 && head - tail > 0.01;
       if (beam.visible) { beamMat.opacity = 1; beam.position.copy(needle.o).addScaledVector(needle.dir, (head + tail) / 2); tmpV.copy(needle.o).addScaledVector(needle.dir, head); beam.lookAt(tmpV); beam.scale.set(0.6, 0.6, head - tail); }
       needleHead.visible = k >= 0 && k < 1.15;
       if (needleHead.visible) { needleHead.position.copy(needle.o).addScaledVector(needle.dir, head); needleHead.scale.setScalar(0.3 + head * 0.03); needleHead.material.opacity = k < 1 ? 1 : 1 - (k - 1) / 0.15; }
+      for (const tr of trails) if (tr.visible) { const a = time - tr.userData.t0; tr.material.uniforms.uT.value = a; tr.visible = a < TRAIL_LIFE + NEEDLE_T; }
       gasMat.uniforms.uT.value = time; gasMat.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
     }
 
@@ -6788,12 +6828,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     GUNS.forEach(g => { g.barrel.position.z = recoil * 0.14; g.models.triplex.rotation.z += dt * triSpin; });
     flashSprite.material.opacity = Math.max(0, flashSprite.material.opacity - dt * 9);
     accelRings.forEach((r, i) => { r.scale.setScalar(1 + recoil * 0.35 * (1 - i * 0.25)); r.rotation.z += dt * (1.5 + i); });
-    if (progress.weapon === "radius") { // the rod pulses softly; on a shot a flash runs down it to the muzzle and the rod flares and dims
-      const k = time - lastShotT, fl = Math.exp(-k * 9), run = k / 0.06, beat = 0.5 + 0.5 * Math.sin(time * 5);
-      GUNS[0].models.radius.children.forEach(o => {
-        if (o.name === "rrod") o.material.color.copy(accentMat.color).lerp(WHITE, 0.45 + 0.25 * beat + 0.3 * fl);
-        else if (o.name === "rhalo") { o.material.color.copy(accentMat.color).lerp(WHITE, 0.3); o.material.opacity = 0.18 + 0.14 * beat + 0.5 * fl; }
-        else if (o.name === "rpulse") { o.position.set(0, 0.004, -0.17 + (-1.16 + 0.17) * Math.min(1, run)); o.material.opacity = run < 1.4 ? 1 - Math.max(0, run - 1) / 0.4 : 0; o.scale.setScalar(0.16 + 0.1 * Math.min(1, run)); } });
+    if (progress.weapon === "radius") { // the rod pulses, beads of light run down it; on a shot a flash runs down it, the rod flares, the mercury drops and fills again
+      const k = time - lastShotT, fl = Math.exp(-k * 7), run = k / 0.06, beat = 0.5 + 0.5 * Math.sin(time * 4.5), RZ0 = -0.19, RZ1 = -1.17;
+      GUNS[0].models.radius.traverse(o => {
+        if (o.name === "rrod") o.material.color.copy(accentMat.color).lerp(WHITE, 0.1 + 0.55 * beat + 0.35 * fl);
+        else if (o.name === "rhalo") { o.material.color.copy(accentMat.color); o.material.opacity = 0.06 + 0.42 * beat + 0.5 * fl; o.scale.set(1 + 0.25 * beat + 0.6 * fl, 1 + 0.25 * beat + 0.6 * fl, 1); }
+        else if (o.name.startsWith("rbead")) { const f = (time * 0.9 + +o.name.slice(5) / 3) % 1; o.position.set(0, 0.006, RZ0 + (RZ1 - RZ0) * f); o.material.color.copy(accentMat.color).lerp(WHITE, 0.6); o.material.opacity = Math.sin(f * Math.PI); }
+        else if (o.name === "rpulse") { o.position.set(0, 0.006, RZ0 + (RZ1 - RZ0) * Math.min(1, run)); o.material.opacity = run < 1.4 ? 1 - Math.max(0, run - 1) / 0.4 : 0; o.scale.setScalar(0.2 + 0.12 * Math.min(1, run)); }
+        else if (o.name === "rmerc") o.scale.y = 0.85 + 0.04 * Math.sin(time * 2.3) - 0.4 * (k < 0.08 ? k / 0.08 : Math.max(0, 1 - (k - 0.08) / 0.7)); });
     }
     if (progress.weapon === "ballista") { // the coils flare one after another, body to muzzle, as a shot runs out through them
       const k = time - lastShotT;

@@ -2430,7 +2430,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // with light running down it to the muzzle. On a shot a flash runs along the rod and a needle of mercury leaves its end
     const mR = new THREE.Group(); mR.name = "m_radius"; barrel.add(mR);
     const silverMat = new THREE.MeshBasicMaterial({ color: 0xe8edf2 }); // its lights are the white of mercury, not the level's colour
-    const silverLineMat = softLineMat.clone(); silverLineMat.color = new THREE.Color(0xe8edf2);
     const side = (pts, w, x) => { // a side outline (z, y) given a thickness w across, centred on x
       const sh = new THREE.Shape(); sh.moveTo(pts[0][0], pts[0][1]); for (const [z, y] of pts.slice(1)) sh.lineTo(z, y); sh.closePath();
       return new THREE.ExtrudeGeometry(sh, { depth: w, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 2, curveSegments: 6 }).rotateY(-Math.PI / 2).translate(x + w / 2, 0, 0); };
@@ -2439,7 +2438,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const sd of [-1, 1]) { // lit cells along each of its flanks, and a lit line along each rail's outer face
       if (sd > 0) for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.022, 0.05), silverMat); c.position.set(0.082, 0.005, 0.12 - i * 0.075); mR.add(c); } // (the left flank has the vial)
       const rl = new THREE.Mesh(side([[-0.17, 0.012], [-1.12, 0.012], [-1.24, -0.012], [-1.14, -0.04], [-0.17, -0.04]], 0.022, sd * 0.042), darkMat); mR.add(rl);
-      const ln = new THREE.Mesh(new THREE.PlaneGeometry(0.009, 0.92).rotateX(-Math.PI / 2).rotateZ(-sd * Math.PI / 2), silverLineMat); ln.position.set(sd * (0.042 + 0.0175), -0.014, -0.63); mR.add(ln);
+      const ln = new THREE.Mesh(new THREE.PlaneGeometry(0.009, 0.92).rotateX(-Math.PI / 2).rotateZ(-sd * Math.PI / 2), softLineMat); ln.position.set(sd * (0.042 + 0.0175), -0.014, -0.63); mR.add(ln);
     }
     for (const z of [-0.5, -0.86]) { const br = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.011, 6, 20, Math.PI).rotateZ(Math.PI), darkMat); br.position.set(0, -0.02, z); mR.add(br); } // brackets round under the channel
     // the vial: lying along the receiver's left flank, sunk a little into it, glass with a dark cap and a lit foot ring, the mercury

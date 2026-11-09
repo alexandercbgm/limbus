@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.226</div>
+      <div class="credit version">v1.0.227</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.226`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.227`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2448,21 +2448,28 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const mRT = mBT.clone(); mRT.name = "m_radius_turn"; yawG.add(mRT);
     // a heavier black tripod, for Gemini and Ferrum: a thick column, three stout legs splayed wide on broad pads, struts from
     // the column's foot out to each leg, and a broad turntable on top
-    const heavyMount = id => {
+    const heavyMount = (id, o) => {
       const L = new THREE.Group(); L.name = "m_" + id + "_legs"; cannon.add(L);
-      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.11, 0.36, 24), darkMat); col.position.y = -0.33; L.add(col);
-      const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.06, 24), darkMat); collar.position.y = -0.24; L.add(collar);
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.11, o.colTop - o.colBot, 24), darkMat); col.position.y = (o.colTop + o.colBot) / 2; L.add(col);
+      const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.06, 24), darkMat); collar.position.y = o.legTop + 0.01; L.add(collar);
       for (let k = 0; k < 3; k++) {
-        const a = k / 3 * TAU + Math.PI / 2, c = Math.cos(a), sn = Math.sin(a), top = new THREE.Vector3(c * 0.1, -0.25, sn * 0.1), foot = new THREE.Vector3(c * 0.5, -0.8, sn * 0.5), d = foot.clone().sub(top);
+        const a = k / 3 * TAU + Math.PI / 2, c = Math.cos(a), sn = Math.sin(a), top = new THREE.Vector3(c * 0.1, o.legTop, sn * 0.1), foot = new THREE.Vector3(c * o.spread, o.foot, sn * o.spread), d = foot.clone().sub(top);
         const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, d.length(), 12), darkMat); leg.position.copy(top).add(foot).multiplyScalar(0.5); leg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()); L.add(leg);
-        const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.03, 18), darkMat); pad.position.copy(foot).setY(-0.81); L.add(pad);
-        const mid = top.clone().lerp(foot, 0.55), base = new THREE.Vector3(c * 0.07, -0.5, sn * 0.07), e = mid.clone().sub(base);
+        const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.03, 18), darkMat); pad.position.copy(foot).setY(o.foot - 0.01); L.add(pad);
+        const mid = top.clone().lerp(foot, 0.55), base = new THREE.Vector3(c * 0.07, o.strut, sn * 0.07), e = mid.clone().sub(base);
         const st = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, e.length(), 10), darkMat); st.position.copy(base).add(mid).multiplyScalar(0.5); st.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), e.normalize()); L.add(st);
       }
       const T = new THREE.Group(); T.name = "m_" + id + "_turn"; yawG.add(T);
-      const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.2, 0.08, 36), darkMat); tb.position.y = -0.14; T.add(tb);
+      const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.2, 0.08, 36), darkMat); tb.position.y = o.turn; T.add(tb);
       return T; };
-    heavyMount("ferrum"); const gemTurn = heavyMount("gemini");
+    heavyMount("ferrum", { colTop: -0.15, colBot: -0.51, legTop: -0.25, foot: -0.8, spread: 0.5, strut: -0.5, turn: -0.14 });
+    // Gemini's gun pivots at the middle of its cradle's foot, and the whole cannon stands lower by as much (GEM_DROP), so its
+    // tripod is shorter: on its turntable two cheeks hold a trunnion bar the cradle sits on
+    const GEM_DROP = 0.2, GEM_BACK = 0.145;
+    const gemTurn = heavyMount("gemini", { colTop: -0.04, colBot: -0.34, legTop: -0.11, foot: -0.8 + GEM_DROP, spread: 0.46, strut: -0.32, turn: -0.01 });
+    for (const sd of [-1, 1]) { const ck = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.12, 0.13), darkMat); ck.position.set(sd * 0.2, 0.085, 0); gemTurn.add(ck); }
+    { const lug = new THREE.Group(); lug.name = "m_gemini_lug"; barrel.add(lug); // (in the pitching frame, not the gun's: it does not kick)
+      lug.add(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.46, 24).rotateZ(Math.PI / 2), darkMat)); }
     // Gauss stands on Triplex's tripod (its own fork and dish kept)
     const mT = new THREE.Group(); mT.name = "m_triplex"; mT.position.z = -0.25; mT.scale.setScalar(1.25); barrel.add(mT); // its barrels' back ends sunk into the drum's face
     [0, 2.094, 4.189].forEach(a => { // the barrels and their clamping discs as they were, only bigger (the group is scaled)
@@ -2471,7 +2478,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     });
     [-0.48, -0.2].forEach(z => { const c = cyl(0.135, 0.06, shellMat, 24); c.position.z = z; mT.add(c); });
     // Gemini: a twin-barrelled turret (one, firing a ball from each barrel)
-    const mG = new THREE.Group(); mG.name = "m_gemini"; barrel.add(mG);
+    const mG = new THREE.Group(); mG.name = "m_gemini"; mG.position.set(0, GEM_DROP, -GEM_BACK); barrel.add(mG); // (its cradle's foot on the pivot)
     // a twin naval gun behind a three-faced shield, one piece: a broad face and two cheeks swept back from it, all leaning
     // toward the gunner, its edges rounded, a lit line along its top. Each barrel as a ship's gun, in two sections: the first
     // third a third thicker, with a swell at the shield, then two thirds slimmer, no brake at the muzzle. Behind the shield a
@@ -2516,8 +2523,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       m.position.copy(p).add(q).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); g.add(m); return m; };
     const V = (x, y, z) => new THREE.Vector3(x, y, z);
     for (const sd of [-1, 1]) {
-      tube(gemTurn, V(sd * TX, -0.11, 0.02), V(sd * TX, 0.09, 0), 0.03); // the post (in the turntable's frame: the trunnion at 0.09)
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.07, 20).rotateZ(Math.PI / 2), darkMat); hub.position.set(sd * TX, 0.09, 0); gemTurn.add(hub); // on the post: it stays put as the gun kicks
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.07, 20).rotateZ(Math.PI / 2), darkMat); hub.position.set(sd * TX, 0, 0); mG.add(hub);
       tube(mG, V(sd * TX, 0, 0), V(sd * 0.3, -0.06, -0.2), 0.02); // to the shield's back
       tube(mG, V(sd * TX, 0, 0), V(sd * 0.31, -0.1, 0.17), 0.02); // to the cradle's side
     }
@@ -2595,12 +2601,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const cannonB = cannon.clone(); cart.add(cannonB);
   cannonB.traverse(o => { if (o.material === ringMat) accelRings.push(o); });
   const GUNS = [cannon, cannonB].map(c => ({ c, yaw: c.getObjectByName("yaw"), pitch: c.getObjectByName("pitch"), barrel: c.getObjectByName("barrel"),
-    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), ballista_legs: c.getObjectByName("m_ballista_legs"), ballista_turn: c.getObjectByName("m_ballista_turn"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), radius_legs: c.getObjectByName("m_radius_legs"), radius_turn: c.getObjectByName("m_radius_turn"), gemini_legs: c.getObjectByName("m_gemini_legs"), gemini_turn: c.getObjectByName("m_gemini_turn"), ferrum_legs: c.getObjectByName("m_ferrum_legs"), ferrum_turn: c.getObjectByName("m_ferrum_turn"), ferrum: c.getObjectByName("m_ferrum") } }));
-  const GEM_MUZZLE = [new THREE.Vector3(-0.16, 0, -1.7), new THREE.Vector3(0.16, 0, -1.7)]; // where each barrel's ball leaves
+    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), ballista_legs: c.getObjectByName("m_ballista_legs"), ballista_turn: c.getObjectByName("m_ballista_turn"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), radius_legs: c.getObjectByName("m_radius_legs"), radius_turn: c.getObjectByName("m_radius_turn"), gemini_legs: c.getObjectByName("m_gemini_legs"), gemini_lug: c.getObjectByName("m_gemini_lug"), gemini_turn: c.getObjectByName("m_gemini_turn"), ferrum_legs: c.getObjectByName("m_ferrum_legs"), ferrum_turn: c.getObjectByName("m_ferrum_turn"), ferrum: c.getObjectByName("m_ferrum") } }));
+  const GEM_MUZZLE = [new THREE.Vector3(-0.16, 0.2, -1.845), new THREE.Vector3(0.16, 0.2, -1.845)]; // where each barrel's ball leaves
   function setWeaponVisual(id) {
     const twin = id === "gemini";
     // Gemini is one turret in the middle; the second gun goes with it, unseen, its ball leaving by the other barrel
     GUNS[0].c.position.x = 0; GUNS[1].c.position.x = 0; GUNS[1].c.visible = false;
+    GUNS.forEach(g => g.c.position.set(0, -0.74 - (twin ? 0.2 * 0.82 : 0), -1.28 + (twin ? 0.145 * 0.82 : 0))); // Gemini's pivot is lower and further back: its gun stays where it was
     GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin && id !== "triplex" && id !== "radius"; g.models.triplex_body.visible = id === "triplex"; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin; }); }); // Gemini's breeches would show the gimbal's fork through them
     GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k.startsWith(id + "_"); g.c.children.concat(g.yaw.children).forEach(o => { if (o.name === "dish" || o.name === "pedestal") o.visible = false; }); if (id === "triplex") g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = false; }); }); // Triplex stands on its own black mount // (every cannon now stands on a black mount of its own: no dish, no pedestal)
     const w = WEAPONS[id];

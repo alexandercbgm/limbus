@@ -1637,7 +1637,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     coinMat.color.copy(cur.accent).lerp(WHITE, 0.15); coinMat.emissive.copy(cur.accent).multiplyScalar(0.22 + cur.frameEI * 0.2);
     monoMat.color.copy(cur.glass); monoMat.emissive.copy(cur.glass).multiplyScalar(0.25); monoMat.opacity = Math.min(0.72, cur.glassO + 0.18);
     chainMat.color.copy(cur.rail).lerp(WHITE, 0.15); chainMat.emissive.copy(cur.frameE).multiplyScalar(cur.frameEI * 0.3);
-    beamMat.color.copy(cur.accent).lerp(WHITE, 0.85);
+    beamMat.color.setHex(0xeef2f6); // Lumen's needle: mercury white
   }
 
   // ---------- path: sampled each frame from the cart forward ----------
@@ -2446,7 +2446,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // in it (it drops as a shot takes some and fills again)
     const vG = new THREE.Group(); vG.rotation.x = -Math.PI / 2; vG.position.set(-0.097, 0.012, 0.1); mR.add(vG); // its foot at the back, its cap forward
     const vFoot = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.044, 0.022, 24), darkMat); vFoot.position.y = 0.011; vG.add(vFoot);
-    const vRing = new THREE.Mesh(new THREE.TorusGeometry(0.038, 0.005, 6, 28).rotateX(Math.PI / 2), accentMat); vRing.position.y = 0.024; vG.add(vRing);
+    const vRing = new THREE.Mesh(new THREE.TorusGeometry(0.038, 0.005, 6, 28).rotateX(Math.PI / 2), silverMat); vRing.position.y = 0.024; vG.add(vRing);
     const vGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.2, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }));
     vGlass.position.y = 0.122; vG.add(vGlass);
     const vCap = new THREE.Mesh(lathe([[0, 0.026], [0.022, 0.026], [0.036, 0.01], [0.036, 0], [0, 0]], 24), darkMat); vCap.position.y = 0.222; vG.add(vCap);
@@ -2462,7 +2462,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       bd.scale.setScalar(0.11); bd.name = "rbead" + i; mR.add(bd); }
     const pulse = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
     pulse.scale.setScalar(0.24); pulse.name = "rpulse"; mR.add(pulse);
-    const mz = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.007, 6, 24), accentMat); mz.position.set(0, 0.006, RZ1 - 0.005); mR.add(mz);
+    const mz = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.007, 6, 24), silverMat); mz.position.set(0, 0.006, RZ1 - 0.005); mR.add(mz);
     // Ferrum: a howitzer, a short fat barrel with a wide bore for its iron shot, hooped, a swell at the muzzle,
     // and recoil cylinders under it
     const mF = new THREE.Group(); mF.name = "m_ferrum"; barrel.add(mF);
@@ -2475,6 +2475,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const flashSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false }));
   flashSprite.scale.set(0.6, 0.6, 1); flashSprite.position.z = -0.9; barrel.add(flashSprite);
   const aimLocal = new THREE.Vector3(0, 0, -1);
+  const DIM_SILVER = new THREE.Color(0x7d858e); // Lumen's rod at the bottom of its pulse
   let recoil = 0, triSpin = 1, lastShotT = -9; // Triplex's barrels' spin, the time of the last shot
   const gemKick = { t: 0, side: 1 }; // Gemini's last shot: how fresh (1 → 0), and which way the turret jerked
   yawG.name = "yaw"; pitchG.name = "pitch"; barrel.name = "barrel";
@@ -6747,9 +6748,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (progress.weapon === "radius") { // the rod pulses, beads of light run down it; on a shot a flash runs down it, the rod flares, the mercury drops and fills again
       const k = time - lastShotT, fl = Math.exp(-k * 7), run = k / 0.06, beat = 0.5 + 0.5 * Math.sin(time * 4.5), RZ0 = -0.19, RZ1 = -1.17;
       GUNS[0].models.radius.traverse(o => {
-        if (o.name === "rrod") o.material.color.copy(accentMat.color).lerp(WHITE, 0.1 + 0.55 * beat + 0.35 * fl);
-        else if (o.name === "rhalo") { o.material.color.copy(accentMat.color); o.material.opacity = 0.06 + 0.42 * beat + 0.5 * fl; o.scale.set(1 + 0.25 * beat + 0.6 * fl, 1 + 0.25 * beat + 0.6 * fl, 1); }
-        else if (o.name.startsWith("rbead")) { const f = (time * 0.9 + +o.name.slice(5) / 3) % 1; o.position.set(0, 0.006, RZ0 + (RZ1 - RZ0) * f); o.material.color.copy(accentMat.color).lerp(WHITE, 0.6); o.material.opacity = Math.sin(f * Math.PI); }
+        if (o.name === "rrod") o.material.color.copy(DIM_SILVER).lerp(WHITE, 0.15 + 0.6 * beat + 0.25 * fl); // silver to white, whatever the level
+        else if (o.name === "rhalo") { o.material.color.copy(DIM_SILVER); o.material.opacity = 0.06 + 0.42 * beat + 0.5 * fl; o.scale.set(1 + 0.25 * beat + 0.6 * fl, 1 + 0.25 * beat + 0.6 * fl, 1); }
+        else if (o.name.startsWith("rbead")) { const f = (time * 0.9 + +o.name.slice(5) / 3) % 1; o.position.set(0, 0.006, RZ0 + (RZ1 - RZ0) * f); o.material.color.copy(WHITE); o.material.opacity = Math.sin(f * Math.PI); }
         else if (o.name === "rpulse") { o.position.set(0, 0.006, RZ0 + (RZ1 - RZ0) * Math.min(1, run)); o.material.opacity = run < 1.4 ? 1 - Math.max(0, run - 1) / 0.4 : 0; o.scale.setScalar(0.2 + 0.12 * Math.min(1, run)); }
         else if (o.name === "rmerc") o.scale.y = 0.85 + 0.04 * Math.sin(time * 2.3) - 0.4 * (k < 0.08 ? k / 0.08 : Math.max(0, 1 - (k - 0.08) / 0.7)); });
     }

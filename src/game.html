@@ -2300,7 +2300,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       ch.position.set(sd * 0.07, TOP - 0.05, -(F - TH) + 0.008); ch.rotation.z = -sd * 0.45; cart.add(ch);
     });
   }
-  const howitzerMat = new THREE.MeshStandardMaterial({ color: 0x45474b, roughness: 0.6, metalness: 0.6, side: THREE.DoubleSide }); // cast iron, dark grey
+  const howitzerMat = new THREE.MeshStandardMaterial({ color: 0x2e2824, roughness: 0.5, metalness: 0.85, side: THREE.DoubleSide });
+  const FER_UP = 0.245, FER_BACK = 0.065; // Ferrum's gun stands this far above and ahead of its pivot
   const hoopMat = new THREE.MeshStandardMaterial({ color: 0x8a3a1a, roughness: 0.4, metalness: 0.7, emissive: 0x401006, emissiveIntensity: 0.5 });
   const cannon = new THREE.Group(); cannon.position.set(0, -0.74, -1.28); cannon.scale.setScalar(0.82); cart.add(cannon);
   const lathe = (pts, seg) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg || 40);
@@ -2376,7 +2377,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const T = new THREE.Group(); T.name = "m_" + id + "_turn"; yawG.add(T);
       const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.2, 0.08, 36), darkMat); tb.position.y = o.turn; T.add(tb);
       return T; };
-    heavyMount("ferrum", { colTop: -0.2, colBot: -0.51, legTop: -0.28, foot: -0.8, spread: 0.5, strut: -0.52, turn: -0.21 });
+    heavyMount("ferrum", { colTop: -0.04, colBot: -0.34, legTop: -0.11, foot: -0.8 + FER_UP, spread: 0.46, strut: -0.32, turn: -0.01 });
     // Gemini's gun pivots at the middle of its cradle's foot, and the whole cannon stands lower by as much (GEM_DROP), so its
     // tripod is shorter: on its turntable two cheeks hold a trunnion bar the cradle sits on
     const GEM_DROP = 0.2, GEM_BACK = 0.145;
@@ -2496,23 +2497,25 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const pulse = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
     pulse.scale.setScalar(0.24); pulse.name = "rpulse"; mR.add(pulse);
     const mz = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.007, 6, 24), accentMat); mz.position.set(0, 0.006, RZ1 - 0.005); mR.add(mz);
-    // Ferrum: a siege mortar cast in one piece. A fat barrel with a rounded breech, a reinforcing step where the charge
-    // burns, a slight taper and a thick lip at the muzzle; trunnions cast on its sides, resting in two heavy black
-    // cheeks on a bed across its tripod's turntable, each clamped by a cap. It throws chain shot: two iron balls on a chain
-    const mF = new THREE.Group(); mF.name = "m_ferrum"; barrel.add(mF);
-    const tubeG = lathe([[0.13, -0.5], [0.13, -0.875], [0.2, -0.875], [0.205, -0.86], [0.205, -0.8], [0.185, -0.77], [0.17, -0.72], [0.19, -0.2],
-      [0.228, -0.16], [0.228, -0.1], [0.212, -0.08], [0.212, 0.1], [0.19, 0.18], [0.14, 0.25], [0.07, 0.29], [0, 0.3]].map(([r, z]) => [r, -z]), 40).rotateX(-Math.PI / 2);
-    mF.add(new THREE.Mesh(tubeG, howitzerMat));
-    { const bl = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.38, 28, 1, true).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.8, side: THREE.BackSide })); bl.position.z = -0.69; mF.add(bl); } // the bore's wall
-    const bore = cyl(0.13, 0.01, darkMat, 28); bore.position.z = -0.5; mF.add(bore); // the bottom of the bore
-    for (const sd of [-1, 1]) { const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.1, 24).rotateZ(Math.PI / 2), howitzerMat); tr.position.x = sd * 0.25; mF.add(tr); } // the trunnions
-    // the mount: a bed across the turntable, a cheek standing on it each side, a cap over each trunnion
+    // Ferrum: a mortar with a short telescoping barrel, three sections each narrower than the one behind, the chamfer at
+    // each step in copper; the barrel slides back in a black box cradle as it fires. The cradle pivots on a trunnion bar
+    // under its middle, in two cheeks on its tripod's turntable, as Gemini's does (the whole cannon set lower and further
+    // back by as much: FER_UP, FER_BACK). It throws chain shot: two iron balls on a chain
+    const mF = new THREE.Group(); mF.name = "m_ferrum"; mF.position.set(0, FER_UP, -FER_BACK); barrel.add(mF);
+    { const sh = new THREE.Shape(); sh.moveTo(-0.22, -0.2); sh.lineTo(0.22, -0.2); sh.lineTo(0.22, 0.02); sh.lineTo(0.18, 0.02); sh.absarc(0, 0, 0.18, 0, -Math.PI, true); sh.lineTo(-0.22, 0.02); sh.closePath();
+      const cr = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.43, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.01, bevelSegments: 2, curveSegments: 24 }), darkMat);
+      cr.position.z = -0.15; mF.add(cr); } // the cradle: an open bed with a trough the barrel lies in
+    const fbar = new THREE.Group(); fbar.name = "fbar"; mF.add(fbar); // the barrel: it runs back along the cradle on a shot
+    const fl = (pts, mat) => fbar.add(new THREE.Mesh(lathe(pts.map(([r, z]) => [r, -z]), 40).rotateX(-Math.PI / 2), mat)); // a turned part (z toward the gunner +)
+    fl([[0, 0.34], [0.13, 0.34]], howitzerMat); fl([[0.13, 0.34], [0.17, 0.31]], hoopMat); // the breech's face, its chamfer
+    fl([[0.17, 0.31], [0.17, -0.45]], howitzerMat); fl([[0.17, -0.45], [0.14, -0.48]], hoopMat); // the back section, the step
+    fl([[0.14, -0.48], [0.14, -0.84]], howitzerMat); fl([[0.14, -0.84], [0.158, -0.855]], hoopMat); // the front section, the muzzle ring's chamfer
+    fl([[0.158, -0.855], [0.158, -0.9]], howitzerMat); fl([[0.158, -0.9], [0.1, -0.92]], hoopMat); // the muzzle ring, its face down to the bore
+    { const bl = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.32, 24, 1, true).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.8, side: THREE.BackSide })); bl.position.z = -0.76; fbar.add(bl);
+      const bb = cyl(0.1, 0.01, darkMat, 24); bb.position.z = -0.6; fbar.add(bb); } // the bore: its wall, its bottom
     const ferTurn = cannon.getObjectByName("m_ferrum_turn");
-    { const bed = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.06, 0.42), darkMat); bed.position.y = -0.14; ferTurn.add(bed); }
-    for (const sd of [-1, 1]) {
-      const ck = new THREE.Mesh(side([[0.2, -0.2], [0.13, 0.0], [0.07, 0.0], [0.07, -0.02], [-0.07, -0.02], [-0.07, 0.0], [-0.13, 0.0], [-0.2, -0.2]], 0.07, sd * 0.33), darkMat); ck.position.y = 0.09; ferTurn.add(ck);
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.07, 24, 1, false, -Math.PI / 2, Math.PI).rotateZ(Math.PI / 2), darkMat); cap.position.set(sd * 0.33, 0.09, 0); ferTurn.add(cap);
-    }
+    for (const sd of [-1, 1]) { const ck = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.12, 0.13), darkMat); ck.position.set(sd * 0.2, 0.085, 0); ferTurn.add(ck); } // the cheeks
+    { const lug = new THREE.Group(); lug.name = "m_ferrum_lug"; barrel.add(lug); lug.add(new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.46, 24).rotateZ(Math.PI / 2), darkMat)); }
   }
   const flashSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false }));
   flashSprite.scale.set(0.6, 0.6, 1); flashSprite.position.z = -0.9; barrel.add(flashSprite);
@@ -2524,13 +2527,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const cannonB = cannon.clone(); cart.add(cannonB);
   cannonB.traverse(o => { if (o.material === ringMat) accelRings.push(o); });
   const GUNS = [cannon, cannonB].map(c => ({ c, yaw: c.getObjectByName("yaw"), pitch: c.getObjectByName("pitch"), barrel: c.getObjectByName("barrel"),
-    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), ballista_legs: c.getObjectByName("m_ballista_legs"), ballista_turn: c.getObjectByName("m_ballista_turn"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), radius_legs: c.getObjectByName("m_radius_legs"), radius_turn: c.getObjectByName("m_radius_turn"), gemini_legs: c.getObjectByName("m_gemini_legs"), gemini_lug: c.getObjectByName("m_gemini_lug"), gemini_turn: c.getObjectByName("m_gemini_turn"), ferrum_legs: c.getObjectByName("m_ferrum_legs"), ferrum_turn: c.getObjectByName("m_ferrum_turn"), ferrum: c.getObjectByName("m_ferrum") } }));
+    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), ballista_legs: c.getObjectByName("m_ballista_legs"), ballista_turn: c.getObjectByName("m_ballista_turn"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), radius_legs: c.getObjectByName("m_radius_legs"), radius_turn: c.getObjectByName("m_radius_turn"), gemini_legs: c.getObjectByName("m_gemini_legs"), gemini_lug: c.getObjectByName("m_gemini_lug"), gemini_turn: c.getObjectByName("m_gemini_turn"), ferrum_legs: c.getObjectByName("m_ferrum_legs"), ferrum_lug: c.getObjectByName("m_ferrum_lug"), ferrum_turn: c.getObjectByName("m_ferrum_turn"), ferrum: c.getObjectByName("m_ferrum") } }));
   const GEM_MUZZLE = [new THREE.Vector3(-0.16, 0.2, -1.845), new THREE.Vector3(0.16, 0.2, -1.845)]; // where each barrel's ball leaves
   function setWeaponVisual(id) {
     const twin = id === "gemini";
     // Gemini is one turret in the middle; the second gun goes with it, unseen, its ball leaving by the other barrel
     GUNS[0].c.position.x = 0; GUNS[1].c.position.x = 0; GUNS[1].c.visible = false;
-    GUNS.forEach(g => g.c.position.set(0, -0.74 - (twin ? 0.2 * 0.82 : 0), -1.28 + (twin ? 0.145 * 0.82 : 0))); // Gemini's pivot is lower and further back: its gun stays where it was
+    const lift = twin ? [0.2, 0.145] : id === "ferrum" ? [FER_UP, FER_BACK] : [0, 0];
+    GUNS.forEach(g => g.c.position.set(0, -0.74 - lift[0] * 0.82, -1.28 + lift[1] * 0.82)); // Gemini's pivot is lower and further back: its gun stays where it was
     GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin && id !== "triplex" && id !== "radius" && id !== "ferrum"; g.models.triplex_body.visible = id === "triplex"; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin && id !== "ferrum"; }); }); // Gemini's breeches would show the gimbal's fork through them
     GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k.startsWith(id + "_"); g.c.children.concat(g.yaw.children).forEach(o => { if (o.name === "dish" || o.name === "pedestal") o.visible = false; }); if (id === "triplex") g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = false; }); }); // Triplex stands on its own black mount // (every cannon now stands on a black mount of its own: no dish, no pedestal)
     const w = WEAPONS[id];
@@ -5992,12 +5996,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.yaw.rotation.y = clamp(Math.atan2(-aimLocal.x, -aimLocal.z), -1.2, 1.2);
     g.pitch.rotation.x = clamp(Math.asin(clamp(aimLocal.y, -1, 1)), -0.3, 0.9);
     g.c.updateMatrixWorld(true);
-    return g.barrel.localToWorld(progress.weapon === "gemini" ? GEM_MUZZLE[GUNS.indexOf(g)].clone() : new THREE.Vector3(0, 0, progress.weapon === "triplex" ? -1.08 : progress.weapon === "ballista" ? -1.2 : progress.weapon === "radius" ? -1.17 : progress.weapon === "ferrum" ? -0.92 : -0.8));
+    return g.barrel.localToWorld(progress.weapon === "gemini" ? GEM_MUZZLE[GUNS.indexOf(g)].clone() : progress.weapon === "ferrum" ? new THREE.Vector3(0, FER_UP, -FER_BACK - 0.93) : new THREE.Vector3(0, 0, progress.weapon === "triplex" ? -1.08 : progress.weapon === "ballista" ? -1.2 : progress.weapon === "radius" ? -1.17 : -0.8));
   }
   // Ferrum's chain shot: two iron balls with a chain between them, spinning across the line of flight. Each ball and three
   // points along the chain fly as balls of their own (the chain's are unseen) and are tested as any ball is: glass they go
   // through, anything solid stops the whole shot. The chain's links rounded rectangles, a half link on each ball
-  const CHAIN_HALF = 0.545, CHAIN_SPIN = TAU; // (a third less chain between the balls than at first); a turn a second
+  const CHAIN_HALF = 0.545, CHAIN_SPIN = TAU, CHAIN_K0 = 0.33, CHAIN_OPEN = 0.16; // (it leaves the bore at a third its size, full in 0.16 s) // (a third less chain between the balls than at first); a turn a second
   const linkPath = (L, W, half) => { // a rounded rectangle L long, W wide, in x-y (or its half nearer -x, a U open toward +x)
     const r = W / 2, pts = [], arc = (cx, a0, a1) => { for (let k = 0; k <= 6; k++) { const a = a0 + (a1 - a0) * k / 6; pts.push(new THREE.Vector3(cx + Math.cos(a) * r, Math.sin(a) * r, 0)); } };
     const hl = L / 2 - r;
@@ -6006,8 +6010,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const LINK_L = 0.17, LINK_W = 0.085, LINK_R = 0.014, LINK_STEP = 0.12;
   const chainLinkGeo = new THREE.TubeGeometry(linkPath(LINK_L, LINK_W, false), 48, LINK_R, 8, true);
   const chainHalfGeo = new THREE.TubeGeometry(linkPath(LINK_L, LINK_W, true), 24, LINK_R, 8, false);
-  const shotChainMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2c, metalness: 0.9, roughness: 0.4 });
-  const shotBallMat = new THREE.MeshStandardMaterial({ color: 0x111113, metalness: 0.7, roughness: 0.35 }); // the balls black
+  const shotChainMat = new THREE.MeshStandardMaterial({ color: 0x8a9098, metalness: 0.9, roughness: 0.3 }); // bright steel, against the balls' dark iron
   function chainMesh() {
     const g = new THREE.Group(), rB = R_BALL * 1.3, x1 = CHAIN_HALF - rB - 0.005, x0 = -x1; // the links' run, each end hooked in a ball's loop
     for (const sd of [-1, 1]) { const h = new THREE.Mesh(chainHalfGeo, shotChainMat); h.position.x = sd * (CHAIN_HALF - rB - 0.055); if (sd > 0) h.rotation.z = Math.PI; g.add(h); } // the loops, half links sunk in the balls, open toward the chain
@@ -6022,13 +6025,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const n = new THREE.Vector3(0, 1, 0).applyAxisAngle(fh, rand(-0.35, 0.35)).applyAxisAngle(rt, rand(-0.35, 0.35));
     const e1 = rt.clone().projectOnPlane(n).normalize(), e2 = new THREE.Vector3().crossVectors(n, e1).normalize();
     const g = { dead: false, hit: false, e1, e2, f: n, phase: 0, spin: CHAIN_SPIN, mesh: chainMesh() };
-    g.mesh.position.copy(from); scene.add(g.mesh);
+    g.mesh.position.copy(from); g.mesh.scale.setScalar(CHAIN_K0); scene.add(g.mesh);
     const v = f.clone().multiplyScalar(44 + speedNow * Math.max(0, f.dot(_T))); v.y += 1.6;
     const eye = camera.getWorldPosition(new THREE.Vector3());
     for (const off of [-1, -0.5, 0, 0.5, 1]) {
-      const end = Math.abs(off) === 1, m = end ? new THREE.Mesh(ballGeo, shotBallMat) : new THREE.Object3D();
-      if (end) m.scale.setScalar(1.3);
-      m.position.copy(from).addScaledVector(e1, off * CHAIN_HALF); scene.add(m);
+      const end = Math.abs(off) === 1, m = end ? new THREE.Mesh(ballGeo, ironBallMat) : new THREE.Object3D();
+      if (end) m.scale.setScalar(1.3 * CHAIN_K0);
+      m.position.copy(from).addScaledVector(e1, off * CHAIN_HALF * CHAIN_K0); scene.add(m);
       ballsArr.push({ mesh: m, v: v.clone(), p0: from.clone(), eye: eye.clone(), life: 0, hit: false, vol: {}, iron: true, cc: from.clone(), cs: { g, off, link: !end } });
     }
   }
@@ -6620,10 +6623,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         sp.c.addScaledVector(b.v, dt);
         pos.copy(sp.c).addScaledVector(sp.e1, Math.cos(a) * r).addScaledVector(sp.e2, Math.sin(a) * r);
       } else if (b.cs) { // a part of a chain shot: its centre flies like any ball, the shot spins about it
-        const g = b.cs.g, a = g.phase + g.spin * (b.life + dt);
+        const g = b.cs.g, a = g.phase + g.spin * (b.life + dt), k = CHAIN_K0 + (1 - CHAIN_K0) * smooth5(clamp((b.life + dt) / CHAIN_OPEN, 0, 1)); // it leaves the bore small and close, and opens
         b.cc.addScaledVector(b.v, dt); CSD.copy(g.e1).multiplyScalar(Math.cos(a)).addScaledVector(g.e2, Math.sin(a));
-        pos.copy(b.cc).addScaledVector(CSD, b.cs.off * CHAIN_HALF);
-        if (b.cs.off === -1) { g.mesh.position.copy(b.cc); CSM.makeBasis(CSD, CSY.crossVectors(g.f, CSD), g.f); g.mesh.quaternion.setFromRotationMatrix(CSM); }
+        pos.copy(b.cc).addScaledVector(CSD, b.cs.off * CHAIN_HALF * k);
+        if (!b.cs.link) b.mesh.scale.setScalar(1.3 * k);
+        if (b.cs.off === -1) { g.mesh.position.copy(b.cc); g.mesh.scale.setScalar(k); CSM.makeBasis(CSD, CSY.crossVectors(g.f, CSD), g.f); g.mesh.quaternion.setFromRotationMatrix(CSM); }
       } else pos.addScaledVector(b.v, dt);
       let dead = false;
       const hb = b.cs ? b.cs.g : b, mark = () => { if (!hb.hit) { hb.hit = true; stats.hits++; } }; // (a chain shot counts one hit)
@@ -6831,7 +6835,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         b.position.z = (mine ? 0.34 : 0.02) * smooth5(run); }); // out past the cradle's end
       g.models.gemini.rotation.y = gemKick.side * 0.05 * w; g.models.gemini.rotation.x = 0.06 * w;
     }
-    GUNS.forEach(g => { g.barrel.position.z = progress.weapon === "gemini" ? 0 : recoil * 0.14; g.models.triplex.rotation.z += dt * triSpin; });
+    GUNS.forEach(g => { g.barrel.position.z = progress.weapon === "gemini" || progress.weapon === "ferrum" ? 0 : recoil * 0.14; g.models.ferrum.getObjectByName("fbar").position.z = recoil * 0.16; g.models.triplex.rotation.z += dt * triSpin; });
     flashSprite.material.opacity = Math.max(0, flashSprite.material.opacity - dt * 9);
     accelRings.forEach((r, i) => { r.scale.setScalar(1 + recoil * 0.35 * (1 - i * 0.25)); r.rotation.z += dt * (1.5 + i); });
     if (progress.weapon === "radius") { // the rod pulses, beads of light run down it; on a shot a flash runs down it, the rod flares, the mercury drops and fills again

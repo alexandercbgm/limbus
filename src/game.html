@@ -541,7 +541,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     <div class="score" id="score">0</div>
     <div class="bar" aria-hidden="true"><i id="prog"></i></div>
   </div>
-  <div class="count" id="countWrap" aria-live="polite"><span class="ball" aria-hidden="true"></span><b id="count">30</b><span class="wpn" id="wpn">Ballista</span></div>
+  <div class="count" id="countWrap" aria-live="polite"><span class="ball" aria-hidden="true"></span><b id="count">30</b><span class="wpn" id="wpn">Gauss</span></div>
   <div class="mute-row">
     <button class="mute ibtn" id="pauseBtn" type="button" aria-label="Пауза" title="Пауза (Esc)" data-en-aria="Pause" data-en-title="Pause (Esc)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
@@ -2319,17 +2319,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const band = new THREE.Mesh(new THREE.TorusGeometry(0.142, 0.006, 6, 40), accentMat); band.position.z = 0.1; band.name = "band"; barrel.add(band);
     const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.05, 32).rotateX(Math.PI / 2), darkMat); collar.position.z = -0.21; collar.name = "collar"; barrel.add(collar);
     const cyl = (r, len, mat, segs) => new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, segs || 16).rotateX(Math.PI / 2), mat);
-    // Ballista: a Gauss gun: a long slim barrel out of a dark collar, six coils threaded on it, each a dark drum with a lit band,
+    // Gauss (its id still ballista, as saved): a long barrel out of a dark collar, six coils threaded on it, each a dark drum with a lit band,
     // a little smaller toward the muzzle; as it fires they flare one after another from the body out to the muzzle
     const mB = new THREE.Group(); mB.name = "m_ballista"; barrel.add(mB);
-    const gCol = new THREE.Mesh(lathe([[0.075, 0], [0.1, 0.02], [0.1, 0.07], [0.085, 0.09]], 32).rotateX(-Math.PI / 2), darkMat); gCol.position.z = -0.22; mB.add(gCol);
-    const gBar = new THREE.Mesh(lathe([[0.032, 0], [0.026, 0.86], [0.034, 0.87], [0.034, 0.92], [0.02, 0.92], [0.02, 0.9]], 18).rotateX(-Math.PI / 2), shellMat); gBar.position.z = -0.28; mB.add(gBar);
+    const gCol = new THREE.Mesh(lathe([[0.1, 0], [0.13, 0.02], [0.13, 0.07], [0.115, 0.09]], 32).rotateX(-Math.PI / 2), darkMat); gCol.position.z = -0.22; mB.add(gCol);
+    const gBar = new THREE.Mesh(lathe([[0.056, 0], [0.048, 0.86], [0.058, 0.87], [0.058, 0.92], [0.036, 0.92], [0.036, 0.9]], 22).rotateX(-Math.PI / 2), shellMat); gBar.position.z = -0.28; mB.add(gBar);
     for (let i = 0; i < 6; i++) {
-      const z = -0.36 - i * 0.13, r = 0.085 - i * 0.006;
+      const z = -0.36 - i * 0.13, r = 0.112 - i * 0.006;
       const coil = new THREE.Mesh(lathe([[r * 0.55, -0.035], [r, -0.03], [r, 0.03], [r * 0.55, 0.035]], 28).rotateX(-Math.PI / 2), darkMat); coil.position.z = z; mB.add(coil);
       const band = new THREE.Mesh(new THREE.TorusGeometry(r + 0.002, 0.01, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffffff })); band.name = "gcoil" + i; band.position.z = z; mB.add(band);
     }
-    const gTip = cyl(0.022, 0.01, accentMat, 16); gTip.position.z = -1.205; mB.add(gTip);
+    const gTip = cyl(0.038, 0.01, accentMat, 16); gTip.position.z = -1.205; mB.add(gTip);
     // Triplex, its barrels a quarter bigger than they were: a drum of a body, a cylinder with its square edges rounded off; out of its front a
     // rotary cluster of three barrels held by two discs
     const mTB = new THREE.Group(); mTB.name = "m_triplex_body"; barrel.add(mTB);
@@ -5193,7 +5193,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // cost: balls per shot; mul: how many balls a blue crystal (or finale reward) gives compared with the plain cannon
   // cost: balls per shot. A crystal (or a finale target) pays its value once for every ball of the shot that hits it.
   const WEAPONS = {
-    ballista: { name: "Ballista", ru: "Рельсотрон", cost: 1, price: 0, desc: "Один шар за выстрел. Попадание в кристалл даёт его обычную цену." },
+    ballista: { name: "Gauss", ru: "Гаусс", cost: 1, price: 0, desc: "Один шар за выстрел. Попадание в кристалл даёт его обычную цену." },
     triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: 60, desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
     gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 90, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
     ferrum: { name: "Ferrum", ru: "Железо", cost: 2, price: null, desc: "Пушка из Темницы. Тяжёлое железное ядро за 2 шара: пробивает стекло насквозь с одного попадания и летит дальше, не теряя скорости. На складе не продаётся." },
@@ -5528,7 +5528,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["Red lasers: spinners, blocks, beams on chains", "Iris bulkheads with buttons", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
     },
     weapons: {
-      ballista: { ru: "Railgun", desc: "One ball a shot. A crystal you hit pays its usual value." },
+      ballista: { ru: "Gauss", desc: "One ball a shot. A crystal you hit pays its usual value." },
       triplex: { ru: "Triple", desc: "Three balls in a triangle a shot. A crystal pays for every ball that hits it: one to three times its value." },
       gemini: { ru: "Twins", desc: "A second cannon on the cart: a pair of balls a shot. If both hit, the crystal pays double." },
       ferrum: { ru: "Iron", desc: "The Dungeon's cannon. A heavy iron shot for 2 balls: it breaks glass through with one hit and flies on without slowing. Not sold at the depot." },

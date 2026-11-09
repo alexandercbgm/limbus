@@ -160,7 +160,7 @@ Crystals banked on finished levels pay fares and buy cannons and upgrades at the
 
 | Cannon | | Balls a shot | Price ◆ | What it does |
 |---|---|---|---|---|
-| Ballista | Рельсотрон | 1 | free | one ball; a crystal pays its value |
+| Gauss | Гаусс | 1 | free | one ball; a crystal pays its value |
 | Triplex | Тройник | 3 | 60 | three balls in a triangle; a crystal pays for each that hits |
 | Gemini | Близнецы | 2 | 90 | a second cannon: a pair; both hit — double pay |
 | Lumen | Луч | 2 | 140 | an instant laser through every pane on its line |

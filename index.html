@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.215</div>
+      <div class="credit version">v1.0.216</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.215`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.216`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2512,10 +2512,19 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // Lumen: a slender emitter with cooling fins and a glowing lens
     const mR = new THREE.Group(); mR.name = "m_radius"; barrel.add(mR);
     const tube = cyl(0.035, 0.64, shellMat); tube.position.z = -0.52; mR.add(tube);
-    for (let i = 0; i < 5; i++) { const f = cyl(0.115 - i * 0.012, 0.012, darkMat, 24); f.position.z = -0.28 - i * 0.09; mR.add(f); }
-    const lens = new THREE.Mesh(new THREE.OctahedronGeometry(0.07, 0), accentMat); lens.position.z = -0.88; lens.name = "lens"; mR.add(lens);
+    // its fins' rims lit: they flare one after another as it fires, then cool slowly; the lens held in three claws, a core
+    // turning inside it; two focusing rings before it that close in on the beam as it fires and open again
+    for (let i = 0; i < 5; i++) { const r = 0.115 - i * 0.012, f = cyl(r, 0.012, darkMat, 24); f.position.z = -0.28 - i * 0.09; mR.add(f);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.006, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffffff })); rim.name = "rfin" + i; rim.position.z = f.position.z; mR.add(rim); }
+    const lensMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.25, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.45, depthWrite: false });
+    const lens = new THREE.Mesh(new THREE.OctahedronGeometry(0.07, 0), lensMat); lens.position.z = -0.88; lens.name = "lens"; mR.add(lens);
+    const lcore = new THREE.Mesh(new THREE.OctahedronGeometry(0.032, 0), accentMat); lcore.position.z = -0.88; lcore.name = "lcore"; mR.add(lcore);
+    for (let k = 0; k < 3; k++) { const a = k / 3 * TAU + Math.PI / 2, pts = [[0.04, -0.8], [0.085, -0.85], [0.075, -0.92], [0.045, -0.95]].map(([r, z]) => new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, z));
+      mR.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 12, 0.008, 6, false), darkMat)); } // the claws
+    const clawBase = cyl(0.05, 0.03, darkMat, 20); clawBase.position.z = -0.8; mR.add(clawBase);
+    for (const [z, r] of [[-0.98, 0.06], [-1.04, 0.05]]) { const fr = new THREE.Mesh(new THREE.TorusGeometry(r, 0.006, 6, 28), accentMat); fr.name = "rfoc"; fr.position.z = z; mR.add(fr); }
     const lensGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0.6, depthWrite: false }));
-    lensGlow.scale.setScalar(0.3); lensGlow.position.z = -0.88; mR.add(lensGlow);
+    lensGlow.name = "lglow"; lensGlow.scale.setScalar(0.3); lensGlow.position.z = -0.88; mR.add(lensGlow);
     // Ferrum: a howitzer, a short fat barrel with a wide bore for its iron shot, hooped, a swell at the muzzle,
     // and recoil cylinders under it
     const mF = new THREE.Group(); mF.name = "m_ferrum"; barrel.add(mF);
@@ -6730,6 +6739,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     GUNS.forEach(g => { g.barrel.position.z = recoil * 0.14; g.models.triplex.rotation.z += dt * triSpin; g.models.radius.children.forEach(o => { if (o.name === "lens") o.rotation.z += dt * 3; }); });
     flashSprite.material.opacity = Math.max(0, flashSprite.material.opacity - dt * 9);
     accelRings.forEach((r, i) => { r.scale.setScalar(1 + recoil * 0.35 * (1 - i * 0.25)); r.rotation.z += dt * (1.5 + i); });
+    if (progress.weapon === "radius") { // the fins flare in turn and cool, the lens flares, the focusing rings close and open
+      const k = time - lastShotT, fl = Math.max(0, 1 - k / 0.25);
+      GUNS[0].models.radius.children.forEach(o => { if (!o.name) return;
+        if (o.name.startsWith("rfin")) { const i = +o.name.slice(4), e = k < i * 0.04 ? 0 : Math.exp(-(k - i * 0.04) * 2.2); o.material.color.copy(darkMat.color).lerp(accentMat.color, 0.35 + 0.65 * e).lerp(WHITE, e * 0.5); }
+        else if (o.name === "lcore") { o.rotation.y += 0.03; o.rotation.x += 0.017; o.scale.setScalar(1 + fl * 0.6); }
+        else if (o.name === "lglow") { o.scale.setScalar(0.3 + fl * 0.4); o.material.opacity = 0.6 + fl * 0.4; }
+        else if (o.name === "rfoc") o.scale.setScalar(1 - 0.45 * Math.sin(clamp(k / 0.3, 0, 1) * Math.PI)); });
+    }
     if (progress.weapon === "ballista") { // the coils flare one after another, body to muzzle, as a shot runs out through them
       const k = time - lastShotT;
       GUNS[0].models.ballista.children.forEach(o => { if (o.name && o.name.startsWith("gcoil")) { const i = +o.name.slice(5), e = Math.max(0, 1 - Math.abs(k - i * 0.035) / 0.06);

@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.246</div>
+      <div class="credit version">v1.0.247</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.246`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.247`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1990,10 +1990,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       d.wl = d.wr = d.ceil = true;
       if (inHall(s)) { d.hall = true; d.hw = HALL_W; d.hh = HALL_H; d.arch = k % 4 === 0; }
     }
-    // In the dark single pyramids stick out of the walls, placed at random so every run differs.
+    // In Carcer's dark (only there) single pyramids stick out of the walls, placed at random so every run differs.
     // Some of the low ones are thorns: they slide out on a piston as the cart comes near.
     const th = LEVEL.thorns || { from: 0.6, mul: 1 }; // Carcer brings thorns up out of the dark
-    if (!station && !d.hw && s < MAIN_LEN && z > th.from && Math.random() < (z - th.from + 0.05) * 0.6 * th.mul) {
+    if (LEVEL.thorns && !station && !d.hw && s < MAIN_LEN && z > th.from && Math.random() < (z - th.from + 0.05) * 0.6 * th.mul) {
       const sides = STYLE.bare ? [] : [d.wl && -1, d.wr && 1].filter(Boolean); // no pyramids out of Vitrum's glass
       if (sides.length) {
         const side = sides[Math.floor(Math.random() * sides.length)], v = rand(0.8, 4.6);

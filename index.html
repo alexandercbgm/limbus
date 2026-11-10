@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.234</div>
+      <div class="credit version">v1.0.235</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.234`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.235`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2365,13 +2365,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return s;
   }
   const cart = new THREE.Group(); camera.add(cart);
-  { // the cart: a railway flat car with a ship's bow. A deck of dark plate over a hull on two bogies, a
-    // low railing round the deck that meets in a point at the bow (its top rail brass), and under the bow a locomotive's
-    // pilot: a V of slats running down and forward to the rails. The bow reaches far enough ahead that from the seat the
+  { // the cart: a railway flat car with a ship's bow, in the cannons' style: a dark deck over a hull in the level's colour on two
+    // bogies, a low railing round the deck meeting in a point at the bow (its top rail in the hull's colour, a lit line under
+    // it), and under the bow a locomotive's pilot: a V of slats running down and forward to the rails. The bow reaches far enough ahead that from the seat the
     // railing's point and the pilot show at the foot of the view
     const DY = -1.2, X = 1.05, ZB = 0.55, ZS = -2.35, ZT = -3.05; // the deck's top, half width, back, where the sides end, the bow's tip (far out: from the seat only what is over 2.5 m ahead shows below the deck's level)
-    const brassMat = new THREE.MeshStandardMaterial({ color: 0xc9a14a, roughness: 0.3, metalness: 0.9, emissive: 0x2a1c04, emissiveIntensity: 0.4 });
-    const plateMat = new THREE.MeshStandardMaterial({ color: 0x3a3d44, roughness: 0.55, metalness: 0.6 });
+    const plateMat = darkMat;
     const V = (x, y, z) => new THREE.Vector3(x, y, z);
     const bar = (a, b, r, mat) => { const d = b.clone().sub(a), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 10), mat); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); cart.add(m); return m; };
     const slat = (a, b, w, t, mat) => { const d = b.clone().sub(a), m = new THREE.Mesh(new THREE.BoxGeometry(w, d.length(), t), mat); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); cart.add(m); return m; };
@@ -2383,20 +2382,21 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // the deck's edge lit, round the sides and the bow
     const edge = [V(-X, DY + 0.004, ZB), V(-X, DY + 0.004, ZS), V(0, DY + 0.004, ZT), V(X, DY + 0.004, ZS), V(X, DY + 0.004, ZB)];
     for (let i = 0; i < 4; i++) bar(edge[i], edge[i + 1], 0.008, accentMat);
+    for (const sd of [-1, 1]) { const ln = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.012, ZB - ZS - 0.3), accentMat); ln.position.set(sd * (X * 0.82 + 0.021), DY - 0.2, (ZB + ZS) / 2); cart.add(ln); } // a lit line along each side of the hull
     // two bogies under the deck's straight part, each with two wheelsets: a dark side frame with a spring in its middle and
-    // axle boxes at its ends, the wheels spoked discs with a dark flange and a brass hub
+    // axle boxes at its ends, the wheels dark discs with a lit ring on their faces
     const wheelGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.05, 28).rotateZ(Math.PI / 2), flangeGeo = new THREE.TorusGeometry(0.155, 0.012, 6, 32).rotateY(Math.PI / 2);
     for (const zc of [ZB - 0.45, ZS + 0.75]) for (const sd of [-1, 1]) {
       const x = sd * (X - 0.2);
       for (const dz of [-0.26, 0.26]) {
-        const w = new THREE.Mesh(wheelGeo, shellMat); w.position.set(x, DY - 0.44, zc + dz); cart.add(w);
+        const w = new THREE.Mesh(wheelGeo, darkMat); w.position.set(x, DY - 0.44, zc + dz); cart.add(w);
         const fl = new THREE.Mesh(flangeGeo, darkMat); fl.position.set(x - sd * 0.02, DY - 0.44, zc + dz); cart.add(fl);
-        for (let k = 0; k < 4; k++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.25, 0.028), darkMat); sp.position.set(x + sd * 0.027, DY - 0.44, zc + dz); sp.rotation.x = k / 4 * Math.PI; cart.add(sp); }
-        const hb = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.03, 14).rotateZ(Math.PI / 2), brassMat); hb.position.set(x + sd * 0.045, DY - 0.44, zc + dz); cart.add(hb);
+        const rg = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.006, 6, 32).rotateY(Math.PI / 2), accentMat); rg.position.set(x + sd * 0.027, DY - 0.44, zc + dz); cart.add(rg);
+        const hb = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.03, 18).rotateZ(Math.PI / 2), shellMat); hb.position.set(x + sd * 0.045, DY - 0.44, zc + dz); cart.add(hb);
         const ab = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, 0.1), darkMat); ab.position.set(x + sd * 0.075, DY - 0.44, zc + dz); cart.add(ab);
       }
-      const fr = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.07, 0.72), darkMat); fr.position.set(x + sd * 0.1, DY - 0.4, zc); cart.add(fr);
-      const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.1, 10), brassMat); sp.position.set(x + sd * 0.1, DY - 0.31, zc); cart.add(sp); // its spring
+      const fr = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(0.72, 0.09, 0.035), { depth: 0.04, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2 }).rotateY(Math.PI / 2), shellMat); fr.position.set(x + sd * 0.1 - 0.02, DY - 0.4, zc); cart.add(fr);
+      const fl = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.5), accentMat); fl.position.set(x + sd * 0.13, DY - 0.4, zc); cart.add(fl); // a lit line along it
     }
     // the railing: posts and two rails, inset from the edge, meeting at the bow; low, so it does not stand in the view
     const IN = 0.07, RH = 0.26, bn = V(ZS - ZT, 0, -X).normalize(); // the bow's right edge's outward normal (x, z); the railing stands IN in from every edge
@@ -2405,9 +2405,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (let i = 0; i < 4; i++) {
       const a = rp[i], b = rp[i + 1], n = Math.max(1, Math.round(a.distanceTo(b) / 0.42));
       for (let k = i === 0 ? 0 : 1; k <= n; k++) { const q = a.clone().lerp(b, k / n); bar(V(q.x, DY, q.z), V(q.x, DY + RH, q.z), 0.012, darkMat); }
-      bar(V(a.x, DY + RH, a.z), V(b.x, DY + RH, b.z), 0.016, brassMat); bar(V(a.x, DY + RH * 0.5, a.z), V(b.x, DY + RH * 0.5, b.z), 0.01, darkMat);
+      bar(V(a.x, DY + RH, a.z), V(b.x, DY + RH, b.z), 0.02, shellMat); bar(V(a.x, DY + RH - 0.035, a.z), V(b.x, DY + RH - 0.035, b.z), 0.006, accentMat); bar(V(a.x, DY + RH * 0.45, a.z), V(b.x, DY + RH * 0.45, b.z), 0.01, darkMat);
     }
-    { const knob = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 8), brassMat); knob.position.set(0, DY + RH + 0.01, zAt(0)); cart.add(knob); } // a brass knob on the bow's post
+    for (const q of rp) { const j = new THREE.Mesh(new THREE.SphereGeometry(0.026, 14, 10), shellMat); j.position.set(q.x, DY + RH, q.z); cart.add(j); } // its corners rounded
     // the pilot: a level grating out in front of the bow (the part seen from the seat: anything sloping down from the bow is
     // seen edge on from there), and from its front edge a locomotive's slats in upright planes along the track, running steeply
     // down and forward to the rails
@@ -2415,9 +2415,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const tv = x => V(x, PT, edgeZ(Math.min(Math.abs(x), X)) - GO), bv = x => V(x, PB, edgeZ(Math.min(Math.abs(x), X)) - GO - 0.5);
     for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(V(x, PT, edgeZ(x) + 0.05), tv(x), 0.035, 0.03, plateMat); // its top a grating: bars from under the deck's edge out to its front
     for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(tv(x), bv(x), 0.04, 0.06, shellMat); // the slats (in the level's colour, as the photo's blue pilot)
-    for (const sd of [-1, 1]) { bar(tv(sd * PX), tv(0), 0.032, brassMat); bar(bv(sd * PX), bv(0), 0.02, brassMat); bar(tv(sd * PX), bv(sd * PX), 0.02, brassMat);
-      bar(V(sd * PX, PT, edgeZ(PX) + 0.05), tv(sd * PX), 0.02, brassMat); }
-    slat(tv(0), bv(0), 0.05, 0.08, brassMat); // its ridge
+    for (const sd of [-1, 1]) { bar(tv(sd * PX), tv(0), 0.03, shellMat); bar(tv(sd * PX).add(V(0, 0.032, 0)), tv(0).add(V(0, 0.032, 0)), 0.007, accentMat); // its front edge, lit along the top
+      bar(bv(sd * PX), bv(0), 0.02, darkMat); bar(tv(sd * PX), bv(sd * PX), 0.02, darkMat); bar(V(sd * PX, PT, edgeZ(PX) + 0.05), tv(sd * PX), 0.02, darkMat); }
+    slat(tv(0), bv(0), 0.05, 0.08, darkMat); // its ridge
   }
   const howitzerMat = new THREE.MeshStandardMaterial({ color: 0x2e2824, roughness: 0.5, metalness: 0.85, side: THREE.DoubleSide });
   const FER_UP = 0.245, FER_BACK = 0.065; // Ferrum's gun stands this far above and ahead of its pivot

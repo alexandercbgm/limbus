@@ -1911,7 +1911,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const sides = STYLE.bare ? [] : [d.wl && -1, d.wr && 1].filter(Boolean); // no pyramids out of Vitrum's glass
       if (sides.length) {
         const side = sides[Math.floor(Math.random() * sides.length)], v = rand(0.8, 4.6);
-        if (state === "play" && v < 2.7 && s > sC + 40 && Math.random() < 0.55) addThornAt(s, side, v);
+        const mouth = LEVEL.halls && [-6, -3, 3, 6].some(o => inHall(s + o)); // where a corridor opens into a hall: a thorn on its corner never slid out, and looked across at the cart
+        if (mouth) { /* nothing on a hall's mouth */ }
+        else if (LEVEL.thorns && state === "play" && v < 2.7 && s > sC + 40 && Math.random() < 0.55) addThornAt(s, side, v); // thorns only in Carcer
         else d.pyr = { side, v };
       }
     }

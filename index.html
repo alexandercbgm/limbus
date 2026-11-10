@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.245</div>
+      <div class="credit version">v1.0.246</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.245`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.246`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1997,7 +1997,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const sides = STYLE.bare ? [] : [d.wl && -1, d.wr && 1].filter(Boolean); // no pyramids out of Vitrum's glass
       if (sides.length) {
         const side = sides[Math.floor(Math.random() * sides.length)], v = rand(0.8, 4.6);
-        if (state === "play" && v < 2.7 && s > sC + 40 && Math.random() < 0.55) addThornAt(s, side, v);
+        const mouth = LEVEL.halls && [-6, -3, 3, 6].some(o => inHall(s + o)); // where a corridor opens into a hall: a thorn on its corner never slid out, and looked across at the cart
+        if (mouth) { /* nothing on a hall's mouth */ }
+        else if (LEVEL.thorns && state === "play" && v < 2.7 && s > sC + 40 && Math.random() < 0.55) addThornAt(s, side, v); // thorns only in Carcer
         else d.pyr = { side, v };
       }
     }

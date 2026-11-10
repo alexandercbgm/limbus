@@ -2348,8 +2348,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const pitchG = new THREE.Group(); pitchG.position.y = 0.09; yawG.add(pitchG);
   const barrel = new THREE.Group(); pitchG.add(barrel);
   { // capsule body, turned to point along -Z
-    const body = lathe([[0, -0.32], [0.06, -0.31], [0.11, -0.27], [0.135, -0.2], [0.14, -0.05], [0.13, 0.1], [0.11, 0.2], [0.085, 0.235], [0.05, 0.252], [0, 0.258]], 48); // its back rounded off smooth, no flat end
-    body.rotateX(-Math.PI / 2); const capsule = new THREE.Mesh(body, shellMat); capsule.name = "capsule"; barrel.add(capsule);
+    const body = lathe([[0, -0.32], [0.06, -0.31], [0.11, -0.27], [0.135, -0.2], [0.14, -0.05], [0.13, 0.1], [0.11, 0.2], [0.085, 0.235], [0.06, 0.2485], [0.04, 0.2545], [0.02, 0.2572], [0.008, 0.2579], [0, 0.258]], 48); // its back rounded off smooth, no flat end
+    { const ps = body.attributes.position, ns = body.attributes.normal; for (let i = 0; i < ps.count; i++) if (Math.hypot(ps.getX(i), ps.getZ(i)) < 1e-4) ns.setXYZ(i, 0, Math.sign(ps.getY(i)), 0); } // its poles' normals straight along its axis (averaged, they made a dimple)
+    body.rotateX(-Math.PI / 2); const capsuleMat = shellMat.clone(); capsuleMat.color = shellMat.color; capsuleMat.emissive = shellMat.emissive; capsuleMat.roughness = 0.75; capsuleMat.metalness = 0.05; // matte: the sun made a bright dot on it
+    const capsule = new THREE.Mesh(body, capsuleMat); capsule.name = "capsule"; barrel.add(capsule);
     const band = new THREE.Mesh(new THREE.TorusGeometry(0.142, 0.006, 6, 40), accentMat); band.position.z = 0.1; band.name = "band"; barrel.add(band);
     const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.05, 32).rotateX(Math.PI / 2), darkMat); collar.position.z = -0.21; collar.name = "collar"; barrel.add(collar);
     const cyl = (r, len, mat, segs) => new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, segs || 16).rotateX(Math.PI / 2), mat);

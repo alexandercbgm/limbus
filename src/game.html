@@ -2525,7 +2525,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const vG = new THREE.Group(); vG.rotation.x = -Math.PI / 2; vG.position.set(-0.097, 0.012, 0.1); mR.add(vG); // its foot at the back, its cap forward
     const vFoot = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.044, 0.022, 24), darkMat); vFoot.position.y = 0.011; vG.add(vFoot);
     const vRing = new THREE.Mesh(new THREE.TorusGeometry(0.038, 0.005, 6, 28).rotateX(Math.PI / 2), silverMat); vRing.position.y = 0.024; vG.add(vRing);
-    const vGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.2, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }));
+    const vGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.2, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide })); // unlit: lit, it took the level's light (pink in Rubinus)
     vGlass.position.y = 0.122; vG.add(vGlass);
     const vCap = new THREE.Mesh(lathe([[0, 0.026], [0.022, 0.026], [0.036, 0.01], [0.036, 0], [0, 0]], 24), darkMat); vCap.position.y = 0.222; vG.add(vCap);
     const merc = new THREE.Mesh(new THREE.CylinderGeometry(0.027, 0.027, 0.19, 24).translate(0, 0.095, 0), silverMat); // the mercury glows white
@@ -2583,7 +2583,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k.startsWith(id + "_"); g.c.children.concat(g.yaw.children).forEach(o => { if (o.name === "dish" || o.name === "pedestal") o.visible = false; }); if (id === "triplex") g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = false; }); }); // Triplex stands on its own black mount // (every cannon now stands on a black mount of its own: no dish, no pedestal)
     const fz = { ballista: [0, 0, -1.22], triplex: [0, 0, -1.1], radius: [0, 0, -1.19], gemini: [0, 0.2, -1.87], ferrum: [0, FER_UP, -FER_BACK - 0.95] }[id] || [0, 0, -0.9];
     GUNS.forEach(g => g.barrel.children.forEach(o => { if (o.isSprite && o.material === flashSprite.material) o.position.set(...fz); }));
-    flashSprite.material.color.setHex(id === "ballista" ? 0xffd9a0 : id === "ferrum" ? 0xffd04a : 0xffffff); // Gauss's a little warm, Ferrum's yellow // Gauss's flash a little warm // the muzzle flash at this gun's muzzle (Ferrum's showed on the deck)
+    flashSprite.material.color.setHex(id === "ballista" ? 0xffd9a0 : id === "ferrum" ? 0xffe39a : 0xffffff); // Gauss's a little warm, Ferrum's yellow // Gauss's flash a little warm // the muzzle flash at this gun's muzzle (Ferrum's showed on the deck)
     const w = WEAPONS[id];
     $("wpn").textContent = `${w.name} · −${w.cost}`;
   }

@@ -2299,7 +2299,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // a lit line along a path, its joints rounded (bare, the pieces' ends stepped at each corner)
     const litLine = (pts, r) => { for (let i = 0; i < pts.length - 1; i++) bar(pts[i], pts[i + 1], r, accentMat);
       for (const q of pts.slice(1, -1)) { const j = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), accentMat); j.position.copy(q); cart.add(j); } };
-    litLine(outline(-0.02, DY + 0.012, ZB), 0.013); // the deck's edge lit, just outside its bevel, so it shows all round the bow
+    litLine(outline(0.006, DY + 0.024, ZB), 0.013); // the deck's edge lit, lying on its top at the very edge: it shows whole from the seat, along the sides as at the bow (outside the edge, the deck hid half of it along the sides)
     for (const sd of [-1, 1]) { const ln = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.012, ZB - ZS - 0.3), accentMat); ln.position.set(sd * (X * 0.82 + 0.021), DY - 0.2, (ZB + ZS) / 2); cart.add(ln); } // a lit line along each side of the hull
     // two bogies under the deck's straight part, each with two wheelsets: a dark side frame with a spring in its middle and
     // axle boxes at its ends, the wheels dark discs with a lit ring on their faces

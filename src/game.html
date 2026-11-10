@@ -2279,26 +2279,60 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return s;
   }
   const cart = new THREE.Group(); camera.add(cart);
-  { // one-piece U-shaped tub, drawn in top view and extruded upward
-    const TOP = -0.87, HW = 1.03, F = 1.52, B = -0.5, R = 0.28, TH = 0.07, DEPTH = 0.6, BEV = 0.03;
-    const u = new THREE.Shape();
-    u.moveTo(-HW, B); u.lineTo(-HW, F - R); u.quadraticCurveTo(-HW, F, -HW + R, F); u.lineTo(HW - R, F); u.quadraticCurveTo(HW, F, HW, F - R);
-    u.lineTo(HW, B); u.lineTo(HW - TH, B); u.lineTo(HW - TH, F - R); u.quadraticCurveTo(HW - TH, F - TH, HW - R, F - TH);
-    u.lineTo(-HW + R, F - TH); u.quadraticCurveTo(-HW + TH, F - TH, -HW + TH, F - R); u.lineTo(-HW + TH, B); u.closePath();
-    const tg = new THREE.ExtrudeGeometry(u, { depth: DEPTH, bevelEnabled: true, bevelThickness: BEV, bevelSize: 0.02, bevelSegments: 4, curveSegments: 16 });
-    tg.rotateX(-Math.PI / 2); // shape y becomes -z, extrusion goes up
-    const tub = new THREE.Mesh(tg, shellMat); tub.position.y = TOP - DEPTH - BEV; cart.add(tub);
-    // glowing edge running along the top of the wall
-    const m = HW - TH / 2, f = -(F - TH / 2), r = R - TH / 2;
-    const edge = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-m, 0, -B), new THREE.Vector3(-m, 0, f + r), new THREE.Vector3(-m + r * 0.29, 0, f + r * 0.29), new THREE.Vector3(-m + r, 0, f),
-      new THREE.Vector3(m - r, 0, f), new THREE.Vector3(m - r * 0.29, 0, f + r * 0.29), new THREE.Vector3(m, 0, f + r), new THREE.Vector3(m, 0, -B)], false, "centripetal");
-    const rim = new THREE.Mesh(new THREE.TubeGeometry(edge, 160, 0.009, 6, false), accentMat); rim.position.y = TOP + 0.004; cart.add(rim);
-    // chevron on the inner face of the front wall
-    [-1, 1].forEach(sd => {
-      const ch = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.012, 0.012), accentMat);
-      ch.position.set(sd * 0.07, TOP - 0.05, -(F - TH) + 0.008); ch.rotation.z = -sd * 0.45; cart.add(ch);
-    });
+  { // the cart: a railway flat car with a ship's bow. A deck of dark plate over a hull on two bogies, a
+    // low railing round the deck that meets in a point at the bow (its top rail brass), and under the bow a locomotive's
+    // pilot: a V of slats running down and forward to the rails. The bow reaches far enough ahead that from the seat the
+    // railing's point and the pilot show at the foot of the view
+    const DY = -1.2, X = 1.05, ZB = 0.55, ZS = -2.35, ZT = -3.05; // the deck's top, half width, back, where the sides end, the bow's tip (far out: from the seat only what is over 2.5 m ahead shows below the deck's level)
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xc9a14a, roughness: 0.3, metalness: 0.9, emissive: 0x2a1c04, emissiveIntensity: 0.4 });
+    const plateMat = new THREE.MeshStandardMaterial({ color: 0x3a3d44, roughness: 0.55, metalness: 0.6 });
+    const V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const bar = (a, b, r, mat) => { const d = b.clone().sub(a), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 10), mat); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); cart.add(m); return m; };
+    const slat = (a, b, w, t, mat) => { const d = b.clone().sub(a), m = new THREE.Mesh(new THREE.BoxGeometry(w, d.length(), t), mat); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); cart.add(m); return m; };
+    const plan = k => { const s = new THREE.Shape(); s.moveTo(-X * k, -ZB); s.lineTo(X * k, -ZB); s.lineTo(X * k, -ZS); s.lineTo(0, -(ZT + (1 - k) * 0.6)); s.lineTo(-X * k, -ZS); s.closePath(); return s; }; // (shape y is -z)
+    const deck = new THREE.Mesh(new THREE.ExtrudeGeometry(plan(1), { depth: 0.07, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2 }).rotateX(-Math.PI / 2), plateMat);
+    deck.position.y = DY - 0.07; cart.add(deck);
+    const hull = new THREE.Mesh(new THREE.ExtrudeGeometry(plan(0.82), { depth: 0.24, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 }).rotateX(-Math.PI / 2), shellMat);
+    hull.position.y = DY - 0.31; cart.add(hull);
+    // the deck's edge lit, round the sides and the bow
+    const edge = [V(-X, DY + 0.004, ZB), V(-X, DY + 0.004, ZS), V(0, DY + 0.004, ZT), V(X, DY + 0.004, ZS), V(X, DY + 0.004, ZB)];
+    for (let i = 0; i < 4; i++) bar(edge[i], edge[i + 1], 0.008, accentMat);
+    // two bogies under the deck's straight part, each with two wheelsets: a dark side frame with a spring in its middle and
+    // axle boxes at its ends, the wheels spoked discs with a dark flange and a brass hub
+    const wheelGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.05, 28).rotateZ(Math.PI / 2), flangeGeo = new THREE.TorusGeometry(0.155, 0.012, 6, 32).rotateY(Math.PI / 2);
+    for (const zc of [ZB - 0.45, ZS + 0.75]) for (const sd of [-1, 1]) {
+      const x = sd * (X - 0.2);
+      for (const dz of [-0.26, 0.26]) {
+        const w = new THREE.Mesh(wheelGeo, shellMat); w.position.set(x, DY - 0.44, zc + dz); cart.add(w);
+        const fl = new THREE.Mesh(flangeGeo, darkMat); fl.position.set(x - sd * 0.02, DY - 0.44, zc + dz); cart.add(fl);
+        for (let k = 0; k < 4; k++) { const sp = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.25, 0.028), darkMat); sp.position.set(x + sd * 0.027, DY - 0.44, zc + dz); sp.rotation.x = k / 4 * Math.PI; cart.add(sp); }
+        const hb = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.03, 14).rotateZ(Math.PI / 2), brassMat); hb.position.set(x + sd * 0.045, DY - 0.44, zc + dz); cart.add(hb);
+        const ab = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, 0.1), darkMat); ab.position.set(x + sd * 0.075, DY - 0.44, zc + dz); cart.add(ab);
+      }
+      const fr = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.07, 0.72), darkMat); fr.position.set(x + sd * 0.1, DY - 0.4, zc); cart.add(fr);
+      const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.1, 10), brassMat); sp.position.set(x + sd * 0.1, DY - 0.31, zc); cart.add(sp); // its spring
+    }
+    // the railing: posts and two rails, inset from the edge, meeting at the bow; low, so it does not stand in the view
+    const IN = 0.07, RH = 0.26, rp = [V(-X + IN, 0, ZB - 0.05), V(-X + IN, 0, ZS - 0.03), V(0, 0, ZT + IN * 1.6), V(X - IN, 0, ZS - 0.03), V(X - IN, 0, ZB - 0.05)];
+    for (let i = 0; i < 4; i++) {
+      const a = rp[i], b = rp[i + 1], n = Math.max(1, Math.round(a.distanceTo(b) / 0.42));
+      for (let k = i === 0 ? 0 : 1; k <= n; k++) { const q = a.clone().lerp(b, k / n); bar(V(q.x, DY, q.z), V(q.x, DY + RH, q.z), 0.012, darkMat); }
+      bar(V(a.x, DY + RH, a.z), V(b.x, DY + RH, b.z), 0.016, brassMat); bar(V(a.x, DY + RH * 0.5, a.z), V(b.x, DY + RH * 0.5, b.z), 0.01, darkMat);
+    }
+    { const knob = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 8), brassMat); knob.position.set(0, DY + RH + 0.01, ZT + IN * 1.6); cart.add(knob); } // a brass knob on the bow's post
+    // the pilot: a level grating out in front of the bow (the part seen from the seat: anything sloping down from the bow is
+    // seen edge on from there), and from its front edge a locomotive's slats in upright planes along the track, running steeply
+    // down and forward to the rails
+    const edgeZ = x => ZS + (ZT - ZS) * (1 - Math.abs(x) / X), GO = 0.62, PT = DY - 0.03, PB = -1.7, PX = 1.0;
+    const tv = x => V(x, PT, edgeZ(Math.min(Math.abs(x), X)) - GO), bv = x => V(x, PB, edgeZ(Math.min(Math.abs(x), X)) - GO - 0.5);
+    { const sh = new THREE.Shape(), pts = [[-PX, edgeZ(PX) + 0.05], [0, ZT + 0.05], [PX, edgeZ(PX) + 0.05], [PX, tv(PX).z], [0, tv(0).z], [-PX, tv(PX).z]];
+      sh.moveTo(pts[0][0], -pts[0][1]); for (const [x, z] of pts.slice(1)) sh.lineTo(x, -z); sh.closePath();
+      const top = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.035, bevelEnabled: false }).rotateX(-Math.PI / 2), shellMat); top.position.y = PT - 0.035; cart.add(top); } // its top, a plate
+    for (let x = -PX + 0.12; x <= PX - 0.1; x += 0.24) slat(V(x, PT + 0.004, edgeZ(x) + 0.02), V(x, PT + 0.004, tv(x).z), 0.016, 0.006, brassMat).rotateX(0); // brass strips along it, the way the slats run
+    for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(tv(x), bv(x), 0.04, 0.06, shellMat); // the slats (in the level's colour, as the photo's blue pilot)
+    for (const sd of [-1, 1]) { bar(tv(sd * PX), tv(0), 0.032, brassMat); bar(bv(sd * PX), bv(0), 0.02, brassMat); bar(tv(sd * PX), bv(sd * PX), 0.02, brassMat);
+      bar(V(sd * PX, PT, edgeZ(PX) + 0.05), tv(sd * PX), 0.02, brassMat); }
+    slat(tv(0), bv(0), 0.05, 0.08, brassMat); // its ridge
   }
   const howitzerMat = new THREE.MeshStandardMaterial({ color: 0x2e2824, roughness: 0.5, metalness: 0.85, side: THREE.DoubleSide });
   const FER_UP = 0.245, FER_BACK = 0.065; // Ferrum's gun stands this far above and ahead of its pivot

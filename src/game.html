@@ -2397,11 +2397,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const mBL = mTL.clone(); mBL.name = "m_ballista_legs"; cannon.add(mBL);
     const mBT = new THREE.Group(); mBT.name = "m_ballista_turn"; yawG.add(mBT); // in place of the dish, a black turntable the fork stands in
     { const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.1, 32), darkMat); tb.position.y = -0.12; mBT.add(tb); }
-    for (const sd of [-1, 1]) { // Gauss's pivots: a domed cap in the body's colour on each side of the fork, on a dark collar
-      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.02, 24).rotateZ(Math.PI / 2), darkMat); col.position.set(sd * 0.165, 0.09, 0); mBT.add(col);
-      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.045, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2).rotateZ(-sd * Math.PI / 2), shellMat); cap.position.set(sd * 0.175, 0.09, 0); mBT.add(cap); }
     const mRL = mTL.clone(); mRL.name = "m_radius_legs"; cannon.add(mRL); // Lumen stands on the same
     const mRT = mBT.clone(); mRT.name = "m_radius_turn"; yawG.add(mRT);
+    for (const sd of [-1, 1]) { // Gauss's pivots (after Lumen's turntable is copied from its, so Lumen keeps its own lit hubs): a domed cap in the body's colour on each side of the fork, on a dark collar
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.02, 24).rotateZ(Math.PI / 2), darkMat); col.position.set(sd * 0.165, 0.09, 0); mBT.add(col);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.045, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2).rotateZ(-sd * Math.PI / 2), shellMat); cap.position.set(sd * 0.175, 0.09, 0); mBT.add(cap); }
     // a heavier black tripod, for Gemini and Ferrum: a thick column, three stout legs splayed wide on broad pads, struts from
     // the column's foot out to each leg, and a broad turntable on top
     const heavyMount = (id, o) => {
@@ -2579,7 +2579,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin && id !== "triplex" && id !== "radius" && id !== "ferrum" && !(n === "band" && id === "ballista"); g.models.triplex_body.visible = id === "triplex"; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin && id !== "ferrum"; if (o.name === "forkhub") o.visible = id === "radius"; }); }); // Gemini's breeches would show the gimbal's fork through them
     GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k.startsWith(id + "_"); g.c.children.concat(g.yaw.children).forEach(o => { if (o.name === "dish" || o.name === "pedestal") o.visible = false; }); if (id === "triplex") g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = false; }); }); // Triplex stands on its own black mount // (every cannon now stands on a black mount of its own: no dish, no pedestal)
     const fz = { ballista: [0, 0, -1.22], triplex: [0, 0, -1.1], radius: [0, 0, -1.19], gemini: [0, 0.2, -1.87], ferrum: [0, FER_UP, -FER_BACK - 0.95] }[id] || [0, 0, -0.9];
-    GUNS.forEach(g => g.barrel.children.forEach(o => { if (o.isSprite && o.material === flashSprite.material) o.position.set(...fz); })); // the muzzle flash at this gun's muzzle (Ferrum's showed on the deck)
+    GUNS.forEach(g => g.barrel.children.forEach(o => { if (o.isSprite && o.material === flashSprite.material) o.position.set(...fz); }));
+    flashSprite.material.color.setHex(id === "ballista" ? 0xffd9a0 : 0xffffff); // Gauss's flash a little warm // the muzzle flash at this gun's muzzle (Ferrum's showed on the deck)
     const w = WEAPONS[id];
     $("wpn").textContent = `${w.name} · −${w.cost}`;
   }

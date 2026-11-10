@@ -2583,7 +2583,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k.startsWith(id + "_"); g.c.children.concat(g.yaw.children).forEach(o => { if (o.name === "dish" || o.name === "pedestal") o.visible = false; }); if (id === "triplex") g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = false; }); }); // Triplex stands on its own black mount // (every cannon now stands on a black mount of its own: no dish, no pedestal)
     const fz = { ballista: [0, 0, -1.22], triplex: [0, 0, -1.1], radius: [0, 0, -1.19], gemini: [0, 0.2, -1.87], ferrum: [0, FER_UP, -FER_BACK - 0.95] }[id] || [0, 0, -0.9];
     GUNS.forEach(g => g.barrel.children.forEach(o => { if (o.isSprite && o.material === flashSprite.material) o.position.set(...fz); }));
-    flashSprite.material.color.setHex(id === "ballista" ? 0xffd9a0 : id === "ferrum" ? 0xffe39a : 0xffffff); // Gauss's a little warm, Ferrum's yellow // Gauss's flash a little warm // the muzzle flash at this gun's muzzle (Ferrum's showed on the deck)
+    flashSprite.material.color.setHex(id === "ballista" ? 0xffd9a0 : id === "ferrum" ? 0xffefc8 : 0xffffff); // Gauss's a little warm, Ferrum's yellow // Gauss's flash a little warm // the muzzle flash at this gun's muzzle (Ferrum's showed on the deck)
     const w = WEAPONS[id];
     $("wpn").textContent = `${w.name} · −${w.cost}`;
   }

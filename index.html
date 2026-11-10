@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.247</div>
+      <div class="credit version">v1.0.248</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.247`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.248`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2372,7 +2372,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // bogies, a low railing round the deck meeting in a point at the bow (its top rail in the hull's colour, a lit line under
     // it), and under the bow a locomotive's pilot: a V of slats running down and forward to the rails. The bow reaches far enough ahead that from the seat the
     // railing's point and the pilot show at the foot of the view
-    const DY = -1.2, X = 1.05, ZB = 0.55, ZS = -2.35, ZT = -3.05; // the deck's top, half width, back, where the sides end, the bow's tip (far out: from the seat only what is over 2.5 m ahead shows below the deck's level)
+    const DY = -1.2, X = 0.7, ZB = 0.55, ZS = -2.35, ZT = -3.05; // the deck's top, half width, back, where the sides end, the bow's tip (far out: from the seat only what is over 2.5 m ahead shows below the deck's level)
     const plateMat = darkMat;
     const V = (x, y, z) => new THREE.Vector3(x, y, z);
     const bar = (a, b, r, mat) => { const d = b.clone().sub(a), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 10), mat); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); cart.add(m); return m; };
@@ -2394,7 +2394,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // axle boxes at its ends, the wheels dark discs with a lit ring on their faces
     const wheelGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.05, 28).rotateZ(Math.PI / 2), flangeGeo = new THREE.TorusGeometry(0.155, 0.012, 6, 32).rotateY(Math.PI / 2);
     for (const zc of [ZB - 0.45, ZS + 0.75]) for (const sd of [-1, 1]) {
-      const x = sd * (X - 0.2);
+      const x = sd * 0.72; // on the rails
       for (const dz of [-0.26, 0.26]) {
         const w = new THREE.Mesh(wheelGeo, darkMat); w.position.set(x, DY - 0.44, zc + dz); cart.add(w);
         const fl = new THREE.Mesh(flangeGeo, darkMat); fl.position.set(x - sd * 0.02, DY - 0.44, zc + dz); cart.add(fl);
@@ -2402,8 +2402,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const hb = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.03, 18).rotateZ(Math.PI / 2), shellMat); hb.position.set(x + sd * 0.045, DY - 0.44, zc + dz); cart.add(hb);
         const ab = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, 0.1), darkMat); ab.position.set(x + sd * 0.075, DY - 0.44, zc + dz); cart.add(ab);
       }
-      const fr = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(0.72, 0.09, 0.035), { depth: 0.04, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2 }).rotateY(Math.PI / 2), shellMat); fr.position.set(x + sd * 0.1 - 0.02, DY - 0.4, zc); cart.add(fr);
-      const fl = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.5), accentMat); fl.position.set(x + sd * 0.13, DY - 0.4, zc); cart.add(fl); // a lit line along it
+      const fr = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(0.72, 0.09, 0.035), { depth: 0.04, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2 }).rotateY(Math.PI / 2), shellMat); fr.position.set(x + sd * 0.06 - 0.02, DY - 0.4, zc); cart.add(fr);
+      const fl = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.5), accentMat); fl.position.set(x + sd * 0.09, DY - 0.4, zc); cart.add(fl); // a lit line along it
     }
     // the railing: posts and two rails, inset from the edge, meeting at the bow; low, so it does not stand in the view
     const IN = 0.07, RH = 0.26, rp = outline(IN, 0, ZB - 0.05); // the railing stands IN in from every edge
@@ -2417,7 +2417,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // the pilot: a level grating out in front of the bow (the part seen from the seat: anything sloping down from the bow is
     // seen edge on from there), and from its front edge a locomotive's slats in upright planes along the track, running steeply
     // down and forward to the rails
-    const edgeZ = x => ZS + (ZT - ZS) * (1 - Math.abs(x) / X), GO = 0.42, PT = DY - 0.03, PB = -1.7, PX = 1.0;
+    const edgeZ = x => ZS + (ZT - ZS) * (1 - Math.abs(x) / X), GO = 0.42, PT = DY - 0.03, PB = -1.7, PX = X - 0.04;
     const tv = x => V(x, PT, edgeZ(Math.min(Math.abs(x), X)) - GO), bv = x => V(x, PB, edgeZ(Math.min(Math.abs(x), X)) - GO - 0.5);
     for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(V(x, PT, edgeZ(x) + 0.05), tv(x), 0.035, 0.03, plateMat); // its top a grating: bars from under the deck's edge out to its front
     for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(tv(x), bv(x), 0.04, 0.06, shellMat); // the slats (in the level's colour, as the photo's blue pilot)

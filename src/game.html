@@ -2286,7 +2286,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // bogies, a low railing round the deck meeting in a point at the bow (its top rail in the hull's colour, a lit line under
     // it), and under the bow a locomotive's pilot: a V of slats running down and forward to the rails. The bow reaches far enough ahead that from the seat the
     // railing's point and the pilot show at the foot of the view
-    const DY = -1.2, X = 0.7, ZB = 0.55, ZS = -2.35, ZT = -3.05; // the deck's top, half width, back, where the sides end, the bow's tip (far out: from the seat only what is over 2.5 m ahead shows below the deck's level)
+    const DY = -1.2, X = 0.79, ZB = 0.55, ZS = -2.35, ZT = -3.05; // the deck's top, half width, back, where the sides end, the bow's tip (far out: from the seat only what is over 2.5 m ahead shows below the deck's level)
     const plateMat = darkMat;
     const V = (x, y, z) => new THREE.Vector3(x, y, z);
     const bar = (a, b, r, mat) => { const d = b.clone().sub(a), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 10), mat); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); cart.add(m); return m; };
@@ -5107,7 +5107,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       c.twp.copy(c.tgAt).multiplyScalar(CATA_K).applyMatrix4(c.root.matrixWorld);
       if (c.fired && !c.shot) {
-        if (c.kind === "catapult") { c.a = Math.min(1, c.a + dt / 0.28); c.arm.rotation.x = lerp(c.armRest, -2.0, c.a * c.a); } // up over the axle and forward
+        if (c.kind === "catapult") { c.a = Math.min(1, c.a + dt / 0.28); c.arm.rotation.x = lerp(c.armRest, -1.2, c.a * c.a); } // up, short of upright: on over the axle it ran through the target's crossbar
         else c.a = 1; // a crossbow looses at once
         if (c.a >= 1) { // the shot or the stake leaves for the glass
           c.ball.updateMatrixWorld(true); const from = new THREE.Vector3().setFromMatrixPosition(c.ball.matrixWorld);

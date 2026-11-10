@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.244</div>
+      <div class="credit version">v1.0.245</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.244`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.245`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2336,8 +2336,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const rod = new THREE.CylinderGeometry(0.03, 0.03, 0.6, 8);
     [-1.9, 1.9].forEach(u => add(rod, frameMat, END_S - 24, u, 5.2));
     if (LEVEL.line === "branch") {
-      add(new THREE.BoxGeometry(2.2, 0.7, 0.5), frameMat, END_S + 2.2, 0, 0.75);
-      [-0.6, 0, 0.6].forEach(u => add(new THREE.BoxGeometry(0.34, 0.12, 0.52), accentMat, END_S + 2.2, u, 0.85));
+      const BS = END_S + 4.7; // past the tip of the cart's pilot (about 4 m ahead of the eye) with a little to spare: nearer, the cart ran into it
+      add(new THREE.BoxGeometry(2.2, 0.7, 0.5), frameMat, BS, 0, 0.75);
+      [-0.6, 0, 0.6].forEach(u => add(new THREE.BoxGeometry(0.34, 0.12, 0.52), accentMat, BS, u, 0.85));
     }
   }
   function layoutStation() {

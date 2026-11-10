@@ -2293,9 +2293,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     deck.position.y = DY - 0.07; cart.add(deck);
     const hull = new THREE.Mesh(new THREE.ExtrudeGeometry(plan(0.82), { depth: 0.24, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 2 }).rotateX(-Math.PI / 2), shellMat);
     hull.position.y = DY - 0.31; cart.add(hull);
-    // the deck's edge lit, round the sides and the bow
-    const edge = [V(-X, DY + 0.004, ZB), V(-X, DY + 0.004, ZS), V(0, DY + 0.004, ZT), V(X, DY + 0.004, ZS), V(X, DY + 0.004, ZB)];
-    for (let i = 0; i < 4; i++) bar(edge[i], edge[i + 1], 0.008, accentMat);
+    // the deck's outline, d in from its edge (d < 0: out from it): back left, the left corner, the bow's tip, the right corner, back right
+    const bn = V(ZS - ZT, 0, -X).normalize(), zAt = (x, d) => ZS + (-d - bn.x * (x - X)) / bn.z; // (bn: the bow's right edge's outward normal)
+    const outline = (d, y, zb) => [V(-X + d, y, zb), V(-X + d, y, zAt(X - d, d)), V(0, y, zAt(0, d)), V(X - d, y, zAt(X - d, d)), V(X - d, y, zb)];
+    // a lit line along a path, its joints rounded (bare, the pieces' ends stepped at each corner)
+    const litLine = (pts, r) => { for (let i = 0; i < pts.length - 1; i++) bar(pts[i], pts[i + 1], r, accentMat);
+      for (const q of pts.slice(1, -1)) { const j = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), accentMat); j.position.copy(q); cart.add(j); } };
+    litLine(outline(-0.02, DY + 0.012, ZB), 0.013); // the deck's edge lit, just outside its bevel, so it shows all round the bow
     for (const sd of [-1, 1]) { const ln = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.012, ZB - ZS - 0.3), accentMat); ln.position.set(sd * (X * 0.82 + 0.021), DY - 0.2, (ZB + ZS) / 2); cart.add(ln); } // a lit line along each side of the hull
     // two bogies under the deck's straight part, each with two wheelsets: a dark side frame with a spring in its middle and
     // axle boxes at its ends, the wheels dark discs with a lit ring on their faces
@@ -2313,23 +2317,23 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const fl = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.5), accentMat); fl.position.set(x + sd * 0.13, DY - 0.4, zc); cart.add(fl); // a lit line along it
     }
     // the railing: posts and two rails, inset from the edge, meeting at the bow; low, so it does not stand in the view
-    const IN = 0.07, RH = 0.26, bn = V(ZS - ZT, 0, -X).normalize(); // the bow's right edge's outward normal (x, z); the railing stands IN in from every edge
-    const zAt = x => ZS + (-IN - bn.x * (x - X)) / bn.z; // where the line IN in from the bow's edge is, at x
-    const rp = [V(-X + IN, 0, ZB - 0.05), V(-X + IN, 0, zAt(X - IN)), V(0, 0, zAt(0)), V(X - IN, 0, zAt(X - IN)), V(X - IN, 0, ZB - 0.05)];
+    const IN = 0.07, RH = 0.26, rp = outline(IN, 0, ZB - 0.05); // the railing stands IN in from every edge
     for (let i = 0; i < 4; i++) {
       const a = rp[i], b = rp[i + 1], n = Math.max(1, Math.round(a.distanceTo(b) / 0.42));
       for (let k = i === 0 ? 0 : 1; k <= n; k++) { const q = a.clone().lerp(b, k / n); bar(V(q.x, DY, q.z), V(q.x, DY + RH, q.z), 0.012, darkMat); }
-      bar(V(a.x, DY + RH, a.z), V(b.x, DY + RH, b.z), 0.02, shellMat); bar(V(a.x, DY + RH - 0.035, a.z), V(b.x, DY + RH - 0.035, b.z), 0.006, accentMat); bar(V(a.x, DY + RH * 0.45, a.z), V(b.x, DY + RH * 0.45, b.z), 0.01, darkMat);
+      bar(V(a.x, DY + RH, a.z), V(b.x, DY + RH, b.z), 0.02, shellMat); bar(V(a.x, DY + RH * 0.45, a.z), V(b.x, DY + RH * 0.45, b.z), 0.01, darkMat);
     }
+    litLine(rp.map(q => V(q.x, DY + RH - 0.035, q.z)), 0.008); // the lit line under the top rail
     for (const q of rp) { const j = new THREE.Mesh(new THREE.SphereGeometry(0.026, 14, 10), shellMat); j.position.set(q.x, DY + RH, q.z); cart.add(j); } // its corners rounded
     // the pilot: a level grating out in front of the bow (the part seen from the seat: anything sloping down from the bow is
     // seen edge on from there), and from its front edge a locomotive's slats in upright planes along the track, running steeply
     // down and forward to the rails
-    const edgeZ = x => ZS + (ZT - ZS) * (1 - Math.abs(x) / X), GO = 0.62, PT = DY - 0.03, PB = -1.7, PX = 1.0;
+    const edgeZ = x => ZS + (ZT - ZS) * (1 - Math.abs(x) / X), GO = 0.42, PT = DY - 0.03, PB = -1.7, PX = 1.0;
     const tv = x => V(x, PT, edgeZ(Math.min(Math.abs(x), X)) - GO), bv = x => V(x, PB, edgeZ(Math.min(Math.abs(x), X)) - GO - 0.5);
     for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(V(x, PT, edgeZ(x) + 0.05), tv(x), 0.035, 0.03, plateMat); // its top a grating: bars from under the deck's edge out to its front
     for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(tv(x), bv(x), 0.04, 0.06, shellMat); // the slats (in the level's colour, as the photo's blue pilot)
-    for (const sd of [-1, 1]) { bar(tv(sd * PX), tv(0), 0.03, shellMat); bar(tv(sd * PX).add(V(0, 0.032, 0)), tv(0).add(V(0, 0.032, 0)), 0.007, accentMat); // its front edge, lit along the top
+    litLine([tv(-PX), tv(0), tv(PX)].map(q => q.add(V(0, 0.034, 0))), 0.009); // its front edge, lit along the top
+    for (const sd of [-1, 1]) { bar(tv(sd * PX), tv(0), 0.03, shellMat);
       bar(bv(sd * PX), bv(0), 0.02, darkMat); bar(tv(sd * PX), bv(sd * PX), 0.02, darkMat); bar(V(sd * PX, PT, edgeZ(PX) + 0.05), tv(sd * PX), 0.02, darkMat); }
     slat(tv(0), bv(0), 0.05, 0.08, darkMat); // its ridge
   }

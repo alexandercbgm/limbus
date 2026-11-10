@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.240</div>
+      <div class="credit version">v1.0.241</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.240`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.241`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2434,7 +2434,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const baseRing = new THREE.Mesh(new THREE.TorusGeometry(0.242, 0.006, 6, 48).rotateX(Math.PI / 2), accentMat); baseRing.position.y = -0.088; baseRing.name = "dish"; yawG.add(baseRing);
   const fork = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.024, 12, 40, Math.PI).rotateZ(Math.PI), darkMat); // U-shaped gimbal fork
   fork.position.y = 0.09; fork.name = "fork"; yawG.add(fork);
-  [-1, 1].forEach(s => { const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.03, 20).rotateZ(Math.PI / 2), accentMat); hub.position.set(s * 0.17, 0.09, 0); hub.name = "forkhub"; yawG.add(hub); }); // (Lumen's; Gauss has its own)
+  const hubRimMat = new THREE.MeshBasicMaterial({ color: 0xe8edf2 }); // Lumen's hubs black with a fine white lit rim, so they do not merge with the fork
+  [-1, 1].forEach(s => { const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.03, 20).rotateZ(Math.PI / 2), darkMat); hub.position.set(s * 0.17, 0.09, 0); hub.name = "forkhub"; yawG.add(hub);
+    for (const dx of [-0.016, 0.016]) { const rim = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.0035, 6, 32).rotateY(Math.PI / 2), hubRimMat); rim.position.set(s * 0.17 + dx, 0.09, 0); rim.name = "forkhub"; yawG.add(rim); } });
   const pitchG = new THREE.Group(); pitchG.position.y = 0.09; yawG.add(pitchG);
   const barrel = new THREE.Group(); pitchG.add(barrel);
   { // capsule body, turned to point along -Z
@@ -2666,7 +2668,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k.startsWith(id + "_"); g.c.children.concat(g.yaw.children).forEach(o => { if (o.name === "dish" || o.name === "pedestal") o.visible = false; }); if (id === "triplex") g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = false; }); }); // Triplex stands on its own black mount // (every cannon now stands on a black mount of its own: no dish, no pedestal)
     const fz = { ballista: [0, 0, -1.22], triplex: [0, 0, -1.1], radius: [0, 0, -1.19], gemini: [0, 0.2, -1.87], ferrum: [0, FER_UP, -FER_BACK - 0.95] }[id] || [0, 0, -0.9];
     GUNS.forEach(g => g.barrel.children.forEach(o => { if (o.isSprite && o.material === flashSprite.material) o.position.set(...fz); }));
-    flashSprite.material.color.setHex(id === "ballista" ? 0xffd9a0 : 0xffffff); // Gauss's flash a little warm // the muzzle flash at this gun's muzzle (Ferrum's showed on the deck)
+    flashSprite.material.color.setHex(id === "ballista" ? 0xffd9a0 : id === "ferrum" ? 0xffd04a : 0xffffff); // Gauss's a little warm, Ferrum's yellow // Gauss's flash a little warm // the muzzle flash at this gun's muzzle (Ferrum's showed on the deck)
     const w = WEAPONS[id];
     $("wpn").textContent = `${w.name} · −${w.cost}`;
   }

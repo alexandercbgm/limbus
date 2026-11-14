@@ -2769,6 +2769,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const CRYSTAL_VAL = 4, CRYSTAL_DARK = 7; // balls a hit, by the light and in the dark
   let crystalTally = 0;
   function addCrystal(s, u, v, val, decoyKind) {
+    for (let k = 0; k < 4; k++) { if (!crystals.some(c => c.alive && Math.hypot(c.s - s, c.u - u, c.v - v) < 2.6)) break; s += 2.8; } // never right against another
     if (!decoyKind) crystalTally += val >= CRYSTAL_DARK ? 2 : 1; // what the ride has set out for the bank, for tests
     const g = new THREE.Group(); g.matrixAutoUpdate = false;
     const m = new THREE.Mesh(crystalGeo, decoyKind ? decoyMat : crystalMat); g.add(m);
@@ -6858,6 +6859,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // a piece takes some of the ball's push, but never more than a few m/s on along the track: it had flown on down the
       // corridor faster than the cart and kept ahead of it (the ball carries 45-60 m/s); one rule for every kind of piece
       if (!s.capped) { s.capped = true; frameAt(sC); const f = s.v.dot(_T), cap = s.fwd || SHARD_FWD; if (f > cap) s.v.addScaledVector(_T, cap - f); }
+      if (s.under && s.v.y > 0) s.v.y = 0; // a piece born under the deck falls away below it: rising, it came up through the floor
       if (!s.rest) {
         s.v.y -= G * dt;
         pos.addScaledVector(s.v, dt);
@@ -6869,7 +6871,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (s.fs !== undefined) {
         frameAt(s.fs); s.fs += tmpV.copy(pos).sub(_P).dot(_T); frameAt(s.fs); tmpV.copy(pos).sub(_P);
         const h = tmpV.dot(_U) - s.fo - 0.03;
-        if (!s.seen) { s.seen = true; if (h < -0.15) s.fs = undefined; }
+        if (!s.seen) { s.seen = true; if (h < -0.15) { s.fs = undefined; s.under = true; } }
         else if (h < 0 && !((STYLE.bridge || spanAt(s.fs)) && Math.abs(tmpV.dot(_R)) > (STYLE.bridge ? BRIDGE_W : SW) + 0.2)) {
           pos.addScaledVector(_U, -h);
           if (s.rest) {} else {

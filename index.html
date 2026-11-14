@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.263</div>
+      <div class="credit version">v1.0.264</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.263`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.264`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2855,6 +2855,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const CRYSTAL_VAL = 4, CRYSTAL_DARK = 7; // balls a hit, by the light and in the dark
   let crystalTally = 0;
   function addCrystal(s, u, v, val, decoyKind) {
+    for (let k = 0; k < 4; k++) { if (!crystals.some(c => c.alive && Math.hypot(c.s - s, c.u - u, c.v - v) < 2.6)) break; s += 2.8; } // never right against another
     if (!decoyKind) crystalTally += val >= CRYSTAL_DARK ? 2 : 1; // what the ride has set out for the bank, for tests
     const g = new THREE.Group(); g.matrixAutoUpdate = false;
     const m = new THREE.Mesh(crystalGeo, decoyKind ? decoyMat : crystalMat); g.add(m);
@@ -6944,6 +6945,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // a piece takes some of the ball's push, but never more than a few m/s on along the track: it had flown on down the
       // corridor faster than the cart and kept ahead of it (the ball carries 45-60 m/s); one rule for every kind of piece
       if (!s.capped) { s.capped = true; frameAt(sC); const f = s.v.dot(_T), cap = s.fwd || SHARD_FWD; if (f > cap) s.v.addScaledVector(_T, cap - f); }
+      if (s.under && s.v.y > 0) s.v.y = 0; // a piece born under the deck falls away below it: rising, it came up through the floor
       if (!s.rest) {
         s.v.y -= G * dt;
         pos.addScaledVector(s.v, dt);
@@ -6955,7 +6957,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (s.fs !== undefined) {
         frameAt(s.fs); s.fs += tmpV.copy(pos).sub(_P).dot(_T); frameAt(s.fs); tmpV.copy(pos).sub(_P);
         const h = tmpV.dot(_U) - s.fo - 0.03;
-        if (!s.seen) { s.seen = true; if (h < -0.15) s.fs = undefined; }
+        if (!s.seen) { s.seen = true; if (h < -0.15) { s.fs = undefined; s.under = true; } }
         else if (h < 0 && !((STYLE.bridge || spanAt(s.fs)) && Math.abs(tmpV.dot(_R)) > (STYLE.bridge ? BRIDGE_W : SW) + 0.2)) {
           pos.addScaledVector(_U, -h);
           if (s.rest) {} else {

@@ -1304,8 +1304,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           // in the Light the vault above is a deep blue night of stars and a pale Milky Way, white only down by the horizon and round the sun
           // and below the deck the same night goes on, so the white floor's edge stands clear of it instead of melting into a haze
           float hh = h > 0.0 ? h : -h * 2.5;
-          float dome = smoothstep(0.0, 0.35, hh) * smoothstep(0.3, 0.75, lum) * amt * (1.0 - smoothstep(0.5, 0.85, fall));
-          c = mix(c, mix(vec3(0.07, 0.09, 0.24), vec3(0.2, 0.26, 0.55), smoothstep(0.35, 0.0, hh)), dome * 0.94);
+          float dome = smoothstep(0.0, mix(0.35, 0.09, smoothstep(0.6, 0.95, lum)), hh) * smoothstep(0.3, 0.75, lum) * amt * (1.0 - smoothstep(0.5, 0.85, fall));
+          c = mix(c, mix(vec3(0.07, 0.09, 0.24), vec3(0.2, 0.26, 0.55), smoothstep(0.35, 0.0, hh)), dome * 0.94); // (nearer the light, the white band at the horizon narrower: wide, it ran into the sun)
           c += galaxy(n, vec3(0.45, 0.55, 0.95), dome * 1.1);
           c += ((fxc * rays * fall * 0.9 + vec3(1.0) * pow(sdot, 10.0) * 0.5) * amt * (1.0 - 0.75 * dome) + vec3(1.0) * pow(sdot, 200.0) * 2.5 * amt) * sunK; // the rays fade over the stars
         }

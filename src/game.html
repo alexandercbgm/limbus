@@ -1493,7 +1493,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     impMat.emissive.set(0x861208); impMat.emissiveIntensity = 0.42;
   }
   const impEdgeMat = new THREE.LineBasicMaterial({ color: 0xff3a14 });
-  const ballMat = new THREE.MeshStandardMaterial({ color: 0xdfe6ea, metalness: 0.6, roughness: 0.2 });
+  const ballMat = new THREE.MeshStandardMaterial({ color: 0x2a4374, metalness: 0.45, roughness: 0.16, emissive: 0x0e1a32, emissiveIntensity: 1 }); // blued steel, not too dark (lit a little of itself, so it shows in the dark)
   const ironBallMat = new THREE.MeshStandardMaterial({ color: 0x3a3430, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 });
   const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const WHITE = new THREE.Color(0xffffff), accelRings = [];
@@ -2367,13 +2367,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // a little smaller toward the muzzle; as it fires they flare one after another from the body out to the muzzle
     const mB = new THREE.Group(); mB.name = "m_ballista"; barrel.add(mB);
     const gCol = new THREE.Mesh(lathe([[0.1, 0], [0.13, 0.02], [0.13, 0.07], [0.115, 0.09]], 32).rotateX(-Math.PI / 2), darkMat); gCol.position.z = -0.22; mB.add(gCol);
-    const gBar = new THREE.Mesh(lathe([[0.056, 0], [0.048, 0.87], [0, 0.87]], 22).rotateX(-Math.PI / 2), shellMat); gBar.position.z = -0.28; mB.add(gBar);
+    const gBar = new THREE.Mesh(lathe([[0.076, 0], [0.07, 0.87], [0, 0.87]], 28).rotateX(-Math.PI / 2), shellMat); gBar.position.z = -0.28; mB.add(gBar);
     for (let i = 0; i < 6; i++) {
       const z = -0.36 - i * 0.13, r = 0.112 - i * 0.006;
       const coil = new THREE.Mesh(lathe([[r * 0.55, -0.035], [r, -0.03], [r, 0.03], [r * 0.55, 0.035]], 28).rotateX(-Math.PI / 2), darkMat); coil.position.z = z; mB.add(coil);
       const band = new THREE.Mesh(new THREE.TorusGeometry(r + 0.002, 0.01, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffffff })); band.name = "gcoil" + i; band.position.z = z; mB.add(band);
     }
-    const gTip = cyl(0.053, 0.033, accentMat, 22); gTip.position.z = -1.1835; mB.add(gTip); // its end lit, as Triplex's are
+    const gTip = cyl(0.074, 0.033, accentMat, 28); gTip.position.z = -1.1835; mB.add(gTip); // its end lit, as Triplex's are
     // Triplex, its barrels a quarter bigger than they were: a drum of a body, a cylinder with its square edges rounded off; out of its front a
     // rotary cluster of three barrels held by two discs
     const mTB = new THREE.Group(); mTB.name = "m_triplex_body"; barrel.add(mTB);
@@ -6068,25 +6068,35 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (let k = 0; k <= n; k++) { const m = new THREE.Mesh(chainLinkGeo, shotChainMat); m.position.x = x0 + LINK_L / 2 + (x1 - x0 - LINK_L) * k / n; m.rotation.x = k % 2 ? 0 : Math.PI / 2; g.add(m); }
     return g; }
   const CSD = new THREE.Vector3(), CSY = new THREE.Vector3(), CSM = new THREE.Matrix4();
-  function launchChain(from, dir) {
+  // Ferrum throws two chain shots, one after the other: the second leaves the bore just behind the first and drops below it by a
+  // chain's width, so from the cart the four balls make a square, a chain across its top and one across its bottom. Both
+  // spin almost in step, a little apart, differently each shot
+  function launchChains(from, dir) {
+    const f = dir.clone().normalize(), fh = new THREE.Vector3(f.x, 0, f.z).normalize(), rt = new THREE.Vector3().crossVectors(fh, new THREE.Vector3(0, 1, 0)).normalize();
+    const n = new THREE.Vector3(0, 1, 0).applyAxisAngle(fh, rand(-0.35, 0.35)).applyAxisAngle(rt, rand(-0.35, 0.35)); // the tilt, shared
+    const down = new THREE.Vector3(0, -1, 0).projectOnPlane(f).normalize().multiplyScalar(2 * CHAIN_HALF);
+    launchChain(from, dir, { n, phase: 0, spin: CHAIN_SPIN });
+    launchChain(from, dir, { n: n.clone().applyAxisAngle(fh, rand(-0.08, 0.08)), phase: rand(-0.3, 0.3), spin: CHAIN_SPIN * rand(0.94, 1.06), drop: down, lag: 1.1 });
+  }
+  function launchChain(from, dir, o) {
     frameAt(sC);
-    const f = dir.clone().normalize(); // it spins level, its plane tipped a little left or right, forward or back, a new tilt each shot
-    const fh = new THREE.Vector3(f.x, 0, f.z).normalize(), rt = new THREE.Vector3().crossVectors(fh, new THREE.Vector3(0, 1, 0)).normalize();
-    const n = new THREE.Vector3(0, 1, 0).applyAxisAngle(fh, rand(-0.35, 0.35)).applyAxisAngle(rt, rand(-0.35, 0.35));
-    const e1 = rt.clone().projectOnPlane(n).normalize(), e2 = new THREE.Vector3().crossVectors(n, e1).normalize();
-    const g = { dead: false, hit: false, e1, e2, f: n, phase: 0, spin: CHAIN_SPIN, mesh: chainMesh() };
-    g.mesh.position.copy(from); g.mesh.scale.setScalar(CHAIN_K0); scene.add(g.mesh);
+    const f = dir.clone().normalize(), fh = new THREE.Vector3(f.x, 0, f.z).normalize(), rt = new THREE.Vector3().crossVectors(fh, new THREE.Vector3(0, 1, 0)).normalize();
+    const n = o.n, e1 = rt.clone().projectOnPlane(n).normalize(), e2 = new THREE.Vector3().crossVectors(n, e1).normalize();
+    const g = { dead: false, hit: false, e1, e2, f: n, phase: o.phase, spin: o.spin, drop: o.drop || null, lag: o.lag || 0, mesh: chainMesh() };
+    from = from.clone().addScaledVector(f, -g.lag); // the second starts back in the bore, behind the first
+    g.mesh.position.copy(from); g.mesh.scale.setScalar(CHAIN_K0); g.mesh.visible = !g.lag; scene.add(g.mesh);
     const v = f.clone().multiplyScalar(44 + speedNow * Math.max(0, f.dot(_T))); v.y += 1.6;
     const eye = camera.getWorldPosition(new THREE.Vector3());
     for (const off of [-1, -0.5, 0, 0.5, 1]) {
       const end = Math.abs(off) === 1, m = end ? new THREE.Mesh(ballGeo, ironBallMat) : new THREE.Object3D();
       if (end) m.scale.setScalar(1.3 * CHAIN_K0);
-      m.position.copy(from).addScaledVector(e1, off * CHAIN_HALF * CHAIN_K0); scene.add(m);
+      m.position.copy(from).addScaledVector(e1, off * CHAIN_HALF * CHAIN_K0); m.visible = !g.lag; scene.add(m);
       ballsArr.push({ mesh: m, v: v.clone(), p0: from.clone(), eye: eye.clone(), life: 0, hit: false, vol: {}, iron: true, cc: from.clone(), cs: { g, off, link: !end } });
     }
   }
+  const BALL_K0 = 0.35; // a ball leaves the bore at about the bore's size
   function launch(from, dir, vol) {
-    const m = new THREE.Mesh(ballGeo, ballMat);
+    const m = new THREE.Mesh(ballGeo, ballMat); m.scale.setScalar(BALL_K0);
     m.position.copy(from); scene.add(m);
     frameAt(sC);
     // same speed and arc as always (44 plus the cart's own speed, a small lift), but the cart's speed is
@@ -6142,7 +6152,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         dir = target.clone().addScaledVector(side.normalize(), 0.26).sub(from).normalize(); } // each aimed 26 cm out to its own side of the aim
       else dir = target.clone().sub(from).normalize();
       if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
-      else if (progress.weapon === "ferrum") launchChain(from, dir);
+      else if (progress.weapon === "ferrum") launchChains(from, dir);
       else launch(from, dir, vol);
     }
     recoil = 1; flashSprite.material.opacity = 1; lastShotT = time;
@@ -6675,10 +6685,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       } else if (b.cs) { // a part of a chain shot: its centre flies like any ball, the shot spins about it
         const g = b.cs.g, a = g.phase + g.spin * (b.life + dt), k = CHAIN_K0 + (1 - CHAIN_K0) * smooth5(clamp((b.life + dt) / CHAIN_OPEN, 0, 1)); // it leaves the bore small and close, and opens
         b.cc.addScaledVector(b.v, dt); CSD.copy(g.e1).multiplyScalar(Math.cos(a)).addScaledVector(g.e2, Math.sin(a));
-        pos.copy(b.cc).addScaledVector(CSD, b.cs.off * CHAIN_HALF * k);
+        const dr = g.drop ? smooth5(clamp((b.life + dt) / 0.3, 0, 1)) : 0; // the second drops to its place below the first
+        pos.copy(b.cc).addScaledVector(CSD, b.cs.off * CHAIN_HALF * k); if (dr) pos.addScaledVector(g.drop, dr);
         if (!b.cs.link) b.mesh.scale.setScalar(1.3 * k);
-        if (b.cs.off === -1) { g.mesh.position.copy(b.cc); g.mesh.scale.setScalar(k); CSM.makeBasis(CSD, CSY.crossVectors(g.f, CSD), g.f); g.mesh.quaternion.setFromRotationMatrix(CSM); }
-      } else pos.addScaledVector(b.v, dt);
+        if (g.lag && (b.life + dt) * 44 > g.lag) { b.mesh.visible = !b.cs.link; g.mesh.visible = true; } // out of the bore
+        if (b.cs.off === -1) { g.mesh.position.copy(b.cc); if (dr) g.mesh.position.addScaledVector(g.drop, dr); g.mesh.scale.setScalar(k); CSM.makeBasis(CSD, CSY.crossVectors(g.f, CSD), g.f); g.mesh.quaternion.setFromRotationMatrix(CSM); }
+      } else if (b.life > 0) pos.addScaledVector(b.v, dt); // (its first frame drawn at the muzzle, not a stride past it)
+      if (!b.cs && !b.iron) { const k = BALL_K0 + (1 - BALL_K0) * smooth5(clamp((b.life + dt) / 0.12, 0, 1)); b.mesh.scale.setScalar(k); } // out of the bore at its size, then full
       let dead = false;
       const hb = b.cs ? b.cs.g : b, mark = () => { if (!hb.hit) { hb.hit = true; stats.hits++; } }; // (a chain shot counts one hit)
       const pathDist = c => segDist(c, b.p0, pos); // closest approach along this frame's path, so fast balls cannot skip a target

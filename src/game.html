@@ -1299,7 +1299,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           vec3 q = normalize(n - sd * dot(n, sd) + 1e-5);
           vec3 ax = normalize(cross(sd, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sd);
           float ang = atan(dot(q, ay), dot(q, ax));
-          float rays = pow(0.5 + 0.5 * sin(ang * 14.0 + t * 0.2), 6.0) * 0.6 + pow(0.5 + 0.5 * sin(ang * 5.0 - t * 0.13), 4.0) * 0.4;
+          float rays = pow(0.5 + 0.5 * sin(ang * 12.0 + t * 0.2), 6.0) * 0.85; // all its rays one width (a second, broader set laid over them made some thick, some thin)
           float fall = exp(-acos(clamp(dot(n, sd), -1.0, 1.0)) * 1.6);
           // in the Light the vault above is a deep blue night of stars and a pale Milky Way, white only down by the horizon and round the sun
           // and below the deck the same night goes on, so the white floor's edge stands clear of it instead of melting into a haze

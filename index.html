@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.260</div>
+      <div class="credit version">v1.0.261</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.260`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.261`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1385,7 +1385,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           vec3 q = normalize(n - sd * dot(n, sd) + 1e-5);
           vec3 ax = normalize(cross(sd, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sd);
           float ang = atan(dot(q, ay), dot(q, ax));
-          float rays = pow(0.5 + 0.5 * sin(ang * 14.0 + t * 0.2), 6.0) * 0.6 + pow(0.5 + 0.5 * sin(ang * 5.0 - t * 0.13), 4.0) * 0.4;
+          float rays = pow(0.5 + 0.5 * sin(ang * 12.0 + t * 0.2), 6.0) * 0.85; // all its rays one width (a second, broader set laid over them made some thick, some thin)
           float fall = exp(-acos(clamp(dot(n, sd), -1.0, 1.0)) * 1.6);
           // in the Light the vault above is a deep blue night of stars and a pale Milky Way, white only down by the horizon and round the sun
           // and below the deck the same night goes on, so the white floor's edge stands clear of it instead of melting into a haze

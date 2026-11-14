@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.273</div>
+      <div class="credit version">v1.0.274</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.273`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.274`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1062,6 +1062,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const buf = c.createBuffer(1, c.sampleRate, c.sampleRate), d = buf.getChannelData(0);
         for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
         this.noise = buf;
+        try { this.prerenderShatter(); } catch (e) {}
         this.musicLP = c.createBiquadFilter(); this.musicLP.type = "lowpass"; this.musicLP.frequency.value = 20000; this.musicLP.Q.value = 0.7;
         this.musicGain = c.createGain(); this.musicGain.gain.value = 0.625; // the music at half the full volume (0.625 × the master's 0.8)
         this.musicLP.connect(this.musicGain); this.musicGain.connect(this.master);
@@ -1148,8 +1149,29 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (let i = 0; i < 6; i++) this.tone(140 + Math.random() * 120, 0.12, 0.12, "sine", 0.25 + Math.random() * 0.6, 60); // chunks landing
       for (let i = 0; i < 5; i++) this.tone(800 + Math.random() * 1400, 0.3 + Math.random() * 0.4, 0.025, "triangle", Math.random() * 0.4);
     },
+    // a pane's shatter, recorded once ahead (three sizes, four takes of each) and played back: each pane broken still sounds,
+    // several at once as before, but a recording costs next to nothing to play, where a dozen live voices a pane made the game
+    // stutter when four or five went together
+    prerenderShatter() {
+      const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext; if (!OAC || this.shatterBufs) return;
+      this.shatterBufs = [[], [], []];
+      const sr = this.ctx.sampleRate;
+      [0.7, 1.1, 1.5].forEach((size, si) => { for (let v = 0; v < 4; v++) {
+        const oc = new OAC(1, Math.ceil(sr * 0.9), sr), nb = oc.createBuffer(1, sr, sr), d = nb.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const env = (node, gain, dur, when) => { const t = when || 0, g = oc.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); node.connect(g); g.connect(oc.destination); return t; };
+        const hiss = (dur, freq, ftype, gain) => { const src = oc.createBufferSource(); src.buffer = nb; const f = oc.createBiquadFilter(); f.type = ftype; f.frequency.value = freq; src.connect(f); const t = env(f, gain, dur); src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.05); };
+        const tone = (fq, dur, gain, when) => { const o = oc.createOscillator(); o.frequency.value = fq; const t = env(o, gain, dur, when); o.start(t); o.stop(t + dur + 0.05); };
+        hiss(0.18 + 0.25 * size, 3200, "highpass", 0.3 * size); hiss(0.12, 1500, "bandpass", 0.2 * size);
+        const k = 4 + Math.round(size * 3); for (let i = 0; i < k; i++) tone(2400 + Math.random() * 5200, 0.15 + Math.random() * 0.45, 0.03, Math.random() * 0.18);
+        oc.startRendering().then(b => this.shatterBufs[si].push(b)).catch(() => {});
+      } });
+    },
     shatter(size) {
-      const now = performance.now(); if (now - (this.lastShatter || 0) < 70) return; this.lastShatter = now; // several panes at once: one burst of sound, not a pile of them
+      if (!this.ctx) return;
+      const set = this.shatterBufs && this.shatterBufs[size < 0.9 ? 0 : size < 1.3 ? 1 : 2];
+      if (set && set.length) { const c = this.ctx, src = c.createBufferSource(); src.buffer = set[Math.floor(Math.random() * set.length)]; src.playbackRate.value = 0.94 + Math.random() * 0.12;
+        src.connect(this.master); src.start(c.currentTime + Math.random() * 0.02); return; }
       this.hiss(0.18 + 0.25 * size, 3200, "highpass", 0.3 * size);
       this.hiss(0.12, 1500, "bandpass", 0.2 * size);
       const k = 4 + Math.round(size * 3);

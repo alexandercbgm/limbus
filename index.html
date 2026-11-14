@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.272</div>
+      <div class="credit version">v1.0.273</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.272`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.273`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1149,6 +1149,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (let i = 0; i < 5; i++) this.tone(800 + Math.random() * 1400, 0.3 + Math.random() * 0.4, 0.025, "triangle", Math.random() * 0.4);
     },
     shatter(size) {
+      const now = performance.now(); if (now - (this.lastShatter || 0) < 70) return; this.lastShatter = now; // several panes at once: one burst of sound, not a pile of them
       this.hiss(0.18 + 0.25 * size, 3200, "highpass", 0.3 * size);
       this.hiss(0.12, 1500, "bandpass", 0.2 * size);
       const k = 4 + Math.round(size * 3);
@@ -2805,6 +2806,23 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // floor stops short above them, its top where it was; so one sliding across the track passes over the rails, not through them
   const RAIL_CLEAR = 0.42;
   const TWIN_AMP = 2.0 - 2.2 / 2 - 0.05; // twin panes 2.2 m wide about ±2 m: at their closest 10 cm apart (they swung 1 m and overlapped by 20 cm)
+  // how far out from the track's middle glass may reach at height v without passing through the level's walls or glazing:
+  // Vitrum's glazing is a hexagon (pointed at the sides, so narrower toward floor and roof), the rest stand between upright walls
+  const wallHW = v => STYLE.bare ? HEXPANE_R - Math.min(Math.abs(v - HEXPANE_V), HEXPANE_A) * Math.tan(Math.PI / 6) : SW;
+  const PANE_GAP = 0.15;
+  function fitPane(o) {
+    if (o.rise !== undefined) return;
+    const vr = o.move && o.move.axis === "v" ? Math.abs(o.move.amp) : 0;
+    const halfW = o.rot !== undefined ? Math.hypot(o.w, o.h) / 2 : o.w / 2, halfH = o.rot !== undefined ? halfW : o.h / 2;
+    let room = Infinity; for (let k = 0; k <= 8; k++) room = Math.min(room, wallHW(o.v - vr - halfH + (2 * (halfH + vr)) * k / 8));
+    room -= PANE_GAP; o.room = room;
+    if (o.move && o.move.axis === "shutter") return; // a shutter reckons its own travel from o.room
+    if (o.move && o.move.axis === "u") { const lim = Math.max(0, room - halfW - Math.abs(o.u)); if (Math.abs(o.move.amp) > lim) o.move.amp = Math.sign(o.move.amp) * lim; return; }
+    if (Math.abs(o.u) + halfW <= room || o.rot !== undefined) { if (o.rot !== undefined && Math.abs(o.u) + halfW > room) { o.u = Math.sign(o.u) * Math.max(0, room - halfW); if (halfW > room) { const k = room / halfW; o.w *= k; o.h *= k; } } return; } // (a turning one too big to fit is made smaller)
+    const inner = Math.abs(o.u) - o.w / 2; // keep its inner edge (a row of panes side by side keeps its gaps), bring in its outer one
+    if (room - inner >= 0.8) { o.w = room - inner; o.u = Math.sign(o.u) * (inner + o.w / 2); }
+    else o.u = Math.sign(o.u || 1) * Math.max(0, room - o.w / 2);
+  }
   function addPane(o) {
     // armoured glass is thick: one and a half times the band between its two frames (the inner one is 0.86 the size)
     if ((o.hp || 1) > 1 && !o.thick && !o.cross && o.rot === undefined) o.thick = 1.5 * 0.07 * Math.min(o.w, o.h);
@@ -2816,6 +2834,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const need = RAIL_CLEAR - (o.v - (ax === "v" ? Math.abs(o.move.amp) : 0) - o.h / 2);
       if (over && need > 0) { if (o.h > 5) { o.h -= need; o.v += need / 2; } else o.v += need; }
     }
+    fitPane(o);
     const sh = o.thick && (o.cross ? crossShape(o.w, o.h) : new THREE.Shape([[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => new THREE.Vector2(x * o.w / 2, y * o.h / 2))));
     const geo = o.thick ? new THREE.ExtrudeGeometry(sh, { depth: o.thick, bevelEnabled: false }).translate(0, 0, -o.thick / 2) : o.cross ? new THREE.ShapeGeometry(crossShape(o.w, o.h)) : new THREE.PlaneGeometry(o.w, o.h);
     const eg = new THREE.EdgesGeometry(geo), reinf = (o.hp || 1) > 1;
@@ -3158,6 +3177,25 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function spacing(d) { return lerp(24, 14, d) * (1 - 0.15 * Math.min(1, sC / MAIN_LEN)) * (LEVEL.spaceMul || 1); } // a level may space its groups wider
 
   // ---------- glass fracture ----------
+  // a piece of glass of thickness d (pts its outline about its middle, in x, y): built straight into buffers, with its
+  // outline edges, many times faster than ExtrudeGeometry and EdgesGeometry (a few panes broken at once made a hitch)
+  function prismGeo(pts, d) {
+    const n = pts.length, h = d / 2, pos = [], nor = [];
+    const tri = (a, b, c, nx, ny, nz) => { pos.push(...a, ...b, ...c); for (let k = 0; k < 3; k++) nor.push(nx, ny, nz); };
+    let area = 0; for (let i = 0; i < n; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % n]; area += x1 * y2 - x2 * y1; }
+    const P = area < 0 ? pts.slice().reverse() : pts; // counter-clockwise
+    const faces = n === 3 ? [[0, 1, 2]] : THREE.ShapeUtils.triangulateShape(P.map(([x, y]) => new THREE.Vector2(x, y)), []); // (a band of a slab may bend in: not always convex)
+    for (const [i, j, k] of faces) { const o = THREE.ShapeUtils.isClockWise([P[i], P[j], P[k]].map(([x, y]) => new THREE.Vector2(x, y))) ? [i, k, j] : [i, j, k];
+      tri([P[o[0]][0], P[o[0]][1], h], [P[o[1]][0], P[o[1]][1], h], [P[o[2]][0], P[o[2]][1], h], 0, 0, 1); tri([P[o[0]][0], P[o[0]][1], -h], [P[o[2]][0], P[o[2]][1], -h], [P[o[1]][0], P[o[1]][1], -h], 0, 0, -1); }
+    for (let i = 0; i < n; i++) { const [x1, y1] = P[i], [x2, y2] = P[(i + 1) % n], l = Math.hypot(x2 - x1, y2 - y1) || 1, nx = (y2 - y1) / l, ny = -(x2 - x1) / l;
+      tri([x1, y1, -h], [x2, y2, -h], [x2, y2, h], nx, ny, 0); tri([x1, y1, -h], [x2, y2, h], [x1, y1, h], nx, ny, 0); }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); return g;
+  }
+  function prismEdges(pts, d) {
+    const n = pts.length, h = d / 2, pos = [];
+    for (let i = 0; i < n; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % n]; pos.push(x1, y1, h, x2, y2, h, x1, y1, -h, x2, y2, -h, x1, y1, -h, x1, y1, h); }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); return g;
+  }
   // Radial cracks from the impact point to the pane edge, cut by two rings, so every piece is convex.
   const tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3();
   // a solid piece breaks into big chunks: a cross into its middle and two pieces of each arm, that fly apart and fall
@@ -3188,8 +3226,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     for (const [poly, zo] of pieces.flatMap(q => p.cross ? [[q, 0]] : [[q, -0.25], [q, 0.25]])) { // a block's shards split through its depth too
       let x = 0, y = 0; poly.forEach(([u, v]) => { x += u; y += v; }); x /= poly.length; y /= poly.length;
-      const depth = p.thick * (p.cross ? 1 : 0.5) * rand(0.7, 1), geo = new THREE.ExtrudeGeometry(new THREE.Shape(poly.map(([u, v]) => new THREE.Vector2(u - x, v - y))), { depth, bevelEnabled: false }).translate(0, 0, -depth / 2);
-      const m = new THREE.Mesh(geo, p.mat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
+      const depth = p.thick * (p.cross ? 1 : 0.5) * rand(0.7, 1), pl = poly.map(([u, v]) => [u - x, v - y]), geo = prismGeo(pl, depth);
+      const m = new THREE.Mesh(geo, p.mat); m.add(new THREE.LineSegments(prismEdges(pl, depth), edgeMat));
       m.position.copy(p.C).addScaledVector(p.R, x).addScaledVector(p.U, y).addScaledVector(p.T, zo * p.thick); m.quaternion.copy(p.q); scene.add(m);
       let dx = x - lx, dy = y - ly; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
       const spd = rand(1.5, 3.2) / (0.8 + d * 0.3);
@@ -3279,8 +3317,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const rim = [edgeAt(s0), ...mid, edgeAt(s1)], cut = rand(0.38, 0.55), inner = rim.map(([x, y]) => [ix + (x - ix) * cut, iy + (y - iy) * cut]);
       for (const pg of [[[ix, iy], ...inner], [...rim, ...inner.slice().reverse()]]) {
         let cx = 0, cy = 0; pg.forEach(([x, y]) => { cx += x; cy += y; }); cx /= pg.length; cy /= pg.length;
-        const dd = depth * rand(0.75, 1), geo = new THREE.ExtrudeGeometry(new THREE.Shape(pg.map(([x, y]) => new THREE.Vector2(x - cx, y - cy))), { depth: dd, bevelEnabled: false }).translate(0, 0, -dd / 2);
-        const m = new THREE.Mesh(geo, mat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeM));
+        const dd = depth * rand(0.75, 1), pl = pg.map(([x, y]) => [x - cx, y - cy]), geo = prismGeo(pl, dd);
+        const m = new THREE.Mesh(geo, mat); m.add(new THREE.LineSegments(prismEdges(pl, dd), edgeM));
         m.position.set(cx, cy, 0).applyMatrix4(M); m.quaternion.copy(q); scene.add(m);
         const v = m.position.clone().sub(ctr).multiplyScalar(rand(0.5, 1.1) * push); v.addScaledVector(_T, rand(1, 3)).y += rand(0.3, 2);
         shards.push({ mesh: m, life: rand(2.2, 3.0), v, w: new THREE.Vector3(rand(-3, 3), rand(-3, 3), rand(-3, 3)), fs: s, fo: depth / 2 });
@@ -3303,8 +3341,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     pts2.forEach(q => { cx += q.x; cy += q.y; });
     cx /= pts2.length; cy /= pts2.length;
     // a piece of glass as thick as glass, with its edges catching the light, not a flat film fluttering like torn plastic
-    const geo = new THREE.ExtrudeGeometry(new THREE.Shape(pts2.map(q => new THREE.Vector2(q.x - cx, q.y - cy))), { depth: SHARD_T, bevelEnabled: false }).translate(0, 0, -SHARD_T / 2);
-    const m = new THREE.Mesh(geo, p.mat); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), p.mat === glassMat ? edgeMat : reinfEdgeMat));
+    const pl = pts2.map(q => [q.x - cx, q.y - cy]), geo = prismGeo(pl, SHARD_T);
+    const m = new THREE.Mesh(geo, p.mat); m.add(new THREE.LineSegments(prismEdges(pl, SHARD_T), p.mat === glassMat ? edgeMat : reinfEdgeMat));
     let size = 0; pts2.forEach(q => { size = Math.max(size, Math.hypot(q.x - cx, q.y - cy)); });
     m.position.copy(p.C).addScaledVector(p.R, cx).addScaledVector(p.U, cy);
     m.quaternion.copy(p.q);
@@ -5191,8 +5229,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const rim = [edgeAt(s0), ...mid, edgeAt(s1)], cut = rand(0.38, 0.55), inner = rim.map(([x, y]) => [ix + (x - ix) * cut, iy + (y - iy) * cut]);
       for (const poly of [[[ix, iy], ...inner], [...rim, ...inner.slice().reverse()]]) {
         let cx = 0, cy = 0; poly.forEach(([x, y]) => { cx += x; cy += y; }); cx /= poly.length; cy /= poly.length;
-        const geo = new THREE.ExtrudeGeometry(new THREE.Shape(poly.map(([x, y]) => new THREE.Vector2(x - cx, y - cy))), { depth: 0.6, bevelEnabled: false }).translate(0, 0, -0.3);
-        const m = new THREE.Mesh(geo, slabGlass); m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), glassEdge));
+        const pl = poly.map(([x, y]) => [x - cx, y - cy]), geo = prismGeo(pl, 0.6);
+        const m = new THREE.Mesh(geo, slabGlass); m.add(new THREE.LineSegments(prismEdges(pl, 0.6), glassEdge));
         m.position.set(cx, HEX_V + cy, 0).applyMatrix4(c.slab.matrixWorld); m.quaternion.setFromRotationMatrix(c.slab.matrixWorld); scene.add(m);
         const v = out.copy(m.position).sub(ctr).multiplyScalar(rand(0.5, 1.1)).clone(); frameAt(c.s); v.addScaledVector(_T, rand(3, 6)).y += rand(0.5, 2.5); // out from the blow, on along the track
         shards.push({ mesh: m, life: rand(2.2, 3.0), v, w: new THREE.Vector3(rand(-3, 3), rand(-3, 3), rand(-3, 3)), fs: c.s, fo: 0.3 });
@@ -6608,7 +6646,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const sn = Math.sin(time * p.move.freq + p.move.phase);
         if (p.move.axis === "u") p.u = p.bu + p.move.amp * sn;
         else if (p.move.axis === "v") p.v = p.bv + p.move.amp * sn;
-        else p.u = p.move.sign * (p.w / 2 + 0.05 + (1 + sn) / 2 * (SW - p.w - 0.12)); // a shutter half: from the middle to its wall, never into it
+        else p.u = p.move.sign * (p.w / 2 + 0.05 + (1 + sn) / 2 * Math.max(0, (p.room ?? SW - 0.12) - p.w)); // a shutter half: from the middle to its wall, never into it
       }
       if (p.rise !== undefined) { // up out of the abyss beside the bridge, never through its deck, then in over it as the cart nears
         const k = (62 - (p.s - sC)) / 26, side = p.riseSide || 1, out = side * (BRIDGE_W + p.w / 2 + 0.4);
@@ -7080,9 +7118,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (next !== dpr) { dpr = next; renderer.setPixelRatio(dpr); }
   }
   let last = performance.now();
+  let dtAvg = 1 / 60;
   function frame(now) {
     requestAnimationFrame(frame);
-    const dt = Math.min(0.05, (now - last) / 1000);
+    const raw = Math.min(0.05, (now - last) / 1000), dt = Math.min(raw, dtAvg * 1.6); // one slow frame (a burst of glass, a collection) is not made up in one leap forward: the world went on with a jolt
+    dtAvg += (raw - dtAvg) * 0.08; // (a phone that runs slowly throughout still moves at its true speed)
     adaptResolution(now - last);
     if (Math.floor(now / 1000) !== Math.floor(last / 1000)) freeGone(); // once a second
     last = now;

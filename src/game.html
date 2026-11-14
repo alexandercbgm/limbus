@@ -2345,9 +2345,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       path.add(new THREE.LineCurve3(a0, a1)); path.add(new THREE.QuadraticBezierCurve3(a1, a2, a3)); path.add(new THREE.LineCurve3(a3, b3)); path.add(new THREE.QuadraticBezierCurve3(b3, b2, b1)); path.add(new THREE.LineCurve3(b1, b0));
       cart.add(new THREE.Mesh(new THREE.TubeGeometry(path, 64, GT, 10, false), shellMat));
       for (const q of [p1, p2]) { const ft = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.06, 0.016, 20), shellMat); ft.position.copy(q).setY(DY + 0.007); cart.add(ft); } };
-    const GI = 0.09; // in from the edge
-    for (const sd of [-1, 1]) grab(V(sd * (X - GI), DY, ZB - 0.3), V(sd * (X - GI), DY, ZF + 0.2));
-    grab(V(-(X - 0.2), DY, ZF + GI), V(X - 0.2, DY, ZF + GI)); // (its ends near the side bars' front ends)
+    const GI = 0.13; // in from the edge (the feet clear of the lit edge line)
+    for (const sd of [-1, 1]) grab(V(sd * (X - GI), DY, ZB - 0.3), V(sd * (X - GI), DY, ZF + 0.24));
+    grab(V(-(X - 0.24), DY, ZF + GI), V(X - 0.24, DY, ZF + GI)); // (its ends near the side bars' front ends)
     // the pilot, fixed to the front: a level grating in a V out ahead, its front edge lit, slats down from it to the rails
     const PT = DY - 0.03, PB = -1.7, PX = X - 0.04, GO = 0.62;
     const tv = x => V(x, PT, ZF - 0.04 - GO * (1 - Math.abs(x) / PX)), bv = x => V(x, PB, ZF - 0.04 - GO * (1 - Math.abs(x) / PX) - 0.5);

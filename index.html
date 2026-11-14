@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.266</div>
+      <div class="credit version">v1.0.267</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.266`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.267`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2424,16 +2424,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const fl = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.5), accentMat); fl.position.set(x + sd * 0.09, DY - 0.4, zc); cart.add(fl); // a lit line along it
     }
     // the grab bars: a tube up from a round foot, bent over, along, bent down to a foot; low, so they do not stand in the view
-    const GH = 0.2, GR = 0.07, GT = 0.017;
+    const GH = 0.2, GR = 0.07, GT = 0.027;
     const grab = (p1, p2) => { const d = p2.clone().sub(p1).normalize(), up = V(0, 1, 0), path = new THREE.CurvePath();
       const a0 = p1.clone(), a1 = p1.clone().addScaledVector(up, GH - GR), a2 = p1.clone().addScaledVector(up, GH), a3 = a2.clone().addScaledVector(d, GR);
       const b3 = p2.clone().addScaledVector(up, GH).addScaledVector(d, -GR), b2 = p2.clone().addScaledVector(up, GH), b1 = p2.clone().addScaledVector(up, GH - GR), b0 = p2.clone();
       path.add(new THREE.LineCurve3(a0, a1)); path.add(new THREE.QuadraticBezierCurve3(a1, a2, a3)); path.add(new THREE.LineCurve3(a3, b3)); path.add(new THREE.QuadraticBezierCurve3(b3, b2, b1)); path.add(new THREE.LineCurve3(b1, b0));
       cart.add(new THREE.Mesh(new THREE.TubeGeometry(path, 64, GT, 10, false), shellMat));
-      for (const q of [p1, p2]) { const ft = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.048, 0.014, 20), shellMat); ft.position.copy(q).setY(DY + 0.007); cart.add(ft); } };
+      for (const q of [p1, p2]) { const ft = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.06, 0.016, 20), shellMat); ft.position.copy(q).setY(DY + 0.007); cart.add(ft); } };
     const GI = 0.09; // in from the edge
-    for (const sd of [-1, 1]) grab(V(sd * (X - GI), DY, ZB - 0.3), V(sd * (X - GI), DY, ZF + 0.32));
-    grab(V(-(X - 0.3), DY, ZF + GI), V(X - 0.3, DY, ZF + GI));
+    for (const sd of [-1, 1]) grab(V(sd * (X - GI), DY, ZB - 0.3), V(sd * (X - GI), DY, ZF + 0.2));
+    grab(V(-(X - 0.2), DY, ZF + GI), V(X - 0.2, DY, ZF + GI)); // (its ends near the side bars' front ends)
     // the pilot, fixed to the front: a level grating in a V out ahead, its front edge lit, slats down from it to the rails
     const PT = DY - 0.03, PB = -1.7, PX = X - 0.04, GO = 0.62;
     const tv = x => V(x, PT, ZF - 0.04 - GO * (1 - Math.abs(x) / PX)), bv = x => V(x, PB, ZF - 0.04 - GO * (1 - Math.abs(x) / PX) - 0.5);

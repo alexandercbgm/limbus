@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.271</div>
+      <div class="credit version">v1.0.272</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.271`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.272`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6152,10 +6152,28 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
   const ndc = new THREE.Vector3(), rayDir = new THREE.Vector3(), target = new THREE.Vector3(), muzzle = new THREE.Vector3(), camInv = new THREE.Matrix4();
   const aimFar = new THREE.Vector3();
+  // how low each gun may point at each turn (|yaw| 0, 0.1 .. 1.2): lower, its barrel ran into the deck, the pilot or the grab
+  // bars (measured on the models, a little margin added)
+  const MIN_PITCH = {
+    ballista: [-0.48, -0.48, -0.48, -0.48, -0.48, -0.48, -0.48, -0.48, -0.24, -0.24, -0.26, -0.26, -0.26],
+    gemini: [-0.3, -0.3, -0.3, -0.16, -0.26, -0.16, -0.22, -0.24, -0.24, -0.26, -0.24, -0.24, -0.26],
+    triplex: [-0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.2, -0.2, -0.22, -0.22],
+    radius: [-0.52, -0.52, -0.52, -0.52, -0.52, -0.52, -0.52, -0.52, -0.26, -0.26, -0.26, -0.3, -0.4],
+    ferrum: [-0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.28, -0.22, -0.2, -0.2, -0.2] };
+  const minPitch = (id, yaw) => { const t = MIN_PITCH[id] || MIN_PITCH.ballista, k = Math.min(Math.abs(yaw) / 0.1, 12), i = Math.floor(k);
+    return Math.max(-0.3, Math.max(t[i], t[Math.min(12, i + 1)]) + 0.04); }; // (never lower than it always was)
+  // a shot that would pass through the cart (the cursor on the deck, say) goes along the barrel instead
+  const _cartInv = new THREE.Matrix4(), _cq = new THREE.Vector3();
+  function clearOfCart(g, from, dir) {
+    cart.updateMatrixWorld(true); _cartInv.copy(cart.matrixWorld).invert();
+    for (let d = 0.1; d < 5; d += 0.1) { _cq.copy(from).addScaledVector(dir, d).applyMatrix4(_cartInv);
+      if (_cq.y < -1.2 + 0.26 && Math.abs(_cq.x) < 0.9 && _cq.z > -3.35 && _cq.z < 0.6) {
+        const a = g.barrel.localToWorld(new THREE.Vector3(0, 0, 0)), b = g.barrel.localToWorld(new THREE.Vector3(0, 0, -1)); return b.sub(a).normalize(); } }
+    return dir; }
   function aimGun(g) { // the barrel points where the cursor does (32 m off), even when the ball goes to something nearer
     aimLocal.copy(aimFar).applyMatrix4(camInv).sub(g.c.position).normalize();
     g.yaw.rotation.y = clamp(Math.atan2(-aimLocal.x, -aimLocal.z), -1.2, 1.2);
-    g.pitch.rotation.x = clamp(Math.asin(clamp(aimLocal.y, -1, 1)), -0.3, 0.9);
+    g.pitch.rotation.x = clamp(Math.asin(clamp(aimLocal.y, -1, 1)), minPitch(progress.weapon, g.yaw.rotation.y), 0.9);
     g.c.updateMatrixWorld(true);
     return g.barrel.localToWorld(progress.weapon === "gemini" ? GEM_MUZZLE[GUNS.indexOf(g)].clone() : progress.weapon === "ferrum" ? new THREE.Vector3(0, FER_UP, -FER_BACK - 0.93) : new THREE.Vector3(0, 0, progress.weapon === "triplex" ? -1.08 : progress.weapon === "ballista" ? -1.2 : progress.weapon === "radius" ? -1.17 : -0.8));
   }
@@ -6251,7 +6269,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const from = aimGun(g);
       if (progress.weapon === "radius") { // the beam leaves the muzzle and goes to what the cursor is on
         const first = rayHits(camera.position, rayDir)[0], aim = camera.position.clone().addScaledVector(rayDir, first ? first.d : 60);
-        fireLaser(from, aim.sub(from).normalize()); continue;
+        fireLaser(from, clearOfCart(g, from, aim.sub(from).normalize())); continue;
       }
       // Gemini's two balls fly side by side, both along the line from between its muzzles to the target, not meeting at it
       // (the two open a little, so that by the aim they are a ball and a bit apart and never close again)
@@ -6259,6 +6277,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (progress.weapon === "gemini") { const mid = GUNS[0].barrel.localToWorld(GEM_MUZZLE[0].clone().add(GEM_MUZZLE[1]).multiplyScalar(0.5)), side = from.clone().sub(mid);
         dir = target.clone().addScaledVector(side.normalize(), 0.26).sub(from).normalize(); } // each aimed 26 cm out to its own side of the aim
       else dir = target.clone().sub(from).normalize();
+      dir = clearOfCart(g, from, dir);
       if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
       else if (progress.weapon === "ferrum") launchChains(from, dir);
       else launch(from, dir, vol);

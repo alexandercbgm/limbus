@@ -6074,7 +6074,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function launchChains(from, dir) {
     const f = dir.clone().normalize(), fh = new THREE.Vector3(f.x, 0, f.z).normalize(), rt = new THREE.Vector3().crossVectors(fh, new THREE.Vector3(0, 1, 0)).normalize();
     const n = new THREE.Vector3(0, 1, 0).applyAxisAngle(fh, rand(-0.35, 0.35)).applyAxisAngle(rt, rand(-0.35, 0.35)); // the tilt, shared
-    const down = new THREE.Vector3(0, -1, 0).projectOnPlane(f).normalize().multiplyScalar(2 * CHAIN_HALF);
+    const down = new THREE.Vector3(0, -1, 0).projectOnPlane(f).normalize().multiplyScalar(CHAIN_HALF); // half a chain's width below: a flat oblong, not a square
     launchChain(from, dir, { n, phase: 0, spin: CHAIN_SPIN });
     launchChain(from, dir, { n: n.clone().applyAxisAngle(fh, rand(-0.08, 0.08)), phase: rand(-0.3, 0.3), spin: CHAIN_SPIN * rand(0.94, 1.06), drop: down, lag: 1.1 });
   }

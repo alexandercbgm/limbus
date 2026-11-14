@@ -6680,11 +6680,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       b.v.y -= G * dt;
       if (b.sp) { // spiralling triplex ball: its center flies like any ball, it circles around that center
         const sp = b.sp, t = b.life + dt, r = sp.r0 + (TRI_R - sp.r0) * (1 - Math.exp(-t * 5)), a = sp.phase + TRI_SPIN * t;
-        sp.c.addScaledVector(b.v, dt);
+        if (b.life > 0) sp.c.addScaledVector(b.v, dt); // (drawn first at the muzzle)
         pos.copy(sp.c).addScaledVector(sp.e1, Math.cos(a) * r).addScaledVector(sp.e2, Math.sin(a) * r);
       } else if (b.cs) { // a part of a chain shot: its centre flies like any ball, the shot spins about it
         const g = b.cs.g, a = g.phase + g.spin * (b.life + dt), k = CHAIN_K0 + (1 - CHAIN_K0) * smooth5(clamp((b.life + dt) / CHAIN_OPEN, 0, 1)); // it leaves the bore small and close, and opens
-        b.cc.addScaledVector(b.v, dt); CSD.copy(g.e1).multiplyScalar(Math.cos(a)).addScaledVector(g.e2, Math.sin(a));
+        if (b.life > 0) b.cc.addScaledVector(b.v, dt); CSD.copy(g.e1).multiplyScalar(Math.cos(a)).addScaledVector(g.e2, Math.sin(a));
         const dr = g.drop ? smooth5(clamp((b.life + dt) / 0.3, 0, 1)) : 0; // the second drops to its place below the first
         pos.copy(b.cc).addScaledVector(CSD, b.cs.off * CHAIN_HALF * k); if (dr) pos.addScaledVector(g.drop, dr);
         if (!b.cs.link) b.mesh.scale.setScalar(1.3 * k);

@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.254</div>
+      <div class="credit version">v1.0.255</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.254`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.255`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1579,8 +1579,23 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     impMat.emissive.set(0x861208); impMat.emissiveIntensity = 0.42;
   }
   const impEdgeMat = new THREE.LineBasicMaterial({ color: 0xff3a14 });
-  const ballMat = new THREE.MeshStandardMaterial({ color: 0x262c36, metalness: 0.6, roughness: 0.18, emissive: 0x161c28, emissiveIntensity: 1 }); // blued steel: near black with a cold sheen, not too dark (lit a little of itself, so it shows in the dark)
-  const ironBallMat = new THREE.MeshStandardMaterial({ color: 0x3a3430, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 });
+  // the balls: dark polished metal chipped all over, flecks of bright bare metal in small pits, gathered in patches; drawn once
+  // on a canvas (one for the cannons' shot, one in Ferrum's own iron)
+  function ballTexture(base, pit, fleck) {
+    const c = document.createElement("canvas"); c.width = 1024; c.height = 512; const g = c.getContext("2d");
+    g.fillStyle = base; g.fillRect(0, 0, 1024, 512);
+    for (let i = 0; i < 260; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * 0.035})`; g.beginPath(); g.ellipse(Math.random() * 1024, Math.random() * 512, 20 + Math.random() * 90, 8 + Math.random() * 40, Math.random() * 3, 0, TAU); g.fill(); } // a faint mottle
+    const blob = (x, y, r, fill) => { g.fillStyle = fill; g.beginPath(); const n = 5 + (Math.random() * 4 | 0);
+      for (let k = 0; k < n; k++) { const a = k / n * TAU, rr = r * (0.45 + Math.random() * 0.7); g.lineTo(x + Math.cos(a) * rr * 2, y + Math.sin(a) * rr); } g.closePath(); g.fill(); }; // (twice as wide: the sphere's map is squeezed across)
+    for (let p = 0; p < 34; p++) { const cx = Math.random() * 1024, cy = 60 + Math.random() * 392, sp = 30 + Math.random() * 90, n = 20 + (Math.random() * 60 | 0);
+      for (let i = 0; i < n; i++) { const x = (cx + (Math.random() - 0.5) * sp * 2 + 1024) % 1024, y = cy + (Math.random() - 0.5) * sp, r = 0.8 + Math.random() ** 2 * 5;
+        if (r > 2.2) blob(x, y, r * 1.4, pit); blob(x + 0.6, y - 0.4, r * (r > 2.2 ? 0.55 : 1), fleck); } }
+    for (let i = 0; i < 900; i++) blob(Math.random() * 1024, 40 + Math.random() * 432, 0.5 + Math.random() * 1.2, fleck); // scattered single specks
+    const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.anisotropy = 4; return t;
+  }
+  const ballTex = ballTexture("#1b2029", "#07080b", "#eef3f8"), ironTex = ballTexture("#3a3430", "#120d0b", "#c8b4a6");
+  const ballMat = new THREE.MeshStandardMaterial({ map: ballTex, bumpMap: ballTex, bumpScale: 0.0015, metalness: 0.55, roughness: 0.2, emissive: 0x0e121a, emissiveIntensity: 1 }); // blued steel, chipped
+  const ironBallMat = new THREE.MeshStandardMaterial({ map: ironTex, bumpMap: ironTex, bumpScale: 0.0015, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 }); // Ferrum's iron, chipped the same way
   const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const WHITE = new THREE.Color(0xffffff), accelRings = [];
   const blueGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x6fd6ff, transparent: true, opacity: 0.55, depthWrite: false });
@@ -6154,15 +6169,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (let k = 0; k <= n; k++) { const m = new THREE.Mesh(chainLinkGeo, shotChainMat); m.position.x = x0 + LINK_L / 2 + (x1 - x0 - LINK_L) * k / n; m.rotation.x = k % 2 ? 0 : Math.PI / 2; g.add(m); }
     return g; }
   const CSD = new THREE.Vector3(), CSY = new THREE.Vector3(), CSM = new THREE.Matrix4();
-  // Ferrum throws two chain shots, one after the other: the second leaves the bore just behind the first and drops below it by a
-  // chain's width, so from the cart the four balls make a square, a chain across its top and one across its bottom. Both
-  // spin almost in step, a little apart, differently each shot
+  // Ferrum throws one chain shot (launchChain takes a drop and a lag for a second one, unused now)
   function launchChains(from, dir) {
     const f = dir.clone().normalize(), fh = new THREE.Vector3(f.x, 0, f.z).normalize(), rt = new THREE.Vector3().crossVectors(fh, new THREE.Vector3(0, 1, 0)).normalize();
     const n = new THREE.Vector3(0, 1, 0).applyAxisAngle(fh, rand(-0.35, 0.35)).applyAxisAngle(rt, rand(-0.35, 0.35)); // the tilt, shared
     const down = new THREE.Vector3(0, -1, 0).projectOnPlane(f).normalize().multiplyScalar(1.35 * CHAIN_HALF); // two thirds of a chain's width below: a flat oblong, not a square
     launchChain(from, dir, { n, phase: 0, spin: CHAIN_SPIN });
-    launchChain(from, dir, { n: n.clone().applyAxisAngle(fh, rand(-0.08, 0.08)), phase: rand(-0.3, 0.3), spin: CHAIN_SPIN * rand(0.94, 1.06), drop: down, lag: 1.7 });
   }
   function launchChain(from, dir, o) {
     frameAt(sC);

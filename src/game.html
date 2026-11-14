@@ -5458,22 +5458,22 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
   // Labyrinthus: emerald throughout, soft on the eyes: pale jade and celadon in the light, deep bottle-green
   // in between, near-black emerald with a calm jade glow in the dark
-  const PAL_HORTUS = [
+  const PAL_HORTUS = [ // (Labyrinthus's) the light half in malachite's deep greens, not pale mint
     { sky: "#03120e", hor: "#010806", gnd: "#06402e", surf: "#04140f", wall: "#051a13", line: "#2fe0a4", lineI: 0.75, frame: "#03100b", frameE: "#1fc890", frameEI: 0.75,
       rail: "#123a2c", sleeper: "#071a13", glass: "#4ff0b8", glassO: 0.45, edge: "#b8ffe4", fogN: 4, fogF: 52, hemiS: "#5ce8b8", hemiG: "#02201a", hemiI: 0.55, sunI: 0.3,
       dust: "#3ff0b0", block: "#06201a", cart: "#0a2219", accent: "#2fe0a4" },
     { sky: "#0f2c24", hor: "#08180f", gnd: "#06120d", surf: "#15382d", wall: "#113026", line: "#5fb89a", lineI: 0.22, frame: "#0a1e17", frameE: "#000000", frameEI: 0,
       rail: "#2f6050", sleeper: "#12271f", glass: "#8fd8bc", glassO: 0.42, edge: "#d0f4e6", fogN: 8, fogF: 66, hemiS: "#9cd8c0", hemiG: "#0a1e17", hemiI: 0.75, sunI: 0.5,
       dust: "#88ccb4", block: "#15342a", cart: "#143026", accent: "#7fe0bc" },
-    { sky: "#6fa894", hor: "#5a9480", gnd: "#3e7a66", surf: "#9cccba", wall: "#7ab4a0", line: "#ffffff", lineI: 0.05, frame: "#1f5a48", frameE: "#000000", frameEI: 0,
-      rail: "#4f8a76", sleeper: "#3a6e5c", glass: "#c0ecdc", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 78, hemiS: "#ffffff", hemiG: "#4f8a76", hemiI: 0.95, sunI: 0.7,
-      dust: "#eafff6", block: "#6aa892", cart: "#23584a", accent: "#e6fff6" },
-    { sky: "#e2f4ec", hor: "#cfe9de", gnd: "#9fd0bc", surf: "#f4fbf8", wall: "#c6e6d8", line: "#6fcfaa", lineI: 0.18, frame: "#4f9a80", frameE: "#000000", frameEI: 0,
-      rail: "#7fb8a2", sleeper: "#a8d4c2", glass: "#c4f0de", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 92, hemiS: "#ffffff", hemiG: "#b0dccb", hemiI: 1.0, sunI: 0.75,
-      dust: "#ffffff", block: "#d4ede2", cart: "#3e7a66", accent: "#3fcf9a" },
-    { sky: "#bff0e0", hor: "#e8f8f2", gnd: "#cdeee0", surf: "#ffffff", wall: "#dcf4ea", line: "#4fd8a8", lineI: 0.4, frame: "#8fd4ba", frameE: "#b8ffe8", frameEI: 0.5,
-      rail: "#c4e8da", sleeper: "#e2f6ee", glass: "#9ff0d4", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 104, hemiS: "#ffffff", hemiG: "#bfe8d8", hemiI: 1.1, sunI: 0.8,
-      dust: "#90f0cc", block: "#ecfaf4", cart: "#4f8a78", accent: "#3fd8a4" },
+    { sky: "#0c5a32", hor: "#08452a", gnd: "#06341f", surf: "#137a46", wall: "#0b5c34", line: "#ffffff", lineI: 0.05, frame: "#05301c", frameE: "#000000", frameEI: 0,
+      rail: "#0a4a2a", sleeper: "#06341f", glass: "#3fd88a", glassO: 0.42, edge: "#b8ffd4", fogN: 12, fogF: 78, hemiS: "#9ff0c0", hemiG: "#0a4a2a", hemiI: 0.95, sunI: 0.7,
+      dust: "#8ff0b8", block: "#0f6a3c", cart: "#0a4a2c", accent: "#8ff0b8" },
+    { sky: "#16804a", hor: "#0f6a3c", gnd: "#0a5230", surf: "#1f9a58", wall: "#0f7040", line: "#06401f", lineI: 0.18, frame: "#06401f", frameE: "#000000", frameEI: 0,
+      rail: "#0c6438", sleeper: "#08502c", glass: "#5fe8a0", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 92, hemiS: "#d8ffe6", hemiG: "#0f6a3c", hemiI: 0.85, sunI: 0.75,
+      dust: "#c8ffdc", block: "#127a46", cart: "#0a5230", accent: "#0a6a38" },
+    { sky: "#2fa866", hor: "#4fc482", gnd: "#0e7a42", surf: "#3fb874", wall: "#17884c", line: "#4fd8a8", lineI: 0.4, frame: "#0e7a42", frameE: "#6fffb0", frameEI: 0.5,
+      rail: "#17884c", sleeper: "#2fa866", glass: "#6ff8b0", glassO: 0.38, edge: "#ffffff", fogN: 17, fogF: 104, hemiS: "#e8fff0", hemiG: "#2fa866", hemiI: 0.9, sunI: 0.8,
+      dust: "#90f0cc", block: "#3fb874", cart: "#0e6a3c", accent: "#0e8a4a" },
   ];
 
   // Carcer: raw concrete, asphalt and rebar. Pale sun-bleached concrete in the light, wet grey in between,
@@ -5861,7 +5861,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     vitrum: { sky: { mode: 8, a: 0.95, c: "#ffffff" }, shell: [5.3, 8.75] }, // walls and ceiling clear of the hexagonal frames; the sky just after sunset
     tao: { sky: { mode: 7, a: 0.9, c: "#ffffff" } },
     rubinus: { sky: { mode: 6, a: 0.95, c: "#ff2a46" }, shell: [8, 10.5] }, // the triangles are wide: a hall of glass
-    labyrinthus: { sky: { mode: 3, a: 0.75, c: "#d4f6e6" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },
+    labyrinthus: { sky: { mode: 3, a: 0.75, c: "#8fe0b0" }, style: { closed: false, open: true, blocks: "slab", tex: "stone" } },
     hortus: { sky: { mode: 3, a: 0.85, c: "#fff0f4" } },
     speculum: { sky: { mode: 9, a: 0.9, c: "#f0f4ff" }, shell: [5.3, 8.75], style: { tex: "mirror", closed: false, skylight: true, arch: "hex" } }, // hexagonal frames, as in Vitrum; open to a black sky with a black hole ahead
     abyssus: { sky: { mode: 1 } },

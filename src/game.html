@@ -2318,9 +2318,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // a lit line along a path, its joints rounded (bare, the pieces' ends stepped at each corner)
     const litLine = (pts, r) => { for (let i = 0; i < pts.length - 1; i++) bar(pts[i], pts[i + 1], r, accentMat);
       for (const q of pts.slice(1, -1)) { const j = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), accentMat); j.position.copy(q); cart.add(j); } };
-    { const y = DY + 0.026, e = X - 0.012, f = ZF + 0.012; // the deck's edge lit, on its top at the very edge: thicker along the sides, seen glancing, than across the front, seen square on
-      litLine([V(-e, y, ZB), V(-e, y, f)], 0.02); litLine([V(e, y, ZB), V(e, y, f)], 0.02); litLine([V(-e, y, f), V(e, y, f)], 0.012);
-      for (const x of [-e, e]) { const j = new THREE.Mesh(new THREE.SphereGeometry(0.02, 12, 8), accentMat); j.position.set(x, y, f); cart.add(j); } }
     for (const sd of [-1, 1]) { const ln = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.012, ZB - ZF - 0.3), accentMat); ln.position.set(sd * (X * 0.82 + 0.021), DY - 0.2, (ZB + ZF) / 2); cart.add(ln); } // a lit line along each side of the hull
     // two bogies under the deck's straight part, each with two wheelsets: a dark side frame with a spring in its middle and
     // axle boxes at its ends, the wheels dark discs with a lit ring on their faces
@@ -2345,7 +2342,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       path.add(new THREE.LineCurve3(a0, a1)); path.add(new THREE.QuadraticBezierCurve3(a1, a2, a3)); path.add(new THREE.LineCurve3(a3, b3)); path.add(new THREE.QuadraticBezierCurve3(b3, b2, b1)); path.add(new THREE.LineCurve3(b1, b0));
       cart.add(new THREE.Mesh(new THREE.TubeGeometry(path, 64, GT, 10, false), shellMat));
       for (const q of [p1, p2]) { const ft = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.06, 0.016, 20), shellMat); ft.position.copy(q).setY(DY + 0.007); cart.add(ft); } };
-    const GI = 0.13; // in from the edge (the feet clear of the lit edge line)
+    const GI = 0.13; // in from the edge
     for (const sd of [-1, 1]) grab(V(sd * (X - GI), DY, ZB - 0.3), V(sd * (X - GI), DY, ZF + 0.24));
     grab(V(-(X - 0.24), DY, ZF + GI), V(X - 0.24, DY, ZF + GI)); // (its ends near the side bars' front ends)
     // the pilot, fixed to the front: a level grating in a V out ahead, its front edge lit, slats down from it to the rails
@@ -2353,7 +2350,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const tv = x => V(x, PT, ZF - 0.04 - GO * (1 - Math.abs(x) / PX)), bv = x => V(x, PB, ZF - 0.04 - GO * (1 - Math.abs(x) / PX) - 0.5);
     for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(V(x, PT, ZF + 0.03), tv(x), 0.035, 0.03, plateMat); // its top a grating: bars from under the deck's front out to its edge
     for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(tv(x), bv(x), 0.04, 0.06, shellMat); // the slats
-    litLine([tv(-PX), tv(0), tv(PX)].map(q => q.add(V(0, 0.034, 0))), 0.01); // its front edge, lit along the top
     for (const sd of [-1, 1]) { bar(tv(sd * PX), tv(0), 0.03, shellMat); bar(bv(sd * PX), bv(0), 0.02, darkMat); bar(tv(sd * PX), bv(sd * PX), 0.02, darkMat); }
     slat(tv(0), bv(0), 0.05, 0.08, darkMat); // its ridge
   }

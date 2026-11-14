@@ -2828,6 +2828,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function dropShard(s) { scene.remove(s.mesh); if (!s.shared) { s.mesh.geometry.dispose(); s.mesh.children.forEach(c => c.geometry && c.geometry.dispose()); } }
   function clearDynamic() {
+    bigRun = 0;
     panes.forEach(removePane); panes = [];
     crystals.forEach(c => scene.remove(c.group)); crystals = [];
     imps.forEach(c => scene.remove(c.group)); imps = [];
@@ -2854,10 +2855,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     center: [3, 3, 2], wall: [1, 1, 1], triple: [1, 2, 1], sides: [3, 1, 0], bonus: [3, 0.5, 0], slider: [1, 2, 2],
     lift: [0.5, 2, 1.5], double: [0, 1, 2], reinf: [0, 0.6, 3], shutter: [0, 1, 2.5], imps: [0, 0.6, 3],
   };
+  // patterns of full-height panes and how many each sets down: too many in a row and breaking them all made a phone stutter
+  const BIG_PANES = { zigzag: 4, shutter: 2, wall: 1 }, MAX_BIG_RUN = 6;
+  let bigRun = 0;
   function curD() { return clamp((1 - alt) / 2, 0, 1); }
   function pickPattern(d, hall) {
     const w = {}, pats = hall ? LEVEL.hallPats : Object.assign({}, PATS, LEVEL.pats || {}); let total = 0;
-    for (const k in pats) { const a = pats[k]; w[k] = d < 0.5 ? lerp(a[0], a[1], d * 2) : lerp(a[1], a[2], d * 2 - 1); total += w[k]; }
+    for (const k in pats) { const a = pats[k]; w[k] = (BIG_PANES[k] || 0) + bigRun > MAX_BIG_RUN ? 0 : d < 0.5 ? lerp(a[0], a[1], d * 2) : lerp(a[1], a[2], d * 2 - 1); total += w[k]; } // (no more than MAX_BIG_RUN full-height panes in a row)
     let x = Math.random() * total;
     for (const k in w) { x -= w[k]; if (x <= 0) return k; }
     return "center";
@@ -2873,7 +2877,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     lbars = off(lbars, x => x.bars.forEach(b => scene.remove(b.root))); prismSets = off(prismSets, x => scene.remove(x.root));
   }
   function spawnGroup(s) {
-    spawnGroupAt(s);
+    const n0 = panes.length; spawnGroupAt(s);
+    const fresh = panes.slice(n0); bigRun = fresh.length && fresh.every(p => p.h >= SH - 0.6) ? bigRun + fresh.length : 0;
     for (const set of gears) for (const g of set.gears) if (g.s > sC) clearZone(g.s - 2.4, g.s + 2.4); // and nothing in a gear's way
     for (const dr of doors) if (!dr.open) clearDoorZone(dr);
     for (const g of [...gates, ...doors]) if (g.s > sC) { // and nothing a pattern reached past a gate with
@@ -3719,7 +3724,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         t.k += ((t.side === f.sign ? 1 : 0) - t.k) * Math.min(1, dt * 9);
         t.hinge.rotation.x = 1.5 * smooth5(t.k); // up and back, away from the cart's way ahead
         const mat = t.k < 0.5 && !f.locked ? targetOn : targetOff; t.tg.forEach(m => { m.material = mat; });
-        if (t.root.visible) { setObj(t.root, ps, -t.side * 2.3, 0); t.root.updateMatrixWorld(true); t.wp.setFromMatrixPosition(t.plate.matrixWorld); }
+        if (t.root.visible) { setObj(t.root, ps, -t.side * (2.3 - 0.29), 0); t.root.updateMatrixWorld(true); t.wp.setFromMatrixPosition(t.plate.matrixWorld); } // under the middle of what the board shows (its icon and word sit a little in from its middle, its chevrons out by the wall)
       }
       for (const pl of f.plates) { // well ahead of the switch, either side of the way; the side the arrow points to is lit, the other dim
         const ps = swS - 14; pl.mesh.visible = ps > sC - 4 && ps - sC < AHEAD - 6; if (!pl.mesh.visible) continue;

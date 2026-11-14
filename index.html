@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.256</div>
+      <div class="credit version">v1.0.257</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.256`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.257`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1594,7 +1594,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.anisotropy = 4; return t;
   }
   const ballTex = ballTexture("#1b2029", "#07080b", "#eef3f8"), ironTex = ballTexture("#3a3430", "#120d0b", "#c8b4a6");
-  const ballMat = new THREE.MeshStandardMaterial({ map: ballTex, bumpMap: ballTex, bumpScale: 0.0015, metalness: 0.9, roughness: 0.45, emissive: 0x0e121a, emissiveIntensity: 1 }); // blued steel, chipped, as matte as Ferrum's iron
+  const ballMat = new THREE.MeshStandardMaterial({ map: ballTex, bumpMap: ballTex, bumpScale: 0.0015, metalness: 0.55, roughness: 0.2, emissive: 0x0e121a, emissiveIntensity: 1 }); // blued steel, chipped, glossy
   const ironBallMat = new THREE.MeshStandardMaterial({ map: ironTex, bumpMap: ironTex, bumpScale: 0.0015, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 }); // Ferrum's iron, chipped the same way
   const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const WHITE = new THREE.Color(0xffffff), accelRings = [];
@@ -1726,7 +1726,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     } else bhHead = null;
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
     shellMat.color.copy(cur.block).lerp(cur.frame, 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
-    { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; if (l > 0.55) c.multiplyScalar(0.55 / l); } // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
+    { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; shellIndirect.value = l > 0.6 ? 0.78 : 1; } // a white shell takes less of the sky's light, so it stays white yet is not burnt out flat and the sun's glint shows // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
     const rubyWalls = LEVEL.id === "rubinus"; // its fence: less clear, its lines much brighter, so it shows
@@ -2371,6 +2371,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // A smooth one-piece shell in the world's own surface color, with thin seams that glow in the karma accent.
   // The cannon is a railgun: a capsule body on a gimbal, two rails and three accelerator rings.
   const shellMat = new THREE.MeshStandardMaterial({ roughness: 0.22, metalness: 0.12 });
+  const shellIndirect = { value: 1 }; // how much of the sky's (hemisphere) light the shell takes
+  shellMat.onBeforeCompile = sh => { sh.uniforms.uIndir = shellIndirect;
+    sh.fragmentShader = "uniform float uIndir;\n" + sh.fragmentShader.replace("#include <aomap_fragment>", "reflectedLight.indirectDiffuse *= uIndir;\n#include <aomap_fragment>"); };
   // a soft lit line: a strip whose alpha fades from its middle to its edges (a phone draws a hair-thin box as a staircase)
   const softLineMat = new THREE.MeshBasicMaterial({ color: accentMat.color, transparent: true, depthWrite: false, alphaMap: (() => { const c = document.createElement("canvas"); c.width = 32; c.height = 4; const g = c.getContext("2d"), gr = g.createLinearGradient(0, 0, 32, 0);
     gr.addColorStop(0, "#000"); gr.addColorStop(0.3, "#fff"); gr.addColorStop(0.7, "#fff"); gr.addColorStop(1, "#000"); g.fillStyle = gr; g.fillRect(0, 0, 32, 4); const tx = new THREE.CanvasTexture(c); tx.minFilter = THREE.LinearFilter; return tx; })() }); softLineMat.color = accentMat.color; // the very same Color, so it follows the accent

@@ -2350,8 +2350,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const tv = x => V(x, PT, ZF - 0.04 - GO * (1 - Math.abs(x) / PX)), bv = x => V(x, PB, ZF - 0.04 - GO * (1 - Math.abs(x) / PX) - 0.5);
     for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(V(x, PT, ZF + 0.03), tv(x), 0.035, 0.03, plateMat); // its top a grating: bars from under the deck's front out to its edge
     for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(tv(x), bv(x), 0.04, 0.06, shellMat); // the slats
-    for (const sd of [-1, 1]) { bar(tv(sd * PX), tv(0), 0.03, shellMat); bar(bv(sd * PX), bv(0), 0.02, darkMat); bar(tv(sd * PX), bv(sd * PX), 0.02, darkMat); }
-    slat(tv(0), bv(0), 0.05, 0.08, darkMat); // its ridge
+    for (const sd of [-1, 1]) { bar(tv(sd * PX), tv(0), 0.03, shellMat); bar(bv(sd * PX), bv(0), 0.02, shellMat); bar(tv(sd * PX), bv(sd * PX), 0.02, shellMat); } // its frame all in the slats' colour, no dark ridge
   }
   const howitzerMat = new THREE.MeshStandardMaterial({ color: 0x2e2824, roughness: 0.5, metalness: 0.85, side: THREE.DoubleSide });
   const FER_UP = 0.245, FER_BACK = 0.065; // Ferrum's gun stands this far above and ahead of its pivot

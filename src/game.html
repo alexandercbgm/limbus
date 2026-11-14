@@ -3313,22 +3313,22 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const inside = (x, y) => Math.abs(x) <= ex && Math.abs(y) <= ey;
     const seg = (x1, y1, x2, y2) => pts.push(x1, y1, z, x2, y2, z);
     const walk = (x, y, a, len, rays) => { const path = [[x, y, 0]]; let d = 0, ang = a;
-      while (d < len) { const st = rand(0.06, 0.13); ang = a + rand(-0.12, 0.12); const nx = x + Math.cos(ang) * st, ny = y + Math.sin(ang) * st;
+      while (d < len) { const st = rand(0.05, 0.12); ang = a + rand(-0.2, 0.2); const nx = x + Math.cos(ang) * st, ny = y + Math.sin(ang) * st;
         if (!inside(nx, ny)) { seg(x, y, clamp(nx, -ex, ex), clamp(ny, -ey, ey)); break; } seg(x, y, nx, ny); x = nx; y = ny; d += st; path.push([x, y, d]); }
       if (rays) rays.push(path); return path; };
-    const n = 13 + Math.floor(Math.random() * 4), a0 = rand(0, TAU), rays = [], WEB_R = Math.min(0.85, 0.8 * Math.min(ex, ey));
+    const n = 9 + Math.floor(Math.random() * 4), a0 = rand(0, TAU), rays = [], WEB_R = Math.min(0.8, 0.75 * Math.min(ex, ey));
     for (let i = 0; i < n; i++) {
-      const a = a0 + (i + rand(-0.2, 0.2)) / n * TAU, far = WEB_R * rand(0.88, 1.08); // all about one length: a round web, no long whiskers
+      const a = a0 + (i + rand(-0.35, 0.35)) / n * TAU, far = WEB_R * rand(0.55, 1.05); // round on the whole, but each its own length: no long whiskers
       const path = walk(lx, ly, a, far, rays);
       if (path.length > 4 && Math.random() < 0.35) { const k = 2 + Math.floor(Math.random() * (path.length - 3)); walk(path[k][0], path[k][1], a + (Math.random() < 0.5 ? -1 : 1) * rand(0.3, 0.5), rand(0.08, 0.18)); } // a short fork
     }
     const at = (path, r) => { for (let k = 1; k < path.length; k++) if (path[k][2] >= r) { const q = path[k - 1], w = (r - q[2]) / (path[k][2] - q[2] || 1); return [q[0] + (path[k][0] - q[0]) * w, q[1] + (path[k][1] - q[1]) * w]; } return null; };
-    for (const [r, pr] of [[0.16 * WEB_R, 0.9], [0.36 * WEB_R, 0.85], [0.58 * WEB_R, 0.75], [0.8 * WEB_R, 0.6]]) // the web's rings, evenly out
+    for (const [r, pr] of [[0.14 * WEB_R, 0.8], [0.42 * WEB_R, 0.45]]) // a ring or two of cross cracks, broken, not a web
       for (let i = 0; i < rays.length; i++) { if (Math.random() > pr) continue;
-        const A = at(rays[i], r * rand(0.9, 1.1)), B = at(rays[(i + 1) % rays.length], r * rand(0.9, 1.1)); if (!A || !B) continue;
-        const mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, sag = rand(0.08, 0.18), cx = mx + (lx - mx) * sag, cy = my + (ly - my) * sag; // bowed in toward the point
+        const A = at(rays[i], r * rand(0.7, 1.35)), B = at(rays[(i + 1) % rays.length], r * rand(0.7, 1.35)); if (!A || !B) continue;
+        const mx = (A[0] + B[0]) / 2 + rand(-0.03, 0.03), my = (A[1] + B[1]) / 2 + rand(-0.03, 0.03), sag = rand(-0.05, 0.25), cx = mx + (lx - mx) * sag, cy = my + (ly - my) * sag; // bowed in toward the point
         seg(A[0], A[1], cx, cy); seg(cx, cy, B[0], B[1]); }
-    for (let k = 0; k < 7; k++) { const a = k / 7 * TAU, b = (k + 1) / 7 * TAU, r = 0.035; seg(lx + Math.cos(a) * r, ly + Math.sin(a) * r, lx + Math.cos(b) * r * 1.2, ly + Math.sin(b) * r * 1.2); } // the crushed spot
+    for (let k = 0; k < 9; k++) { const a = k / 9 * TAU, b = (k + 1) / 9 * TAU, r1 = rand(0.03, 0.06), r2 = rand(0.03, 0.06); seg(lx + Math.cos(a) * r1, ly + Math.sin(a) * r1, lx + Math.cos(b) * r2, ly + Math.sin(b) * r2); } // the crushed spot, ragged
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
     p.group.add(new THREE.LineSegments(g, edgeMat)); p.cracks.push(g);
   }

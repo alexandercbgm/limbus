@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.274</div>
+      <div class="credit version">v1.0.275</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.274`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.275`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3402,14 +3402,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       while (d < len) { const st = rand(0.06, 0.13); ang = a + rand(-0.12, 0.12); const nx = x + Math.cos(ang) * st, ny = y + Math.sin(ang) * st;
         if (!inside(nx, ny)) { seg(x, y, clamp(nx, -ex, ex), clamp(ny, -ey, ey)); break; } seg(x, y, nx, ny); x = nx; y = ny; d += st; path.push([x, y, d]); }
       if (rays) rays.push(path); return path; };
-    const n = 11 + Math.floor(Math.random() * 5), a0 = rand(0, TAU), rays = [];
+    const n = 13 + Math.floor(Math.random() * 4), a0 = rand(0, TAU), rays = [], WEB_R = Math.min(0.85, 0.8 * Math.min(ex, ey));
     for (let i = 0; i < n; i++) {
-      const a = a0 + (i + rand(-0.3, 0.3)) / n * TAU, far = Math.random() < 0.6 ? 9 : rand(0.25, 0.9); // most run to the edge
+      const a = a0 + (i + rand(-0.2, 0.2)) / n * TAU, far = WEB_R * rand(0.88, 1.08); // all about one length: a round web, no long whiskers
       const path = walk(lx, ly, a, far, rays);
-      if (path.length > 4 && Math.random() < 0.35) { const k = 2 + Math.floor(Math.random() * (path.length - 3)); walk(path[k][0], path[k][1], a + (Math.random() < 0.5 ? -1 : 1) * rand(0.3, 0.6), rand(0.15, 0.45)); } // a fork
+      if (path.length > 4 && Math.random() < 0.35) { const k = 2 + Math.floor(Math.random() * (path.length - 3)); walk(path[k][0], path[k][1], a + (Math.random() < 0.5 ? -1 : 1) * rand(0.3, 0.5), rand(0.08, 0.18)); } // a short fork
     }
     const at = (path, r) => { for (let k = 1; k < path.length; k++) if (path[k][2] >= r) { const q = path[k - 1], w = (r - q[2]) / (path[k][2] - q[2] || 1); return [q[0] + (path[k][0] - q[0]) * w, q[1] + (path[k][1] - q[1]) * w]; } return null; };
-    for (const [r, pr] of [[rand(0.1, 0.16), 0.85], [rand(0.26, 0.4), 0.6], [rand(0.5, 0.75), 0.35]]) // the web's rings
+    for (const [r, pr] of [[0.16 * WEB_R, 0.9], [0.36 * WEB_R, 0.85], [0.58 * WEB_R, 0.75], [0.8 * WEB_R, 0.6]]) // the web's rings, evenly out
       for (let i = 0; i < rays.length; i++) { if (Math.random() > pr) continue;
         const A = at(rays[i], r * rand(0.9, 1.1)), B = at(rays[(i + 1) % rays.length], r * rand(0.9, 1.1)); if (!A || !B) continue;
         const mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, sag = rand(0.08, 0.18), cx = mx + (lx - mx) * sag, cy = my + (ly - my) * sag; // bowed in toward the point

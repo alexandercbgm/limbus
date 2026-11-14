@@ -1508,7 +1508,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.anisotropy = 4; return t;
   }
   const ballTex = ballTexture("#1b2029", "#07080b", "#eef3f8"), ironTex = ballTexture("#3a3430", "#120d0b", "#c8b4a6");
-  const ballMat = new THREE.MeshStandardMaterial({ map: ballTex, bumpMap: ballTex, bumpScale: 0.0015, metalness: 0.55, roughness: 0.2, emissive: 0x0e121a, emissiveIntensity: 1 }); // blued steel, chipped
+  const ballMat = new THREE.MeshStandardMaterial({ map: ballTex, bumpMap: ballTex, bumpScale: 0.0015, metalness: 0.9, roughness: 0.45, emissive: 0x0e121a, emissiveIntensity: 1 }); // blued steel, chipped, as matte as Ferrum's iron
   const ironBallMat = new THREE.MeshStandardMaterial({ map: ironTex, bumpMap: ironTex, bumpScale: 0.0015, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 }); // Ferrum's iron, chipped the same way
   const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const WHITE = new THREE.Color(0xffffff), accelRings = [];
@@ -1640,6 +1640,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     } else bhHead = null;
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
     shellMat.color.copy(cur.block).lerp(cur.frame, 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
+    { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; if (l > 0.55) c.multiplyScalar(0.55 / l); } // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
     const rubyWalls = LEVEL.id === "rubinus"; // its fence: less clear, its lines much brighter, so it shows

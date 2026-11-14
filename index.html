@@ -1726,7 +1726,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     } else bhHead = null;
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
     shellMat.color.copy(cur.block).lerp(cur.frame, 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
-    { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; shellIndirect.value = l > 0.6 ? 0.78 : 1; } // a white shell takes less of the sky's light, so it stays white yet is not burnt out flat and the sun's glint shows // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
+    { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; shellIndirect.value = 1; shellDirect.value = 1; if (l > 0.6 && Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) < 0.12) { c.setRGB(1, 1, 1); shellIndirect.value = 1; shellDirect.value = 0.22; } } // a white shell takes less of the sky's light, so it stays white yet is not burnt out flat and the sun's glint shows // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
     accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
     const rubyWalls = LEVEL.id === "rubinus"; // its fence: less clear, its lines much brighter, so it shows
@@ -2371,9 +2371,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // A smooth one-piece shell in the world's own surface color, with thin seams that glow in the karma accent.
   // The cannon is a railgun: a capsule body on a gimbal, two rails and three accelerator rings.
   const shellMat = new THREE.MeshStandardMaterial({ roughness: 0.22, metalness: 0.12 });
-  const shellIndirect = { value: 1 }; // how much of the sky's (hemisphere) light the shell takes
-  shellMat.onBeforeCompile = sh => { sh.uniforms.uIndir = shellIndirect;
-    sh.fragmentShader = "uniform float uIndir;\n" + sh.fragmentShader.replace("#include <aomap_fragment>", "reflectedLight.indirectDiffuse *= uIndir;\n#include <aomap_fragment>"); };
+  const shellIndirect = { value: 1 }, shellDirect = { value: 1 }; // how much of the sky's (hemisphere) and the sun's diffuse light the shell takes (its glint untouched)
+  shellMat.onBeforeCompile = sh => { sh.uniforms.uIndir = shellIndirect; sh.uniforms.uDir = shellDirect;
+    sh.fragmentShader = "uniform float uIndir; uniform float uDir;\n" + sh.fragmentShader.replace("#include <aomap_fragment>", "reflectedLight.indirectDiffuse *= uIndir; reflectedLight.directDiffuse *= uDir;\n#include <aomap_fragment>"); };
   // a soft lit line: a strip whose alpha fades from its middle to its edges (a phone draws a hair-thin box as a staircase)
   const softLineMat = new THREE.MeshBasicMaterial({ color: accentMat.color, transparent: true, depthWrite: false, alphaMap: (() => { const c = document.createElement("canvas"); c.width = 32; c.height = 4; const g = c.getContext("2d"), gr = g.createLinearGradient(0, 0, 32, 0);
     gr.addColorStop(0, "#000"); gr.addColorStop(0.3, "#fff"); gr.addColorStop(0.7, "#fff"); gr.addColorStop(1, "#000"); g.fillStyle = gr; g.fillRect(0, 0, 32, 4); const tx = new THREE.CanvasTexture(c); tx.minFilter = THREE.LinearFilter; return tx; })() }); softLineMat.color = accentMat.color; // the very same Color, so it follows the accent

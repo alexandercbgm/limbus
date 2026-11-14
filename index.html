@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.276</div>
+      <div class="credit version">v1.0.277</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.276`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.277`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3391,30 +3391,42 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         w: new THREE.Vector3(Math.random() * 8, Math.random() * 8, 0) });
     }
   }
-  // a crack as glass cracks where a ball strikes it: a little crushed star at the point, straight radial cracks that jag only
-  // a little, run out at even-ish angles, some to the edge and some short, now and then forking, and rings of cracks
-  // between neighbouring radials that bow in a little (a spider's web)
+  // a crack where a ball struck, as a stone cracks a windscreen. Four kinds; each pane takes one kind for all its hits, each hit
+  // a new take of it: 0 a bullseye (a crushed disc of short splinters in a ring, long thin cracks running out of it), 1 a star
+  // (a tiny pit, many long straight rays, some to the edge), 2 a half-moon (a pit, a bright broken ring about it, two or three
+  // long wandering cracks), 3 a web (long rays to the edge, broken polygonal rings across them)
   function addCracks(p, lx, ly) {
     const pts = [], ex = p.cross ? Math.max(p.w, p.h) / 2 : p.w / 2, ey = p.cross ? ex : p.h / 2, z = (p.thick || 0) / 2 + 0.01;
     const inside = (x, y) => Math.abs(x) <= ex && Math.abs(y) <= ey;
     const seg = (x1, y1, x2, y2) => pts.push(x1, y1, z, x2, y2, z);
-    const walk = (x, y, a, len, rays) => { const path = [[x, y, 0]]; let d = 0, ang = a;
-      while (d < len) { const st = rand(0.05, 0.12); ang = a + rand(-0.2, 0.2); const nx = x + Math.cos(ang) * st, ny = y + Math.sin(ang) * st;
+    const walk = (x, y, a, len, wob, stp) => { const path = [[x, y, 0]]; let d = 0, ang = a; // a crack's path: steps a little aside, on in its heading
+      while (d < len) { const st = rand(stp * 0.6, stp * 1.4); ang += rand(-wob, wob); ang += (a - ang) * 0.3; const nx = x + Math.cos(ang) * st, ny = y + Math.sin(ang) * st;
         if (!inside(nx, ny)) { seg(x, y, clamp(nx, -ex, ex), clamp(ny, -ey, ey)); break; } seg(x, y, nx, ny); x = nx; y = ny; d += st; path.push([x, y, d]); }
-      if (rays) rays.push(path); return path; };
-    const n = 9 + Math.floor(Math.random() * 4), a0 = rand(0, TAU), rays = [], WEB_R = Math.min(0.8, 0.75 * Math.min(ex, ey));
-    for (let i = 0; i < n; i++) {
-      const a = a0 + (i + rand(-0.35, 0.35)) / n * TAU, far = WEB_R * rand(0.55, 1.05); // round on the whole, but each its own length: no long whiskers
-      const path = walk(lx, ly, a, far, rays);
-      if (path.length > 4 && Math.random() < 0.35) { const k = 2 + Math.floor(Math.random() * (path.length - 3)); walk(path[k][0], path[k][1], a + (Math.random() < 0.5 ? -1 : 1) * rand(0.3, 0.5), rand(0.08, 0.18)); } // a short fork
+      return path; };
+    const arc = (r0, a0, a1, rough) => { let px = null, py = null; for (let a = a0; a <= a1; a += 0.12) { const r = r0 * (1 + rand(-rough, rough)), x = lx + Math.cos(a) * r, y = ly + Math.sin(a) * r; if (!inside(x, y)) { px = null; continue; } if (px !== null) seg(px, py, x, y); px = x; py = y; } };
+    const pit = (r, n) => { for (let k = 0; k < n; k++) { const a = k / n * TAU + rand(-0.2, 0.2), r1 = r * rand(0.2, 0.5), r2 = r * rand(0.8, 1.1); seg(lx + Math.cos(a) * r1, ly + Math.sin(a) * r1, lx + Math.cos(a) * r2, ly + Math.sin(a) * r2); }
+      for (let k = 0; k < n; k++) { const a = k / n * TAU, b = (k + 1) / n * TAU, r1 = r * rand(0.3, 0.6), r2 = r * rand(0.3, 0.6); seg(lx + Math.cos(a) * r1, ly + Math.sin(a) * r1, lx + Math.cos(b) * r2, ly + Math.sin(b) * r2); } };
+    const big = Math.min(ex, ey), kind = p.crackKind ?? (p.crackKind = Math.floor(Math.random() * 4));
+    if (kind === 0) { // bullseye
+      const R = rand(0.1, 0.16); pit(R, 18 + Math.floor(Math.random() * 8)); arc(R, 0, TAU, 0.12);
+      const n = 6 + Math.floor(Math.random() * 4), a0 = rand(0, TAU);
+      for (let i = 0; i < n; i++) { const a = a0 + (i + rand(-0.35, 0.35)) / n * TAU; walk(lx + Math.cos(a) * R, ly + Math.sin(a) * R, a, big * (Math.random() < 0.4 ? rand(1.1, 2.5) : rand(0.35, 0.8)), 0.05, 0.1); }
+    } else if (kind === 1) { // star
+      pit(0.04, 10); const n = 12 + Math.floor(Math.random() * 6), a0 = rand(0, TAU);
+      for (let i = 0; i < n; i++) { const a = a0 + (i + rand(-0.4, 0.4)) / n * TAU; walk(lx, ly, a, big * (Math.random() < 0.5 ? rand(1.2, 3) : rand(0.2, 0.7)), 0.025, 0.14); }
+    } else if (kind === 2) { // half-moon
+      const R = rand(0.2, 0.3); pit(0.05, 12);
+      const s0 = rand(0, TAU); arc(R, s0, s0 + rand(2.2, 3.4), 0.05); arc(R * rand(0.9, 1.05), s0 + rand(3.6, 4.2), s0 + rand(5.2, 6.0), 0.05); // the ring, broken
+      for (let i = 0; i < 9; i++) { const a = rand(0, TAU); walk(lx, ly, a, R * rand(0.6, 1.1), 0.08, 0.06); }
+      const m = 2 + Math.floor(Math.random() * 2), a0 = rand(0, TAU);
+      for (let i = 0; i < m; i++) { const a = a0 + i / m * TAU + rand(-0.4, 0.4); walk(lx + Math.cos(a) * R, ly + Math.sin(a) * R, a, big * rand(1.5, 3), 0.18, 0.12); } // long wandering cracks
+    } else { // web
+      pit(0.05, 14); const n = 10 + Math.floor(Math.random() * 5), a0 = rand(0, TAU), rays = [];
+      for (let i = 0; i < n; i++) { const a = a0 + (i + rand(-0.35, 0.35)) / n * TAU; rays.push(walk(lx, ly, a, big * rand(1.4, 3), 0.04, 0.12)); }
+      const at = (path, r) => { for (let k = 1; k < path.length; k++) if (path[k][2] >= r) return path[k]; return null; };
+      for (const r of [0.25, 0.55, 0.9].map(f => f * big * rand(0.85, 1.15))) for (let i = 0; i < rays.length; i++) { if (Math.random() > 0.6) continue;
+        const A = at(rays[i], r * rand(0.8, 1.2)), B = at(rays[(i + 1) % rays.length], r * rand(0.8, 1.2)); if (A && B) seg(A[0], A[1], B[0], B[1]); }
     }
-    const at = (path, r) => { for (let k = 1; k < path.length; k++) if (path[k][2] >= r) { const q = path[k - 1], w = (r - q[2]) / (path[k][2] - q[2] || 1); return [q[0] + (path[k][0] - q[0]) * w, q[1] + (path[k][1] - q[1]) * w]; } return null; };
-    for (const [r, pr] of [[0.14 * WEB_R, 0.8], [0.42 * WEB_R, 0.45]]) // a ring or two of cross cracks, broken, not a web
-      for (let i = 0; i < rays.length; i++) { if (Math.random() > pr) continue;
-        const A = at(rays[i], r * rand(0.7, 1.35)), B = at(rays[(i + 1) % rays.length], r * rand(0.7, 1.35)); if (!A || !B) continue;
-        const mx = (A[0] + B[0]) / 2 + rand(-0.03, 0.03), my = (A[1] + B[1]) / 2 + rand(-0.03, 0.03), sag = rand(-0.05, 0.25), cx = mx + (lx - mx) * sag, cy = my + (ly - my) * sag; // bowed in toward the point
-        seg(A[0], A[1], cx, cy); seg(cx, cy, B[0], B[1]); }
-    for (let k = 0; k < 9; k++) { const a = k / 9 * TAU, b = (k + 1) / 9 * TAU, r1 = rand(0.03, 0.06), r2 = rand(0.03, 0.06); seg(lx + Math.cos(a) * r1, ly + Math.sin(a) * r1, lx + Math.cos(b) * r2, ly + Math.sin(b) * r2); } // the crushed spot, ragged
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
     p.group.add(new THREE.LineSegments(g, edgeMat)); p.cracks.push(g);
   }

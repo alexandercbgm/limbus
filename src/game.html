@@ -3252,18 +3252,30 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         w: new THREE.Vector3(Math.random() * 8, Math.random() * 8, 0) });
     }
   }
+  // a crack as glass cracks where a ball strikes it: a little crushed star at the point, straight radial cracks that jag only
+  // a little, run out at even-ish angles, some to the edge and some short, now and then forking, and rings of cracks
+  // between neighbouring radials that bow in a little (a spider's web)
   function addCracks(p, lx, ly) {
-    const pts = [];
-    const n = 7 + Math.floor(Math.random() * 4);
+    const pts = [], ex = p.cross ? Math.max(p.w, p.h) / 2 : p.w / 2, ey = p.cross ? ex : p.h / 2, z = (p.thick || 0) / 2 + 0.01;
+    const inside = (x, y) => Math.abs(x) <= ex && Math.abs(y) <= ey;
+    const seg = (x1, y1, x2, y2) => pts.push(x1, y1, z, x2, y2, z);
+    const walk = (x, y, a, len, rays) => { const path = [[x, y, 0]]; let d = 0, ang = a;
+      while (d < len) { const st = rand(0.06, 0.13); ang = a + rand(-0.12, 0.12); const nx = x + Math.cos(ang) * st, ny = y + Math.sin(ang) * st;
+        if (!inside(nx, ny)) { seg(x, y, clamp(nx, -ex, ex), clamp(ny, -ey, ey)); break; } seg(x, y, nx, ny); x = nx; y = ny; d += st; path.push([x, y, d]); }
+      if (rays) rays.push(path); return path; };
+    const n = 11 + Math.floor(Math.random() * 5), a0 = rand(0, TAU), rays = [];
     for (let i = 0; i < n; i++) {
-      const a = (i / n) * TAU + rand(-0.3, 0.3), len = rand(0.5, 1.6);
-      let x = lx, y = ly;
-      for (let j = 0; j < 3; j++) {
-        const ex = p.cross ? Math.max(p.w, p.h) / 2 : p.w / 2, ey = p.cross ? ex : p.h / 2;
-        const nx = clamp(x + Math.cos(a + rand(-0.4, 0.4)) * len / 3, -ex, ex), ny = clamp(y + Math.sin(a + rand(-0.4, 0.4)) * len / 3, -ey, ey);
-        const z = (p.thick || 0) / 2 + 0.01; pts.push(x, y, z, nx, ny, z); x = nx; y = ny; // on the face toward the cart
-      }
+      const a = a0 + (i + rand(-0.3, 0.3)) / n * TAU, far = Math.random() < 0.6 ? 9 : rand(0.25, 0.9); // most run to the edge
+      const path = walk(lx, ly, a, far, rays);
+      if (path.length > 4 && Math.random() < 0.35) { const k = 2 + Math.floor(Math.random() * (path.length - 3)); walk(path[k][0], path[k][1], a + (Math.random() < 0.5 ? -1 : 1) * rand(0.3, 0.6), rand(0.15, 0.45)); } // a fork
     }
+    const at = (path, r) => { for (let k = 1; k < path.length; k++) if (path[k][2] >= r) { const q = path[k - 1], w = (r - q[2]) / (path[k][2] - q[2] || 1); return [q[0] + (path[k][0] - q[0]) * w, q[1] + (path[k][1] - q[1]) * w]; } return null; };
+    for (const [r, pr] of [[rand(0.1, 0.16), 0.85], [rand(0.26, 0.4), 0.6], [rand(0.5, 0.75), 0.35]]) // the web's rings
+      for (let i = 0; i < rays.length; i++) { if (Math.random() > pr) continue;
+        const A = at(rays[i], r * rand(0.9, 1.1)), B = at(rays[(i + 1) % rays.length], r * rand(0.9, 1.1)); if (!A || !B) continue;
+        const mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, sag = rand(0.08, 0.18), cx = mx + (lx - mx) * sag, cy = my + (ly - my) * sag; // bowed in toward the point
+        seg(A[0], A[1], cx, cy); seg(cx, cy, B[0], B[1]); }
+    for (let k = 0; k < 7; k++) { const a = k / 7 * TAU, b = (k + 1) / 7 * TAU, r = 0.035; seg(lx + Math.cos(a) * r, ly + Math.sin(a) * r, lx + Math.cos(b) * r * 1.2, ly + Math.sin(b) * r * 1.2); } // the crushed spot
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
     p.group.add(new THREE.LineSegments(g, edgeMat)); p.cracks.push(g);
   }

@@ -6127,7 +6127,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   // Triplex: three balls leave the three barrels as a triangle and spiral around a shared flight line,
   // turning the way the barrel cluster spins (counterclockwise as seen from the cart), opening to ~0.6 m
-  const TRI_SPIN = 7, TRI_R = 0.6;
+  const TRI_SPIN = 7, TRI_R = 0.51; // the spin and the radius of Triplex's triangle of balls (15% under the 0.6 it was)
   function launchTriplex(g, from, dir, vol) {
     const e1 = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion), e2 = new THREE.Vector3();
     e1.addScaledVector(dir, -e1.dot(dir)).normalize(); e2.crossVectors(e1, dir).normalize();

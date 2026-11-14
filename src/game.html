@@ -1507,8 +1507,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (let i = 0; i < 900; i++) blob(Math.random() * 1024, 40 + Math.random() * 432, 0.5 + Math.random() * 1.2, fleck); // scattered single specks
     const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.anisotropy = 4; return t;
   }
-  const ballTex = ballTexture("#1b2029", "#07080b", "#eef3f8"), ironTex = ballTexture("#3a3430", "#120d0b", "#c8b4a6");
-  const ballMat = new THREE.MeshStandardMaterial({ map: ballTex, bumpMap: ballTex, bumpScale: 0.0015, metalness: 0.55, roughness: 0.2, emissive: 0x0e121a, emissiveIntensity: 1 }); // blued steel, chipped, glossy
+  const ballTex = ballTexture("#1e1e1e", "#080808", "#f0f0f0"), ironTex = ballTexture("#3a3430", "#120d0b", "#c8b4a6");
+  const ballMat = new THREE.MeshStandardMaterial({ map: ballTex, bumpMap: ballTex, bumpScale: 0.0015, metalness: 0.55, roughness: 0.2, emissive: 0x121212, emissiveIntensity: 1 }); // black steel, chipped, glossy, no tint
   const ironBallMat = new THREE.MeshStandardMaterial({ map: ironTex, bumpMap: ironTex, bumpScale: 0.0015, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 }); // Ferrum's iron, chipped the same way
   const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const WHITE = new THREE.Color(0xffffff), accelRings = [];

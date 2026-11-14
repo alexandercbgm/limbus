@@ -1493,7 +1493,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     impMat.emissive.set(0x861208); impMat.emissiveIntensity = 0.42;
   }
   const impEdgeMat = new THREE.LineBasicMaterial({ color: 0xff3a14 });
-  const ballMat = new THREE.MeshStandardMaterial({ color: 0x2a4374, metalness: 0.45, roughness: 0.16, emissive: 0x0e1a32, emissiveIntensity: 1 }); // blued steel, not too dark (lit a little of itself, so it shows in the dark)
+  const ballMat = new THREE.MeshStandardMaterial({ color: 0x262c36, metalness: 0.6, roughness: 0.18, emissive: 0x161c28, emissiveIntensity: 1 }); // blued steel: near black with a cold sheen, not too dark (lit a little of itself, so it shows in the dark)
   const ironBallMat = new THREE.MeshStandardMaterial({ color: 0x3a3430, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 });
   const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const WHITE = new THREE.Color(0xffffff), accelRings = [];
@@ -6074,9 +6074,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function launchChains(from, dir) {
     const f = dir.clone().normalize(), fh = new THREE.Vector3(f.x, 0, f.z).normalize(), rt = new THREE.Vector3().crossVectors(fh, new THREE.Vector3(0, 1, 0)).normalize();
     const n = new THREE.Vector3(0, 1, 0).applyAxisAngle(fh, rand(-0.35, 0.35)).applyAxisAngle(rt, rand(-0.35, 0.35)); // the tilt, shared
-    const down = new THREE.Vector3(0, -1, 0).projectOnPlane(f).normalize().multiplyScalar(CHAIN_HALF); // half a chain's width below: a flat oblong, not a square
+    const down = new THREE.Vector3(0, -1, 0).projectOnPlane(f).normalize().multiplyScalar(1.35 * CHAIN_HALF); // two thirds of a chain's width below: a flat oblong, not a square
     launchChain(from, dir, { n, phase: 0, spin: CHAIN_SPIN });
-    launchChain(from, dir, { n: n.clone().applyAxisAngle(fh, rand(-0.08, 0.08)), phase: rand(-0.3, 0.3), spin: CHAIN_SPIN * rand(0.94, 1.06), drop: down, lag: 1.1 });
+    launchChain(from, dir, { n: n.clone().applyAxisAngle(fh, rand(-0.08, 0.08)), phase: rand(-0.3, 0.3), spin: CHAIN_SPIN * rand(0.94, 1.06), drop: down, lag: 1.7 });
   }
   function launchChain(from, dir, o) {
     frameAt(sC);

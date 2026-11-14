@@ -694,7 +694,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.279</div>
+      <div class="credit version">v1.0.280</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -873,7 +873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.279`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.280`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3803,7 +3803,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const t of f.targets) { // under its board, the target folds up (k 1) or hangs down (k 0)
         const ps = swS - 14; t.root.visible = ps > sC - 4 && ps - sC < AHEAD - 6;
         t.k += ((t.side === f.sign ? 1 : 0) - t.k) * Math.min(1, dt * 9);
-        t.hinge.rotation.x = -1.5 * smooth5(t.k); // up and away from the cart
+        t.hinge.rotation.x = 1.5 * smooth5(t.k); // up and back, away from the cart's way ahead
         const mat = t.k < 0.5 && !f.locked ? targetOn : targetOff; t.tg.forEach(m => { m.material = mat; });
         if (t.root.visible) { setObj(t.root, ps, -t.side * 2.3, 0); t.root.updateMatrixWorld(true); t.wp.setFromMatrixPosition(t.plate.matrixWorld); }
       }

@@ -3717,7 +3717,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const t of f.targets) { // under its board, the target folds up (k 1) or hangs down (k 0)
         const ps = swS - 14; t.root.visible = ps > sC - 4 && ps - sC < AHEAD - 6;
         t.k += ((t.side === f.sign ? 1 : 0) - t.k) * Math.min(1, dt * 9);
-        t.hinge.rotation.x = -1.5 * smooth5(t.k); // up and away from the cart
+        t.hinge.rotation.x = 1.5 * smooth5(t.k); // up and back, away from the cart's way ahead
         const mat = t.k < 0.5 && !f.locked ? targetOn : targetOff; t.tg.forEach(m => { m.material = mat; });
         if (t.root.visible) { setObj(t.root, ps, -t.side * 2.3, 0); t.root.updateMatrixWorld(true); t.wp.setFromMatrixPosition(t.plate.matrixWorld); }
       }

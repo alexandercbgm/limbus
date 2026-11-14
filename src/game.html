@@ -3305,44 +3305,66 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         w: new THREE.Vector3(Math.random() * 8, Math.random() * 8, 0) });
     }
   }
-  // a crack where a ball struck, as a stone cracks a windscreen. Four kinds; each pane takes one kind for all its hits, each hit
-  // a new take of it: 0 a bullseye (a crushed disc of short splinters in a ring, long thin cracks running out of it), 1 a star
-  // (a tiny pit, many long straight rays, some to the edge), 2 a half-moon (a pit, a bright broken ring about it, two or three
-  // long wandering cracks), 3 a web (long rays to the edge, broken polygonal rings across them)
+  // a crack where a ball struck, as a stone cracks a windscreen, painted on a canvas laid on the pane's face (tapering, glinting
+  // lines and a crushed, frosted pit read as cracked glass, which one-pixel lines never did). Four kinds; each pane takes one kind
+  // for all its hits, each hit a new take of it: 0 a bullseye (a crushed frosted disc, a ring, long thin cracks out of it), 1 a
+  // star (a small pit, many long straight rays), 2 a half-moon (a pit, a bright broken ring, two or three long wandering cracks),
+  // 3 a web (long rays to the edges, broken rings across them)
   function addCracks(p, lx, ly) {
-    const pts = [], ex = p.cross ? Math.max(p.w, p.h) / 2 : p.w / 2, ey = p.cross ? ex : p.h / 2, z = (p.thick || 0) / 2 + 0.01;
+    const W2 = p.cross ? Math.max(p.w, p.h) : p.w, H2 = p.cross ? W2 : p.h, ex = W2 / 2, ey = H2 / 2;
+    if (!p.crackCv) { // the canvas, made at the first hit
+      const k = 1024 / Math.max(W2, H2), cv = document.createElement("canvas"); cv.width = Math.round(W2 * k); cv.height = Math.round(H2 * k);
+      const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(W2, H2), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+      m.position.z = (p.thick || 0) / 2 + 0.006; p.group.add(m); p.cracks.push(m.geometry, tex, m.material);
+      Object.assign(p, { crackCv: cv, crackTex: tex, crackK: k });
+    }
+    const cv = p.crackCv, g = cv.getContext("2d"), K = p.crackK, X = x => (x + ex) * K, Y = y => (ey - y) * K;
     const inside = (x, y) => Math.abs(x) <= ex && Math.abs(y) <= ey;
-    const seg = (x1, y1, x2, y2) => pts.push(x1, y1, z, x2, y2, z);
-    const walk = (x, y, a, len, wob, stp) => { const path = [[x, y, 0]]; let d = 0, ang = a; // a crack's path: steps a little aside, on in its heading
+    const walk = (x, y, a, len, wob, stp) => { const path = [[x, y]]; let d = 0, ang = a;
       while (d < len) { const st = rand(stp * 0.6, stp * 1.4); ang += rand(-wob, wob); ang += (a - ang) * 0.3; const nx = x + Math.cos(ang) * st, ny = y + Math.sin(ang) * st;
-        if (!inside(nx, ny)) { seg(x, y, clamp(nx, -ex, ex), clamp(ny, -ey, ey)); break; } seg(x, y, nx, ny); x = nx; y = ny; d += st; path.push([x, y, d]); }
+        if (!inside(nx, ny)) { path.push([clamp(nx, -ex, ex), clamp(ny, -ey, ey)]); break; } path.push([nx, ny]); x = nx; y = ny; d += st; }
       return path; };
-    const arc = (r0, a0, a1, rough) => { let px = null, py = null; for (let a = a0; a <= a1; a += 0.12) { const r = r0 * (1 + rand(-rough, rough)), x = lx + Math.cos(a) * r, y = ly + Math.sin(a) * r; if (!inside(x, y)) { px = null; continue; } if (px !== null) seg(px, py, x, y); px = x; py = y; } };
-    const pit = (r, n) => { for (let k = 0; k < n; k++) { const a = k / n * TAU + rand(-0.2, 0.2), r1 = r * rand(0.2, 0.5), r2 = r * rand(0.8, 1.1); seg(lx + Math.cos(a) * r1, ly + Math.sin(a) * r1, lx + Math.cos(a) * r2, ly + Math.sin(a) * r2); }
-      for (let k = 0; k < n; k++) { const a = k / n * TAU, b = (k + 1) / n * TAU, r1 = r * rand(0.3, 0.6), r2 = r * rand(0.3, 0.6); seg(lx + Math.cos(a) * r1, ly + Math.sin(a) * r1, lx + Math.cos(b) * r2, ly + Math.sin(b) * r2); } };
+    // a crack drawn: a faint wide halo, then the line itself tapering from w0 to nothing, and bright glints here and there along it
+    const crack = (path, w0, bright) => {
+      if (path.length < 2) return; const n = path.length - 1;
+      g.lineCap = "round"; g.lineJoin = "round";
+      for (let i = 0; i < n; i++) { const f = 1 - i / n, [x1, y1] = path[i], [x2, y2] = path[i + 1];
+        g.strokeStyle = `rgba(255,255,255,${0.08 * f})`; g.lineWidth = (w0 * 3.2 * f + 1) * K / 140; g.beginPath(); g.moveTo(X(x1), Y(y1)); g.lineTo(X(x2), Y(y2)); g.stroke();
+        g.strokeStyle = `rgba(255,255,255,${(0.55 + 0.35 * bright) * (0.35 + 0.65 * f)})`; g.lineWidth = (w0 * f + 0.6) * K / 140; g.beginPath(); g.moveTo(X(x1), Y(y1)); g.lineTo(X(x2), Y(y2)); g.stroke();
+        if (Math.random() < 0.18) { g.strokeStyle = "rgba(255,255,255,0.95)"; g.lineWidth = (w0 * f + 1.4) * K / 140; g.beginPath(); g.moveTo(X(x1), Y(y1)); g.lineTo(X((x1 + x2) / 2), Y((y1 + y2) / 2)); g.stroke(); } // a glint
+      } };
+    const arc = (r0, a0, a1, rough, w0) => { const path = []; for (let a = a0; a <= a1; a += 0.08) { const r = r0 * (1 + rand(-rough, rough)); path.push([lx + Math.cos(a) * r, ly + Math.sin(a) * r]); }
+      g.lineCap = "round"; for (let i = 0; i < path.length - 1; i++) { const [x1, y1] = path[i], [x2, y2] = path[i + 1], b = 0.5 + 0.5 * Math.sin(i * 0.7 + rand(0, 1));
+        g.strokeStyle = `rgba(255,255,255,${0.35 + 0.6 * b})`; g.lineWidth = (w0 * (0.6 + 0.8 * b)) * K / 140; g.beginPath(); g.moveTo(X(x1), Y(y1)); g.lineTo(X(x2), Y(y2)); g.stroke(); } };
+    const pit = r => { // the crushed spot: a frosted glow, tiny facets catching the light, short splinters
+      const gr = g.createRadialGradient(X(lx), Y(ly), 0, X(lx), Y(ly), r * K); gr.addColorStop(0, "rgba(255,255,255,0.95)"); gr.addColorStop(0.35, "rgba(255,255,255,0.5)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = gr; g.beginPath(); g.arc(X(lx), Y(ly), r * K, 0, TAU); g.fill();
+      for (let i = 0; i < 40; i++) { const a = rand(0, TAU), d = r * Math.sqrt(Math.random()) * 0.95, s2 = r * rand(0.06, 0.18), x = lx + Math.cos(a) * d, y = ly + Math.sin(a) * d;
+        g.fillStyle = `rgba(255,255,255,${rand(0.15, 0.7)})`; g.beginPath(); g.moveTo(X(x), Y(y)); g.lineTo(X(x + rand(-s2, s2)), Y(y + rand(-s2, s2))); g.lineTo(X(x + rand(-s2, s2)), Y(y + rand(-s2, s2))); g.fill(); }
+      for (let i = 0; i < 22; i++) { const a = rand(0, TAU); crack(walk(lx + Math.cos(a) * r * 0.2, ly + Math.sin(a) * r * 0.2, a, r * rand(0.6, 1.2), 0.15, r * 0.25), 1.4, 0.5); } };
     const big = Math.min(ex, ey), kind = p.crackKind ?? (p.crackKind = Math.floor(Math.random() * 4));
     if (kind === 0) { // bullseye
-      const R = rand(0.1, 0.16); pit(R, 18 + Math.floor(Math.random() * 8)); arc(R, 0, TAU, 0.12);
+      const R = rand(0.13, 0.19); pit(R); arc(R, 0, TAU + 0.1, 0.06, 2.6);
       const n = 6 + Math.floor(Math.random() * 4), a0 = rand(0, TAU);
-      for (let i = 0; i < n; i++) { const a = a0 + (i + rand(-0.35, 0.35)) / n * TAU; walk(lx + Math.cos(a) * R, ly + Math.sin(a) * R, a, big * (Math.random() < 0.4 ? rand(1.1, 2.5) : rand(0.35, 0.8)), 0.05, 0.1); }
+      for (let i = 0; i < n; i++) { const a = a0 + (i + rand(-0.35, 0.35)) / n * TAU; crack(walk(lx + Math.cos(a) * R, ly + Math.sin(a) * R, a, big * (Math.random() < 0.45 ? rand(1.1, 2.5) : rand(0.3, 0.8)), 0.04, 0.08), 2.2, 0.6); }
     } else if (kind === 1) { // star
-      pit(0.04, 10); const n = 12 + Math.floor(Math.random() * 6), a0 = rand(0, TAU);
-      for (let i = 0; i < n; i++) { const a = a0 + (i + rand(-0.4, 0.4)) / n * TAU; walk(lx, ly, a, big * (Math.random() < 0.5 ? rand(1.2, 3) : rand(0.2, 0.7)), 0.025, 0.14); }
+      pit(0.06); const n = 12 + Math.floor(Math.random() * 6), a0 = rand(0, TAU);
+      for (let i = 0; i < n; i++) { const a = a0 + (i + rand(-0.4, 0.4)) / n * TAU; crack(walk(lx, ly, a, big * (Math.random() < 0.5 ? rand(1.2, 3) : rand(0.2, 0.7)), 0.02, 0.1), 2.4, 0.7); }
     } else if (kind === 2) { // half-moon
-      const R = rand(0.2, 0.3); pit(0.05, 12);
-      const s0 = rand(0, TAU); arc(R, s0, s0 + rand(2.2, 3.4), 0.05); arc(R * rand(0.9, 1.05), s0 + rand(3.6, 4.2), s0 + rand(5.2, 6.0), 0.05); // the ring, broken
-      for (let i = 0; i < 9; i++) { const a = rand(0, TAU); walk(lx, ly, a, R * rand(0.6, 1.1), 0.08, 0.06); }
+      const R = rand(0.22, 0.32); pit(0.08);
+      const s0 = rand(0, TAU); arc(R, s0, s0 + rand(2.2, 3.4), 0.04, 4); arc(R * rand(0.92, 1.05), s0 + rand(3.6, 4.2), s0 + rand(5.2, 6.0), 0.04, 3);
+      for (let i = 0; i < 10; i++) { const a = rand(0, TAU); crack(walk(lx, ly, a, R * rand(0.6, 1.1), 0.08, 0.05), 1.6, 0.5); }
       const m = 2 + Math.floor(Math.random() * 2), a0 = rand(0, TAU);
-      for (let i = 0; i < m; i++) { const a = a0 + i / m * TAU + rand(-0.4, 0.4); walk(lx + Math.cos(a) * R, ly + Math.sin(a) * R, a, big * rand(1.5, 3), 0.18, 0.12); } // long wandering cracks
+      for (let i = 0; i < m; i++) { const a = a0 + i / m * TAU + rand(-0.4, 0.4); crack(walk(lx + Math.cos(a) * R, ly + Math.sin(a) * R, a, big * rand(1.5, 3), 0.14, 0.1), 2.6, 0.8); }
     } else { // web
-      pit(0.05, 14); const n = 10 + Math.floor(Math.random() * 5), a0 = rand(0, TAU), rays = [];
-      for (let i = 0; i < n; i++) { const a = a0 + (i + rand(-0.35, 0.35)) / n * TAU; rays.push(walk(lx, ly, a, big * rand(1.4, 3), 0.04, 0.12)); }
-      const at = (path, r) => { for (let k = 1; k < path.length; k++) if (path[k][2] >= r) return path[k]; return null; };
+      pit(0.07); const n = 10 + Math.floor(Math.random() * 5), a0 = rand(0, TAU), rays = [];
+      for (let i = 0; i < n; i++) { const a = a0 + (i + rand(-0.35, 0.35)) / n * TAU, path = walk(lx, ly, a, big * rand(1.4, 3), 0.03, 0.1); rays.push(path); crack(path, 2.2, 0.6); }
+      const at = (path, r) => { for (const q of path) if (Math.hypot(q[0] - lx, q[1] - ly) >= r) return q; return null; };
       for (const r of [0.25, 0.55, 0.9].map(f => f * big * rand(0.85, 1.15))) for (let i = 0; i < rays.length; i++) { if (Math.random() > 0.6) continue;
-        const A = at(rays[i], r * rand(0.8, 1.2)), B = at(rays[(i + 1) % rays.length], r * rand(0.8, 1.2)); if (A && B) seg(A[0], A[1], B[0], B[1]); }
+        const A = at(rays[i], r * rand(0.85, 1.15)), B = at(rays[(i + 1) % rays.length], r * rand(0.85, 1.15)); if (A && B) crack(walk(A[0], A[1], Math.atan2(B[1] - A[1], B[0] - A[0]), Math.hypot(B[0] - A[0], B[1] - A[1]), 0.1, 0.06).concat([B]), 1.5, 0.4); }
     }
-    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
-    p.group.add(new THREE.LineSegments(g, edgeMat)); p.cracks.push(g);
+    p.crackTex.needsUpdate = true;
   }
 
   // ---------- monoliths on chains (Vitrum) ----------

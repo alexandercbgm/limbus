@@ -1835,7 +1835,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 560),
     wall: inst(new THREE.BoxGeometry(0.24, H, SL + 0.03), wallMat, 420),
     post: inst(new THREE.BoxGeometry(0.36, H, 0.36), frameMat, 180),
-    beam: inst(new THREE.BoxGeometry(2 * W + 0.36, 0.36, 0.36), frameMat, 90),
+    beam: inst(new THREE.BoxGeometry(2 * W + 0.16, 0.36, 0.36), frameMat, 90), // flush with the posts' outer faces (W - 0.1 + 0.18): longer, its ends stood out past them in a step
     cap: inst(new THREE.BoxGeometry(2 * W + 0.6, H, 0.3), wallMat, 2), // the dead end of the branch not taken
     nose: inst(new THREE.BoxGeometry(1.4, H, 1.4), frameMat, 2), // the pillar where the two tunnels' inner walls meet
     sill: inst(new THREE.BoxGeometry(2 * W, 0.05, 0.36), frameMat, 90),

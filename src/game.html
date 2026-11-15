@@ -1491,6 +1491,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the big matte surfaces (floor, walls, the blocks floating outside) are lit the cheap way: no highlights to lose at
   // this roughness, and they fill most of the screen, out in the open most of all
   const surfMat = new THREE.MeshLambertMaterial({ map: floorTex.map, emissiveMap: floorTex.emi });
+  const roofMat = surfMat.clone(); roofMat.side = THREE.DoubleSide; // Lux's and Labyrinthus's one-sheet roof: the slabs' texture (its colours follow surfMat's each frame)
   const wallMat = new THREE.MeshLambertMaterial({ map: wallTex.map, emissiveMap: wallTex.emi });
   const blockMat = new THREE.MeshLambertMaterial({ map: blockTex.map, emissiveMap: blockTex.emi });
   const bushMat = new THREE.MeshStandardMaterial({ roughness: 0.75, flatShading: true }); // foliage: decor clumps and the leaves on boughs
@@ -1690,7 +1691,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const rubyWalls = LEVEL.id === "rubinus"; // its fence: less clear, its lines much brighter, so it shows
     glassWallMat.opacity = rubyWalls ? 0.5 : 0.3;
     glassWallMat.color.copy(cur.wall); glassWallMat.emissive.copy(cur.line).multiplyScalar(Math.max(0.15, cur.lineI) * (rubyWalls ? 3 : 1));
-    plainGlassWallMat.color.copy(cur.wall); plainGlassWallMat.opacity = glassWallMat.opacity; plainCeilMat.color.copy(cur.surf);
+    plainGlassWallMat.color.copy(cur.wall); plainGlassWallMat.opacity = glassWallMat.opacity; roofMat.color.copy(surfMat.color); roofMat.emissive.copy(surfMat.emissive);
     quartzMat.color.copy(cur.frame).lerp(cur.glass, 0.3); quartzMat.emissive.copy(cur.frame).multiplyScalar(0.25); // Vitrum's crystals: the frames' sapphire, lit a little from within
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
@@ -2091,15 +2092,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const RING_SX = (H / 2 - 0.05) * 1.15 / 4.92, RING_SY = RING_SX; // a true circle, clear of the walls
   // a sheet of quads, one a stretch of track, each sharing its ends with the next: Lux's glass walls; Lux's and Labyrinthus's roof
   const LUXW_MAX = 400, sheet = mat => { const g = new THREE.BufferGeometry(); // (stretches: both sides, the whole of what is drawn ahead and behind)
-    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 18), 3)); g.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 18), 3));
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 18), 3)); g.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 18), 3)); g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 12), 2));
     const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.visible = false; scene.add(m); m.nq = 0; return m; };
-  const luxWalls = sheet(plainGlassWallMat), roofSheet = sheet(plainCeilMat);
+  const luxWalls = sheet(plainGlassWallMat), roofSheet = sheet(roofMat);
   // one stretch, s0 → s1: its edge (u0, v0) → (u1, v1) across the track, the normal along the frame's (nu, nv)
-  const sheetQuad = (m, s0, s1, u0, v0, u1, v1, nu, nv) => { if (m.nq >= LUXW_MAX) return; const lp = m.geometry.attributes.position.array, ln = m.geometry.attributes.normal.array, pts = [];
+  const sheetQuad = (m, s0, s1, u0, v0, u1, v1, nu, nv) => { if (m.nq >= LUXW_MAX) return; const lp = m.geometry.attributes.position.array, ln = m.geometry.attributes.normal.array, lu = m.geometry.attributes.uv.array, pts = [], UV = [[0, 0], [1, 0], [0, 1], [1, 1]];
     for (const sx of [s0, s1]) { frameAt(sx); const nn = [_R.x * nu + _U.x * nv, _R.y * nu + _U.y * nv, _R.z * nu + _U.z * nv];
       for (const [u, v] of [[u0, v0], [u1, v1]]) pts.push([[_P.x + _R.x * u + _U.x * v, _P.y + _R.y * u + _U.y * v, _P.z + _R.z * u + _U.z * v], nn]); }
-    let o = m.nq * 18; for (const i of [0, 2, 3, 0, 3, 1]) { lp.set(pts[i][0], o); ln.set(pts[i][1], o); o += 3; } m.nq++; };
-  const sheetDone = m => { m.geometry.setDrawRange(0, m.nq * 6); m.geometry.attributes.position.needsUpdate = true; m.geometry.attributes.normal.needsUpdate = true; m.visible = m.nq > 0; m.nq = 0; };
+    let o = m.nq * 18, q = m.nq * 12; for (const i of [0, 2, 3, 0, 3, 1]) { lp.set(pts[i][0], o); ln.set(pts[i][1], o); lu.set(UV[i], q); o += 3; q += 2; } m.nq++; }; // (each stretch a whole slab of the texture)
+  const sheetDone = m => { m.geometry.setDrawRange(0, m.nq * 6); m.geometry.attributes.position.needsUpdate = true; m.geometry.attributes.normal.needsUpdate = true; m.geometry.attributes.uv.needsUpdate = true; m.visible = m.nq > 0; m.nq = 0; };
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };

@@ -2479,7 +2479,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const T = new THREE.Group(); T.name = "m_" + id + "_turn"; yawG.add(T);
       const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.2, 0.08, 36), darkMat); tb.position.y = o.turn; T.add(tb);
       return T; };
-    heavyMount("hexa", { colTop: -0.15, colBot: -0.51, legTop: -0.25, foot: -0.8, spread: 0.5, strut: -0.5, turn: -0.14 });
     heavyMount("ferrum", { colTop: -0.04, colBot: -0.34, legTop: -0.11, foot: -0.8 + FER_UP, spread: 0.46, strut: -0.32, turn: -0.01 });
     // Gemini's gun pivots at the middle of its cradle's foot, and the whole cannon stands lower by as much (GEM_DROP), so its
     // tripod is shorter: on its turntable two cheeks hold a trunnion bar the cradle sits on
@@ -2496,34 +2495,33 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const bore = cyl(0.03, 0.004, darkMat, 12); bore.position.set(Math.cos(a) * 0.072, Math.sin(a) * 0.072, -0.6665); mT.add(bore);
     });
     [-0.48, -0.2].forEach(z => { const c = cyl(0.135, 0.06, shellMat, 24); c.position.z = z; mT.add(c); });
-    // Hexa: two Triplex guns, each as big as Triplex itself (its drum and its barrels copied), in a cage of black tubes: on the
-    // turntable an A of tubes each side up to a hub on the pitch axis; a bar through the hubs; a clamp round each drum. Both guns fire at once, their barrels turning opposite ways
+    // Hexa: two Triplex guns, each as big as Triplex itself (its drum and its barrels copied), on a bar through two hubs on the pitch axis,
+    // a clamp round each drum. Both guns fire at once, their barrels turning opposite ways
     const HX = 0.34, htube = (g, p, q, r) => { const d = q.clone().sub(p), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 12), darkMat);
       m.position.copy(p).add(q).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); g.add(m); return m; };
-    const mHB = new THREE.Group(); mHB.name = "m_hexa_body"; yawG.add(mHB); // (in the turning frame: it does not pitch)
-    for (const sd of [-1, 1]) {
-      for (const z of [-0.08, 0.08]) htube(mHB, new THREE.Vector3(sd * 0.07, -0.11, z), new THREE.Vector3(sd * 0.1, 0.09, 0), 0.018);
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.05, 20).rotateZ(Math.PI / 2), darkMat); hub.position.set(sd * 0.1, 0.09, 0); mHB.add(hub);
-    }
-    const mH = new THREE.Group(); mH.name = "m_hexa"; barrel.add(mH); // the bar, the clamps, the guns: they pitch
-    // round the two drums a cage of black tubes, as a car's roll cage: a hoop each side of each drum (round topped, a diagonal across
-    // the outer ones), bars across its top and its foot at front and back, a bar along the top and the foot over and under each drum,
-    // and a post from each drum's clamp up to the bar over it. It pitches with the guns
-    { const CX0 = 0.15, CX1 = 0.56, ZB = 0.28, ZF = -0.32, YT = 0.22, YB = -0.18, TR = 0.016, V = (x, y, z) => new THREE.Vector3(x, y, z);
-      const path = (pts, rc, closed) => { const P = new THREE.CurvePath(), n = pts.length, cut = (a, b, d) => a.clone().add(b.clone().sub(a).setLength(d));
-        const start = closed ? cut(pts[0], pts[1], rc) : pts[0].clone(); let cur = start;
-        for (let i = 1; i < (closed ? n + 1 : n - 1); i++) { const c = pts[i % n], a = cut(c, pts[i - 1], rc), b = cut(c, pts[(i + 1) % n], rc);
-          P.add(new THREE.LineCurve3(cur, a)); P.add(new THREE.QuadraticBezierCurve3(a, c.clone(), b)); cur = b; }
-        if (!closed) P.add(new THREE.LineCurve3(cur, pts[n - 1].clone())); return P; };
-      const bend = (pts, rc, closed) => mH.add(new THREE.Mesh(new THREE.TubeGeometry(path(pts, rc, closed), 96, TR, 8, closed), darkMat));
+    // its stand, in place of a tripod: a stand of bent black tubes as a car's roll cage, turning with the guns on a ring on the deck. Two
+    // hoops, front and back, each wide at its feet, drawn in at the knee under the guns (so their barrels clear it, pitched down
+    // and turned), up and round across the top; bars along between them at the feet, the knees and the top corners; a cross on each
+    // side and on the floor; from the top corners an A up to a hub each side on the pitch axis
+    const HV = (x, y, z) => new THREE.Vector3(x, y, z), hcut = (a, b, d) => a.clone().add(b.clone().sub(a).setLength(d));
+    const bentPath = pts => { const P = new THREE.CurvePath(); let cur = pts[0].clone();
+      for (let i = 1; i < pts.length - 1; i++) { const c = pts[i], a = hcut(c, pts[i - 1], 0.07), b = hcut(c, pts[i + 1], 0.07); P.add(new THREE.LineCurve3(cur, a)); P.add(new THREE.QuadraticBezierCurve3(a, c.clone(), b)); cur = b; }
+      P.add(new THREE.LineCurve3(cur, pts[pts.length - 1].clone())); return P; };
+    const mHB = new THREE.Group(); mHB.name = "m_hexa_turn"; yawG.add(mHB); // (in the turning frame: it does not pitch)
+    { const XF = 0.3, XK = 0.14, YF = -0.74, YK = -0.36, YT = -0.04, Z = 0.22, TR = 0.019;
+      for (const z of [-Z, Z]) mHB.add(new THREE.Mesh(new THREE.TubeGeometry(bentPath([HV(-XF, YF, z), HV(-XK, YK, z), HV(-XK, YT, z), HV(XK, YT, z), HV(XK, YK, z), HV(XF, YF, z)]), 120, TR, 8, false), darkMat)); // the hoops
       for (const sd of [-1, 1]) {
-        for (const x of [sd * CX0, sd * CX1]) bend([V(x, YB, ZB), V(x, YT, ZB), V(x, YT, ZF), V(x, YB, ZF)], 0.08, true); // the hoops
-        htube(mH, V(sd * CX1, YB, ZB), V(sd * CX1, YT, ZF), TR); // the diagonal across the outer hoop
-        for (const z of [ZB, ZF]) htube(mH, V(sd * CX0, YB, z), V(sd * CX1, YB, z), TR); // across the foot
-        for (const y of [YT, YB]) htube(mH, V(sd * HX, y, ZB), V(sd * HX, y, ZF), TR); // along over and under the drum
-        htube(mH, V(sd * HX, RB + 0.02, 0.06), V(sd * HX, YT, 0.06), TR); // the post from the clamp
+        for (const [x, y] of [[XF, YF], [XK, YK], [XK - 0.02, YT - 0.02]]) htube(mHB, HV(sd * x, y, -Z), HV(sd * x, y, Z), TR * 0.85); // along, between the hoops
+        htube(mHB, HV(sd * XF, YF, Z), HV(sd * XK, YK, -Z), TR * 0.8); htube(mHB, HV(sd * XF, YF, -Z), HV(sd * XK, YK, Z), TR * 0.8); // the cross on its side
+        for (const z of [-Z, Z]) htube(mHB, HV(sd * (XK - 0.02), YT - 0.02, z * 0.9), HV(sd * 0.13, 0.09, 0), TR * 0.85); // the A up to the hub
+        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.05, 20).rotateZ(Math.PI / 2), darkMat); hub.position.set(sd * 0.13, 0.09, 0); mHB.add(hub);
+        for (const z of [-Z, Z]) { const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.055, 0.025, 16), darkMat); pad.position.set(sd * XF, YF - 0.02, z); mHB.add(pad); } // its feet
       }
-      for (const z of [ZB, ZF]) htube(mH, V(-CX1, YT, z), V(CX1, YT, z), TR); } // across the top, the whole width
+      htube(mHB, HV(-XF, YF, -Z), HV(XF, YF, Z), TR * 0.8); htube(mHB, HV(-XF, YF, Z), HV(XF, YF, -Z), TR * 0.8); // the cross on the floor
+      const mHL = new THREE.Group(); mHL.name = "m_hexa_legs"; cannon.add(mHL); // the ring on the deck its feet run round on
+      const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.44, 0.03, 48, 1, true), darkMat); ring.position.y = YF - 0.04; mHL.add(ring);
+      const ringTop = new THREE.Mesh(new THREE.RingGeometry(0.33, 0.42, 48).rotateX(-Math.PI / 2), darkMat); ringTop.position.y = YF - 0.025; mHL.add(ringTop); }
+    const mH = new THREE.Group(); mH.name = "m_hexa"; barrel.add(mH); // the bar, the clamps, the guns: they pitch
     mH.add(new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 2 * (HX - RB) + 0.04, 16).rotateZ(Math.PI / 2), darkMat)); // the bar along the pitch axis
     for (const sd of [-1, 1]) {
       const x = sd * HX, e = new THREE.Vector3(sd * (HX - RB - 0.01), 0, 0);
@@ -2669,7 +2667,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const cannonB = cannon.clone(); cart.add(cannonB);
   cannonB.traverse(o => { if (o.material === ringMat) accelRings.push(o); });
   const GUNS = [cannon, cannonB].map(c => ({ c, yaw: c.getObjectByName("yaw"), pitch: c.getObjectByName("pitch"), barrel: c.getObjectByName("barrel"),
-    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), ballista_legs: c.getObjectByName("m_ballista_legs"), ballista_turn: c.getObjectByName("m_ballista_turn"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), radius_legs: c.getObjectByName("m_radius_legs"), radius_turn: c.getObjectByName("m_radius_turn"), hexa: c.getObjectByName("m_hexa"), hexa_body: c.getObjectByName("m_hexa_body"), hexa_legs: c.getObjectByName("m_hexa_legs"), hexa_turn: c.getObjectByName("m_hexa_turn"), gemini_legs: c.getObjectByName("m_gemini_legs"), gemini_lug: c.getObjectByName("m_gemini_lug"), gemini_turn: c.getObjectByName("m_gemini_turn"), ferrum_legs: c.getObjectByName("m_ferrum_legs"), ferrum_lug: c.getObjectByName("m_ferrum_lug"), ferrum_turn: c.getObjectByName("m_ferrum_turn"), ferrum: c.getObjectByName("m_ferrum") } }));
+    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), ballista_legs: c.getObjectByName("m_ballista_legs"), ballista_turn: c.getObjectByName("m_ballista_turn"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), radius_legs: c.getObjectByName("m_radius_legs"), radius_turn: c.getObjectByName("m_radius_turn"), hexa: c.getObjectByName("m_hexa"), hexa_legs: c.getObjectByName("m_hexa_legs"), hexa_turn: c.getObjectByName("m_hexa_turn"), gemini_legs: c.getObjectByName("m_gemini_legs"), gemini_lug: c.getObjectByName("m_gemini_lug"), gemini_turn: c.getObjectByName("m_gemini_turn"), ferrum_legs: c.getObjectByName("m_ferrum_legs"), ferrum_lug: c.getObjectByName("m_ferrum_lug"), ferrum_turn: c.getObjectByName("m_ferrum_turn"), ferrum: c.getObjectByName("m_ferrum") } }));
   const GEM_MUZZLE = [new THREE.Vector3(-0.16, 0.2, -1.845), new THREE.Vector3(0.16, 0.2, -1.845)]; // where each barrel's ball leaves
   function setWeaponVisual(id) {
     const twin = id === "gemini";
@@ -7110,7 +7108,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     sun.position.copy(camera.position).add(SV.set(3, 9, 2));
     sun.target.position.copy(camera.position).addScaledVector(_T, 12);
 
-    // cannon: recoil and drift back to center (no gun kicks back now: Triplex and Hexa only spin their barrels, Gauss flares its coils, Lumen its rod; Ferrum's barrel runs back in its cradle)
+    // cannon: recoil and drift back to center (Triplex and Hexa do not kick: only their barrels spin)
     recoil = Math.max(0, recoil - dt * 6);
     // Triplex's barrels wind up fast while it fires and run down slowly after
     const triFiring = time - lastShotT < 0.3; triSpin += ((triFiring ? 26 : 1) - triSpin) * (1 - Math.exp(-dt * (triFiring ? 7 : 1.4)));
@@ -7122,7 +7120,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         b.position.z = (mine ? 0.34 : 0.02) * smooth5(run); }); // out past the cradle's end
       g.models.gemini.rotation.y = gemKick.side * 0.05 * w; g.models.gemini.rotation.x = 0.06 * w;
     }
-    GUNS.forEach(g => { g.barrel.position.z = 0; g.models.ferrum.getObjectByName("fbar").position.z = recoil * 0.16; g.models.triplex.rotation.z += dt * triSpin; g.models.hexa.children.forEach(o => { if (o.name === "hxspin") o.rotation.z += dt * triSpin * (o.position.x > 0 ? -1 : 1); }); }); // (Hexa's two guns turn opposite ways)
+    GUNS.forEach(g => { g.barrel.position.z = ["gemini", "ferrum", "triplex", "hexa"].includes(progress.weapon) ? 0 : recoil * 0.14; g.models.ferrum.getObjectByName("fbar").position.z = recoil * 0.16; g.models.triplex.rotation.z += dt * triSpin; g.models.hexa.children.forEach(o => { if (o.name === "hxspin") o.rotation.z += dt * triSpin * (o.position.x > 0 ? -1 : 1); }); }); // (Hexa's two guns turn opposite ways)
     flashSprite0Mat.opacity = flashSprite.material.opacity;
     flashSprite.material.opacity = Math.max(0, flashSprite.material.opacity - dt * 9);
     accelRings.forEach((r, i) => { r.scale.setScalar(1 + recoil * 0.35 * (1 - i * 0.25)); r.rotation.z += dt * (1.5 + i); });
@@ -7268,7 +7266,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     ts.add(c); c.rotation.set(0, 0, 0);
     try {
       for (const id of ids) {
-        setWeaponVisual(id); for (const k in g.models) if (/_legs$/.test(k)) g.models[k].visible = false; c.position.set(0, 0, 0); c.scale.setScalar(1); g.yaw.rotation.y = 0; g.pitch.rotation.x = 0.1; ts.updateMatrixWorld(true);
+        setWeaponVisual(id); for (const k in g.models) if (/_legs$/.test(k) || k === "hexa_turn") g.models[k].visible = false; c.position.set(0, 0, 0); c.scale.setScalar(1); g.yaw.rotation.y = 0; g.pitch.rotation.x = 0.1; ts.updateMatrixWorld(true); // (Hexa's stand is its tripod)
         const box = new THREE.Box3(), b = new THREE.Box3();
         c.traverseVisible(o => { if (!o.isMesh || !o.geometry) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); box.union(b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld)); });
         const ctr = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;

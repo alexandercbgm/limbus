@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.294</div>
+      <div class="credit version">v1.0.295</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.294`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.295`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2507,7 +2507,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // Gauss (its id still ballista, as saved): a long barrel out of a dark collar, six coils threaded on it, each a dark drum with a lit band,
     // a little smaller toward the muzzle; as it fires they flare one after another from the body out to the muzzle
     const mB = new THREE.Group(); mB.name = "m_ballista"; barrel.add(mB);
-    const gCol = new THREE.Mesh(lathe([[0.1, 0], [0.13, 0.02], [0.13, 0.07], [0.115, 0.09]], 32).rotateX(-Math.PI / 2), darkMat); gCol.position.z = -0.22; mB.add(gCol);
+    const gCol = new THREE.Mesh(lathe([[0.074, 0], [0.1, 0], [0.13, 0.02], [0.13, 0.07], [0.115, 0.09], [0.074, 0.09]], 32).rotateX(-Math.PI / 2), darkMat); gCol.position.z = -0.22; mB.add(gCol);
     const gBar = new THREE.Mesh(lathe([[0.076, 0], [0.07, 0.87], [0, 0.87]], 28).rotateX(-Math.PI / 2), shellMat); gBar.position.z = -0.28; mB.add(gBar);
     for (let i = 0; i < 6; i++) {
       const z = -0.36 - i * 0.13, r = 0.112 - i * 0.006;
@@ -2701,7 +2701,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const rl = new THREE.Mesh(side([[-0.17, 0.012], [-1.12, 0.012], [-1.24, -0.012], [-1.14, -0.04], [-0.17, -0.04]], 0.022, sd * 0.042), darkMat); mR.add(rl);
       const ln = new THREE.Mesh(new THREE.PlaneGeometry(0.009, 0.92).rotateX(-Math.PI / 2).rotateZ(-sd * Math.PI / 2), whiteLineMat); ln.position.set(sd * (0.042 + 0.0175), -0.014, -0.63); mR.add(ln);
     }
-    for (const z of [-0.5, -0.86]) { const br = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.011, 6, 20, Math.PI).rotateZ(Math.PI), darkMat); br.position.set(0, -0.02, z); mR.add(br); } // brackets round under the channel
     // the vial: lying along the receiver's left flank, sunk a little into it, glass with a dark cap and a lit foot ring, the mercury
     // in it (it drops as a shot takes some and fills again)
     const vG = new THREE.Group(); vG.rotation.x = -Math.PI / 2; vG.position.set(-0.097, 0.012, 0.1); mR.add(vG); // its foot at the back, its cap forward
@@ -2722,7 +2721,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       bd.scale.setScalar(0.11); bd.name = "rbead" + i; mR.add(bd); }
     const pulse = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
     pulse.scale.setScalar(0.24); pulse.name = "rpulse"; mR.add(pulse);
-    const mz = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.007, 6, 24), accentMat); mz.position.set(0, 0.006, RZ1 - 0.005); mR.add(mz);
+    const mz = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.005, 6, 24), accentMat); mz.position.set(0, 0.006, RZ1 - 0.005); mR.add(mz); // (small enough to sit between the rails, clear of them)
     // Ferrum: a mortar with a short telescoping barrel, three sections each narrower than the one behind, the chamfer at
     // each step in copper; the barrel slides back in a black box cradle as it fires. The cradle pivots on a trunnion bar
     // under its middle, in two cheeks on its tripod's turntable, as Gemini's does (the whole cannon set lower and further
@@ -2736,7 +2735,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     fl([[0, 0.34], [0.13, 0.34]], howitzerMat); fl([[0.13, 0.34], [0.17, 0.31]], hoopMat); // the breech's face, its chamfer
     fl([[0.17, 0.31], [0.17, -0.45]], howitzerMat); fl([[0.17, -0.45], [0.14, -0.48]], hoopMat); // the back section, the step
     fl([[0.14, -0.48], [0.14, -0.84]], howitzerMat); fl([[0.14, -0.84], [0.158, -0.855]], hoopMat); // the front section, the muzzle ring's chamfer
-    fl([[0.158, -0.855], [0.158, -0.9]], howitzerMat); fl([...Array(9)].map((_, i) => { const t = i / 8 * Math.PI / 2; return [0.1 + 0.058 * Math.cos(t), -0.9 - 0.028 * Math.sin(t)]; }), hoopMat); // the muzzle ring, its face rounded down to the bore (flat, it caught no light)
+    fl([[0.158, -0.855], [0.158, -0.9]], howitzerMat); fl([...Array(9)].map((_, i) => { const t = i / 8 * Math.PI / 2; return [0.1 + 0.058 * Math.cos(t), -0.9 - 0.02 * Math.sin(t)]; }), hoopMat); // the muzzle ring, its face rounded down to the bore (flat, it caught no light)
     { const bl = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.32, 24, 1, true).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.8, side: THREE.BackSide })); bl.position.z = -0.76; fbar.add(bl);
       const bb = cyl(0.1, 0.01, darkMat, 24); bb.position.z = -0.6; fbar.add(bb); } // the bore: its wall, its bottom
     const ferTurn = cannon.getObjectByName("m_ferrum_turn");
@@ -7344,7 +7343,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const STATUS_EN = { done: "done", open: "open", opened: "open", gift: "tap here", avail: "available", locked: "tap here", closed: "closed", build: "being built" };
   const STATUS = st => T(STATUS_RU[st], STATUS_EN[st]);
   // the cannons' pictures for the picker: each drawn once, off the screen, by the game's own renderer, then kept
-  const armThumbs = {}, THUMB_DIR = { hexa: [0.3, 0.55, -1] }; // the gun alone, without its tripod, filling its picture
+  const armThumbs = {}, THUMB_DIR = { hexa: [0.6, 0.75, -1] }; // the gun alone, without its tripod, filling its picture
   function makeThumbs(ids) {
     ids = ids.filter(id => !armThumbs[id]); if (!ids.length) return;
     const W = 504, H = 336, g = GUNS[0], c = g.c, home = c.parent, yaw0 = g.yaw.rotation.y, pit0 = g.pitch.rotation.x;

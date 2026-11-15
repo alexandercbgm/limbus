@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.295</div>
+      <div class="credit version">v1.0.296</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.295`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.296`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -7369,7 +7369,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         c.traverseVisible(o => { if (!o.isMesh || !o.geometry) return; const pa = o.geometry.attributes.position, st = Math.max(1, pa.count >> 11);
           for (let i = 0; i < pa.count; i += st) { v.fromBufferAttribute(pa, i).applyMatrix4(o.matrixWorld).project(cam); const x = (v.x + 1) / 2 * W, y = (1 - v.y) / 2 * H;
             x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } });
-        let w = (x1 - x0) * 1.08, h = (y1 - y0) * 1.08; if (w / h < W / H) w = h * W / H; else h = w * H / W;
+        const pad = id === "hexa" ? 1.2 : 1.08; let w = (x1 - x0) * pad, h = (y1 - y0) * pad; if (w / h < W / H) w = h * W / H; else h = w * H / W; // (Hexa's tall outline had touched the picture's top)
         cam.setViewOffset(W, H, (x0 + x1 - w) / 2, (y0 + y1 - h) / 2, w, h);
         renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(ts, cam);
         renderer.readRenderTargetPixels(rt, 0, 0, W, H, px);

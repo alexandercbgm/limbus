@@ -360,11 +360,13 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
 .arm-opt img { width: 84px; height: 56px; object-fit: contain; border-radius: 8px; background: radial-gradient(ellipse at 50% 40%, #e3eaee, #c3cfd6); }
 .ao { display: grid; gap: 2px; min-width: 0; } .ao-h { font: 700 13px var(--mono); } .ao-h b { color: #1287b5; margin-left: 4px; }
 .ao-d { font: 500 12px/1.35 var(--body); color: #4c6470; }
+.ao-h i { font: 600 11px var(--body); font-style: normal; color: #6a8290; margin-left: 8px; }
+.arm-opt[aria-disabled="true"] { cursor: default; } .arm-opt[aria-disabled="true"] img, .arm-opt[aria-disabled="true"] .ao-d { opacity: 0.5; } .arm-opt[aria-disabled="true"]:hover { background: none; }
 @media (max-width: 480px) { .m-side { position: relative; } .arms { position: static; } .arm-pop { right: auto; left: 0; } }
 @media (orientation: landscape) and (max-height: 430px) { .arm-pop { max-height: calc(100vh - 70px); } .arm-opt { grid-template-columns: 66px 1fr; padding-block: 3px; } .arm-opt img { width: 66px; height: 44px; } }
 .night .arm-pop { background: linear-gradient(180deg, #13223c, #0a1426); color: #e6f4ff; box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.18), 0 0 0 1px rgba(120, 200, 255, 0.22), 0 16px 40px -8px rgba(0, 0, 0, 0.8); }
 .night .arm-opt:hover, .night .arm-opt:focus-visible { background: rgba(160, 220, 255, 0.07); } .night .arm-opt[aria-selected="true"] { background: rgba(60, 201, 236, 0.1); box-shadow: inset 0 0 0 1.5px #3cc9ec; }
-.night .ao-h b { color: #3cc9ec; } .night .arm-opt img { background: radial-gradient(ellipse at 50% 40%, #33465e, #1a2840); } .night .ao-d { color: #8fb0c8; }
+.night .ao-h b { color: #3cc9ec; } .night .arm-opt img { background: radial-gradient(ellipse at 50% 40%, #33465e, #1a2840); } .night .ao-d { color: #8fb0c8; } .night .ao-h i { color: #7d9bb4; }
 .map-tools .ibtn { border: 0; border-radius: 11px; background: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.8));
   box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.08), 0 2px 6px -2px rgba(16, 36, 46, 0.14); transition: box-shadow 0.15s; }
 .map-tools .ibtn:hover { background: #ffffff; box-shadow: 0 0 0 1px rgba(16, 36, 46, 0.12), 0 4px 12px -4px rgba(16, 36, 46, 0.22); }
@@ -711,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.282</div>
+      <div class="credit version">v1.0.283</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -890,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.282`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.283`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -7323,7 +7325,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const STATUS_EN = { done: "done", open: "open", opened: "open", gift: "tap here", avail: "available", locked: "tap here", closed: "closed", build: "being built" };
   const STATUS = st => T(STATUS_RU[st], STATUS_EN[st]);
   // the cannons' pictures for the picker: each drawn once, off the screen, by the game's own renderer, then kept
-  const armThumbs = {};
+  const armThumbs = {}, THUMB_DIR = { hexa: [0.45, 0.22, -1] }; // the gun alone, without its tripod, filling its picture
   function makeThumbs(ids) {
     ids = ids.filter(id => !armThumbs[id]); if (!ids.length) return;
     const W = 504, H = 336, g = GUNS[0], c = g.c, home = c.parent, yaw0 = g.yaw.rotation.y, pit0 = g.pitch.rotation.x;
@@ -7333,15 +7335,22 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const rt = new THREE.WebGLRenderTarget(W, H), px = new Uint8Array(W * H * 4), cc = renderer.getClearColor(new THREE.Color()), ca = renderer.getClearAlpha();
     const big = document.createElement("canvas"); big.width = W; big.height = H; const bx = big.getContext("2d"), img = bx.createImageData(W, H);
     const out = document.createElement("canvas"); out.width = W / 2; out.height = H / 2; const ox = out.getContext("2d");
-    const inLegs = o => { for (; o && o !== c; o = o.parent) if (/_legs$/.test(o.name)) return true; return false; }; // framed on the gun, the tripod running out at the foot
     ts.add(c); c.rotation.set(0, 0, 0);
     try {
       for (const id of ids) {
-        setWeaponVisual(id); c.position.set(0, 0, 0); c.scale.setScalar(1); g.yaw.rotation.y = 0; g.pitch.rotation.x = 0.1; ts.updateMatrixWorld(true);
+        setWeaponVisual(id); for (const k in g.models) if (/_legs$/.test(k)) g.models[k].visible = false; c.position.set(0, 0, 0); c.scale.setScalar(1); g.yaw.rotation.y = 0; g.pitch.rotation.x = 0.1; ts.updateMatrixWorld(true);
         const box = new THREE.Box3(), b = new THREE.Box3();
-        c.traverseVisible(o => { if (!o.isMesh || !o.geometry || inLegs(o)) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); box.union(b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld)); });
-        const ctr = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2; ctr.y -= r * 0.18;
-        cam.position.copy(ctr).add(new THREE.Vector3(0.9, 0.38, -0.85).normalize().multiplyScalar(r / Math.sin(THREE.MathUtils.degToRad(cam.fov / 2)) * 0.8)); cam.lookAt(ctr);
+        c.traverseVisible(o => { if (!o.isMesh || !o.geometry) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); box.union(b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld)); });
+        const ctr = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;
+        cam.clearViewOffset(); cam.position.copy(ctr).add(new THREE.Vector3(...(THUMB_DIR[id] || [0.9, 0.38, -0.85])).normalize().multiplyScalar(r / Math.sin(THREE.MathUtils.degToRad(cam.fov / 2))));
+        cam.lookAt(ctr); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
+        // the whole gun in sight, then the picture cut to its outline: every vertex drawn, the frame closed round them
+        let x0 = W, x1 = 0, y0 = H, y1 = 0; const v = new THREE.Vector3();
+        c.traverseVisible(o => { if (!o.isMesh || !o.geometry) return; const pa = o.geometry.attributes.position, st = Math.max(1, pa.count >> 11);
+          for (let i = 0; i < pa.count; i += st) { v.fromBufferAttribute(pa, i).applyMatrix4(o.matrixWorld).project(cam); const x = (v.x + 1) / 2 * W, y = (1 - v.y) / 2 * H;
+            x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } });
+        let w = (x1 - x0) * 1.08, h = (y1 - y0) * 1.08; if (w / h < W / H) w = h * W / H; else h = w * H / W;
+        cam.setViewOffset(W, H, (x0 + x1 - w) / 2, (y0 + y1 - h) / 2, w, h);
         renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(ts, cam);
         renderer.readRenderTargetPixels(rt, 0, 0, W, H, px);
         for (let y = 0; y < H; y++) img.data.set(px.subarray((H - 1 - y) * W * 4, (H - y) * W * 4), y * W * 4); // GL's rows run bottom up
@@ -7357,18 +7366,20 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // each with its picture and what it does. A tap outside, Escape or the button again folds it away
   let armsOpen = false;
   function renderArms() {
-    const el = $("arms"), owned = Object.keys(WEAPONS).filter(id => progress.weapons[id]);
-    try { makeThumbs(owned); } catch (e) { /* no pictures: the names still serve */ }
+    const el = $("arms"), all = Object.keys(WEAPONS);
+    try { makeThumbs(all); } catch (e) { /* no pictures: the names still serve */ }
     const pic = id => armThumbs[id] ? `<img alt="" src="${armThumbs[id]}">` : "";
     const cur = WEAPONS[progress.weapon];
     el.innerHTML = `<button type="button" class="arm arm-cur" aria-haspopup="listbox" aria-expanded="${armsOpen}" aria-controls="armPop">${pic(progress.weapon)}<span>${esc(cur.name)}</span> <b>−${cur.cost}</b><svg class="caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
       <div class="arm-pop" id="armPop" role="listbox" aria-label="${esc(T("Пушка на вагонетке", "The cart's cannon"))}"${armsOpen ? "" : " hidden"}></div>`;
     const pop = el.querySelector(".arm-pop"), btn = el.querySelector(".arm-cur");
-    for (const id of owned) {
-      const w = WEAPONS[id], o = document.createElement("button");
+    for (const id of all) { // the cannons not yet owned too, dimmed, with where they are to be had
+      const w = WEAPONS[id], own = !!progress.weapons[id], o = document.createElement("button");
       o.type = "button"; o.className = "arm-opt"; o.setAttribute("role", "option"); o.setAttribute("aria-selected", String(progress.weapon === id));
-      o.innerHTML = `${pic(id)}<span class="ao"><span class="ao-h">${esc(w.name)} <b>−${w.cost}</b></span><span class="ao-d">${esc(w.desc)}</span></span>`;
-      o.addEventListener("click", () => { progress.weapon = id; saveProgress(); armsOpen = false; renderArms(); el.querySelector(".arm-cur").focus(); });
+      if (!own) o.setAttribute("aria-disabled", "true");
+      const where = own ? "" : `<i>${w.price !== null ? `◆ ${w.price} · ${esc(T("в Арсенале", "at the Armoury"))}` : esc(T("не продаётся", "not for sale"))}</i>`;
+      o.innerHTML = `${pic(id)}<span class="ao"><span class="ao-h">${esc(w.name)} <b>−${w.cost}</b>${where}</span><span class="ao-d">${esc(w.desc)}</span></span>`;
+      o.addEventListener("click", () => { if (!own) return; progress.weapon = id; saveProgress(); armsOpen = false; renderArms(); el.querySelector(".arm-cur").focus(); });
       pop.appendChild(o);
     }
     btn.addEventListener("click", () => { armsOpen = !armsOpen; renderArms(); if (armsOpen) (el.querySelector('.arm-opt[aria-selected="true"]') || el.querySelector(".arm-opt")).focus(); else el.querySelector(".arm-cur").focus(); });

@@ -1946,21 +1946,36 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // a mirror wall reflects the corridor to an offset of 2 × (SW + 0.12) on its side (set with the level)
   const mirStrips = [-1, 1].map(k => ({ o: k * 2 * (W + 0.12), k, floor: makeStrip(STRIP_N, surfMat, false), vault: makeStrip(STRIP_N, surfMat, true) }));
   const decor = new Map();
+  // Initium, Vitrum, Lux: whether a bay (the 4 stretches from one frame's middle to the next's) has its walls and roof, drawn once
+  // a bay; one whose frame is gone takes the bay's before it
+  const bayBase = new Map(), bayForce = new Set();
+  const bayState = m => { for (let i = 0; i < 8 && !getDecor(m * 4).arch; i++) m--;
+    let b = bayBase.get(m); if (!b) { const z = curD(), wallP = lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z);
+      b = { wl: hash(m * 3 + 1) < wallP, wr: hash(m * 3 + 2) < wallP, ceil: hash(m * 7 + 5) < ceilP }; bayBase.set(m, b); } return b; };
   function getDecor(k) {
     let d = decor.get(k);
     if (d) return d;
     // Initium and Lux: walls and roof come and go a bay at a time, between frames (every 4th stretch has one, at its middle), so
     // they end at a frame, not in the air beside it; that stretch's first half belongs to the bay before (wl0, wr0, ceil0)
-    const bays = STYLE.arch === "square" && !STYLE.open && !STYLE.closed && !LEVEL.halls;
+    const bays = (STYLE.arch === "square" || STYLE.arch === "hex") && !STYLE.open && !STYLE.closed && !LEVEL.halls;
     const z = curD(), seg = bays ? Math.floor(k / 4) : Math.floor(k / 5), s = k * SL + SL / 2, station = s > SUPER_END - 6;
     const wallP = STYLE.closed || STYLE.skylight ? 2 : lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = STYLE.closed ? 2 : STYLE.skylight ? -1 : lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z); // skylight: walls all along, open above
     d = { wl: !station && hash(seg * 3 + 1) < wallP, wr: !station && hash(seg * 3 + 2) < wallP, ceil: !station && hash(seg * 7 + 5) < ceilP,
       arch: !station && k % 4 === 0, pyr: null, blocks: [] };
-    if (bays && k % 4 === 0) { const st0 = s - SL / 2 > SUPER_END - 6; d.wl0 = !st0 && hash((seg - 1) * 3 + 1) < wallP; d.wr0 = !st0 && hash((seg - 1) * 3 + 2) < wallP; d.ceil0 = !st0 && hash((seg - 1) * 7 + 5) < ceilP; }
     if (STYLE.bridge) d.wl = d.wr = d.ceil = false; // Abyssus: a bare bridge over the void
     const spn = !station && spanAt(s);
     if (spn) { d.wl = d.wr = d.ceil = false; d.span = spn; } // Speculum's bridges
     if (SPANS.some(x => Math.abs(s - x.a) < 5 || Math.abs(s - x.b) < 5)) d.arch = false; // no frame through a bridge's gate
+    if (bays) { // a bay that starts where its frame was taken away (by a gate, a target, glass that turns) carries on as the one before it,
+      // to the next frame there is; a wall or roof cleared away here for something (set false) stays away
+      const m = Math.floor(k / 4), cut = { wl: false, wr: false, ceil: false }, st0 = s - SL / 2 > SUPER_END - 6;
+      for (const key of ["wl", "wr", "ceil"]) {
+        // (set true, as a monolith's roof is, the whole bay gets it, frame to frame)
+        const set = v => { if (!v) cut[key] = true; else bayForce.add(key + Math.floor(k / 4)); };
+        Object.defineProperty(d, key, { get: () => !cut[key] && !station && (bayState(m)[key] || bayForce.has(key + m)), set, enumerable: true, configurable: true });
+        if (k % 4 === 0) Object.defineProperty(d, key + "0", { get: () => !cut[key] && !st0 && (bayState(m - 1)[key] || bayForce.has(key + (m - 1))), set, enumerable: true, configurable: true }); // (the half before the frame)
+      }
+    }
     // Vitrum (bare): no flat walls or roof; where they'd stand, panes of glass close the hexagon's sides and top instead
     if (STYLE.open && !station) { // Labyrinthus: walled passages that now and then open into a wide hall
       const hall = hash(seg * 13 + 7) < 0.55 && s > 70 && s < MAIN_LEN - 40 && !forks.some(f => Math.abs(s - f.s) < 80);
@@ -2156,9 +2171,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const open = forkOpenSide(s), ww = dec.hw || SW, wh = dec.hh || SH, wk = STYLE.mirror && s > MIRROR_END() ? "pgwall" : wallKey; // Speculum: past its mirrors, plain glass
       const halves = (on, on0) => on0 === undefined ? [[s - SL / 2, s + SL / 2, on]] : [[s - SL / 2, s, on0], [s, s + SL / 2, on]]; // (a bay's ends at a frame's middle)
       if (STYLE.bare) { // Vitrum: the hexagon glazed, its two left faces for a left wall, the right two for a right, the top for a roof
-        for (let e = 0; e < 6; e++) if (e === 1 ? dec.ceil : e === 2 || e === 3 ? dec.wl : e === 0 || e === 5 ? dec.wr : false) {
+        for (let e = 0; e < 6; e++) { const key = e === 1 ? "ceil" : e === 2 || e === 3 ? "wl" : e === 0 || e === 5 ? "wr" : null; if (!key) continue;
+          for (const [sa, sb, on] of halves(dec[key], dec[key + "0"])) { if (!on) continue;
           const a0 = e * Math.PI / 3, a1 = a0 + Math.PI / 3, am = a0 + Math.PI / 6;
-          sheetQuad(glassSheet, s - SL / 2, s + SL / 2, Math.cos(a0) * HEXPANE_R, HEXPANE_V + Math.sin(a0) * HEXPANE_R, Math.cos(a1) * HEXPANE_R, HEXPANE_V + Math.sin(a1) * HEXPANE_R, -Math.cos(am), -Math.sin(am));
+          sheetQuad(glassSheet, sa, sb, Math.cos(a0) * HEXPANE_R, HEXPANE_V + Math.sin(a0) * HEXPANE_R, Math.cos(a1) * HEXPANE_R, HEXPANE_V + Math.sin(a1) * HEXPANE_R, -Math.cos(am), -Math.sin(am)); }
         }
       } else {
         if (open !== -1) for (const [a, b, on] of halves(dec.wl, dec.wl0)) if (on) putWall(wk, s, -ww - 0.12, wh, a, b);
@@ -2932,7 +2948,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     beamMat.opacity = 0; needle.t0 = -9; needleHead.visible = false; trails.forEach(t => { t.visible = false; }); gasBirth.fill(-99); gasGeo.attributes.birth.needsUpdate = true;
     ballsArr.forEach(b => { scene.remove(b.mesh); if (b.cs) scene.remove(b.cs.g.mesh); }); ballsArr = [];
     shards.forEach(dropShard); shards = [];
-    decor.clear();
+    decor.clear(); bayBase.clear(); bayForce.clear();
   }
 
   // ---------- procedural spawning: what appears ahead depends on where the cart is between heaven and hell ----------

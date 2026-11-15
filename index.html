@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.287</div>
+      <div class="credit version">v1.0.288</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.287`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.288`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -7180,7 +7180,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     sun.position.copy(camera.position).add(SV.set(3, 9, 2));
     sun.target.position.copy(camera.position).addScaledVector(_T, 12);
 
-    // cannon: recoil and drift back to center (Triplex and Hexa do not kick: only their barrels spin)
+    // cannon: recoil and drift back to center (no gun kicks back now: Triplex and Hexa only spin their barrels, Gauss flares its coils, Lumen its rod; Ferrum's barrel runs back in its cradle)
     recoil = Math.max(0, recoil - dt * 6);
     // Triplex's barrels wind up fast while it fires and run down slowly after
     const triFiring = time - lastShotT < 0.3; triSpin += ((triFiring ? 26 : 1) - triSpin) * (1 - Math.exp(-dt * (triFiring ? 7 : 1.4)));
@@ -7192,7 +7192,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         b.position.z = (mine ? 0.34 : 0.02) * smooth5(run); }); // out past the cradle's end
       g.models.gemini.rotation.y = gemKick.side * 0.05 * w; g.models.gemini.rotation.x = 0.06 * w;
     }
-    GUNS.forEach(g => { g.barrel.position.z = ["gemini", "ferrum", "triplex", "hexa"].includes(progress.weapon) ? 0 : recoil * 0.14; g.models.ferrum.getObjectByName("fbar").position.z = recoil * 0.16; g.models.triplex.rotation.z += dt * triSpin; g.models.hexa.children.forEach(o => { if (o.name === "hxspin") o.rotation.z += dt * triSpin * (o.position.x > 0 ? -1 : 1); }); }); // (Hexa's two guns turn opposite ways)
+    GUNS.forEach(g => { g.barrel.position.z = 0; g.models.ferrum.getObjectByName("fbar").position.z = recoil * 0.16; g.models.triplex.rotation.z += dt * triSpin; g.models.hexa.children.forEach(o => { if (o.name === "hxspin") o.rotation.z += dt * triSpin * (o.position.x > 0 ? -1 : 1); }); }); // (Hexa's two guns turn opposite ways)
     flashSprite0Mat.opacity = flashSprite.material.opacity;
     flashSprite.material.opacity = Math.max(0, flashSprite.material.opacity - dt * 9);
     accelRings.forEach((r, i) => { r.scale.setScalar(1 + recoil * 0.35 * (1 - i * 0.25)); r.rotation.z += dt * (1.5 + i); });

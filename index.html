@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.302</div>
+      <div class="credit version">v1.0.303</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.302`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.303`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2255,6 +2255,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (const [x0, x1] of [[a0, a1], [b0, b1]]) if (x1 - x0 > 0.05) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, (x0 + x1) / 2, u, 0.19).scale(SV.set(1, 1, (x1 - x0) / (SL + 0.04))));
       }
       const open = forkOpenSide(s), ww = dec.hw || SW, wh = dec.hh || SH, wk = STYLE.mirror && s > MIRROR_END() ? "pgwall" : wallKey; // Speculum: past its mirrors, plain glass
+      const rx = STYLE.glassWalls ? 0.12 : 0;
       const halves = (on, on0) => on0 === undefined ? [[s - SL / 2, s + SL / 2, on]] : [[s - SL / 2, s, on0], [s, s + SL / 2, on]]; // (a bay's ends at a frame's middle)
       if (STYLE.bare) { // Vitrum: the hexagon glazed, its two left faces for a left wall, the right two for a right, the top for a roof
         for (let e = 0; e < 6; e++) { const key = e === 1 ? "ceil" : e === 2 || e === 3 ? "wl" : e === 0 || e === 5 ? "wr" : null; if (!key) continue;
@@ -2266,7 +2267,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (open !== -1) for (const [a, b, on] of halves(dec.wl, dec.wl0)) if (on) putWall(wk, s, -ww - 0.12, wh, a, b);
         if (open !== 1) for (const [a, b, on] of halves(dec.wr, dec.wr0)) if (on) putWall(wk, s, ww + 0.12, wh, a, b);
       }
-      if (!STYLE.closed && !STYLE.bare) for (const [a, b, on] of halves(dec.ceil, dec.ceil0)) if (on) sheetQuad(roofSheet, a, b, -ww, wh, ww, wh, 0, -1); // the roof one sheet: no gaps on a bend
+      if (!STYLE.closed && !STYLE.bare) for (const [a, b, on] of halves(dec.ceil, dec.ceil0)) if (on) sheetQuad(roofSheet, a, b, -ww - rx, wh, ww + rx, wh, 0, -1); // the roof one sheet: no gaps on a bend; out to the glass's plane (it stands 0.12 out)
       if (LEVEL.halls && !!dec.hw !== !!getDecor(k - 1).hw && (dec.hw || getDecor(k - 1).hw)) { // where a corridor meets a hall: the hall's end wall, seen from both sides
         const s0 = k * SL;
         I.portal.setMatrixAt(n.portal++, placeM(M, s0, 0, 0));
@@ -2332,7 +2333,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const onDeck = s => !!(spanAt(s) || spanAt(s - 1) || spanAt(s + 1));
     fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length ? s => (spanAt(s) && spanAt(s - 1) && spanAt(s + 1) ? 0 : floorW) : floorW); // over a bridge, its deck instead
     if (SPANS.length) fillDeckTop(Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, s => onDeck(s) ? SW : 0); else deckTop.visible = false;
-    if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H); else vaultStrip.visible = false;
+    if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, 0, STYLE.glassWalls ? W + 0.12 : W); else vaultStrip.visible = false; // (Speculum: the vault out to its glass)
     { // where a walled and roofed corridor (Labyrinthus, Carcer) stops being drawn, far ahead, the sky showed through its open
       // end as a window: a cap closes it there, past the fog's far edge, so it's all fog's colour
       const sEnd = Math.floor(sC) + AHEAD - 4.5, dk = getDecor(Math.floor(sEnd / SL)), hh = dk.hh || SH, ww = dk.hw || SW;
@@ -2348,7 +2349,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const mEnd = Math.min(Math.floor(sC) + AHEAD - 4, MIRROR_END());
       const mw = s => spanAt(s) ? 0 : SW; // none over a bridge: no mirror there
       fillStrip(m.floor, Math.floor(sC) - 10, mEnd, frameAt, 0, m.o, mw);
-      if (STYLE.closed) fillStrip(m.vault, Math.floor(sC) - 10, mEnd, frameAt, H, m.o, mw); else m.vault.visible = false; // a roof in the mirror only where there is one over the track
+      if (STYLE.closed) fillStrip(m.vault, Math.floor(sC) - 10, mEnd, frameAt, H, m.o, s => mw(s) && mw(s) + 0.12); else m.vault.visible = false; // a roof in the mirror only where there is one over the track
       const far = m.o + Math.sign(m.o) * (SW + 0.12);
       for (let k = k0; k <= Math.min(k1, Math.floor(mEnd / SL) - 1); k++) {
         const dec = getDecor(k), s = k * SL + SL / 2;

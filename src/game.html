@@ -268,6 +268,23 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
 .arms .arm:hover { background: rgba(16, 36, 46, 0.05); }
 .arms .arm[aria-pressed="true"] { background: linear-gradient(180deg, #1b3846, #10242e); color: #f4fbfc;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 6px -1px rgba(16, 36, 46, 0.35); }
+.arms { position: relative; }
+.arm-cur img { width: 39px; height: 26px; object-fit: contain; margin: 0 1px 0 -5px; }
+.arm-cur .caret { width: 10px; height: 6px; fill: none; stroke: currentColor; stroke-width: 1.6; margin-left: 2px; opacity: 0.55; transition: transform 0.15s; }
+.arm-cur[aria-expanded="true"] .caret { transform: rotate(180deg); }
+.arm-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: 4; width: min(360px, calc(100vw - 32px)); max-height: calc(100vh - 110px); overflow-y: auto; padding: 6px; border-radius: 14px; display: grid; gap: 2px; box-sizing: border-box;
+  background: linear-gradient(180deg, #ffffff, #f4f9fb); color: #10242e; box-shadow: 0 0 0 1px rgba(16, 36, 46, 0.08), 0 12px 32px -8px rgba(16, 36, 46, 0.28); animation: popin 0.14s ease-out; }
+.arm-opt { display: grid; grid-template-columns: 84px 1fr; gap: 10px; align-items: center; text-align: left; padding: 6px 8px 6px 4px; border: 0; border-radius: 9px; background: none; color: inherit; cursor: pointer; font: inherit; }
+.arm-opt:hover, .arm-opt:focus-visible { background: rgba(16, 36, 46, 0.05); outline: none; }
+.arm-opt[aria-selected="true"] { background: rgba(18, 135, 181, 0.09); box-shadow: inset 0 0 0 1.5px #1287b5; }
+.arm-opt img { width: 84px; height: 56px; object-fit: contain; border-radius: 8px; background: radial-gradient(ellipse at 50% 40%, #e3eaee, #c3cfd6); }
+.ao { display: grid; gap: 2px; min-width: 0; } .ao-h { font: 700 13px var(--mono); } .ao-h b { color: #1287b5; margin-left: 4px; }
+.ao-d { font: 500 12px/1.35 var(--body); color: #4c6470; }
+@media (max-width: 480px) { .m-side { position: relative; } .arms { position: static; } .arm-pop { right: auto; left: 0; } }
+@media (orientation: landscape) and (max-height: 430px) { .arm-pop { max-height: calc(100vh - 70px); } .arm-opt { grid-template-columns: 66px 1fr; padding-block: 3px; } .arm-opt img { width: 66px; height: 44px; } }
+.night .arm-pop { background: linear-gradient(180deg, #13223c, #0a1426); color: #e6f4ff; box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.18), 0 0 0 1px rgba(120, 200, 255, 0.22), 0 16px 40px -8px rgba(0, 0, 0, 0.8); }
+.night .arm-opt:hover, .night .arm-opt:focus-visible { background: rgba(160, 220, 255, 0.07); } .night .arm-opt[aria-selected="true"] { background: rgba(60, 201, 236, 0.1); box-shadow: inset 0 0 0 1.5px #3cc9ec; }
+.night .ao-h b { color: #3cc9ec; } .night .arm-opt img { background: radial-gradient(ellipse at 50% 40%, #33465e, #1a2840); } .night .ao-d { color: #8fb0c8; }
 .map-tools .ibtn { border: 0; border-radius: 11px; background: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.8));
   box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.08), 0 2px 6px -2px rgba(16, 36, 46, 0.14); transition: box-shadow 0.15s; }
 .map-tools .ibtn:hover { background: #ffffff; box-shadow: 0 0 0 1px rgba(16, 36, 46, 0.12), 0 4px 12px -4px rgba(16, 36, 46, 0.22); }
@@ -2378,6 +2395,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const howitzerMat = new THREE.MeshStandardMaterial({ color: 0x2e2824, roughness: 0.5, metalness: 0.85, side: THREE.DoubleSide });
   const FER_UP = 0.245, FER_BACK = 0.065; // Ferrum's gun stands this far above and ahead of its pivot
   const hoopMat = new THREE.MeshStandardMaterial({ color: 0x8a3a1a, roughness: 0.4, metalness: 0.7, emissive: 0x401006, emissiveIntensity: 0.5 });
+  const flashSprite0Mat = new THREE.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false }); // Hexa's two muzzle flashes
   const cannon = new THREE.Group(); cannon.position.set(0, -0.74, -1.28); cannon.scale.setScalar(0.82); cart.add(cannon);
   const lathe = (pts, seg) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg || 40);
   const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 0.7, 20), shellMat); pedestal.position.y = -0.47; pedestal.name = "pedestal"; cannon.add(pedestal);
@@ -2458,6 +2476,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const T = new THREE.Group(); T.name = "m_" + id + "_turn"; yawG.add(T);
       const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.2, 0.08, 36), darkMat); tb.position.y = o.turn; T.add(tb);
       return T; };
+    heavyMount("hexa", { colTop: -0.15, colBot: -0.51, legTop: -0.25, foot: -0.8, spread: 0.5, strut: -0.5, turn: -0.14 });
     heavyMount("ferrum", { colTop: -0.04, colBot: -0.34, legTop: -0.11, foot: -0.8 + FER_UP, spread: 0.46, strut: -0.32, turn: -0.01 });
     // Gemini's gun pivots at the middle of its cradle's foot, and the whole cannon stands lower by as much (GEM_DROP), so its
     // tripod is shorter: on its turntable two cheeks hold a trunnion bar the cradle sits on
@@ -2473,6 +2492,34 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const tip = cyl(0.05, 0.05, accentMat); tip.position.set(Math.cos(a) * 0.072, Math.sin(a) * 0.072, -0.64); mT.add(tip);
     });
     [-0.48, -0.2].forEach(z => { const c = cyl(0.135, 0.06, shellMat, 24); c.position.z = z; mT.add(c); });
+    // Hexa: two Triplex guns on a frame. A rounded torso stands on the turntable, a shoulder yoke across its top, a sensor pod
+    // with two lit eyes on its front; an upper arm hangs from each end of the yoke to an elbow on the pitch axis, and from each
+    // elbow a forearm carries a rotary gun of three barrels, its drum fed by a hose from the torso. Both guns fire at once
+    const mHB = new THREE.Group(); mHB.name = "m_hexa_body"; yawG.add(mHB); // (in the turning frame: it does not pitch)
+    // (all of it low, at or under the pitch axis (0.09 here): taller, from the seat it stood in the middle of the view)
+    { const tor = new THREE.Mesh(lathe([[0, -0.1], [0.13, -0.1], [0.15, -0.04], [0.17, 0.04], [0.19, 0.1], [0.16, 0.15], [0.09, 0.18], [0, 0.185]], 36), shellMat);
+      tor.scale.z = 0.8; tor.position.set(0, 0, 0.12); mHB.add(tor);
+      const seam = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.18, 0.02), darkMat); seam.position.set(0, 0.05, 0.12 - 0.15); mHB.add(seam);
+      const yoke = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(0.8, 0.07, 0.03), { depth: 0.14, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 2 }), darkMat);
+      yoke.position.set(0, 0.09, 0.05); mHB.add(yoke);
+      for (const sd of [-1, 1]) { const ln = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.008, 0.006), accentMat); ln.position.set(sd * 0.24, 0.09, 0.044); mHB.add(ln); }
+      const pod = new THREE.Mesh(new THREE.SphereGeometry(0.06, 24, 16), darkMat); pod.scale.set(1.25, 0.75, 1); pod.position.set(0, 0.13, 0.0); mHB.add(pod);
+      for (const sd of [-1, 1]) { const eye = new THREE.Mesh(new THREE.SphereGeometry(0.014, 12, 8), accentMat); eye.position.set(sd * 0.026, 0.135, -0.055); mHB.add(eye); }
+      for (const sd of [-1, 1]) { const sh = new THREE.Mesh(new THREE.SphereGeometry(0.065, 20, 14), shellMat); sh.position.set(sd * 0.43, 0.09, 0.03); mHB.add(sh); // the shoulders, on the pitch axis
+        const elbow = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.08, 20).rotateZ(Math.PI / 2), darkMat); elbow.position.set(sd * 0.5, 0.09, 0.0); mHB.add(elbow); } }
+    const mH = new THREE.Group(); mH.name = "m_hexa"; barrel.add(mH); // the forearms and guns pitch about the elbows
+    for (const sd of [-1, 1]) {
+      const x = sd * 0.45, gy = -0.1, gz = -0.12;
+      const fore = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, 0.05), darkMat); fore.position.set(x, -0.05, -0.02); mH.add(fore);
+      const drum = new THREE.Mesh(lathe([[0, 0.14], [0.08, 0.14], [0.1, 0.12], [0.1, -0.12], [0.09, -0.14], [0, -0.14]], 28).rotateX(-Math.PI / 2), shellMat); drum.position.set(x, gy, gz); mH.add(drum);
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.101, 0.006, 6, 32), accentMat); band.position.set(x, gy, gz + 0.06); mH.add(band);
+      const spin = new THREE.Group(); spin.name = "hxspin"; spin.position.set(x, gy, gz - 0.14); mH.add(spin);
+      [0, 2.094, 4.189].forEach(a => { const b = cyl(0.03, 0.5, darkMat, 12); b.position.set(Math.cos(a) * 0.05, Math.sin(a) * 0.05, -0.25); spin.add(b);
+        const tip = cyl(0.034, 0.03, accentMat, 12); tip.position.set(Math.cos(a) * 0.05, Math.sin(a) * 0.05, -0.5); spin.add(tip); });
+      [-0.1, -0.38].forEach(z => { const c = cyl(0.09, 0.035, shellMat, 24); c.position.z = z; spin.add(c); });
+      const hose = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(sd * 0.16, 0.05, 0.12), new THREE.Vector3(sd * 0.3, -0.12, 0.1), new THREE.Vector3(x, gy - 0.02, gz + 0.16)]), 20, 0.018, 8, false), darkMat); mH.add(hose);
+      const fl = new THREE.Sprite(flashSprite0Mat); fl.name = "hxflash"; fl.scale.setScalar(0.45); fl.position.set(x, gy, gz - 0.72); mH.add(fl);
+    }
     // Gemini: a twin-barrelled turret (one, firing a ball from each barrel)
     const mG = new THREE.Group(); mG.name = "m_gemini"; mG.position.set(0, GEM_DROP, -GEM_BACK); barrel.add(mG); // (its cradle's foot on the pivot)
     // a twin naval gun behind a three-faced shield, one piece: a broad face and two cheeks swept back from it, all leaning
@@ -2609,7 +2656,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const cannonB = cannon.clone(); cart.add(cannonB);
   cannonB.traverse(o => { if (o.material === ringMat) accelRings.push(o); });
   const GUNS = [cannon, cannonB].map(c => ({ c, yaw: c.getObjectByName("yaw"), pitch: c.getObjectByName("pitch"), barrel: c.getObjectByName("barrel"),
-    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), ballista_legs: c.getObjectByName("m_ballista_legs"), ballista_turn: c.getObjectByName("m_ballista_turn"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), radius_legs: c.getObjectByName("m_radius_legs"), radius_turn: c.getObjectByName("m_radius_turn"), gemini_legs: c.getObjectByName("m_gemini_legs"), gemini_lug: c.getObjectByName("m_gemini_lug"), gemini_turn: c.getObjectByName("m_gemini_turn"), ferrum_legs: c.getObjectByName("m_ferrum_legs"), ferrum_lug: c.getObjectByName("m_ferrum_lug"), ferrum_turn: c.getObjectByName("m_ferrum_turn"), ferrum: c.getObjectByName("m_ferrum") } }));
+    models: { ballista: c.getObjectByName("m_ballista"), triplex: c.getObjectByName("m_triplex"), triplex_body: c.getObjectByName("m_triplex_body"), ballista_legs: c.getObjectByName("m_ballista_legs"), ballista_turn: c.getObjectByName("m_ballista_turn"), triplex_yoke: c.getObjectByName("m_triplex_yoke"), triplex_legs: c.getObjectByName("m_triplex_legs"), gemini: c.getObjectByName("m_gemini"), radius: c.getObjectByName("m_radius"), radius_legs: c.getObjectByName("m_radius_legs"), radius_turn: c.getObjectByName("m_radius_turn"), hexa: c.getObjectByName("m_hexa"), hexa_body: c.getObjectByName("m_hexa_body"), hexa_legs: c.getObjectByName("m_hexa_legs"), hexa_turn: c.getObjectByName("m_hexa_turn"), gemini_legs: c.getObjectByName("m_gemini_legs"), gemini_lug: c.getObjectByName("m_gemini_lug"), gemini_turn: c.getObjectByName("m_gemini_turn"), ferrum_legs: c.getObjectByName("m_ferrum_legs"), ferrum_lug: c.getObjectByName("m_ferrum_lug"), ferrum_turn: c.getObjectByName("m_ferrum_turn"), ferrum: c.getObjectByName("m_ferrum") } }));
   const GEM_MUZZLE = [new THREE.Vector3(-0.16, 0.2, -1.845), new THREE.Vector3(0.16, 0.2, -1.845)]; // where each barrel's ball leaves
   function setWeaponVisual(id) {
     const twin = id === "gemini";
@@ -2617,10 +2664,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     GUNS[0].c.position.x = 0; GUNS[1].c.position.x = 0; GUNS[1].c.visible = false;
     const lift = twin ? [0.2, 0.145] : id === "ferrum" ? [FER_UP, FER_BACK] : [0, 0];
     GUNS.forEach(g => g.c.position.set(0, -0.74 - lift[0] * 0.82, -1.28 + lift[1] * 0.82)); // Gemini's pivot is lower and further back: its gun stays where it was
-    GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin && id !== "triplex" && id !== "radius" && id !== "ferrum" && !(n === "band" && id === "ballista"); g.models.triplex_body.visible = id === "triplex"; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin && id !== "ferrum"; if (o.name === "forkhub") o.visible = id === "radius"; }); }); // Gemini's breeches would show the gimbal's fork through them
+    GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin && id !== "triplex" && id !== "radius" && id !== "ferrum" && id !== "hexa" && !(n === "band" && id === "ballista"); g.models.triplex_body.visible = id === "triplex"; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin && id !== "ferrum" && id !== "hexa"; if (o.name === "forkhub") o.visible = id === "radius"; }); }); // Gemini's breeches would show the gimbal's fork through them
     GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k.startsWith(id + "_"); g.c.children.concat(g.yaw.children).forEach(o => { if (o.name === "dish" || o.name === "pedestal") o.visible = false; }); if (id === "triplex") g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = false; }); }); // Triplex stands on its own black mount // (every cannon now stands on a black mount of its own: no dish, no pedestal)
     const fz = { ballista: [0, 0, -1.22], triplex: [0, 0, -1.1], radius: [0, 0, -1.19], gemini: [0, 0.2, -1.87], ferrum: [0, FER_UP, -FER_BACK - 0.95] }[id] || [0, 0, -0.9];
-    GUNS.forEach(g => g.barrel.children.forEach(o => { if (o.isSprite && o.material === flashSprite.material) o.position.set(...fz); }));
+    GUNS.forEach(g => g.barrel.children.forEach(o => { if (o.isSprite && o.material === flashSprite.material) { o.position.set(...fz); o.visible = id !== "hexa"; } })); // (Hexa has a flash at each gun)
     flashSprite.material.color.setHex(id === "ballista" ? 0xffd9a0 : id === "ferrum" ? 0xffefc8 : 0xffffff); // Gauss's a little warm, Ferrum's yellow // Gauss's flash a little warm // the muzzle flash at this gun's muzzle (Ferrum's showed on the deck)
     const w = WEAPONS[id];
     $("wpn").textContent = `${w.name} · −${w.cost}`;
@@ -5531,6 +5578,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     ballista: { name: "Gauss", ru: "Гаусс", cost: 1, price: 0, desc: "Один шар за выстрел. Попадание в кристалл даёт его обычную цену." },
     gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 90, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
     triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: 60, desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
+    hexa: { name: "Hexa", ru: "Гекса", cost: 6, price: 220, desc: "Два Тройника на каркасе: шесть шаров за выстрел, по три из каждого ствола. Кристалл платит за каждый попавший в него шар." },
     radius: { name: "Lumen", ru: "Луч", cost: 2, price: 140, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии, а армированное прожигает вдвое быстрее. Выстрел стоит 2 шара, луч один, поэтому кристалл платит свою цену один раз." },
     ferrum: { name: "Ferrum", ru: "Железо", cost: 2, price: null, desc: "Мортира из Темницы. За 2 шара — книппель: два железных ядра на цепи, вращаются в полёте. Ядра и цепь пробивают стекло насквозь и летят дальше; твёрдое останавливает снаряд целиком. На складе не продаётся." },
   };
@@ -5864,6 +5912,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     },
     weapons: {
       ballista: { ru: "Gauss", desc: "One ball a shot. A crystal you hit pays its usual value." },
+      hexa: { ru: "Hexa", desc: "Two Triplex guns on a frame: six balls a shot, three from each gun. A crystal pays for every ball that hits it." },
       triplex: { ru: "Triple", desc: "Three balls in a triangle a shot. A crystal pays for every ball that hits it: one to three times its value." },
       gemini: { ru: "Twins", desc: "A second cannon on the cart: a pair of balls a shot. If both hit, the crystal pays double." },
       ferrum: { ru: "Iron", desc: "The Dungeon's mortar. For 2 balls, chain shot: two iron balls on a chain, spinning as they fly. Balls and chain break glass through and fly on; anything solid stops the whole shot. Not sold at the depot." },
@@ -6186,7 +6235,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     gemini: [-0.3, -0.3, -0.3, -0.16, -0.26, -0.16, -0.22, -0.24, -0.24, -0.26, -0.24, -0.24, -0.26],
     triplex: [-0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.2, -0.2, -0.22, -0.22],
     radius: [-0.52, -0.52, -0.52, -0.52, -0.52, -0.52, -0.52, -0.52, -0.26, -0.26, -0.26, -0.3, -0.4],
-    ferrum: [-0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.28, -0.22, -0.2, -0.2, -0.2] };
+    ferrum: [-0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.28, -0.22, -0.2, -0.2, -0.2],
+    hexa: [-0.6, -0.6, -0.6, -0.6, -0.6, -0.6, -0.6, -0.6, -0.6, -0.6, -0.6, -0.6, -0.6] }; // (Hexa's guns hang low and close: they clear everything)
   const minPitch = (id, yaw) => { const t = MIN_PITCH[id] || MIN_PITCH.ballista, k = Math.min(Math.abs(yaw) / 0.1, 12), i = Math.floor(k);
     return Math.max(-0.3, Math.max(t[i], t[Math.min(12, i + 1)]) + 0.04); }; // (never lower than it always was)
   // a shot that would pass through the cart (the cursor on the deck, say) goes along the barrel instead
@@ -6265,10 +6315,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // Triplex: three balls leave the three barrels as a triangle and spiral around a shared flight line,
   // turning the way the barrel cluster spins (counterclockwise as seen from the cart), opening to ~0.6 m
   const TRI_SPIN = 7, TRI_R = 0.51; // the spin and the radius of Triplex's triangle of balls (15% under the 0.6 it was)
-  function launchTriplex(g, from, dir, vol) {
+  function launchTriplex(g, from, dir, vol, rot0, rr0) {
     const e1 = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion), e2 = new THREE.Vector3();
     e1.addScaledVector(dir, -e1.dot(dir)).normalize(); e2.crossVectors(e1, dir).normalize();
-    const rot = g.models.triplex.rotation.z, r0 = 0.072 * 1.25 * g.c.scale.x;
+    const rot = rot0 ?? g.models.triplex.rotation.z, r0 = rr0 ?? 0.072 * 1.25 * g.c.scale.x;
     for (let i = 0; i < 3; i++) {
       const b = launch(from, dir, vol), c = from.clone();
       b.sp = { c, phase: rot + i * TAU / 3, e1, e2, r0 };
@@ -6305,6 +6355,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         dir = target.clone().addScaledVector(side.normalize(), 0.26).sub(from).normalize(); } // each aimed 26 cm out to its own side of the aim
       else dir = target.clone().sub(from).normalize();
       dir = clearOfCart(g, from, dir);
+      if (progress.weapon === "hexa") { // a triangle of balls out of each gun, each aimed at the cursor from its own muzzle
+        g.models.hexa.children.forEach(o => { if (o.name !== "hxspin") return; const m = g.barrel.localToWorld(o.position.clone().add(new THREE.Vector3(0, 0, -0.52)));
+          launchTriplex(g, m, clearOfCart(g, m, target.clone().sub(m).normalize()), vol, o.rotation.z, 0.05 * g.c.scale.x); }); continue; }
       if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
       else if (progress.weapon === "ferrum") launchChains(from, dir);
       else launch(from, dir, vol);
@@ -7053,7 +7106,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         b.position.z = (mine ? 0.34 : 0.02) * smooth5(run); }); // out past the cradle's end
       g.models.gemini.rotation.y = gemKick.side * 0.05 * w; g.models.gemini.rotation.x = 0.06 * w;
     }
-    GUNS.forEach(g => { g.barrel.position.z = progress.weapon === "gemini" || progress.weapon === "ferrum" ? 0 : recoil * 0.14; g.models.ferrum.getObjectByName("fbar").position.z = recoil * 0.16; g.models.triplex.rotation.z += dt * triSpin; });
+    GUNS.forEach(g => { g.barrel.position.z = progress.weapon === "gemini" || progress.weapon === "ferrum" ? 0 : recoil * 0.14; g.models.ferrum.getObjectByName("fbar").position.z = recoil * 0.16; g.models.triplex.rotation.z += dt * triSpin; g.models.hexa.children.forEach(o => { if (o.name === "hxspin") o.rotation.z += dt * triSpin * (o.position.x > 0 ? -1 : 1); }); }); // (Hexa's two guns turn opposite ways)
+    flashSprite0Mat.opacity = flashSprite.material.opacity;
     flashSprite.material.opacity = Math.max(0, flashSprite.material.opacity - dt * 9);
     accelRings.forEach((r, i) => { r.scale.setScalar(1 + recoil * 0.35 * (1 - i * 0.25)); r.rotation.z += dt * (1.5 + i); });
     if (progress.weapon === "radius") { // the rod pulses, beads of light run down it; on a shot a flash runs down it, the rod flares, the mercury drops and fills again
@@ -7182,18 +7236,64 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const STATUS_RU = { done: "пройдена", open: "открыта", opened: "открыт", gift: "нажмите", avail: "доступен", locked: "нажмите", closed: "закрыта", build: "строится" };
   const STATUS_EN = { done: "done", open: "open", opened: "open", gift: "tap here", avail: "available", locked: "tap here", closed: "closed", build: "being built" };
   const STATUS = st => T(STATUS_RU[st], STATUS_EN[st]);
-  function renderArms() {
-    const el = $("arms"); el.innerHTML = "";
-    for (const id in WEAPONS) {
-      if (!progress.weapons[id]) continue;
-      const w = WEAPONS[id], b = document.createElement("button");
-      b.type = "button"; b.className = "arm"; b.setAttribute("aria-pressed", String(progress.weapon === id));
-      b.innerHTML = `${esc(w.name)} <b>−${w.cost}</b>`;
-      b.setAttribute("aria-description", w.desc); // no tooltip on the scheme: the description for a screen reader only
-      b.addEventListener("click", () => { progress.weapon = id; saveProgress(); renderArms(); });
-      el.appendChild(b);
+  // the cannons' pictures for the picker: each drawn once, off the screen, by the game's own renderer, then kept
+  const armThumbs = {};
+  function makeThumbs(ids) {
+    ids = ids.filter(id => !armThumbs[id]); if (!ids.length) return;
+    const W = 504, H = 336, g = GUNS[0], c = g.c, home = c.parent, yaw0 = g.yaw.rotation.y, pit0 = g.pitch.rotation.x;
+    const ts = new THREE.Scene(), cam = new THREE.PerspectiveCamera(28, W / H, 0.05, 60);
+    ts.add(new THREE.HemisphereLight(0xe4ecf0, 0x2c353a, 0.8));
+    const dl = new THREE.DirectionalLight(0xffffff, 1.1); dl.position.set(2, 4, -1); ts.add(dl);
+    const rt = new THREE.WebGLRenderTarget(W, H), px = new Uint8Array(W * H * 4), cc = renderer.getClearColor(new THREE.Color()), ca = renderer.getClearAlpha();
+    const big = document.createElement("canvas"); big.width = W; big.height = H; const bx = big.getContext("2d"), img = bx.createImageData(W, H);
+    const out = document.createElement("canvas"); out.width = W / 2; out.height = H / 2; const ox = out.getContext("2d");
+    const inLegs = o => { for (; o && o !== c; o = o.parent) if (/_legs$/.test(o.name)) return true; return false; }; // framed on the gun, the tripod running out at the foot
+    ts.add(c); c.rotation.set(0, 0, 0);
+    try {
+      for (const id of ids) {
+        setWeaponVisual(id); c.position.set(0, 0, 0); c.scale.setScalar(1); g.yaw.rotation.y = 0; g.pitch.rotation.x = 0.1; ts.updateMatrixWorld(true);
+        const box = new THREE.Box3(), b = new THREE.Box3();
+        c.traverseVisible(o => { if (!o.isMesh || !o.geometry || inLegs(o)) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); box.union(b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld)); });
+        const ctr = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2; ctr.y -= r * 0.18;
+        cam.position.copy(ctr).add(new THREE.Vector3(0.9, 0.38, -0.85).normalize().multiplyScalar(r / Math.sin(THREE.MathUtils.degToRad(cam.fov / 2)) * 0.8)); cam.lookAt(ctr);
+        renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(ts, cam);
+        renderer.readRenderTargetPixels(rt, 0, 0, W, H, px);
+        for (let y = 0; y < H; y++) img.data.set(px.subarray((H - 1 - y) * W * 4, (H - y) * W * 4), y * W * 4); // GL's rows run bottom up
+        bx.putImageData(img, 0, 0); ox.clearRect(0, 0, W / 2, H / 2); ox.drawImage(big, 0, 0, W / 2, H / 2);
+        armThumbs[id] = out.toDataURL("image/png");
+      }
+    } finally {
+      renderer.setRenderTarget(null); renderer.setClearColor(cc, ca); rt.dispose();
+      home.add(c); g.yaw.rotation.y = yaw0; g.pitch.rotation.x = pit0; setWeaponVisual(progress.weapon); window.__redraw = true;
     }
   }
+  // the cannon on the cart: one button with its picture, name and price a shot; it opens the list of the cannons owned,
+  // each with its picture and what it does. A tap outside, Escape or the button again folds it away
+  let armsOpen = false;
+  function renderArms() {
+    const el = $("arms"), owned = Object.keys(WEAPONS).filter(id => progress.weapons[id]);
+    try { makeThumbs(owned); } catch (e) { /* no pictures: the names still serve */ }
+    const pic = id => armThumbs[id] ? `<img alt="" src="${armThumbs[id]}">` : "";
+    const cur = WEAPONS[progress.weapon];
+    el.innerHTML = `<button type="button" class="arm arm-cur" aria-haspopup="listbox" aria-expanded="${armsOpen}" aria-controls="armPop">${pic(progress.weapon)}<span>${esc(cur.name)}</span> <b>−${cur.cost}</b><svg class="caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
+      <div class="arm-pop" id="armPop" role="listbox" aria-label="${esc(T("Пушка на вагонетке", "The cart's cannon"))}"${armsOpen ? "" : " hidden"}></div>`;
+    const pop = el.querySelector(".arm-pop"), btn = el.querySelector(".arm-cur");
+    for (const id of owned) {
+      const w = WEAPONS[id], o = document.createElement("button");
+      o.type = "button"; o.className = "arm-opt"; o.setAttribute("role", "option"); o.setAttribute("aria-selected", String(progress.weapon === id));
+      o.innerHTML = `${pic(id)}<span class="ao"><span class="ao-h">${esc(w.name)} <b>−${w.cost}</b></span><span class="ao-d">${esc(w.desc)}</span></span>`;
+      o.addEventListener("click", () => { progress.weapon = id; saveProgress(); armsOpen = false; renderArms(); el.querySelector(".arm-cur").focus(); });
+      pop.appendChild(o);
+    }
+    btn.addEventListener("click", () => { armsOpen = !armsOpen; renderArms(); if (armsOpen) (el.querySelector('.arm-opt[aria-selected="true"]') || el.querySelector(".arm-opt")).focus(); else el.querySelector(".arm-cur").focus(); });
+    pop.addEventListener("keydown", e => {
+      const opts = [...pop.children], i = opts.indexOf(document.activeElement);
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); opts[(i + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length].focus(); }
+    });
+  }
+  const armsClose = () => { if (!armsOpen) return; armsOpen = false; renderArms(); };
+  document.addEventListener("pointerdown", e => { if (armsOpen && !$("arms").contains(e.target)) armsClose(); }, true);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && armsOpen) { armsClose(); $("arms").querySelector(".arm-cur").focus(); } });
   const measure = document.createElement("canvas").getContext("2d");
   function textW(font, s, spacing) { measure.font = font; return measure.measureText(s).width + spacing * s.length; }
   if (document.fonts) document.fonts.ready.then(() => { if (state === "menu") renderMap(); }); // re-measure the labels once the fonts are in

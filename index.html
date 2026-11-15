@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.290</div>
+      <div class="credit version">v1.0.291</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.290`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.291`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6415,13 +6415,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function launchTriplex(g, from, dir, vol, rot0, rr0) {
     const e1 = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion), e2 = new THREE.Vector3();
     e1.addScaledVector(dir, -e1.dot(dir)).normalize(); e2.crossVectors(e1, dir).normalize();
-    const rot = rot0 ?? g.models.triplex.rotation.z, r0 = rr0 ?? 0.072 * 1.25 * g.c.scale.x;
+    const rot = rot0 ?? g.models.triplex.rotation.z, r0 = rr0 ?? 0.072 * 1.25 * g.c.scale.x, out = [];
     for (let i = 0; i < 3; i++) {
       const b = launch(from, dir, vol), c = from.clone();
       b.sp = { c, phase: rot + i * TAU / 3, e1, e2, r0 };
       b.mesh.position.copy(c).addScaledVector(e1, Math.cos(b.sp.phase) * r0).addScaledVector(e2, Math.sin(b.sp.phase) * r0);
-      b.p0.copy(b.mesh.position);
+      b.p0.copy(b.mesh.position); out.push(b);
     }
+    return out;
   }
   function throwBall(clientX, clientY) {
     const w = WEAPONS[progress.weapon];
@@ -6452,12 +6453,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         dir = target.clone().addScaledVector(side.normalize(), 0.26).sub(from).normalize(); } // each aimed 26 cm out to its own side of the aim
       else dir = target.clone().sub(from).normalize();
       dir = clearOfCart(g, from, dir);
-      if (progress.weapon === "hexa") { // a triangle of balls out of each gun; the two close in on the aim, but stop short of meeting: each
-        // aimed to its own side of it, so that there they are a triangle's side apart (its side √3 × its radius, TRI_R)
-        const ax = new THREE.Vector3(1, 0, 0).transformDirection(g.barrel.matrixWorld);
+      if (progress.weapon === "hexa") { // a triangle of balls out of each gun, the two never touching: each aimed to its own side of the aim,
+        // so far that there the two turning triangles are clear of each other (twice the triangle's radius and a ball's width apart), and
+        // they draw a little apart all the way; while they are still close, by the muzzles, each triangle opens no wider than leaves them clear
+        const ax = new THREE.Vector3(1, 0, 0).transformDirection(g.barrel.matrixWorld), pair = [];
         g.models.hexa.children.forEach(o => { if (o.name !== "hxspin") return; const m = g.barrel.localToWorld(o.position.clone().add(new THREE.Vector3(0, 0, -0.8)));
-          const aim = target.clone().addScaledVector(ax, Math.sign(o.position.x) * Math.sqrt(3) * TRI_R / 2);
-          launchTriplex(g, m, clearOfCart(g, m, aim.sub(m).normalize()), vol, o.rotation.z); }); continue; }
+          const aim = target.clone().addScaledVector(ax, Math.sign(o.position.x) * (TRI_R + R_BALL + 0.04));
+          pair.push(launchTriplex(g, m, clearOfCart(g, m, aim.sub(m).normalize()), vol, o.rotation.z)); });
+        if (pair.length === 2) pair.forEach((t, i) => t.forEach(b => { b.sp.mates = pair[1 - i]; })); continue; }
       if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
       else if (progress.weapon === "ferrum") launchChains(from, dir);
       else launch(from, dir, vol);
@@ -6986,8 +6989,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       b.p0.copy(b.eye || pos); b.eye = null;
       b.v.y -= G * dt;
       if (b.sp) { // spiralling triplex ball: its center flies like any ball, it circles around that center
-        const sp = b.sp, t = b.life + dt, r = sp.r0 + (TRI_R - sp.r0) * (1 - Math.exp(-t * 5)), a = sp.phase + TRI_SPIN * t;
+        const sp = b.sp, t = b.life + dt, a = sp.phase + TRI_SPIN * t; let r = sp.r0 + (TRI_R - sp.r0) * (1 - Math.exp(-t * 5));
         if (b.life > 0) sp.c.addScaledVector(b.v, dt); // (drawn first at the muzzle)
+        const mate = sp.mates && sp.mates.find(m => ballsArr.includes(m)); // Hexa's: no wider than keeps it clear of the other triangle
+        if (mate) r = Math.min(r, Math.max(sp.r0, (sp.c.distanceTo(mate.sp.c) - 2 * R_BALL - 0.04) / 2));
         pos.copy(sp.c).addScaledVector(sp.e1, Math.cos(a) * r).addScaledVector(sp.e2, Math.sin(a) * r);
       } else if (b.cs) { // a part of a chain shot: its centre flies like any ball, the shot spins about it
         const g = b.cs.g, a = g.phase + g.spin * (b.life + dt), k = CHAIN_K0 + (1 - CHAIN_K0) * smooth5(clamp((b.life + dt) / CHAIN_OPEN, 0, 1)); // it leaves the bore small and close, and opens
@@ -7144,6 +7149,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (dead || b.life > 3) { scene.remove(b.mesh); if (b.cs) scene.remove(b.cs.g.mesh); ballsArr.splice(i, 1); }
     }
 
+    const floorHW = fs => STYLE.bridge ? BRIDGE_W : spanAt(fs) ? SW : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // the floor's half width, as drawn
     for (let i = shards.length - 1; i >= 0; i--) {
       const s = shards[i], pos = s.mesh.position;
       // a piece takes some of the ball's push, but never more than a few m/s on along the track: it had flown on down the
@@ -7156,13 +7162,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         s.mesh.rotation.x += s.w.x * dt; s.mesh.rotation.y += s.w.y * dt; s.mesh.rotation.z += s.w.z * dt;
       } else if (s.restQ) s.mesh.quaternion.slerp(s.restQ, Math.min(1, dt * 12)); // a piece at rest settles flat on its face, then lies still
       // the floor under a piece is the track's where the piece now is, as the track is now: the rails ahead bend with the karma,
-      // so a floor taken once where the glass stood left pieces hanging in the air over a dip or sunk under a rise. Over the
-      // void beside a bridge there is none, and a piece born under the deck (a pane rising from below) has none either
+      // so a floor taken once where the glass stood left pieces hanging in the air over a dip or sunk under a rise. Past the
+      // floor's edge (beside a bridge, outside Vitrum's hexagon) there is none, and a piece born under the deck (a pane rising from below) has none either
       if (s.fs !== undefined) {
         frameAt(s.fs); s.fs += tmpV.copy(pos).sub(_P).dot(_T); frameAt(s.fs); tmpV.copy(pos).sub(_P);
         const h = tmpV.dot(_U) - s.fo - 0.03;
         if (!s.seen) { s.seen = true; if (h < -0.15) { s.fs = undefined; s.under = true; } }
-        else if (h < 0 && !((STYLE.bridge || spanAt(s.fs)) && Math.abs(tmpV.dot(_R)) > (STYLE.bridge ? BRIDGE_W : SW) + 0.2)) {
+        else if (h < 0 && Math.abs(tmpV.dot(_R)) <= floorHW(s.fs) + 0.2) { // (past the floor's edge, as it is drawn, there is none: Vitrum's is only the hexagon's bottom)
           pos.addScaledVector(_U, -h);
           if (s.rest) {} else {
             s.v.multiplyScalar(0.5); s.v.addScaledVector(_U, -1.25 * s.v.dot(_U)); s.w.multiplyScalar(0.6);

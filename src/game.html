@@ -6353,10 +6353,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       else dir = target.clone().sub(from).normalize();
       dir = clearOfCart(g, from, dir);
       if (progress.weapon === "hexa") { // a triangle of balls out of each gun; the two close in on the aim, but stop short of meeting: each
-        // aimed to its own side of it, so that there they are twice a triangle's side apart (its side √3 × its radius, TRI_R)
+        // aimed to its own side of it, so that there they are a triangle's side apart (its side √3 × its radius, TRI_R)
         const ax = new THREE.Vector3(1, 0, 0).transformDirection(g.barrel.matrixWorld);
         g.models.hexa.children.forEach(o => { if (o.name !== "hxspin") return; const m = g.barrel.localToWorld(o.position.clone().add(new THREE.Vector3(0, 0, -0.8)));
-          const aim = target.clone().addScaledVector(ax, Math.sign(o.position.x) * Math.sqrt(3) * TRI_R);
+          const aim = target.clone().addScaledVector(ax, Math.sign(o.position.x) * Math.sqrt(3) * TRI_R / 2);
           launchTriplex(g, m, clearOfCart(g, m, aim.sub(m).normalize()), vol, o.rotation.z); }); continue; }
       if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
       else if (progress.weapon === "ferrum") launchChains(from, dir);

@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.291</div>
+      <div class="credit version">v1.0.292</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.291`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.292`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5676,7 +5676,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 90, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
     triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: 60, desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
     hexa: { name: "Hexa", ru: "Гекса", cost: 6, price: 220, desc: "Два Тройника на каркасе: шесть шаров за выстрел, по три из каждого ствола. Кристалл платит за каждый попавший в него шар." },
-    radius: { name: "Lumen", ru: "Луч", cost: 2, price: 140, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии, а армированное прожигает вдвое быстрее. Выстрел стоит 2 шара, луч один, поэтому кристалл платит свою цену один раз." },
+    radius: { name: "Lumen", ru: "Луч", cost: 1, price: 140, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии, а армированное прожигает вдвое быстрее. Выстрел стоит 1 шар, луч один, поэтому кристалл платит свою цену один раз." },
     ferrum: { name: "Ferrum", ru: "Железо", cost: 2, price: null, desc: "Мортира из Темницы. За 2 шара — книппель: два железных ядра на цепи, вращаются в полёте. Ядра и цепь пробивают стекло насквозь и летят дальше; твёрдое останавливает снаряд целиком. На складе не продаётся." },
   };
   // upgrades sold at the depot, three levels each: more balls at the start, a second wind once a ride, more balls a crystal
@@ -6013,7 +6013,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       triplex: { ru: "Triple", desc: "Three balls in a triangle a shot. A crystal pays for every ball that hits it: one to three times its value." },
       gemini: { ru: "Twins", desc: "A second cannon on the cart: a pair of balls a shot. If both hit, the crystal pays double." },
       ferrum: { ru: "Iron", desc: "The Dungeon's mortar. For 2 balls, chain shot: two iron balls on a chain, spinning as they fly. Balls and chain break glass through and fly on; anything solid stops the whole shot. Not sold at the depot." },
-      radius: { ru: "Beam", desc: "A laser hits at once, with no lead, and pierces every pane along its line, burning through armoured glass twice as fast. A shot costs 2 balls; there is one beam, so a crystal pays its value once." },
+      radius: { ru: "Beam", desc: "A laser hits at once, with no lead, and pierces every pane along its line, burning through armoured glass twice as fast. A shot costs 1 ball; there is one beam, so a crystal pays its value once." },
     },
     finales: {
       iudicium: { ru: "Judgement", note: "Hitting seals in a row multiplies the reward up to ×6. A miss resets the multiplier and costs 2 balls. Glass hits twice as hard." },
@@ -6428,7 +6428,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const w = WEAPONS[progress.weapon];
     if (state !== "play" || throwCD > 0 || balls <= 0) return;
     throwCD = progress.weapon === "radius" ? 0.22 : progress.weapon === "gemini" ? 0.13 : 0.09;
-    balls = Math.max(0, balls - w.cost); stats.thrown += progress.weapon === "triplex" ? 3 : progress.weapon === "gemini" ? 2 : 1; updateCount(); // accuracy counts balls (hits are counted a ball at a time)
+    balls = Math.max(0, balls - w.cost); stats.thrown += progress.weapon === "hexa" ? 6 : progress.weapon === "triplex" ? 3 : progress.weapon === "gemini" ? 2 : 1; updateCount(); // accuracy counts balls (hits are counted a ball at a time)
     const rect = canvas.getBoundingClientRect();
     ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1, 0.5);
     camera.updateMatrixWorld();
@@ -6439,7 +6439,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     target.copy(camera.position).addScaledVector(rayDir, near ? Math.min(32, near.d) : 32);
     aimFar.copy(camera.position).addScaledVector(rayDir, 32);
     camInv.copy(camera.matrixWorld).invert();
-    const guns = progress.weapon === "gemini" ? GUNS : [GUNS[0]], vol = {};
+    const guns = progress.weapon === "gemini" ? GUNS : [GUNS[0]], vol = {}, gemPair = [];
     for (const g of guns) {
       const from = aimGun(g);
       if (progress.weapon === "radius") { // the beam leaves the muzzle and goes to what the cursor is on
@@ -6463,8 +6463,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (pair.length === 2) pair.forEach((t, i) => t.forEach(b => { b.sp.mates = pair[1 - i]; })); continue; }
       if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
       else if (progress.weapon === "ferrum") launchChains(from, dir);
-      else launch(from, dir, vol);
+      else { const b = launch(from, dir, vol); if (progress.weapon === "gemini") gemPair.push(b); }
     }
+    if (gemPair.length === 2) { gemPair[0].mate = gemPair[1]; gemPair[1].mate = gemPair[0]; } // Gemini's two: neither grows so big as to touch the other
     recoil = 1; flashSprite.material.opacity = 1; lastShotT = time;
     if (progress.weapon === "gemini") { gemKick.t = 1; gemKick.side = -gemKick.side; } // the turret jerks round and its barrels jump, the other barrel each time
     if (progress.weapon === "radius") Sound.laser(); else Sound.fire();
@@ -7003,7 +7004,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (g.lag && (b.life + dt) * 44 > g.lag) { b.mesh.visible = !b.cs.link; g.mesh.visible = true; } // out of the bore
         if (b.cs.off === -1) { g.mesh.position.copy(b.cc); if (dr) g.mesh.position.addScaledVector(g.drop, dr); g.mesh.scale.setScalar(k); CSM.makeBasis(CSD, CSY.crossVectors(g.f, CSD), g.f); g.mesh.quaternion.setFromRotationMatrix(CSM); }
       } else if (b.life > 0) pos.addScaledVector(b.v, dt); // (its first frame drawn at the muzzle, not a stride past it)
-      if (!b.cs && !b.iron) { const k = BALL_K0 + (1 - BALL_K0) * smooth5(clamp((b.life + dt) / 0.12, 0, 1)); b.mesh.scale.setScalar(k); } // out of the bore at its size, then full
+      if (!b.cs && !b.iron) { let k = BALL_K0 + (1 - BALL_K0) * smooth5(clamp((b.life + dt) / 0.12, 0, 1)); if (b.mate && ballsArr.includes(b.mate)) k = Math.min(k, Math.max(BALL_K0, (b.mesh.position.distanceTo(b.mate.mesh.position) - 0.06) / (2 * R_BALL))); b.mesh.scale.setScalar(k); } // out of the bore at its size, then full
       let dead = false;
       const hb = b.cs ? b.cs.g : b, mark = () => { if (!hb.hit) { hb.hit = true; stats.hits++; } }; // (a chain shot counts one hit)
       const pathDist = c => segDist(c, b.p0, pos); // closest approach along this frame's path, so fast balls cannot skip a target
@@ -7358,7 +7359,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     ts.add(c); c.rotation.set(0, 0, 0);
     try {
       for (const id of ids) {
-        setWeaponVisual(id); for (const k in g.models) if (/_legs$/.test(k) || k === "hexa_turn") g.models[k].visible = false; c.position.set(0, 0, 0); c.scale.setScalar(1); g.yaw.rotation.y = 0; g.pitch.rotation.x = 0.1; ts.updateMatrixWorld(true); // (Hexa's stand is its tripod)
+        setWeaponVisual(id); for (const k in g.models) if (/_legs$/.test(k)) g.models[k].visible = false; c.position.set(0, 0, 0); c.scale.setScalar(1); g.yaw.rotation.y = 0; g.pitch.rotation.x = 0.1; ts.updateMatrixWorld(true); // (Hexa's stand, its frame of tubes, is drawn: the ring on the deck is not)
         const box = new THREE.Box3(), b = new THREE.Box3();
         c.traverseVisible(o => { if (!o.isMesh || !o.geometry) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); box.union(b.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld)); });
         const ctr = box.getCenter(new THREE.Vector3()), r = box.getSize(new THREE.Vector3()).length() / 2;

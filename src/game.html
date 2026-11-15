@@ -849,7 +849,38 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return I / (1 - e);
   }
   function spanAt(s) { for (const sp of SPANS) if (s > sp.a && s < sp.b) return sp; return null; }
-  function twistAt(s) { for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) return sp.dir * sp.turns * TAU * spanPhase((s - sp.tw0) / (sp.tw1 - sp.tw0)); return 0; }
+  // Lux: an open bridge over the void as Nox's, broken by short glazed halls (an iris at the way in), and on it three great
+  // manoeuvres, in a new order each run: the drill (the track turning over four times round a line high over the rails), the
+  // corkscrew (twice, wider) and the spiral (two whole turns round, climbing or diving). A gantry of targets before each sets
+  // which way it goes; shot, the track ahead swings over to the other way before the cart's eyes
+  let LUXH = [], LTW = [];
+  const luxHallAt = s => { for (const h of LUXH) if (s > h.a && s < h.b) return h; return null; };
+  const openAt = s => STYLE.bridge && !luxHallAt(s); // over the void (a bridge), not in one of Lux's halls
+  const luxWild = s => LTW.some(m => s > m.tw0 - 14 && s < m.tw1 + 14); // on a manoeuvre, or just about to be
+  function planLux() {
+    LUXH = []; LTW = [];
+    if (LEVEL.id !== "lux") return;
+    const kinds = ["drill", "screw", "spiral"].sort(() => Math.random() - 0.5), L = MAIN_LEN;
+    LUXH.push({ a: Math.round(L * 0.08 + rand(-20, 20)), b: 0 }); LUXH[0].b = LUXH[0].a + Math.round(rand(70, 95));
+    kinds.forEach((kind, i) => {
+      const len = kind === "drill" ? 230 : kind === "screw" ? 190 : 280, c = L * (0.26 + i * 0.27) + rand(-50, 50), tw0 = Math.round(c - len / 2);
+      const m = { kind, tw0, tw1: tw0 + len, len, sw: tw0 - 60, dir: Math.random() < 0.5 ? -1 : 1, pdir: Math.random() < 0.5 ? -1 : 1 };
+      if (kind === "drill") Object.assign(m, { turns: 4, r: 8.5 }); else if (kind === "screw") Object.assign(m, { turns: 2, r: 11 }); else Object.assign(m, { turns: 2, pitch: 0.13 });
+      m.dirNow = m.dir; m.pdirNow = m.pdir; LTW.push(m);
+      const a = Math.round(m.tw1 + rand(90, 150)), b = a + Math.round(rand(70, 100)); // and a hall after it
+      if (b < L - 40) LUXH.push({ a, b });
+    });
+    // its own bends, none on a manoeuvre, at its gantry or in a hall's mouth
+    TURNS = []; let t = 70, sg = Math.random() < 0.5 ? 1 : -1;
+    while (t < L - 60) { const len = rand(45, 75), deg = sg * rand(35, 75);
+      if (!LTW.some(m => t + len > m.sw - 30 && t < m.tw1 + 25) && !LUXH.some(h => t + len > h.a - 25 && t < h.a + 10)) { TURNS.push({ s0: t, len, a: deg * Math.PI / 180 }); sg = -sg; }
+      t += len + rand(40, 90); }
+  }
+  // the spiral: how far round it has turned at s, and how steep it is there
+  const spiralYaw = s => { let y = 0; for (const m of LTW) if (m.kind === "spiral" && s > m.tw0) y += m.dirNow * m.turns * TAU * spanPhase(Math.min(1, (s - m.tw0) / m.len)); return y; };
+  const spiralPitch = s => { let p = 0; for (const m of LTW) if (m.kind === "spiral" && s > m.tw0 && s < m.tw1) { const x = (s - m.tw0) / m.len; p += m.pdirNow * m.pitch * smooth5(x / 0.15) * smooth5((1 - x) / 0.15); } return p; };
+  function twistAt(s) { for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) return sp.dir * sp.turns * TAU * spanPhase((s - sp.tw0) / (sp.tw1 - sp.tw0));
+    for (const m of LTW) if (m.r && s > m.tw0 && s < m.tw1) return m.dirNow * m.turns * TAU * spanPhase((s - m.tw0) / m.len); return 0; }
   // the line's own heading (the track as it would be, untwisted): what the cart's place along it is carried by
   const _T0 = new THREE.Vector3();
   function tangent0(s) { const p = pitchAt(s), y = yawAt(s); return _T0.set(-Math.sin(y) * Math.cos(p), Math.sin(p), -Math.cos(y) * Math.cos(p)); }
@@ -857,9 +888,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function twistStretch(s) { // (the turn taken on past the stretch's ends: twistAt drops back to 0 there, a whole number of turns,
     // and across that drop the rails had seemed a hundred times longer, the cart all but stopped at the end of the turns)
     for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) { const L = sp.tw1 - sp.tw0, d = sp.turns * TAU * (spanPhase((s + 0.5 - sp.tw0) / L) - spanPhase((s - 0.5 - sp.tw0) / L)); return Math.hypot(1, sp.r * d); }
+    for (const m of LTW) if (m.r && s > m.tw0 && s < m.tw1) { const d = m.dirNow * m.turns * TAU * (spanPhase((s + 0.5 - m.tw0) / m.len) - spanPhase((s - 0.5 - m.tw0) / m.len)); return Math.hypot(1, m.r * d); }
     return 1;
   }
-  function twistR(s) { for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) return sp.r; return 0; }
+  function twistR(s) { for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) return sp.r; for (const m of LTW) if (m.r && s > m.tw0 && s < m.tw1) return m.r; return 0; }
   const forkYaw = (f, s) => FORK_ANG * smooth5((s - f.s) / FORK_LEN);
   const forkRate = (f, s) => { const x = (s - f.s) / FORK_LEN; return x > 0 && x < 1 ? FORK_ANG * 30 * x * x * (1 - x) * (1 - x) / FORK_LEN : 0; };
   function yawAt(s) {
@@ -870,12 +902,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (x <= 0) continue;
       y += x >= 1 ? t.a : t.a * x * x * x * (x * (x * 6 - 15) + 10);
     }
-    return y;
+    return LTW.length ? y + spiralYaw(s) : y;
   }
   function yawRateAt(s) {
     let r = 0;
     for (const f of forks) r += f.sign * forkRate(f, s);
     for (const t of TURNS) { const x = (s - t.s0) / t.len; if (x > 0 && x < 1) r += t.a * 30 * x * x * (1 - x) * (1 - x) / t.len; }
+    if (LTW.length) r += spiralYaw(s + 0.5) - spiralYaw(s - 0.5);
     return r;
   }
 
@@ -1175,7 +1208,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     uniforms: skyUni, side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: "varying vec3 vP; void main(){ vP = (modelMatrix*vec4(position,1.0)).xyz - cameraPosition; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
     // each level's sky has its own effect (mode): 1 deep space (stars and the Milky Way), 2 silver silk: slow
-    // sheets of quicksilver light, 3 lit clouds under a sun, 4 radiance: a sun of pure light with turning rays,
+    // sheets of quicksilver light, 3 lit clouds under a sun, 4 Lux: a supernova in deep space,
     // 5 warm clouds with drifting gold dust, 8 the clear sky just after sunset, the sun half sunk behind the cart.
     // Whatever the mode, as the palette darkens the stars come out
     // and a faint galaxy in the level's own colour shows through
@@ -1267,7 +1300,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         vec3 sd = normalize(vec3(0.35, 0.32, -0.88));
         float sdot = max(dot(n, sd), 0.0);
         if (m == 1.0) { if (stars > 0.001) c += galaxy(n, band, stars); }
-        else if (m >= 2.0) {
+        else if (m >= 2.0 && m != 4.0) { // (Lux's sky its own: no glow along the horizon)
           c += galaxy(n, mix(fxc, vec3(0.5, 0.6, 1.0), 0.5) * 0.6, night * 0.9 * amt);
           c += hor * 0.35 * exp(-abs(h) * 9.0) * amt; // a soft glow along the horizon
         }
@@ -1337,19 +1370,24 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           c = mix(c, face, amt * 0.85);
           c = mix(c, mix(fxc, vec3(1.0), 0.6) * (0.55 + 0.6 * (1.0 - lum * 0.5)), edge * amt);
           c += vec3(1.0, 0.9, 0.92) * starAt(n, 110.0, 0.978) * amt * (0.6 + 0.4 * sin(t * 4.0 + shade * 20.0)); // glints
-        } else if (m == 4.0) { // radiance: a sun of pure light, its rays slowly turning
-          vec3 q = normalize(n - sd * dot(n, sd) + 1e-5);
+        } else if (m == 4.0) { // Lux: deep space all round, no white horizon, and in it a supernova: a white-hot core with a long
+          // blue-white flare across it; round it a shell of gas torn into filaments, pink and violet within, fire at its rim; fine rays out through it
+          float hh = abs(h);
+          c = mix(c, mix(vec3(0.10, 0.12, 0.30), vec3(0.025, 0.03, 0.09), smoothstep(0.0, 0.7, hh)), amt);
+          c += galaxy(n, vec3(0.45, 0.55, 0.95), amt * 1.1);
           vec3 ax = normalize(cross(sd, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sd);
-          float ang = atan(dot(q, ay), dot(q, ax));
-          float rays = pow(0.5 + 0.5 * sin(ang * 12.0 + t * 0.2), 6.0) * 0.85; // all its rays one width (a second, broader set laid over them made some thick, some thin)
-          float fall = exp(-acos(clamp(dot(n, sd), -1.0, 1.0)) * 1.6);
-          // in the Light the vault above is a deep blue night of stars and a pale Milky Way, white only down by the horizon and round the sun
-          // and below the deck the same night goes on, so the white floor's edge stands clear of it instead of melting into a haze
-          float hh = h > 0.0 ? h : -h * 2.5;
-          float dome = smoothstep(0.0, mix(0.35, 0.09, smoothstep(0.6, 0.95, lum)), hh) * smoothstep(0.3, 0.75, lum) * amt * (1.0 - smoothstep(0.5, 0.85, fall));
-          c = mix(c, mix(vec3(0.07, 0.09, 0.24), vec3(0.2, 0.26, 0.55), smoothstep(0.35, 0.0, hh)), dome * 0.94); // (nearer the light, the white band at the horizon narrower: wide, it ran into the sun)
-          c += galaxy(n, vec3(0.45, 0.55, 0.95), dome * 1.1);
-          c += ((fxc * rays * fall * 0.9 + vec3(1.0) * pow(sdot, 10.0) * 0.5) * amt * (1.0 - 0.75 * dome) + vec3(1.0) * pow(sdot, 200.0) * 2.5 * amt) * sunK; // the rays fade over the stars
+          vec2 q = vec2(dot(n, ax), dot(n, ay)); float r = length(q), a = atan(q.y, q.x), front = step(0.0, dot(n, sd));
+          const float R = 0.3; // the shell's angular radius, some 17 degrees
+          float f1 = fbm(n * 9.0 + vec3(t * 0.02)), f2 = fbm(n * 23.0 - vec3(t * 0.015)), f3 = fbm(n * 5.0 + vec3(0.0, t * 0.01, 0.0));
+          float rr = r / (0.84 + 0.32 * f1); // its edge torn
+          float shell = exp(-pow((rr - R) / 0.06, 2.0)) * (0.25 + 1.5 * smoothstep(0.42, 0.78, f2)) + exp(-pow((rr - R * 0.9) / 0.13, 2.0)) * 0.35 * smoothstep(0.3, 0.7, f1);
+          float inner = smoothstep(R * 1.02, R * 0.1, rr) * smoothstep(0.32, 0.78, f3) * (0.45 + 0.9 * f2);
+          float rays = pow(0.5 + 0.5 * sin(a * 48.0 + f1 * 8.0), 10.0) * exp(-r * 6.0);
+          float core = exp(-r * 70.0) * 3.0 + exp(-r * 16.0) * 0.9 + exp(-r * 5.0) * 0.18;
+          float flare = exp(-abs(q.y) * 260.0) * exp(-abs(q.x) * 1.6) * 1.5 + exp(-abs(q.y) * 45.0) * exp(-abs(q.x) * 3.5) * 0.4;
+          vec3 fire = mix(vec3(1.0, 0.32, 0.08), vec3(1.0, 0.72, 0.3), f2), gas = mix(vec3(0.9, 0.5, 0.72), vec3(0.55, 0.52, 1.0), f1);
+          vec3 nova = fire * shell + gas * inner * 0.95 + vec3(0.75, 0.82, 1.0) * rays * 0.4 + vec3(0.82, 0.9, 1.0) * (core + flare);
+          c += nova * front * amt * sunK;
         }
         gl_FragColor = vec4(c, 1.0); }`,
   }));
@@ -1709,13 +1747,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const PP = new Float64Array(NS * 3), PR = new Float64Array(NS * 3), PU = new Float64Array(NS * 3), PT = new Float64Array(NS * 3);
   let sBase = 0;
   const cartPos = new THREE.Vector3();
-  function pitchAt(s) { return s <= sC ? pitchC : pitchTs + (pitchC - pitchTs) * Math.exp(-(s - sC) / LAMBDA); }
+  function pitchAt(s) { return (s <= sC ? pitchC : pitchTs + (pitchC - pitchTs) * Math.exp(-(s - sC) / LAMBDA)) + (LTW.length ? spiralPitch(s) : 0); }
   // banking (roll) follows the level's own turns only: at a fork both branches stay level, so the other
   // branch's floor never rises over the main track's rails
   // and around a fork the track is not banked at all: a tilted main floor would rise over the other branch's
   // rails beside it (or sink below them), since that branch lies metres off to the side
   function bankRateAt(s) {
     let r = 0; for (const t of TURNS) { const x = (s - t.s0) / t.len; if (x > 0 && x < 1) r += t.a * 30 * x * x * (1 - x) * (1 - x) / t.len; }
+    if (LTW.length) r += spiralYaw(s + 0.5) - spiralYaw(s - 0.5); // (a spiral banks as a bend does)
     for (const f of forks) { const d = s - f.s; if (d > -30 && d < GHOST_N + 10) r *= d < -15 ? smooth5((-15 - d) / 15) : d > GHOST_N - 5 ? smooth5((d - GHOST_N + 5) / 15) : 0; }
     return r;
   }
@@ -1748,14 +1787,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (let c = 0; c < 3; c++) PP[b + c] = PP[a + c] - (PT[a + c] + PT[b + c]) * 0.5 * DS;
     }
     // where the track turns over, the rails swing round a line r over where they'd be: P += r (U0 - U), U0 the up untwisted
-    if (SPANS.length) for (let j = 0; j < NS; j++) {
+    if (SPANS.length || LTW.length) for (let j = 0; j < NS; j++) {
       const s = sBase + j * DS, tw = twistAt(s), k = j * 3; if (!tw) continue;
       const r = twistR(s), c = Math.cos(tw), sn = Math.sin(tw);
       for (let q = 0; q < 3; q++) PP[k + q] += r * (PU[k + q] * c + PR[k + q] * sn - PU[k + q]);
     }
     // and there the rails' heading is where they now run (they had pointed along the line, the cart going on at a slant):
     // T from the points either side, U square to it, R across
-    if (SPANS.length) for (let j = 0; j < NS; j++) {
+    if (SPANS.length || LTW.length) for (let j = 0; j < NS; j++) {
       const s = sBase + j * DS; if (!twistAt(s) && !twistAt(s - DS) && !twistAt(s + DS)) continue;
       const a = Math.max(0, j - 1) * 3, b = Math.min(NS - 1, j + 1) * 3, k = j * 3;
       _D.set(PP[b] - PP[a], PP[b + 1] - PP[a + 1], PP[b + 2] - PP[a + 2]).normalize();
@@ -1957,12 +1996,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (d) return d;
     // Initium and Lux: walls and roof come and go a bay at a time, between frames (every 4th stretch has one, at its middle), so
     // they end at a frame, not in the air beside it; that stretch's first half belongs to the bay before (wl0, wr0, ceil0)
-    const bays = (STYLE.arch === "square" || STYLE.arch === "hex") && !STYLE.open && !STYLE.closed && !LEVEL.halls;
+    const bays = (STYLE.arch === "square" || STYLE.arch === "hex") && !STYLE.open && !STYLE.closed && !LEVEL.halls && !STYLE.bridge;
     const z = curD(), seg = bays ? Math.floor(k / 4) : Math.floor(k / 5), s = k * SL + SL / 2, station = s > SUPER_END - 6;
     const wallP = STYLE.closed || STYLE.skylight ? 2 : lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = STYLE.closed ? 2 : STYLE.skylight ? -1 : lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z); // skylight: walls all along, open above
     d = { wl: !station && hash(seg * 3 + 1) < wallP, wr: !station && hash(seg * 3 + 2) < wallP, ceil: !station && hash(seg * 7 + 5) < ceilP,
       arch: !station && k % 4 === 0, pyr: null, blocks: [] };
-    if (STYLE.bridge) d.wl = d.wr = d.ceil = false; // Abyssus: a bare bridge over the void
+    if (STYLE.bridge) { const hl = !station && !!luxHallAt(s); d.wl = d.wr = d.ceil = hl; if (hl) d.hall = true; } // Abyssus: a bare bridge over the void (Lux's halls glazed and roofed)
     const spn = !station && spanAt(s);
     if (spn) { d.wl = d.wr = d.ceil = false; d.span = spn; } // Speculum's bridges
     if (SPANS.some(x => Math.abs(s - x.a) < 5 || Math.abs(s - x.b) < 5)) d.arch = false; // no frame through a bridge's gate
@@ -2160,7 +2199,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // under an up-down gate the track is cut by a slot that takes the lower leaf: no sleeper there, the rails broken
       const slot = gates.find(g => g.kind === "v" && Math.abs(g.s - s) < SL / 2 + 0.3);
       for (const ss of [s - 0.5, s + 0.5]) if (!slot || Math.abs(ss - slot.s) > SLOT_W / 2 + 0.18) put(dec.span ? "ssleeper" : "sleeper", ss, 0, 0.06);
-      if (!slot && SPANS.length && (twistAt(s - SL) || twistAt(s + SL))) { // where the track turns over, in short pieces, so they follow it round
+      if (!slot && (SPANS.length || LTW.length) && (twistAt(s - SL) || twistAt(s + SL))) { // where the track turns over, in short pieces, so they follow it round
         for (let q = 0; q < 4; q++) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, s - SL / 2 + (q + 0.5) * SL / 4, u, 0.19).scale(SV.set(1, 1, (SL / 4 + 0.04) / (SL + 0.04))));
       }
       else if (!slot) { put("rail", s, -0.72, 0.19); put("rail", s, 0.72, 0.19); }
@@ -2197,16 +2236,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           put("safety", s, sd * (W + 0.35), 0.02);
         }
       }
-      if (dec.arch && !open && !dec.hw && !dec.span) {
+      if (dec.arch && !open && !dec.hw && !dec.span && (!STYLE.bridge || dec.hall)) {
         if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
         else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY).scale(SV.set(RING_SX, RING_SY, RING_SX))); // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
         else if (STYLE.arch === "tri") { const tr = triAt(s); for (let e = 0; e < 3; e++) { const A = tr[e], B = tr[(e + 1) % 3], L = Math.hypot(B[0] - A[0], B[1] - A[1]);
           I.tribar.setMatrixAt(n.tribar++, placeM(M, s, (A[0] + B[0]) / 2, (A[1] + B[1]) / 2).multiply(M2.makeRotationZ(Math.atan2(B[1] - A[1], B[0] - A[0]))).scale(SV.set(L + 0.2, 1, 1))); } }
         else if (STYLE.arch !== "none") { put("post", s, -W + 0.1, H / 2); put("post", s, W - 0.1, H / 2); put("beam", s, 0, H - 0.18); put("sill", s, 0, 0.025); }
       }
-      if (STYLE.bridge) { // kerbs along the deck, and every 8 m a pair of pylons down into the void
-        put("kerb", s, -BRIDGE_W, 0.1); put("kerb", s, BRIDGE_W, 0.1);
-        if (dec.arch) { put("pylon", s, -BRIDGE_W + 0.3, -PYLON_H / 2); put("pylon", s, BRIDGE_W - 0.3, -PYLON_H / 2); put("girder", s, 0, -0.35); }
+      if (STYLE.bridge && !dec.hall) { // kerbs along the deck, and every 8 m a pair of pylons down into the void (none on Lux's manoeuvres: they swing free)
+        if (twistAt(s - SL) || twistAt(s + SL)) { for (let q = 0; q < 4; q++) for (const u of [-BRIDGE_W, BRIDGE_W]) I.kerb.setMatrixAt(n.kerb++, placeM(M, s - SL / 2 + (q + 0.5) * SL / 4, u, 0.1).scale(SV.set(1, 1, (SL / 4 + 0.03) / (SL + 0.03)))); }
+        else { put("kerb", s, -BRIDGE_W, 0.1); put("kerb", s, BRIDGE_W, 0.1); }
+        if (dec.arch && !luxWild(s)) { put("pylon", s, -BRIDGE_W + 0.3, -PYLON_H / 2); put("pylon", s, BRIDGE_W - 0.3, -PYLON_H / 2); put("girder", s, 0, -0.35); }
       }
       if (dec.span) { // Speculum's bridges: the deck a slab (it shows as one hanging overhead), kerbs, the approaches on plain piers
         const sp = dec.span;
@@ -2243,7 +2283,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // the deck's underside (it shows when the deck hangs overhead), drawn as a strip so it twists smoothly with the rails
     deckStrip.visible = SPANS.length > 0;
     if (deckStrip.visible) fillStrip(deckStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, -0.52, 0, s => spanAt(s) ? SW + 0.2 : 0);
-    const floorW = STYLE.bridge ? BRIDGE_W : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // Vitrum: as wide as the hexagon's bottom edge
+    const floorW = STYLE.bridge ? (LUXH.length ? s => luxHallAt(s) ? SW : BRIDGE_W : BRIDGE_W) : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // Vitrum: as wide as the hexagon's bottom edge; Lux's halls as wide as their walls
     const onDeck = s => !!(spanAt(s) || spanAt(s - 1) || spanAt(s + 1));
     fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length ? s => (spanAt(s) && spanAt(s - 1) && spanAt(s + 1) ? 0 : floorW) : floorW); // over a bridge, its deck instead
     if (SPANS.length) fillDeckTop(Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, s => onDeck(s) ? SW : 0); else deckTop.visible = false;
@@ -2937,7 +2977,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     imps.forEach(c => scene.remove(c.group)); imps = [];
     thorns.forEach(c => scene.remove(c.group)); thorns = [];
     sigils.forEach(c => scene.remove(c.group)); sigils = [];
-    hangers.forEach(h => { scene.remove(h.root); scene.remove(h.body); }); hangers = []; lastHangerS = -1e9; mounts.forEach(m => scene.remove(m.g)); mounts = [];
+    hangers.forEach(h => { scene.remove(h.root); scene.remove(h.body); }); hangers = []; lastHangerS = -1e9; mounts.forEach(m => scene.remove(m.g)); mounts = []; switches.forEach(sw => scene.remove(sw.root)); switches = [];
     drops.forEach(d => scene.remove(d.group)); drops = [];
     boughs.forEach(b => scene.remove(b.root)); boughs = [];
     gates.forEach(g => scene.remove(g.root)); gates = []; lastGateS = -1e9;
@@ -2998,11 +3038,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // Carcer's doors come up as the track reaches them, and nothing else is set down right at one
     while (doorPlan.length && doorPlan[0].s < s + 12) spawnDoor(doorPlan.shift());
     while (pgPlan.length && pgPlan[0] < s + 12) addPrismGear(pgPlan.shift());
+    while (luxPlan.length && luxPlan[0].s < s + 12) { const q = luxPlan.shift(); if (q.k === "iris") addGate(q.s, "iris"); else addSwitch(q.m); }
+    if (LTW.some(m => Math.abs(s - m.sw) < 16)) return; // nothing at a manoeuvre's gantry
     if (pgears.some(g => Math.abs(g.s - s) < 8)) return; // nothing under a prism gear
     if (doors.some(dr => Math.abs(dr.s - s) < 9)) return;
     if ([...gates, ...doors].some(g => s > g.s - 1 && s < g.s + GATE_CLEAR)) return; // just past a gate nothing is set down: the gate hid it till the cart was on it
     if (catas.some(c => s > c.cs - 6 && s < c.s + GATE_CLEAR)) return; // nor between a catapult and its glass, nor just past it
-    const hall = LEVEL.halls && inHall(s);
+    const hall = (LEVEL.halls && inHall(s)) || !!luxHallAt(s);
     const d = curD(), prog = sC / MAIN_LEN;
     let pat = spawnGroupKind || pickPattern(clamp(d + 0.12 * prog, 0, 1), hall);
     if (spawnGroupKind === "grams2" || spawnGroupKind === "grams1") { addRams(s, spawnGroupKind === "grams2", true); return; }
@@ -3018,6 +3060,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (s < spn.a + 16 || s > spn.b - 8) return;
       const opts = ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
     }
+    if (!spawnGroupKind && pat === "catapult" && LTW.some(m => s > m.sw - 200 && s < m.tw1 + 20)) pat = "center"; // (its glass flies far: none toward a gantry)
+    if (!spawnGroupKind && LTW.some(m => s > m.sw - 70 && s < m.tw1 + 14)) { // on a Lux manoeuvre, and on the way up to its gantry (so the targets show), only glass, standing on the deck or turning over it
+      const opts = ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
+    }
+    if (!spawnGroupKind && LUXH.some(h => s > h.b - 4 && s < h.b + 22)) pat = "center"; // and nothing big just out of a hall: its end hid it
     // just past a gate (once the empty run is behind) only plain glass for a while: nothing that takes aim or time to bring down
     // straight after the gate has taken both (prisms with their mirrors, another gate, things on chains, crosses)
     if (!spawnGroupKind && GATE_CALM_PATS.includes(pat) && [...gates, ...doors].some(g => s > g.s && s < g.s + GATE_CALM)) pat = Math.random() < 0.6 ? "center" : "slider";
@@ -3181,7 +3228,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         break;
       }
       case "gate": case "pendulum":
-        if (s - lastHangerS > 70) { addHanger(s, pat); lastHangerS = s; } // keep monoliths at least 70 m apart
+        if (s - lastHangerS > (LUXH.length ? 26 : 70)) { addHanger(s, pat); lastHangerS = s; } // keep monoliths at least 70 m apart (in Lux's short halls, one after another)
         else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) });
         break;
       case "imps": { const n = d > 0.8 ? 4 : 3; for (let i = 0; i < n; i++) addImp(s + i * 5, rand(-2.4, 2.4), rand(1.3, 4.2)); break; }
@@ -3972,7 +4019,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // a beam runs on till it meets something that is there: a wall only up to its height, the roof only over the track, the
     // floor only under it (on a bridge, the deck: off its edge a beam goes down into the void); where a wall or the roof is
     // missing it shines on out into the open
-    const dk = s !== undefined ? decor.get(Math.floor(s / SL)) : null, open = STYLE.bridge;
+    const dk = s !== undefined ? decor.get(Math.floor(s / SL)) : null, open = s !== undefined ? openAt(s) : STYLE.bridge;
     const wallL = !open && !(dk && !dk.wl), wallR = !open && !(dk && !dk.wr), roof = !open && !(dk && !dk.ceil), floorW = (open ? BRIDGE_W : LEVEL.halls ? HALL_W : STYLE.floorW || SW) - 0.02; // the floor as it's drawn: as wide as the track's room (Vitrum's narrower), the deck as the bridge
     let tm = max;
     const at = (t, cond) => { if (t > 0 && t < tm && cond(t)) tm = t; };
@@ -4065,7 +4112,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const set = { s, bars: [], axis, amp: axis === "u" ? (STYLE.bridge ? blen / 2 : 0.6) : axis === "v" ? (STYLE.bridge ? blen / 2 : 0.5) : 0, f: rand(0.7, 1.1), ph: rand(0, TAU), cost: 0, passed: false };
     let bu = 0; // every set stands centred over the rails
     if (mode === "h" && n === 3) bu = 0; // 4 beams overhead stay centred, ±1.5 m and ±4.5 m: a scare, no beam on the cart
-    const hv = LEVEL.halls ? HALL_H - 1.3 : 6.2, vu = LEVEL.halls ? HALL_W - 1.9 : LEVEL.id === "lux" ? W - 0.6 : BRIDGE_W + 1.6; // a hall's vault and walls, or over and beside the bridge (Lux: inside its glass)
+    const hv = LEVEL.halls ? HALL_H - 1.3 : 6.2, vu = LEVEL.halls ? HALL_W - 1.9 : luxHallAt(s) ? W - 0.6 : BRIDGE_W + 1.6; // a hall's vault and walls, or over and beside the bridge (Lux: inside its glass)
     if (mode === "h" || grid) addBar(set, "h", n, bu, hv, side, noz);
     const v0 = STYLE.bridge ? 0.32 + (axis === "v" ? set.amp : 0) : BAR_V0; // over the bridge the lowest beam runs at the wheels, just above the rails (a gliding bar rises from there)
     if (mode === "v" || grid) {
@@ -4123,8 +4170,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const sh of barBits) {
       if (!sh.rest) {
         sh.vv -= 12 * dt; sh.u += sh.vu * dt; sh.v += sh.vv * dt; sh.rz += sh.wz * dt;
-        const lim = HALL_W - sh.l / 2 - 0.4; if (!STYLE.bridge && Math.abs(sh.u) > lim) { sh.u = Math.sign(sh.u) * lim; sh.vu *= -0.3; }
-        if (STYLE.bridge && Math.abs(sh.u) > BRIDGE_W) { if (sh.v < -30) sh.dead = true; sh.m.rotation.z = sh.rz; setObj(sh.root, sh.s, sh.u, sh.v); if (sh.dead) scene.remove(sh.root); continue; } // off the deck: down into the abyss
+        const lim = HALL_W - sh.l / 2 - 0.4; if (!openAt(sh.s) && Math.abs(sh.u) > lim) { sh.u = Math.sign(sh.u) * lim; sh.vu *= -0.3; }
+        if (openAt(sh.s) && Math.abs(sh.u) > BRIDGE_W) { if (sh.v < -30) sh.dead = true; sh.m.rotation.z = sh.rz; setObj(sh.root, sh.s, sh.u, sh.v); if (sh.dead) scene.remove(sh.root); continue; } // off the deck: down into the abyss
         const lowest = Math.abs(Math.sin(sh.rz)) * sh.l / 2 + BAR_T / 2; // how far it reaches below its middle as it turns
         if (sh.v < lowest && sh.vv < 0) { sh.v = lowest; sh.rest = true; if (Math.abs(sh.u) < sh.l / 2 + 1.1) sh.u = Math.sign(sh.u || 1) * (sh.l / 2 + 1.1); Sound.knock(); chips(sh.root.getWorldPosition(new THREE.Vector3()), laserBaseMat, 4, tmpV2.set(0, 1, 0)); }
       } else { const tz = Math.round(sh.rz / Math.PI) * Math.PI; sh.rz += (tz - sh.rz) * Math.min(1, dt * 10); sh.v = Math.max(BAR_T / 2, Math.abs(Math.sin(sh.rz)) * sh.l / 2 + BAR_T / 2); } // it settles flat
@@ -4922,7 +4969,51 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // slowly in the plane across it: a disc as Nox's are, and for teeth ten short glass prisms, each a four-sided frustum, a straight beam of light shining on out of its tip as the lasers of Nox's and Lux's
   // mills do. Shoot the prisms whose beams would sweep across the cart: one hit breaks one. A beam across the cart burns as a
   // laser does, once a gear. In the mirror walls the gear turns too, without its beams
-  let pgears = [], pgPlan = [];
+  let pgears = [], pgPlan = [], luxPlan = [];
+  // a Lux manoeuvre's gantry: two posts beside the bridge, a beam over it, and on it two targets (left, right) or four (the
+  // spiral's: left or right, up or down) with arrows; the lit one is the way the track will go. Shoot another and the track
+  // ahead swings over to it, in sight; 30 m short of the manoeuvre it is set
+  let switches = [];
+  const SW_TR = 0.55, swPostGeo = new THREE.BoxGeometry(0.34, 7.6, 0.34), swBeamGeo = new THREE.BoxGeometry(6.3, 0.4, 0.4), swDiscGeo = new THREE.CircleGeometry(SW_TR, 32), swPlateGeo = new THREE.CylinderGeometry(0.66, 0.66, 0.12, 32).rotateX(Math.PI / 2);
+  const swArrow = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
+    g.fillStyle = "#fff"; g.beginPath(); g.moveTo(64, 14); g.lineTo(108, 62); g.lineTo(80, 62); g.lineTo(80, 112); g.lineTo(48, 112); g.lineTo(48, 62); g.lineTo(20, 62); g.closePath(); g.fill();
+    const t = new THREE.CanvasTexture(c); return t; })(); // an arrow pointing up; each turned to its way
+  const swArrowMat = new THREE.MeshBasicMaterial({ map: swArrow, transparent: true, depthWrite: false, color: 0x10161c });
+  function addSwitch(m) {
+    const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
+    for (const u of [-1, 1]) { const p = new THREE.Mesh(swPostGeo, frameMat); p.position.set(u * (BRIDGE_W + 1.1), 3.8, 0); root.add(p); }
+    const beam = new THREE.Mesh(swBeamGeo, frameMat); beam.position.y = 7.5; root.add(beam);
+    const ways = m.kind === "spiral" ? [[-1, 1], [1, 1], [-1, -1], [1, -1]] : [[-1, 0], [1, 0]]; // [left/right, up/down]
+    const targets = ways.map(([x, y]) => {
+      const g = new THREE.Group(); g.position.set(x * 1.75, y ? 5.15 + y * 1.15 : 5.2, 0); root.add(g);
+      g.add(new THREE.Mesh(swPlateGeo, frameMat));
+      const disc = new THREE.Mesh(swDiscGeo, targetOff); disc.position.z = 0.07; g.add(disc);
+      const ar = new THREE.Mesh(swDiscGeo, swArrowMat); ar.position.z = 0.08; ar.scale.setScalar(0.9); ar.rotation.z = -Math.atan2(x, y || 0.0001) + (y ? 0 : 0); g.add(ar);
+      if (!y) ar.rotation.z = x < 0 ? Math.PI / 2 : -Math.PI / 2;
+      // (a hanger strut up to the beam)
+      const st = new THREE.Mesh(new THREE.BoxGeometry(0.1, 7.5 - g.position.y - 0.6, 0.1), frameMat); st.position.set(x * 1.75, (7.5 + g.position.y + 0.6) / 2, -0.02); root.add(st);
+      return { x, y, g, disc, wp: new THREE.Vector3() };
+    });
+    const sw = { m, s: m.sw, root, targets, locked: false };
+    switches.push(sw); paintSwitch(sw); return sw;
+  }
+  const swChosen = (sw, t) => t.x === sw.m.dir && (!t.y || t.y === sw.m.pdir);
+  function paintSwitch(sw) { for (const t of sw.targets) t.disc.material = swChosen(sw, t) ? targetOn : targetOff; }
+  function hitSwitch(sw, t) {
+    if (sw.locked || swChosen(sw, t)) return false;
+    sw.m.dir = t.x; if (t.y) sw.m.pdir = t.y; paintSwitch(sw);
+    Sound.tone(520, 0.18, 0.1, "triangle", 0, 900); Sound.tone(260, 0.5, 0.08, "sine", 0, 60); addScore(10);
+    return true;
+  }
+  function updateSwitches(dt) {
+    for (const m of LTW) { const k = 1 - Math.exp(-dt * 3); m.dirNow += (m.dir - m.dirNow) * k; m.pdirNow += (m.pdir - m.pdirNow) * k; } // the track swings over to the way chosen
+    for (const sw of switches) {
+      setObj(sw.root, sw.s, 0, 0); sw.root.updateMatrixWorld(true);
+      for (const t of sw.targets) t.g.getWorldPosition(t.wp);
+      if (!sw.locked && sC > sw.m.tw0 - 30) { sw.locked = true; sw.m.dirNow = sw.m.dir; sw.m.pdirNow = sw.m.pdir; for (const t of sw.targets) if (!swChosen(sw, t)) t.disc.material = targetOff; }
+    }
+    switches = switches.filter(sw => sw.s > sC - 20 || (scene.remove(sw.root), false));
+  }
   const PG_R = 2.0, PG_V = 5.6, PG_N = 10, PG_L = 0.48, PG_D = 0.34, PG_SPIN = 0.32;
   // its disc one of Nox's three (holes, spokes, slots), never the same twice running, scaled down; of polished steel in the
   // halls' cold blue, not mirror-bright
@@ -5043,13 +5134,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       s = Math.round((s - 5) / 8) * 8 + 5;
       for (let kk = Math.floor((s - 3.5) / SL); kk <= Math.floor((s + 3.5) / SL); kk++) getDecor(kk).arch = false;
     }
-    lastGateS = s;
+    lastGateS = s; const br = openAt(s); // (Lux: on the bridge, or in a hall)
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
     const leaves = [];
     // the lintel: an up-down gate's frame is tall enough for its top leaf to slide up under it
-    const top = kind === "v" && STYLE.bridge ? GATE_H * 1.5 + 0.8 : GATE_H + 0.4;
+    const top = kind === "v" && br ? GATE_H * 1.5 + 0.8 : GATE_H + 0.4;
     const weights = kind === "h" && (LEVEL.gateOpeners || ["buttons"])[Math.floor(Math.random() * (LEVEL.gateOpeners || ["buttons"]).length)] === "weights";
-    if (kind !== "iris" && kind !== "taiji" && !STYLE.bridge) { // in a corridor a bulkhead closes all around the doorway; the leaves slide away behind it
+    if (kind !== "iris" && kind !== "taiji" && !br) { // in a corridor a bulkhead closes all around the doorway; the leaves slide away behind it
       const sh = new THREE.Shape([new THREE.Vector2(-SW, 0), new THREE.Vector2(SW, 0), new THREE.Vector2(SW, SH), new THREE.Vector2(-SW, SH)]);
       const hy = LEVEL.gateIron ? top - 0.2 : GATE_H; // Rubinus: the hole runs up to the black lintel, no pale band of wall over the doors, and what's past them shows
       sh.holes.push(new THREE.Path([new THREE.Vector2(-BRIDGE_W, 0), new THREE.Vector2(-BRIDGE_W, hy), new THREE.Vector2(BRIDGE_W, hy), new THREE.Vector2(BRIDGE_W, 0)]));
@@ -5058,7 +5149,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const round = kind === "iris" || kind === "taiji";
     if (round) {
       const ring = new THREE.Mesh(irisRingGeo, frameMat); ring.position.y = IRIS_V; root.add(ring);
-      if (!STYLE.bridge) { // in a corridor a bulkhead closes everything around the iris
+      if (!br) { // in a corridor a bulkhead closes everything around the iris
         const sh = new THREE.Shape([new THREE.Vector2(-SW, 0), new THREE.Vector2(SW, 0), new THREE.Vector2(SW, SH), new THREE.Vector2(-SW, SH)]);
         const hole = new THREE.Path(); hole.absarc(0, IRIS_V, IRIS_R + 0.1, 0, TAU, true); sh.holes.push(hole);
         const bh = new THREE.Mesh(new THREE.ShapeGeometry(sh, 48), bulkheadMat); bh.position.z = 0.07; root.add(bh); // in front: the leaves slide away behind it
@@ -5078,7 +5169,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const sd of [-1, 1]) { const pst = new THREE.Mesh(postGeo, fm); pst.scale.y = (top + 0.2) / (GATE_H + 0.4); pst.position.set(sd * (BRIDGE_W + 0.2), (top + 0.2) / 2, 0); root.add(pst); }
       const lin = new THREE.Mesh(lintelGeo, fm); lin.position.set(0, top, 0); root.add(lin);
       if (kind === "v") { // the slot in the deck the lower leaf drops into, with steel lips along it
-        const hw = 2 * (STYLE.bridge ? BRIDGE_W : SW);
+        const hw = 2 * (br ? BRIDGE_W : SW);
         const slot = new THREE.Mesh(slotGeo, slotMat); slot.scale.x = hw; slot.position.y = 0.005; root.add(slot);
         for (const sd of [-1, 1]) { const lip = new THREE.Mesh(slotLipGeo, frameMat); lip.scale.x = hw; lip.position.set(0, 0.02, sd * (SLOT_W / 2 + 0.03)); root.add(lip); }
       }
@@ -5133,7 +5224,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       g.buttons.push(Object.assign({ grp, cap, prop, glow, r, moving, phase: rand(0, TAU), pressed: false, alive: true, wp: new THREE.Vector3(), gate: g }, sp));
     }
-    gates.push(g);
+    g.br = br; gates.push(g);
   }
   // a level may have doors of solid coloured stone instead of dark glass, so they read as doors against its walls
   const doorMats = {};
@@ -5177,7 +5268,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the leaf still covering the point (x, y) of the gate's plane, or null
   function gateLeafAt(g, x, y) {
     const p = g.pr;
-    if (g.kind === "iris" || g.kind === "taiji") { const d = Math.hypot(x, y - IRIS_V); return (d < IRIS_R && d > (IRIS_R + 0.15) * p) || (!STYLE.bridge && d >= IRIS_R && Math.abs(x) < SW && y > 0 && y < SH) ? g.leaves[0] : null; }
+    if (g.kind === "iris" || g.kind === "taiji") { const d = Math.hypot(x, y - IRIS_V); return (d < IRIS_R && d > (IRIS_R + 0.15) * p) || (!g.br && d >= IRIS_R && Math.abs(x) < SW && y > 0 && y < SH) ? g.leaves[0] : null; }
     if (Math.abs(x) > BRIDGE_W + 0.1 || y < (g.kind === "h" ? DOOR_FOOT : 0) || y > GATE_H + 0.1) return null; // side-by-side leaves stop over the rails
     const lf = g.kind === "h" ? g.leaves[x < 0 ? 0 : 1] : g.leaves[y < GATE_H / 2 ? 0 : 1];
     if (lf.broken) return null;
@@ -5934,14 +6025,20 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       desc: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах стальные решётки на цепях, парящие лазерные балки и сетки и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
       feats: ["Залы с решётками на цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Effugium: побег через камеры"],
       req: { after: "speculum", fare: 30 }, map: { x: 825, y: 440, label: "t" } },
-    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 1600, pal: PAL_LUX, finale: "triumphus",
-      style: { arch: "square", blocks: "prism", glassWalls: true }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
-      gateKinds: ["iris"], gateButton: "dome",
-      pats: { doors: [1.2, 1.5, 1.8], spinners: [1.5, 2, 2.5], lblock: [1.5, 2, 2.5], lhang: [1, 1.5, 2], rotor: [0.6, 1, 1.2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], reinf: [0, 0.8, 1.5], triple: [1, 1, 0.8], double: [0, 1, 1.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0] },
+    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 3200, pal: PAL_LUX, finale: "triumphus",
+      style: { arch: "square", blocks: "prism", glassWalls: true, bridge: true, floor: "plain" }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
+      gateKinds: ["v"], gateButton: "dome", // on the bridge Nox's gates; an iris at each hall's way in (planLux)
+      // on the bridge: Nox's laser mills and bars, its gates and great gears, Vitrum's catapults and crossbows, Rubinus's walls of glass
+      pats: { doors: [0.9, 1.2, 1.4], gears: [0.6, 0.9, 1.1], abspin: [0.5, 0.8, 1], abbar: [0.5, 0.8, 1], lblock: [0.5, 0.8, 1], catapult: [0.6, 0.8, 1], fblocks: [0.4, 0.7, 0.9],
+        wall: [0.5, 0.7, 0.9], shutter: [0.3, 0.7, 1.1], zigzag: [0.3, 0.6, 0.9], rotor: [0.6, 1, 1.2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], reinf: [0, 0.8, 1.5],
+        triple: [1, 1, 0.8], double: [0, 1, 1.5], sides: [1.2, 0.6, 0], bonus: [1.5, 0.5, 0], lift: [0, 0, 0], imps: [0, 0, 0] },
+      // in a hall: monoliths on one chain or two, catapults and crossbows, laser beams on chains
+      hallPats: { gate: [1, 1.2, 1.4], pendulum: [0.9, 1, 1.2], catapult: [0.7, 1, 1.2], lhang: [0.3, 0.6, 0.9], center: [0.8, 0.8, 0.6] },
+      every: { catapult: 420, gears: 380, abbar: 300 },
       turns: [[110, 60, 50], [240, 60, -60], [370, 50, 45], [480, 80, -85], [640, 50, 50], [750, 60, -55], [870, 50, 45],
         [980, 70, -75], [1120, 50, 50], [1230, 60, -55], [1350, 50, 45], [1450, 60, -50]],
-      desc: "Конечная. Белые залы со стеклянными стенами. Путь стерегут красные лазеры: вертушки в разрывах стен, планки с лазерами по бокам, балки на цепях. Луч через вагонетку стоит 3 шара. Переборки с диафрагмой открываются кнопками. Подъём к Свету здесь самый тяжёлый.",
-      feats: ["Красные лазеры: вертушки, блоки, балки на цепях", "Переборки с диафрагмой и кнопками", "Финал Triumphus: суперигры пройденных станций по очереди"],
+      desc: "Конечная, и самый длинный путь: мост над бездной под взрывом сверхновой. Три виража в новом порядке каждый раз — бур, штопор и спираль; мишени на портале перед каждым решают, куда он свернёт, и путь перестраивается на глазах. Между мостами короткие залы за диафрагмами: монолиты на цепях, катапульты и арбалеты. На мосту лазерные мельницы и планки, ворота и шестерни, стены из стекла. Луч через вагонетку стоит 3 шара. Подъём к Свету здесь самый тяжёлый.",
+      feats: ["Три виража: бур, штопор, спираль — направление выбирают мишени", "Мост под сверхновой, залы за диафрагмами", "Финал Triumphus: суперигры пройденных станций по очереди"],
       req: { after: "abyssus" }, map: { x: 910, y: 320, label: "t", dx: 12 } }, // above and to the right, clear of the Tao line
     // not a level: the crystal shop, for whoever would rather not save up: crystals for Armamentarium, in Telegram's Stars
     // (outside Telegram, one pack through the bot and a code); a gold branch off Initium, as long as the arc and parallel to it
@@ -5975,8 +6072,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang steel grates on chains, floating laser bars and grids, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
         feats: ["Halls of grates on chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Effugium: a run of barred cells"] },
       emptio: { ru: "Buy", desc: "Crystals for Armamentarium, to buy everything you need at once.", feats: [] },
-      lux: { ru: "Light", desc: "The terminus. White halls with glass walls. Red lasers guard the way: spinners in gaps in the walls, laser bars beside the track, beams on chains. A beam across the cart costs 3 balls. Iris bulkheads open with buttons. The climb to the Light is hardest here.",
-        feats: ["Red lasers: spinners, blocks, beams on chains", "Iris bulkheads with buttons", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
+      lux: { ru: "Light", desc: "The terminus, and the longest ride: a bridge over the abyss under a supernova. Three manoeuvres in a new order each time, the drill, the corkscrew and the spiral; targets on a gantry before each decide which way it turns, and the track reshapes before your eyes. Between the bridges, short halls behind irises: monoliths on chains, catapults and crossbows. On the bridge laser mills and bars, gates and gears, walls of glass. A beam across the cart costs 3 balls. The climb to the Light is hardest here.",
+        feats: ["Three manoeuvres: the drill, the corkscrew, the spiral; targets choose the way", "A bridge under a supernova, halls behind irises", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
     },
     weapons: {
       ballista: { ru: "Gauss", desc: "One ball a shot. A crystal you hit pays its usual value." },
@@ -6124,7 +6221,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
+    planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
     pgPlan = SPANS.length ? [SPANS[0].a - 120, ...SPANS.map(sp => sp.b + 75)] : []; // Speculum's prism gears: in the first halls, before the first bridge, and past each corkscrew
+    if (LTW.length) pgPlan = LUXH.map(h => Math.round(h.b + rand(40, 70))).filter(x => x < MAIN_LEN - 40 && !LTW.some(m => x > m.sw - 40 && x < m.tw1 + 20)); // Lux: one out on the bridge past each hall
     if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind: "tall" }, { s: sp.b, kind: "tall" }]); }
     buildStation();
   }
@@ -6487,6 +6586,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     sphere(crystals, 0.62, "crystal"); sphere(imps, 0.9, "imp"); sphere(thorns, 0.6, "thorn", t => t.headOn);
     sphere(sigils, 0.75, "sigil"); sphere(drops, 0.95, "drop");
     for (const f of forks) { const ft = !f.locked && forkTarget(f); if (!ft) continue; tmpV.copy(ft.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.8) hits.push({ d, kind: "switch", x: f }); }
+    for (const sw of switches) if (!sw.locked) for (const t of sw.targets) { if (swChosen(sw, t)) continue; tmpV.copy(t.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.5) hits.push({ d, kind: "luxsw", x: [sw, t] }); }
     for (const r of rams) for (const c of r.chains) if (c.alive) { const rs = raySeg(o, dir, c.A, c.B); if (rs.dist < CHAIN_HIT + 0.05 && rs.d > 0 && rs.d < LASER_LEN) hits.push({ d: rs.d, kind: "ramchain", x: r, c }); }
     for (const dr of doors) { // the beam is tested along its length a step at a time
       if (Math.abs(dr.s - sC) > 130) continue;
@@ -6551,6 +6651,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       else if (h.kind === "sigil" && h.x.alive) hitSigil(h.x, fake);
       else if (h.kind === "drop" && h.x.alive) hitDrop(h.x, fake);
       else if (h.kind === "switch") { flipFork(h.x); end = h.d; break; }
+      else if (h.kind === "luxsw") { hitSwitch(...h.x); end = h.d; break; }
       else if (h.kind === "button" && !h.x.pressed) pressButton(h.x);
       else if (h.kind === "cata") fireCatapult(h.x);
       else if (h.kind === "cataglass") { end = h.d; break; } // the thick glass stops the beam
@@ -6685,7 +6786,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const ds = Math.min(sp * dt, Math.max(0, toStop));
     speedNow = dt > 0 ? ds / dt : 0;
     frameAt(sC + ds / 2); // uses last frame's path; close enough for one step
-    cartPos.addScaledVector(SPANS.length ? tangent0(sC + ds / 2) : _T, ds); // the line the track winds round, not the rails' own heading
+    cartPos.addScaledVector(SPANS.length || LTW.length ? tangent0(sC + ds / 2) : _T, ds); // the line the track winds round, not the rails' own heading
     pitchC += (pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA));
     sC += ds;
     throwCD = Math.max(0, throwCD - dt);
@@ -6751,6 +6852,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function toLocal(p, pos) { tmpV.copy(pos).sub(p.C); inv.x = tmpV.dot(p.R); inv.y = tmpV.dot(p.U); inv.z = -tmpV.dot(p.T); return inv; }
 
   function updateWorld(dt) {
+    if (LTW.length) updateSwitches(dt);
     computePath();
     samplePalette(alt); tintBranch(dt); applyPalette();
     layoutCorridor();
@@ -7110,6 +7212,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (const g of sigils) if (g.alive && pathDist(g.wp) < 0.62 + R_BALL) { mark(); hitSigil(g, b); }
         for (const d of drops) if (d.alive && pathDist(d.wp) < (d.kind === "block" ? 0.85 : 0.57) + R_BALL) { mark(); hitDrop(d, b); }
         for (const f of forks) { const ft = !f.locked && f.cd === 0 && forkTarget(f); if (ft && pathDist(ft.wp) < FORK_TR + R_BALL) { mark(); flipFork(f); chips(ft.wp, targetOn, 5, b.v); dead = true; } }
+        if (!dead) for (const sw of switches) if (!sw.locked) for (const t of sw.targets) if (!dead && !swChosen(sw, t) && pathDist(t.wp) < SW_TR + R_BALL) { mark(); hitSwitch(sw, t); chips(t.wp, targetOn, 5, b.v); dead = true; }
         if (!dead) for (const bo of boughs) {
           if (bo.broken || Math.abs(bo.s - sC) > 130) continue;
           const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.12));
@@ -7123,7 +7226,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (dead || b.life > 3) { scene.remove(b.mesh); if (b.cs) scene.remove(b.cs.g.mesh); ballsArr.splice(i, 1); }
     }
 
-    const floorHW = fs => STYLE.bridge ? BRIDGE_W : spanAt(fs) ? SW : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // the floor's half width, as drawn
+    const floorHW = fs => openAt(fs) ? BRIDGE_W : spanAt(fs) ? SW : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // the floor's half width, as drawn
     for (let i = shards.length - 1; i >= 0; i--) {
       const s = shards[i], pos = s.mesh.position;
       // a piece takes some of the ball's push, but never more than a few m/s on along the track: it had flown on down the

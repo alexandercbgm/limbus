@@ -6352,9 +6352,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         dir = target.clone().addScaledVector(side.normalize(), 0.26).sub(from).normalize(); } // each aimed 26 cm out to its own side of the aim
       else dir = target.clone().sub(from).normalize();
       dir = clearOfCart(g, from, dir);
-      if (progress.weapon === "hexa") { // a triangle of balls out of each gun, each aimed at the cursor from its own muzzle
+      if (progress.weapon === "hexa") { // a triangle of balls out of each gun; the two close in on the aim, but stop short of meeting: each
+        // aimed to its own side of it, so that there they are twice a triangle's side apart (its side √3 × its radius, TRI_R)
+        const ax = new THREE.Vector3(1, 0, 0).transformDirection(g.barrel.matrixWorld);
         g.models.hexa.children.forEach(o => { if (o.name !== "hxspin") return; const m = g.barrel.localToWorld(o.position.clone().add(new THREE.Vector3(0, 0, -0.8)));
-          launchTriplex(g, m, clearOfCart(g, m, target.clone().sub(m).normalize()), vol, o.rotation.z); }); continue; }
+          const aim = target.clone().addScaledVector(ax, Math.sign(o.position.x) * Math.sqrt(3) * TRI_R);
+          launchTriplex(g, m, clearOfCart(g, m, aim.sub(m).normalize()), vol, o.rotation.z); }); continue; }
       if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
       else if (progress.weapon === "ferrum") launchChains(from, dir);
       else launch(from, dir, vol);

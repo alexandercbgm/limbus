@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.285</div>
+      <div class="credit version">v1.0.286</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.285`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.286`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6438,9 +6438,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         dir = target.clone().addScaledVector(side.normalize(), 0.26).sub(from).normalize(); } // each aimed 26 cm out to its own side of the aim
       else dir = target.clone().sub(from).normalize();
       dir = clearOfCart(g, from, dir);
-      if (progress.weapon === "hexa") { // a triangle of balls out of each gun, each aimed at the cursor from its own muzzle
+      if (progress.weapon === "hexa") { // a triangle of balls out of each gun; the two close in on the aim, but stop short of meeting: each
+        // aimed to its own side of it, so that there they are twice a triangle's side apart (its side √3 × its radius, TRI_R)
+        const ax = new THREE.Vector3(1, 0, 0).transformDirection(g.barrel.matrixWorld);
         g.models.hexa.children.forEach(o => { if (o.name !== "hxspin") return; const m = g.barrel.localToWorld(o.position.clone().add(new THREE.Vector3(0, 0, -0.8)));
-          launchTriplex(g, m, clearOfCart(g, m, target.clone().sub(m).normalize()), vol, o.rotation.z); }); continue; }
+          const aim = target.clone().addScaledVector(ax, Math.sign(o.position.x) * Math.sqrt(3) * TRI_R);
+          launchTriplex(g, m, clearOfCart(g, m, aim.sub(m).normalize()), vol, o.rotation.z); }); continue; }
       if (progress.weapon === "triplex") launchTriplex(g, from, dir, vol);
       else if (progress.weapon === "ferrum") launchChains(from, dir);
       else launch(from, dir, vol);

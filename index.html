@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.300</div>
+      <div class="credit version">v1.0.301</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.300`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.301`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2035,10 +2035,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function getDecor(k) {
     let d = decor.get(k);
     if (d) return d;
-    const z = curD(), seg = Math.floor(k / 5), s = k * SL + SL / 2, station = s > SUPER_END - 6;
+    // Initium and Lux: walls and roof come and go a bay at a time, between frames (every 4th stretch has one, at its middle), so
+    // they end at a frame, not in the air beside it; that stretch's first half belongs to the bay before (wl0, wr0, ceil0)
+    const bays = STYLE.arch === "square" && !STYLE.open && !STYLE.closed && !LEVEL.halls;
+    const z = curD(), seg = bays ? Math.floor(k / 4) : Math.floor(k / 5), s = k * SL + SL / 2, station = s > SUPER_END - 6;
     const wallP = STYLE.closed || STYLE.skylight ? 2 : lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = STYLE.closed ? 2 : STYLE.skylight ? -1 : lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z); // skylight: walls all along, open above
     d = { wl: !station && hash(seg * 3 + 1) < wallP, wr: !station && hash(seg * 3 + 2) < wallP, ceil: !station && hash(seg * 7 + 5) < ceilP,
       arch: !station && k % 4 === 0, pyr: null, blocks: [] };
+    if (bays && k % 4 === 0) { const st0 = s - SL / 2 > SUPER_END - 6; d.wl0 = !st0 && hash((seg - 1) * 3 + 1) < wallP; d.wr0 = !st0 && hash((seg - 1) * 3 + 2) < wallP; d.ceil0 = !st0 && hash((seg - 1) * 7 + 5) < ceilP; }
     if (STYLE.bridge) d.wl = d.wr = d.ceil = false; // Abyssus: a bare bridge over the void
     const spn = !station && spanAt(s);
     if (spn) { d.wl = d.wr = d.ceil = false; d.span = spn; } // Speculum's bridges
@@ -2176,13 +2180,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
   }
   const RING_SX = (H / 2 - 0.05) * 1.15 / 4.92, RING_SY = RING_SX; // a true circle, clear of the walls
-  // a sheet of quads, one a stretch of track, each sharing its ends with the next: Lux's glass walls; Lux's and Labyrinthus's roof
-  const LUXW_MAX = 400, sheet = mat => { const g = new THREE.BufferGeometry(); // (stretches: both sides, the whole of what is drawn ahead and behind)
+  // a sheet of quads, one a stretch of track, each sharing its ends with the next: the glass walls, Vitrum's glazing and the roofs
+  // (separate panels showed a line at each joint: lapped, the glass twice as thick there; butted, a gap on the outside of a bend)
+  const LUXW_MAX = 900, sheet = mat => { const g = new THREE.BufferGeometry(); // (stretches: both sides, the whole of what is drawn ahead and behind)
     g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 18), 3)); g.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 18), 3)); g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 12), 2));
     const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.visible = false; scene.add(m); m.nq = 0; return m; };
-  const luxWalls = sheet(plainGlassWallMat), roofSheet = sheet(roofMat);
+  const luxWalls = sheet(plainGlassWallMat), roofSheet = sheet(roofMat), glassSheet = sheet(glassWallMat), pglassSheet = sheet(plainGlassMat), SHEETS = [luxWalls, roofSheet, glassSheet, pglassSheet];
   // one stretch, s0 → s1: its edge (u0, v0) → (u1, v1) across the track, the normal along the frame's (nu, nv)
-  const sheetQuad = (m, s0, s1, u0, v0, u1, v1, nu, nv) => { if (m.nq >= LUXW_MAX) return; const lp = m.geometry.attributes.position.array, ln = m.geometry.attributes.normal.array, lu = m.geometry.attributes.uv.array, pts = [], UV = [[0, 0], [1, 0], [0, 1], [1, 1]];
+  const sheetQuad = (m, s0, s1, u0, v0, u1, v1, nu, nv, uvT) => { if (m.nq >= LUXW_MAX) return; const lp = m.geometry.attributes.position.array, ln = m.geometry.attributes.normal.array, lu = m.geometry.attributes.uv.array, pts = [], UV = uvT ? [[0, 0], [0, 1], [1, 0], [1, 1]] : [[0, 0], [1, 0], [0, 1], [1, 1]]; // (a wall's texture runs along the track)
     for (const sx of [s0, s1]) { frameAt(sx); const nn = [_R.x * nu + _U.x * nv, _R.y * nu + _U.y * nv, _R.z * nu + _U.z * nv];
       for (const [u, v] of [[u0, v0], [u1, v1]]) pts.push([[_P.x + _R.x * u + _U.x * v, _P.y + _R.y * u + _U.y * v, _P.z + _R.z * u + _U.z * v], nn]); }
     let o = m.nq * 18, q = m.nq * 12; for (const i of [0, 2, 3, 0, 3, 1]) { lp.set(pts[i][0], o); ln.set(pts[i][1], o); lu.set(UV[i], q); o += 3; q += 2; } m.nq++; }; // (each stretch a whole slab of the texture)
@@ -2190,11 +2195,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
-    // Lux: its glass walls one continuous sheet each side, every stretch sharing its ends with the next (separate panels showed a
-    // line at each joint: lapped, the glass twice as thick there; butted, a gap on the outside of a bend)
     // a wall block as long as its outer face's stretch, and a little over: on a bend the blocks had parted on the outside
-    const wallLen = (s, u) => { frameAt(s - SL / 2); const x = _P.x + _R.x * u, y = _P.y + _R.y * u, z = _P.z + _R.z * u; frameAt(s + SL / 2); return Math.max(SL, Math.hypot(_P.x + _R.x * u - x, _P.y + _R.y * u - y, _P.z + _R.z * u - z)) + 0.03; };
-    const putWall = (key, s, u, hh = SH) => { if (key === "gwall" && LEVEL.id === "lux") { sheetQuad(luxWalls, s - SL / 2, s + SL / 2, u, 0, u, hh, -Math.sign(u), 0); return; } const k = key === "wall" ? wallLen(s, u + Math.sign(u) * 0.12) / (SL + 0.03) : 1; I[key].setMatrixAt(n[key]++, placeM(M, s, u, hh / 2).scale(SV.set(1, hh / H, k))); }; // as tall as the shell (or the hall)
+    const wallLen = (sa, sb, u) => { frameAt(sa); const x = _P.x + _R.x * u, y = _P.y + _R.y * u, z = _P.z + _R.z * u; frameAt(sb); return Math.max(sb - sa, Math.hypot(_P.x + _R.x * u - x, _P.y + _R.y * u - y, _P.z + _R.z * u - z)) + 0.03; };
+    const putWall = (key, s, u, hh = SH, sa = s - SL / 2, sb = s + SL / 2) => { // as tall as the shell (or the hall); the glass ones in a sheet
+      if (key === "gwall" || key === "pgwall") { sheetQuad(key === "pgwall" ? pglassSheet : LEVEL.id === "lux" ? luxWalls : glassSheet, sa, sb, u, 0, u, hh, -Math.sign(u), 0, true); return; }
+      const k = key === "wall" ? wallLen(sa, sb, u + Math.sign(u) * 0.12) / (SL + 0.03) : (sb - sa) / SL; I[key].setMatrixAt(n[key]++, placeM(M, (sa + sb) / 2, u, hh / 2).scale(SV.set(1, hh / H, k))); };
     // Speculum's corkscrew rides on a spiral concrete arch under its deck, a turn of it from pier to pier: deep under the deck
     // over each pier (there the deck is upright, at the bottom of a turn), up under it at the crown half a turn on, with
     // spandrel posts between. Its piers are reinforced; at its two ends the deck widens into a platform on heavy columns
@@ -2235,13 +2240,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (const [x0, x1] of [[a0, a1], [b0, b1]]) if (x1 - x0 > 0.05) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, (x0 + x1) / 2, u, 0.19).scale(SV.set(1, 1, (x1 - x0) / (SL + 0.04))));
       }
       const open = forkOpenSide(s), ww = dec.hw || SW, wh = dec.hh || SH, wk = STYLE.mirror && s > MIRROR_END() ? "pgwall" : wallKey; // Speculum: past its mirrors, plain glass
+      const halves = (on, on0) => on0 === undefined ? [[s - SL / 2, s + SL / 2, on]] : [[s - SL / 2, s, on0], [s, s + SL / 2, on]]; // (a bay's ends at a frame's middle)
       if (STYLE.bare) { // Vitrum: the hexagon glazed, its two left faces for a left wall, the right two for a right, the top for a roof
-        for (let e = 0; e < 6; e++) if (e === 1 ? dec.ceil : e === 2 || e === 3 ? dec.wl : e === 0 || e === 5 ? dec.wr : false)
-          I.hexpane.setMatrixAt(n.hexpane++, placeM(M, s, Math.cos((e + 0.5) * Math.PI / 3) * HEXPANE_A, HEXPANE_V + Math.sin((e + 0.5) * Math.PI / 3) * HEXPANE_A).multiply(M2.makeRotationZ((e + 0.5) * Math.PI / 3 - Math.PI / 2)));
+        for (let e = 0; e < 6; e++) if (e === 1 ? dec.ceil : e === 2 || e === 3 ? dec.wl : e === 0 || e === 5 ? dec.wr : false) {
+          const a0 = e * Math.PI / 3, a1 = a0 + Math.PI / 3, am = a0 + Math.PI / 6;
+          sheetQuad(glassSheet, s - SL / 2, s + SL / 2, Math.cos(a0) * HEXPANE_R, HEXPANE_V + Math.sin(a0) * HEXPANE_R, Math.cos(a1) * HEXPANE_R, HEXPANE_V + Math.sin(a1) * HEXPANE_R, -Math.cos(am), -Math.sin(am));
+        }
+      } else {
+        if (open !== -1) for (const [a, b, on] of halves(dec.wl, dec.wl0)) if (on) putWall(wk, s, -ww - 0.12, wh, a, b);
+        if (open !== 1) for (const [a, b, on] of halves(dec.wr, dec.wr0)) if (on) putWall(wk, s, ww + 0.12, wh, a, b);
       }
-      else if (dec.wl && open !== -1) putWall(wk, s, -ww - 0.12, wh);
-      if (dec.wr && open !== 1 && !STYLE.bare) putWall(wk, s, ww + 0.12, wh);
-      if (dec.ceil && !STYLE.closed && !STYLE.bare) { if (LEVEL.id === "lux" || LEVEL.id === "labyrinthus") sheetQuad(roofSheet, s - SL / 2, s + SL / 2, -ww, wh, ww, wh, 0, -1); else I.ceil.setMatrixAt(n.ceil++, placeM(M, s, 0, wh).scale(SV.set(ww / W, 1, 1))); } // (Lux and Labyrinthus: the roof one sheet, no slabs, no gaps on a bend) // a closed maze has a continuous vault instead
+      if (!STYLE.closed && !STYLE.bare) for (const [a, b, on] of halves(dec.ceil, dec.ceil0)) if (on) sheetQuad(roofSheet, a, b, -ww, wh, ww, wh, 0, -1); // the roof one sheet: no gaps on a bend
       if (LEVEL.halls && !!dec.hw !== !!getDecor(k - 1).hw && (dec.hw || getDecor(k - 1).hw)) { // where a corridor meets a hall: the hall's end wall, seen from both sides
         const s0 = k * SL;
         I.portal.setMatrixAt(n.portal++, placeM(M, s0, 0, 0));
@@ -2376,7 +2385,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (n[key] > I[key].instanceMatrix.count) growInst(key, n[key]);
       I[key].count = Math.min(n[key], I[key].instanceMatrix.count); I[key].instanceMatrix.needsUpdate = true;
     }
-    sheetDone(luxWalls); sheetDone(roofSheet);
+    SHEETS.forEach(sheetDone);
     for (const k of decor.keys()) if (k < k0 - 2) decor.delete(k);
   }
 
@@ -4059,7 +4068,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       cones.push({ i, arm, beam, alive: true, wp: new THREE.Vector3() });
     }
     scene.add(root);
-    for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc[side < 0 ? "wl" : "wr"] = false; dc.arch = false; dc.pyr = null; } // it stands in a clear gap of the wall
+    for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc[side < 0 ? "wl" : "wr"] = dc[side < 0 ? "wl0" : "wr0"] = false; dc.arch = false; dc.pyr = null; } // it stands in a clear gap of the wall
     for (const th of thorns) if (Math.abs(th.s - s) < 4) { th.alive = false; scene.remove(th.group); }
     spinners.push({ s, side, hu: side * (W - 0.8), hv: 2.6, a: rand(0, TAU), spin: dir * rand(0.9, 1.3), root, rotor, cones, alive: true, hit: false, wp: new THREE.Vector3() });
   }
@@ -4474,7 +4483,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const ph = rand(0, TAU), sides = both ? [-1, 1] : [Math.random() < 0.5 ? -1 : 1];
     // Tao's logs swing about a point leaned in from straight down, so they hardly swing out at the wall behind them
     const L = glass && !both ? RAM_L + 0.6 : RAM_L, c0 = glass ? 0 : 0.18, amp = glass ? (both ? rand(0.45, 0.55) : rand(0.5, 0.58)) : 0.3, w0 = Math.sqrt(G / L);
-    for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc.arch = false; dc.pyr = null; for (const sd of sides) dc[sd < 0 ? "wl" : "wr"] = false; } // room to swing out
+    for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc.arch = false; dc.pyr = null; for (const sd of sides) dc[sd < 0 ? "wl" : "wr"] = dc[sd < 0 ? "wl0" : "wr0"] = false; } // room to swing out
     for (const side of sides) {
       const root = new THREE.Group(); root.matrixAutoUpdate = false;
       root.add(new THREE.Mesh(ramBeamGeo, frameMat));
@@ -4522,7 +4531,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const HM_PIER = 3.4, HM_BACK = 1.0, hmArmGeo = new THREE.BoxGeometry(0.3, 0.3, 1.0 - 0.3), hmPostGeo = new THREE.BoxGeometry(0.34, HM_V + 2, 0.34), hmAxleGeo = new THREE.BoxGeometry(1.6, 0.3, 0.3), hmHeadGeo = new THREE.BoxGeometry(1.5, 0.85, 1.0), hmCapGeo = new THREE.BoxGeometry(1.58, 0.16, 1.08);
   // axe (Carcer): a headsman's mill on a stone pillar behind it, four single-bitted axes or two double-bitted ones
   function addHammerMill(s, side, dir, count = 2, axe = false) {
-    if (!axe) for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc[side < 0 ? "wl" : "wr"] = false; dc.arch = false; dc.pyr = null; }
+    if (!axe) for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc[side < 0 ? "wl" : "wr"] = dc[side < 0 ? "wl0" : "wr0"] = false; dc.arch = false; dc.pyr = null; }
     const root = new THREE.Group(); root.matrixAutoUpdate = false; root.add(new THREE.Mesh(hmHubGeo, axe ? frameMat : steelMat)); // the hub the handles turn on, in steel
     if (axe) { // the pillar stands behind the mill, so the axes sweep clear of it
       const pl = new THREE.Mesh(pillarGeo, blockMat); pl.position.set(0, HALL_H / 2 - 3.7, -1.0); root.add(pl);
@@ -5311,7 +5320,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     lastCataS = s;
     const side = Math.random() < 0.5 ? -1 : 1, kind = want || cataNext; if (!want) cataNext = kind === "catapult" ? "crossbow" : "catapult";
     const c = { s, cs: s - CATA_LEAD, side, kind, fired: false, broken: false, passed: false, a: 0, shot: null, inv: new THREE.Matrix4(), twp: new THREE.Vector3() };
-    for (let k = Math.floor((c.cs - 3) / SL); k <= Math.floor((c.cs + 3) / SL); k++) { const dc = getDecor(k); dc.arch = false; dc.wl = dc.wr = dc.ceil = false; } // no frame and no glass through the weapon
+    for (let k = Math.floor((c.cs - 3) / SL); k <= Math.floor((c.cs + 3) / SL); k++) { const dc = getDecor(k); dc.arch = false; dc.wl = dc.wr = dc.ceil = false; dc.wl0 = dc.wr0 = dc.ceil0 = false; } // no frame and no glass through the weapon
     c.slab = new THREE.Group(); c.slab.matrixAutoUpdate = false; scene.add(c.slab);
     part(cataSlabGeo, slabGlass, c.slab, true).position.y = HEX_V;
     c.root = new THREE.Group(); c.root.matrixAutoUpdate = false; scene.add(c.root);

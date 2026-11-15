@@ -1564,7 +1564,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const plainGlassMat = new THREE.MeshStandardMaterial({ color: 0xdfe8f4, emissive: 0x30384a, transparent: true, opacity: 0.22, roughness: 0.05, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide });
   const glassWallMat = new THREE.MeshStandardMaterial({ map: wallTex.map, emissiveMap: wallTex.emi, transparent: true, opacity: 0.3, roughness: 0.08, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide });
   const plainGlassWallMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.3, roughness: 0.08, metalness: 0.2, depthWrite: false, side: THREE.DoubleSide }); // Lux: glass walls without the seams
-  const plainCeilMat = new THREE.MeshLambertMaterial(); // Lux: a roof without the floor's lit seams
+  const plainCeilMat = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide }); // Lux and Labyrinthus: a roof without the floor's lit seams
   const quartzMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.78, roughness: 0.12, metalness: 0.35, flatShading: true });
   // Rubinus's rubies: each facet its own depth of red, as a cut stone throws back the light: garnet dark to bright, now and then one
   // flashing rose-white; facets that lie in one plane (a pentagon's three triangles, a quad's two) take one colour
@@ -2089,20 +2089,25 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
   }
   const RING_SX = (H / 2 - 0.05) * 1.15 / 4.92, RING_SY = RING_SX; // a true circle, clear of the walls
-  const LUXW_MAX = 400, luxWallGeo = new THREE.BufferGeometry(); // (stretches: both sides, the whole of what is drawn ahead and behind)
-  luxWallGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 18), 3)); luxWallGeo.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 18), 3));
-  const luxWalls = new THREE.Mesh(luxWallGeo, plainGlassWallMat); luxWalls.frustumCulled = false; luxWalls.visible = false; scene.add(luxWalls);
+  // a sheet of quads, one a stretch of track, each sharing its ends with the next: Lux's glass walls; Lux's and Labyrinthus's roof
+  const LUXW_MAX = 400, sheet = mat => { const g = new THREE.BufferGeometry(); // (stretches: both sides, the whole of what is drawn ahead and behind)
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 18), 3)); g.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(LUXW_MAX * 18), 3));
+    const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.visible = false; scene.add(m); m.nq = 0; return m; };
+  const luxWalls = sheet(plainGlassWallMat), roofSheet = sheet(plainCeilMat);
+  // one stretch, s0 → s1: its edge (u0, v0) → (u1, v1) across the track, the normal along the frame's (nu, nv)
+  const sheetQuad = (m, s0, s1, u0, v0, u1, v1, nu, nv) => { if (m.nq >= LUXW_MAX) return; const lp = m.geometry.attributes.position.array, ln = m.geometry.attributes.normal.array, pts = [];
+    for (const sx of [s0, s1]) { frameAt(sx); const nn = [_R.x * nu + _U.x * nv, _R.y * nu + _U.y * nv, _R.z * nu + _U.z * nv];
+      for (const [u, v] of [[u0, v0], [u1, v1]]) pts.push([[_P.x + _R.x * u + _U.x * v, _P.y + _R.y * u + _U.y * v, _P.z + _R.z * u + _U.z * v], nn]); }
+    let o = m.nq * 18; for (const i of [0, 2, 3, 0, 3, 1]) { lp.set(pts[i][0], o); ln.set(pts[i][1], o); o += 3; } m.nq++; };
+  const sheetDone = m => { m.geometry.setDrawRange(0, m.nq * 6); m.geometry.attributes.position.needsUpdate = true; m.geometry.attributes.normal.needsUpdate = true; m.visible = m.nq > 0; m.nq = 0; };
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
     // Lux: its glass walls one continuous sheet each side, every stretch sharing its ends with the next (separate panels showed a
     // line at each joint: lapped, the glass twice as thick there; butted, a gap on the outside of a bend)
-    let nq = 0; const lp = luxWallGeo.attributes.position.array, ln = luxWallGeo.attributes.normal.array;
-    const luxQuad = (s0, s1, u, h) => { if (nq >= LUXW_MAX) return;
-      frameAt(s0); const a0 = [_P.x + _R.x * u, _P.y + _R.y * u, _P.z + _R.z * u], a1 = [a0[0] + _U.x * h, a0[1] + _U.y * h, a0[2] + _U.z * h], na = [_R.x, _R.y, _R.z];
-      frameAt(s1); const b0 = [_P.x + _R.x * u, _P.y + _R.y * u, _P.z + _R.z * u], b1 = [b0[0] + _U.x * h, b0[1] + _U.y * h, b0[2] + _U.z * h], nb = [_R.x, _R.y, _R.z];
-      let o = nq * 18; for (const [v, nn] of [[a0, na], [b0, nb], [b1, nb], [a0, na], [b1, nb], [a1, na]]) { lp.set(v, o); ln.set(nn, o); o += 3; } nq++; };
-    const putWall = (key, s, u, hh = SH) => { if (key === "gwall" && LEVEL.id === "lux") { luxQuad(s - SL / 2, s + SL / 2, u, hh); return; } I[key].setMatrixAt(n[key]++, placeM(M, s, u, hh / 2).scale(SV.set(1, hh / H, 1))); }; // as tall as the shell (or the hall)
+    // a wall block as long as its outer face's stretch, and a little over: on a bend the blocks had parted on the outside
+    const wallLen = (s, u) => { frameAt(s - SL / 2); const x = _P.x + _R.x * u, y = _P.y + _R.y * u, z = _P.z + _R.z * u; frameAt(s + SL / 2); return Math.max(SL, Math.hypot(_P.x + _R.x * u - x, _P.y + _R.y * u - y, _P.z + _R.z * u - z)) + 0.03; };
+    const putWall = (key, s, u, hh = SH) => { if (key === "gwall" && LEVEL.id === "lux") { sheetQuad(luxWalls, s - SL / 2, s + SL / 2, u, 0, u, hh, -Math.sign(u), 0); return; } const k = key === "wall" ? wallLen(s, u + Math.sign(u) * 0.12) / (SL + 0.03) : 1; I[key].setMatrixAt(n[key]++, placeM(M, s, u, hh / 2).scale(SV.set(1, hh / H, k))); }; // as tall as the shell (or the hall)
     // Speculum's corkscrew rides on a spiral concrete arch under its deck, a turn of it from pier to pier: deep under the deck
     // over each pier (there the deck is upright, at the bottom of a turn), up under it at the crown half a turn on, with
     // spandrel posts between. Its piers are reinforced; at its two ends the deck widens into a platform on heavy columns
@@ -2149,7 +2154,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       else if (dec.wl && open !== -1) putWall(wk, s, -ww - 0.12, wh);
       if (dec.wr && open !== 1 && !STYLE.bare) putWall(wk, s, ww + 0.12, wh);
-      if (dec.ceil && !STYLE.closed && !STYLE.bare) I.ceil.setMatrixAt(n.ceil++, placeM(M, s, 0, wh).scale(SV.set(ww / W, 1, LEVEL.id === "lux" ? 1.07 : 1))); // (Lux's roof lapped well over: on a bend its outer edge parted) // a closed maze has a continuous vault instead
+      if (dec.ceil && !STYLE.closed && !STYLE.bare) { if (LEVEL.id === "lux" || LEVEL.id === "labyrinthus") sheetQuad(roofSheet, s - SL / 2, s + SL / 2, -ww, wh, ww, wh, 0, -1); else I.ceil.setMatrixAt(n.ceil++, placeM(M, s, 0, wh).scale(SV.set(ww / W, 1, 1))); } // (Lux and Labyrinthus: the roof one sheet, no slabs, no gaps on a bend) // a closed maze has a continuous vault instead
       if (LEVEL.halls && !!dec.hw !== !!getDecor(k - 1).hw && (dec.hw || getDecor(k - 1).hw)) { // where a corridor meets a hall: the hall's end wall, seen from both sides
         const s0 = k * SL;
         I.portal.setMatrixAt(n.portal++, placeM(M, s0, 0, 0));
@@ -2284,7 +2289,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (n[key] > I[key].instanceMatrix.count) growInst(key, n[key]);
       I[key].count = Math.min(n[key], I[key].instanceMatrix.count); I[key].instanceMatrix.needsUpdate = true;
     }
-    luxWallGeo.setDrawRange(0, nq * 6); luxWallGeo.attributes.position.needsUpdate = true; luxWallGeo.attributes.normal.needsUpdate = true; luxWalls.visible = nq > 0;
+    sheetDone(luxWalls); sheetDone(roofSheet);
     for (const k of decor.keys()) if (k < k0 - 2) decor.delete(k);
   }
 
@@ -6074,7 +6079,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
     [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;
     mirStrips.forEach(m => { m.o = m.k * 2 * (SW + 0.12); });
-    I.ceil.material = lv.id === "vitrum" ? glassWallMat : lv.id === "lux" ? plainCeilMat : surfMat; // Vitrum's roof, where there is one, of clear glass
+    I.ceil.material = lv.id === "vitrum" ? glassWallMat : surfMat; // Vitrum's roof, where there is one, of clear glass
     I.gwall.material = lv.id === "lux" ? plainGlassWallMat : glassWallMat; // Lux: its roof and its glass walls whole, no lit seams (they read as gaps between the panels)
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, STYLE.floor || { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", mirror: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;

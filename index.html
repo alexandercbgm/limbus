@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.292</div>
+      <div class="credit version">v1.0.293</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.292`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.293`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1943,7 +1943,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus and Hortus, squeezed to fit (RING_SX, RING_SY)
     coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),
     block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 900),
-    drop: inst(new THREE.SphereGeometry(1, 28, 18), dropMat, 120), // Speculum's mercury drops
+    drop: inst(new THREE.SphereGeometry(1, 20, 12), dropMat, 120), // Speculum's mercury drops
     rebar: inst(new THREE.CylinderGeometry(0.03, 0.03, 1, 6), rebarMat, 500), // Carcer: rebar out of broken concrete
     lamp: inst(new THREE.BoxGeometry(0.5, 0.22, 0.9), lampMat, 60),
     lampCage: inst(new THREE.BoxGeometry(0.6, 0.3, 1.0), cageMat, 60),
@@ -3354,7 +3354,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const hw = p.w / 2, hh = p.h / 2;
     lx = clamp(lx, -hw + 0.03, hw - 0.03); ly = clamp(ly, -hh + 0.03, hh - 0.03);
     // as many spokes on a small pane as on a big one (the broad panes of 50 m², 20), so a small one breaks the same way, scaled down
-    const area = p.w * p.h, n = area > 30 ? 20 : 18;
+    const area = p.w * p.h, n = STYLE.mirror ? 12 : area > 30 ? 20 : 18; // (Speculum: fewer, its halls already drawn twice over in its mirrors: a burst there cost a phone several frames)
     const step = TAU / n, base = Math.random() * TAU, angs = [];
     for (let i = 0; i < n; i++) angs.push(base + i * step + (Math.random() - 0.5) * step * 0.55);
     angs.sort((a, b) => a - b);
@@ -3427,7 +3427,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     cx /= pts2.length; cy /= pts2.length;
     // a piece of glass as thick as glass, with its edges catching the light, not a flat film fluttering like torn plastic
     const pl = pts2.map(q => [q.x - cx, q.y - cy]), geo = prismGeo(pl, SHARD_T);
-    const m = new THREE.Mesh(geo, p.mat); m.add(new THREE.LineSegments(prismEdges(pl, SHARD_T), p.mat === glassMat ? edgeMat : reinfEdgeMat));
+    const m = new THREE.Mesh(geo, p.mat); if (!STYLE.mirror) m.add(new THREE.LineSegments(prismEdges(pl, SHARD_T), p.mat === glassMat ? edgeMat : reinfEdgeMat)); // (in Speculum no lit edges: each a draw of its own)
     let size = 0; pts2.forEach(q => { size = Math.max(size, Math.hypot(q.x - cx, q.y - cy)); });
     m.position.copy(p.C).addScaledVector(p.R, cx).addScaledVector(p.U, cy);
     m.quaternion.copy(p.q);

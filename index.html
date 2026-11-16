@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.306</div>
+      <div class="credit version">v1.0.307</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.306`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.307`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1361,6 +1361,28 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         return galaxyAx(n, vec3(0.62, 0.55, 0.47), 0.55, normalize(cross(bhd, vec3(1.0, 0.8, 0.0)))) +
           vec3(0.9, 0.92, 1.0) * starAt(n, 320.0, 0.965) * 0.55 + vec3(0.003, 0.003, 0.004);
       }
+      // Lux's sky: big spiral galaxies set round the sky away from the supernova, a few small ones, and a nebula opposite it
+      vec3 luxGalaxy(vec3 n, vec3 gd, float sz, float tilt, float tw, float seed, vec3 tint) {
+        float cz = dot(n, gd); if (cz < cos(sz * 5.0)) return vec3(0.0);
+        vec3 ax = normalize(cross(gd, vec3(0.0, 1.0, 0.0))), ay = cross(gd, ax);
+        float px0 = dot(n, ax), py0 = dot(n, ay);
+        vec2 q = vec2(px0 * cos(tw) + py0 * sin(tw), (-px0 * sin(tw) + py0 * cos(tw)) / tilt) / sz;
+        float r = length(q), a = atan(q.y, q.x);
+        float arm = pow(0.5 + 0.5 * cos(2.0 * a - 4.2 * log(r + 0.05) + seed), 3.0), clump = fbm(vec3(q * 2.5, seed));
+        float disc = exp(-r * 1.9) * (0.2 + 0.8 * arm * (0.6 + 0.8 * clump)) * smoothstep(0.05, 0.3, r), core = exp(-r * r * 22.0);
+        float dust = smoothstep(0.55, 0.75, fbm(vec3(q * 4.0, seed + 3.0))) * arm * exp(-r * 1.5); // dark lanes along the arms
+        return tint * disc * 0.75 * (1.0 - dust * 0.7) + vec3(1.0, 0.93, 0.82) * core * 0.8 + vec3(0.55, 0.65, 1.0) * arm * exp(-r * 3.0) * smoothstep(0.6, 0.8, clump) * 0.5;
+      }
+      vec3 luxNebula(vec3 n, vec3 nd, float t) {
+        float d = acos(clamp(dot(n, nd), -1.0, 1.0)); if (d > 1.0) return vec3(0.0);
+        vec3 w = n * 3.0 + vec3(fbm(n * 2.0 + 7.0), fbm(n * 2.0 + 13.0), fbm(n * 2.0 + 19.0)) * 1.6; // the clouds' shapes folded over
+        float gas = fbm(w + vec3(0.0, t * 0.004, 0.0)), fine = fbm(w * 3.1 + 5.0), dust = fbm(n * 7.0 + 31.0);
+        float mask = smoothstep(1.0, 0.15, d) * smoothstep(0.3, 0.68, gas);
+        vec3 col = mix(vec3(0.05, 0.7, 0.85), vec3(1.0, 0.2, 0.55), smoothstep(0.4, 0.68, fine)); // teal and rose,
+        col = mix(col, vec3(1.0, 0.75, 0.4), smoothstep(0.62, 0.8, gas) * 0.6); // gold where it is thickest
+        float lanes = smoothstep(0.5, 0.7, dust) * smoothstep(0.3, 0.5, gas); // dark lanes of dust across it
+        return col * mask * (0.9 + 1.0 * fine) * (1.0 - lanes * 0.85) + vec3(0.9, 0.95, 1.0) * starAt(n, 260.0, 0.985) * mask * 1.5; // young stars in it
+      }
       vec3 blackHole(vec3 n) {
         float ct = dot(n, bhd), th = acos(clamp(ct, -1.0, 1.0));
         vec3 P0 = normalize(n - bhd * ct + 1e-6), sky;
@@ -1457,10 +1479,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           c = mix(c, mix(fxc, vec3(1.0), 0.6) * (0.55 + 0.6 * (1.0 - lum * 0.5)), edge * amt);
           c += vec3(1.0, 0.9, 0.92) * starAt(n, 110.0, 0.978) * amt * (0.6 + 0.4 * sin(t * 4.0 + shade * 20.0)); // glints
         } else if (m == 4.0) { // Lux: deep space all round, no white horizon, and in it a supernova: a white-hot core with a long
-          // blue-white flare across it; round it a shell of gas torn into filaments, pink and violet within, fire at its rim; fine rays out through it
+          // blue-white flare across it; round it a shell of gas torn into filaments, pink and violet within, fire at its rim
           float hh = abs(h);
           c = mix(c, mix(vec3(0.10, 0.12, 0.30), vec3(0.025, 0.03, 0.09), smoothstep(0.0, 0.7, hh)), amt);
           c += galaxy(n, vec3(0.45, 0.55, 0.95), amt * 1.1);
+          // round the sky, away from the supernova: a nebula behind and to the left, three big galaxies and a few far ones
+          c += luxNebula(n, normalize(vec3(-0.55, 0.3, 0.78)), t) * amt;
+          c += luxGalaxy(n, normalize(vec3(-0.8, 0.42, -0.42)), 0.17, 0.42, 0.6, 1.0, vec3(0.7, 0.78, 1.0)) * amt * 1.8;
+          c += luxGalaxy(n, normalize(vec3(0.85, 0.35, 0.4)), 0.12, 0.75, 2.1, 4.0, vec3(1.0, 0.85, 0.72)) * amt * 1.6;
+          c += luxGalaxy(n, normalize(vec3(0.1, 0.85, 0.5)), 0.14, 0.55, 1.2, 7.0, vec3(0.8, 0.75, 1.0)) * amt * 1.6;
+          if (dot(n, sd) < 0.75) c += farGalaxies(n, amt * 1.2);
           vec3 ax = normalize(cross(sd, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sd);
           vec2 q = vec2(dot(n, ax), dot(n, ay)); float r = length(q), a = atan(q.y, q.x), front = step(0.0, dot(n, sd));
           const float R = 0.3; // the shell's angular radius, some 17 degrees
@@ -1468,12 +1496,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           float rr = r / (0.84 + 0.32 * f1); // its edge torn
           float shell = exp(-pow((rr - R) / 0.06, 2.0)) * (0.25 + 1.5 * smoothstep(0.42, 0.78, f2)) + exp(-pow((rr - R * 0.9) / 0.13, 2.0)) * 0.35 * smoothstep(0.3, 0.7, f1);
           float inner = smoothstep(R * 1.02, R * 0.1, rr) * smoothstep(0.32, 0.78, f3) * (0.45 + 0.9 * f2);
-          float rays = pow(0.5 + 0.5 * sin(a * 48.0 + f1 * 8.0), 10.0) * exp(-r * 6.0);
           float core = exp(-r * 70.0) * 3.0 + exp(-r * 16.0) * 0.9 + exp(-r * 5.0) * 0.18;
-          float flare = exp(-abs(q.y) * 260.0) * exp(-abs(q.x) * 1.6) * 1.5 + exp(-abs(q.y) * 45.0) * exp(-abs(q.x) * 3.5) * 0.4;
+          // its flare a band along the great circle through it, so it runs on round the sky, fading, not ending at a ninety-degree edge
+          float off = dot(n, ay), along = acos(clamp(dot(normalize(n - ay * off), sd), -1.0, 1.0));
+          float flare = exp(-abs(off) * 260.0) * (exp(-along * 1.1) * 1.4 + 0.12) + exp(-abs(off) * 45.0) * exp(-along * 3.0) * 0.4;
           vec3 fire = mix(vec3(1.0, 0.32, 0.08), vec3(1.0, 0.72, 0.3), f2), gas = mix(vec3(0.9, 0.5, 0.72), vec3(0.55, 0.52, 1.0), f1);
-          vec3 nova = fire * shell + gas * inner * 0.95 + vec3(0.75, 0.82, 1.0) * rays * 0.4 + vec3(0.82, 0.9, 1.0) * (core + flare);
-          c += nova * front * amt * sunK;
+          vec3 nova = fire * shell + gas * inner * 0.95 + vec3(0.82, 0.9, 1.0) * core;
+          c += (nova * front + vec3(0.82, 0.9, 1.0) * flare) * amt * sunK;
         }
         gl_FragColor = vec4(c, 1.0); }`,
   }));

@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.339</div>
+      <div class="credit version">v1.0.340</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -874,7 +874,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const START_BALLS = 30, R_BALL = 0.18, G = 11, MAX_SHARDS = 520;
   const SPAWN_AHEAD = 118, LAMBDA = 14, BASE_SPEED = 12.5;
   // along s a level is: the main run, then the Iudicium finale, then the arrival station; the cart stops at END_S
-  const SUPER_LEN = 260, STATION_LEN = 40;
+  let SUPER_LEN = 260; const STATION_LEN = 40; // (a level may have a longer finale: Lux's Triumphus is twice as long)
   let MAIN_LEN = 1500, SUPER_END = MAIN_LEN + SUPER_LEN, END_S = SUPER_END + STATION_LEN;
   // the language: English or Russian, remembered; English at first
   // Telegram: the page opened as a bot's Mini App (telegram-web-app.js is loaded only in the Telegram build)
@@ -895,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.339`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.340`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6281,7 +6281,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       desc: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах стальные решётки на цепях, парящие лазерные балки и сетки и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
       feats: ["Залы с решётками на цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Effugium: побег через камеры"],
       req: { after: "speculum", fare: 30 }, map: { x: 825, y: 440, label: "t" } },
-    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 3200, pal: PAL_LUX, finale: "triumphus",
+    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 3200, superLen: 520, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "cube", glassWalls: true, bridge: true, floor: "plain" }, spaceMul: 1.35, crystalMul: 1.5, armor: 1, gainMul: 0.85,
       gateKinds: ["v"], // Nox's gates, as they are there
       // on the bridge: Nox's laser mills and bars, its gates and great gears, Vitrum's catapults and crossbows, Rubinus's walls of glass
@@ -6474,7 +6474,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     I.block.material = lv.id === "lux" ? luxBlockMat : lv.id === "abyssus" ? noxBlockMat : blockMat; // Vitrum's roof, where there is one, of clear glass
     I.gwall.material = lv.id === "lux" ? plainGlassWallMat : glassWallMat; // Lux: its roof and its glass walls whole, no lit seams (they read as gaps between the panels)
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, STYLE.floor || { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", mirror: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
-    MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
+    MAIN_LEN = lv.len; SUPER_LEN = lv.superLen || 260; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
     planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries

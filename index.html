@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.307</div>
+      <div class="credit version">v1.0.308</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -892,7 +892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.307`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.308`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -947,14 +947,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     LUXH = []; LTW = [];
     if (LEVEL.id !== "lux") return;
     const kinds = ["drill", "screw", "spiral"].sort(() => Math.random() - 0.5), L = MAIN_LEN;
-    LUXH.push({ a: Math.round(L * 0.08 + rand(-20, 20)), b: 0 }); LUXH[0].b = LUXH[0].a + Math.round(rand(70, 95));
     kinds.forEach((kind, i) => {
       const len = kind === "drill" ? 230 : kind === "screw" ? 190 : 280, c = L * (0.26 + i * 0.27) + rand(-50, 50), tw0 = Math.round(c - len / 2);
       const m = { kind, tw0, tw1: tw0 + len, len, sw: tw0 - 60, dir: Math.random() < 0.5 ? -1 : 1, pdir: Math.random() < 0.5 ? -1 : 1 };
       if (kind === "drill") Object.assign(m, { turns: 4, r: 8.5 }); else if (kind === "screw") Object.assign(m, { turns: 2, r: 11 }); else Object.assign(m, { turns: 2, pitch: 0.13 });
-      m.dirNow = m.dir; m.pdirNow = m.pdir; LTW.push(m);
-      const a = Math.round(m.tw1 + rand(90, 150)), b = a + Math.round(rand(70, 100)); // and a hall after it
-      if (b < L - 40) LUXH.push({ a, b });
+      m.dirNow = m.dirFrom = m.dir; m.pdirNow = m.pdirFrom = m.pdir; m.mt = 99; LTW.push(m);
     });
     // its own bends, none on a manoeuvre, at its gantry or in a hall's mouth
     TURNS = []; let t = 70, sg = Math.random() < 0.5 ? 1 : -1;
@@ -3343,7 +3340,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         break;
       }
       case "gate": case "pendulum":
-        if (s - lastHangerS > (LUXH.length ? 26 : 70)) { addHanger(s, pat); lastHangerS = s; } // keep monoliths at least 70 m apart (in Lux's short halls, one after another)
+        if (s - lastHangerS > (LTW.length ? 45 : 70)) { addHanger(s, pat); lastHangerS = s; } // keep monoliths at least 70 m apart (on Lux's long bridge 45)
         else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) });
         break;
       case "imps": { const n = d > 0.8 ? 4 : 3; for (let i = 0; i < n; i++) addImp(s + i * 5, rand(-2.4, 2.4), rand(1.3, 4.2)); break; }
@@ -3707,6 +3704,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const xs = pend ? [0] : [-(w / 2 - 0.35), w / 2 - 0.35]; // a wide grate too hangs on two chains
     const chains = xs.map(x => { const m = makeChain(L); m.position.x = x; root.add(m); return { x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
     xs.forEach(x => { const plate = new THREE.Mesh(mountGeo, frameMat); plate.position.set(x, 0.02, 0); plate.userData.mount = true; root.add(plate); }); // anchor plates
+    if (openAt(s)) { // over a bridge (Lux) nothing to hang from: a square arch stands on the deck for it, and stays when it is shot down
+      const AX = BRIDGE_W + 0.65;
+      for (const sd of [-1, 1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.32, top + 0.3, 0.32), frameMat); post.position.set(sd * AX, -top / 2 + 0.15, 0); post.userData.mount = true; root.add(post); }
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(2 * AX + 0.32, 0.32, 0.42), frameMat); beam.position.y = 0.22; beam.userData.mount = true; root.add(beam);
+    }
     scene.add(root);
     // a monolith always hangs under a ceiling: close the vault over it
     for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) getDecor(k).ceil = true;
@@ -5116,16 +5118,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function paintSwitch(sw) { for (const t of sw.targets) t.disc.material = swChosen(sw, t) ? targetOn : targetOff; }
   function hitSwitch(sw, t) {
     if (sw.locked || swChosen(sw, t)) return false;
-    sw.m.dir = t.x; if (t.y) sw.m.pdir = t.y; paintSwitch(sw);
+    const m = sw.m; m.dirFrom = m.dirNow; m.pdirFrom = m.pdirNow; m.mt = 0; // the swing over starts from where the track is now, gently
+    m.dir = t.x; if (t.y) m.pdir = t.y; paintSwitch(sw);
     Sound.tone(520, 0.18, 0.1, "triangle", 0, 900); Sound.tone(260, 0.5, 0.08, "sine", 0, 60); addScore(10);
     return true;
   }
   function updateSwitches(dt) {
-    for (const m of LTW) { const k = 1 - Math.exp(-dt * 3); m.dirNow += (m.dir - m.dirNow) * k; m.pdirNow += (m.pdir - m.pdirNow) * k; } // the track swings over to the way chosen
+    for (const m of LTW) { m.mt += dt; const k = smooth5(Math.min(1, m.mt / 1.6)); m.dirNow = lerp(m.dirFrom, m.dir, k); m.pdirNow = lerp(m.pdirFrom, m.pdir, k); } // the track swings over to the way chosen: easing in and out over 1.6 s (at once it had leapt)
     for (const sw of switches) {
       setObj(sw.root, sw.s, 0, 0); sw.root.updateMatrixWorld(true);
       for (const t of sw.targets) t.g.getWorldPosition(t.wp);
-      if (!sw.locked && sC > sw.m.tw0 - 30) { sw.locked = true; sw.m.dirNow = sw.m.dir; sw.m.pdirNow = sw.m.pdir; for (const t of sw.targets) if (!swChosen(sw, t)) t.disc.material = targetOff; }
+      if (!sw.locked && sC > sw.m.tw0 - 30) { sw.locked = true; for (const t of sw.targets) if (!swChosen(sw, t)) t.disc.material = targetOff; }
     }
     switches = switches.filter(sw => sw.s > sC - 20 || (scene.remove(sw.root), false));
   }
@@ -5422,6 +5425,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let catas = [], lastCataS = -1e9, cataNext = Math.random() < 0.5 ? "catapult" : "crossbow"; // the two in turn
   const CATA_COST = 4, CATA_GAP = 80, CATA_LEAD = 18, CATA_K = 1.1, CATA_TG = 0.8 * 1.1; // its toll, the least room between two, its lead on its glass (midway between frames), its size, how far out it stands, its target's reach
   const HEX_PTS = Array.from({ length: 6 }, (_, k) => [Math.cos(k * Math.PI / 3) * 4.9, Math.sin(k * Math.PI / 3) * 4.9]); // the frame's hexagon (flat on top and bottom)
+  // Lux's slabs square cut, as wide as its bridge and a little over (a hexagon fills Vitrum's frames; Lux has none): about the same middle
+  const SLAB_RECT = [[-2.7, -4.2], [2.7, -4.2], [2.7, 1.3], [-2.7, 1.3]], SLAB_RECT_CY = -1.45;
+  const cataRectGeo = new THREE.ExtrudeGeometry(new THREE.Shape(SLAB_RECT.map(([x, y]) => new THREE.Vector2(x, y))), { depth: 0.6, bevelEnabled: false }).translate(0, 0, -0.3);
+  const inSlab = (c, x, y, m) => c.pts === HEX_PTS ? inHex(x, y, m) : Math.abs(x) <= 2.7 - m && y - HEX_V >= -4.2 + m && y - HEX_V <= 1.3 - m;
   const cataSlabGeo = (() => { const sh = new THREE.Shape(HEX_PTS.map(([x, y]) => new THREE.Vector2(x, y))); return new THREE.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: false }).translate(0, 0, -0.3); })();
   // the thick glass bends the sky behind it: it draws the sky the game has drawn this frame (skyRT), shifted by its own
   // curve, bright at its rims; one more texture read where it shows, no extra pass
@@ -5471,7 +5478,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const c = { s, cs: s - CATA_LEAD, side, kind, fired: false, broken: false, passed: false, a: 0, shot: null, inv: new THREE.Matrix4(), twp: new THREE.Vector3() };
     for (let k = Math.floor((c.cs - 3) / SL); k <= Math.floor((c.cs + 3) / SL); k++) { const dc = getDecor(k); dc.arch = false; dc.wl = dc.wr = dc.ceil = false; dc.wl0 = dc.wr0 = dc.ceil0 = false; } // no frame and no glass through the weapon
     c.slab = new THREE.Group(); c.slab.matrixAutoUpdate = false; scene.add(c.slab);
-    part(cataSlabGeo, slabGlass, c.slab, true).position.y = HEX_V;
+    c.pts = LEVEL.id === "lux" ? SLAB_RECT : HEX_PTS; c.cy = c.pts === SLAB_RECT ? SLAB_RECT_CY : 0;
+    part(c.pts === SLAB_RECT ? cataRectGeo : cataSlabGeo, slabGlass, c.slab, true).position.y = HEX_V;
     c.root = new THREE.Group(); c.root.matrixAutoUpdate = false; scene.add(c.root);
     const body = c.body = new THREE.Group(); body.scale.setScalar(CATA_K); c.root.add(body);
     // the target as on Carcer's doors, on a round plate its own size, out on a short arm over the weapon, square to the tunnel
@@ -5525,16 +5533,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the glass bursts in big pieces: wedges from the point struck to the frame, each cut again across, all of the glass's thickness
   function burstCataSlab(c, byCart) {
     c.broken = true; c.slab.updateMatrixWorld(true);
-    const ix = rand(-0.8, 0.8), iy = rand(-0.6, 0.6), n = 8, a0 = rand(0, TAU);
+    const ix = rand(-0.8, 0.8), iy = rand(-0.6, 0.6) + c.cy, n = 8, a0 = rand(0, TAU), PTS = c.pts;
     const edgeAt = a => { const dx = Math.cos(a), dy = Math.sin(a); let best = 1e9;
-      for (let i = 0; i < 6; i++) { const [x1, y1] = HEX_PTS[i], [x2, y2] = HEX_PTS[(i + 1) % 6], ex = x2 - x1, ey = y2 - y1, den = dx * ey - dy * ex; if (Math.abs(den) < 1e-9) continue;
+      for (let i = 0; i < PTS.length; i++) { const [x1, y1] = PTS[i], [x2, y2] = PTS[(i + 1) % PTS.length], ex = x2 - x1, ey = y2 - y1, den = dx * ey - dy * ex; if (Math.abs(den) < 1e-9) continue;
         const t = ((x1 - ix) * ey - (y1 - iy) * ex) / den, u = ((x1 - ix) * dy - (y1 - iy) * dx) / den; if (t > 0 && u >= 0 && u <= 1) best = Math.min(best, t); }
       return [ix + dx * best, iy + dy * best]; };
-    const vAng = HEX_PTS.map(([x, y]) => Math.atan2(y - iy, x - ix));
-    const out = new THREE.Vector3(), ctr = new THREE.Vector3(0, HEX_V, 0).applyMatrix4(c.slab.matrixWorld);
+    const vAng = PTS.map(([x, y]) => Math.atan2(y - iy, x - ix));
+    const out = new THREE.Vector3(), ctr = new THREE.Vector3(0, HEX_V + c.cy, 0).applyMatrix4(c.slab.matrixWorld);
     for (let i = 0; i < n; i++) {
       const s0 = a0 + i * TAU / n + rand(-0.12, 0.12), s1 = a0 + (i + 1) * TAU / n + rand(-0.12, 0.12) * (i + 1 < n ? 1 : 0);
-      const mid = HEX_PTS.filter((p, k) => { const r = ((vAng[k] - s0) % TAU + TAU) % TAU; return r > 1e-6 && r < s1 - s0 - 1e-6; })
+      const mid = PTS.filter((p, k) => { const r = ((vAng[k] - s0) % TAU + TAU) % TAU; return r > 1e-6 && r < s1 - s0 - 1e-6; })
         .sort((p, q) => (((Math.atan2(p[1] - iy, p[0] - ix) - s0) % TAU + TAU) % TAU) - (((Math.atan2(q[1] - iy, q[0] - ix) - s0) % TAU + TAU) % TAU));
       const rim = [edgeAt(s0), ...mid, edgeAt(s1)], cut = rand(0.38, 0.55), inner = rim.map(([x, y]) => [ix + (x - ix) * cut, iy + (y - iy) * cut]);
       for (const poly of [[[ix, iy], ...inner], [...rim, ...inner.slice().reverse()]]) {
@@ -5592,7 +5600,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const c of catas) {
       if (Math.abs(c.s - sC) > 130) continue;
       if (!c.fired && pathDist(c.twp) < CATA_TG + R_BALL) { fireCatapult(c); chips(c.twp, targetOn, 5, vel); return "target"; }
-      if (!c.broken) { const l = DL.copy(pos).applyMatrix4(c.inv); if (Math.abs(l.z) < 0.3 + R_BALL && inHex(l.x, l.y, -0.2)) { Sound.knock(); chips(pos, slabGlass, 4, vel); return "glass"; } }
+      if (!c.broken) { const l = DL.copy(pos).applyMatrix4(c.inv); if (Math.abs(l.z) < 0.3 + R_BALL && inSlab(c, l.x, l.y, -0.2)) { Sound.knock(); chips(pos, slabGlass, 4, vel); return "glass"; } }
     }
     return null;
   }
@@ -6142,13 +6150,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       req: { after: "speculum", fare: 30 }, map: { x: 825, y: 440, label: "t" } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 3200, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "prism", glassWalls: true, bridge: true, floor: "plain" }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
-      gateKinds: ["v"], gateButton: "dome", // on the bridge Nox's gates; an iris at each hall's way in (planLux)
+      gateKinds: ["v"], // Nox's gates, as they are there
       // on the bridge: Nox's laser mills and bars, its gates and great gears, Vitrum's catapults and crossbows, Rubinus's walls of glass
       pats: { doors: [0.9, 1.2, 1.4], gears: [0.6, 0.9, 1.1], abspin: [0.5, 0.8, 1], abbar: [0.5, 0.8, 1], lblock: [0.5, 0.8, 1], catapult: [0.6, 0.8, 1], fblocks: [0.4, 0.7, 0.9],
         wall: [0.5, 0.7, 0.9], shutter: [0.3, 0.7, 1.1], zigzag: [0.3, 0.6, 0.9], rotor: [0.6, 1, 1.2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], reinf: [0, 0.8, 1.5],
-        triple: [1, 1, 0.8], double: [0, 1, 1.5], sides: [1.2, 0.6, 0], bonus: [1.5, 0.5, 0], lift: [0, 0, 0], imps: [0, 0, 0] },
-      // in a hall: monoliths on one chain or two, catapults and crossbows, laser beams on chains
-      hallPats: { gate: [1, 1.2, 1.4], pendulum: [0.9, 1, 1.2], catapult: [0.7, 1, 1.2], lhang: [0.3, 0.6, 0.9], center: [0.8, 0.8, 0.6] },
+        triple: [1, 1, 0.8], double: [0, 1, 1.5], sides: [1.2, 0.6, 0], bonus: [1.5, 0.5, 0], lift: [0, 0, 0], imps: [0, 0, 0], gate: [0.7, 0.9, 1.1], pendulum: [0.6, 0.8, 1], lhang: [0.3, 0.5, 0.7] },
+      // and monoliths on one chain or two and laser beams on chains, each from a square arch standing on the deck
       every: { catapult: 420, gears: 380, abbar: 300 },
       turns: [[110, 60, 50], [240, 60, -60], [370, 50, 45], [480, 80, -85], [640, 50, 50], [750, 60, -55], [870, 50, 45],
         [980, 70, -75], [1120, 50, 50], [1230, 60, -55], [1350, 50, 45], [1450, 60, -50]],
@@ -6338,7 +6345,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
     planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
     pgPlan = SPANS.length ? [SPANS[0].a - 120, ...SPANS.map(sp => sp.b + 75)] : []; // Speculum's prism gears: in the first halls, before the first bridge, and past each corkscrew
-    if (LTW.length) pgPlan = LUXH.map(h => Math.round(h.b + rand(40, 70))).filter(x => x < MAIN_LEN - 40 && !LTW.some(m => x > m.sw - 40 && x < m.tw1 + 20)); // Lux: one out on the bridge past each hall
+    if (LTW.length) pgPlan = [0.1, ...LTW.map(m => (m.tw1 + 90) / MAIN_LEN)].map(f => Math.round(f * MAIN_LEN + rand(-15, 15))).filter(x => x < MAIN_LEN - 60 && !LTW.some(m => x > m.sw - 70 && x < m.tw1 + 20)); // Lux: prism gears out on the bridge, between its manoeuvres
     if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind: "tall" }, { s: sp.b, kind: "tall" }]); }
     buildStation();
   }
@@ -6735,7 +6742,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const c of catas) {
       if (Math.abs(c.s - sC) > 130) continue;
       if (!c.fired) { tmpV.copy(c.twp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < CATA_TG * CATA_TG) hits.push({ d, kind: "cata", x: c }); }
-      if (!c.broken) { const t = rayBox(o, dir, c.inv.clone().premultiply(new THREE.Matrix4().makeTranslation(0, -HEX_V, 0)), 4.1, 4.1, 0.25); if (t >= 0) hits.push({ d: t, kind: "cataglass", x: c }); }
+      if (!c.broken) { const t = rayBox(o, dir, c.inv.clone().premultiply(new THREE.Matrix4().makeTranslation(0, -HEX_V - c.cy, 0)), c.cy ? 2.7 : 4.1, c.cy ? 2.75 : 4.1, 0.25); if (t >= 0) hits.push({ d: t, kind: "cataglass", x: c }); }
     }
     for (const bo of boughs) {
       if (bo.broken) continue;
@@ -7327,7 +7334,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (const g of sigils) if (g.alive && pathDist(g.wp) < 0.62 + R_BALL) { mark(); hitSigil(g, b); }
         for (const d of drops) if (d.alive && pathDist(d.wp) < (d.kind === "block" ? 0.85 : 0.57) + R_BALL) { mark(); hitDrop(d, b); }
         for (const f of forks) { const ft = !f.locked && f.cd === 0 && forkTarget(f); if (ft && pathDist(ft.wp) < FORK_TR + R_BALL) { mark(); flipFork(f); chips(ft.wp, targetOn, 5, b.v); dead = true; } }
-        if (!dead) for (const sw of switches) if (!sw.locked) for (const t of sw.targets) if (!dead && !swChosen(sw, t) && pathDist(t.wp) < SW_TR + R_BALL) { mark(); hitSwitch(sw, t); chips(t.wp, targetOn, 5, b.v); dead = true; }
+        if (!dead) for (const sw of switches) for (const t of sw.targets) if (!dead && pathDist(t.wp) < 0.66 + R_BALL) { mark(); if (!hitSwitch(sw, t)) Sound.knock(); chips(t.wp, t.disc.material, 5, b.v); dead = true; } // every one of them a plate the ball strikes
         if (!dead) for (const bo of boughs) {
           if (bo.broken || Math.abs(bo.s - sC) > 130) continue;
           const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.12));

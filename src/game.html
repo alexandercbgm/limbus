@@ -2184,7 +2184,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       decor.set(k, d); return d;
     }
-    const nb = STYLE.mirror ? 0 : (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
+    const nb = STYLE.mirror || LTW.some(m => s > m.sw - 30 && s < m.tw1 + 30) ? 0 : // (none over Lux's manoeuvres: reshaping, they would pass through the track)
+      (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
     for (let i = 0; i < nb; i++) {
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
       const side = h1 < 0.5 ? -1 : 1, tall = z < 0.4 && h3 < 0.35 && STYLE.blocks === "cube";
@@ -5126,7 +5127,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return true;
   }
   function updateSwitches(dt) {
-    for (const m of LTW) { m.mt += dt; const k = smooth5(Math.min(1, m.mt / 1.6)); m.dirNow = lerp(m.dirFrom, m.dir, k); m.pdirNow = lerp(m.pdirFrom, m.pdir, k); } // the track swings over to the way chosen: easing in and out over 1.6 s (at once it had leapt)
+    // the track swings over to the way chosen without passing through itself: it unwinds to straight, then (the spiral) its slope
+    // turns over while it is straight, then it winds up the new way; a spiral flattened while coiled had laid its turns through each other
+    for (const m of LTW) { m.mt += dt; const T = 0.8, slope = m.pdirFrom !== m.pdir ? T : 0;
+      const k1 = smooth5(Math.min(1, m.mt / T)), k2 = slope ? smooth5(clamp((m.mt - T) / T, 0, 1)) : 1, k3 = smooth5(clamp((m.mt - T - slope) / T, 0, 1));
+      m.dirNow = m.mt < T + slope ? m.dirFrom * (1 - k1) : m.dir * k3; m.pdirNow = lerp(m.pdirFrom, m.pdir, k2); }
     for (const sw of switches) {
       setObj(sw.root, sw.s, 0, 0); sw.root.updateMatrixWorld(true);
       for (const t of sw.targets) t.g.getWorldPosition(t.wp);

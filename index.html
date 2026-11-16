@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.313</div>
+      <div class="credit version">v1.0.314</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -867,8 +867,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const HALL_W = 8.5, HALL_H = 10;
   let HALLS = []; // [start, end] of each hall along the track, planned afresh for every ride
   const BRIDGE_W = 1.75, PYLON_H = 40; // Abyssus: half the bridge's width, and how far its pylons reach down
-  const DS = 1, BACK = 44, AHEAD_MAX = 300, NS = BACK + AHEAD_MAX + 1, SL = 2;
+  const DS = 1, BACK = 44, AHEAD_MAX = 480, NS = BACK + AHEAD_MAX + 1, SL = 2;
   let AHEAD = 150; // how far ahead the track is drawn: twice as far round Lux's spiral, whose coils show from across it
+  const spawnAhead = () => AHEAD - 4; // objects come into being at the drawn track's far end, where they melt in out of the sky
   let spiralHold = 0; // on Lux's spiral the track ahead does not tilt with the karma (its coils had bobbed like a spring); 0 → 1 over 40 m
   const START_BALLS = 30, R_BALL = 0.18, G = 11, MAX_SHARDS = 520;
   const SPAWN_AHEAD = 118, LAMBDA = 14, BASE_SPEED = 12.5;
@@ -894,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.313`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.314`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1511,6 +1512,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const skyScene = new THREE.Scene(); skyScene.add(sky);
   const skyRT = new THREE.WebGLRenderTarget(2, 2, { depthBuffer: false, stencilBuffer: false });
   scene.background = skyRT.texture;
+  // what is drawn far ahead melts in out of the sky behind it, not popping up: from 108 m to 146 m off every surface's colour is
+  // mixed into the sky's (read from the sky's own picture, so no fragment is thrown away: that would cost a phone's GPU); off where
+  // a closed corridor ends in a cap (the sky must not show through it)
+  const FADE = { a: { value: 1e6 }, b: { value: 1e6 + 1 }, sky: { value: skyRT.texture }, res: { value: new THREE.Vector2(1, 1) } };
+  THREE.Material.prototype.onBeforeCompile = function (sh) {
+    if (!/#include <fog_fragment>/.test(sh.fragmentShader)) return;
+    Object.assign(sh.uniforms, { fadeA: FADE.a, fadeB: FADE.b, fadeSky: FADE.sky, fadeRes: FADE.res });
+    sh.fragmentShader = "uniform float fadeA, fadeB; uniform sampler2D fadeSky; uniform vec2 fadeRes;\n" + sh.fragmentShader.replace("#include <fog_fragment>",
+      "#include <fog_fragment>\n  { float fk = smoothstep(fadeA, fadeB, 1.0 / gl_FragCoord.w); if (fk > 0.0) { gl_FragColor.rgb = mix(gl_FragColor.rgb, texture2D(fadeSky, gl_FragCoord.xy / fadeRes).rgb, fk); gl_FragColor.a *= 1.0 - fk * 0.6; } }");
+  };
   const bufSize = new THREE.Vector2();
   function renderSky() {
     renderer.getDrawingBufferSize(bufSize);
@@ -1519,6 +1530,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const div = skyUni.mode.value === 6 ? (PHONE ? Math.max(1.5, renderer.getPixelRatio()) : 1.5) : PHONE ? Math.max(2, renderer.getPixelRatio() * 1.5) : 2;
     const w = Math.max(2, Math.round(bufSize.x / div)), h = Math.max(2, Math.round(bufSize.y / div));
     if (skyRT.width !== w || skyRT.height !== h) skyRT.setSize(w, h);
+    FADE.res.value.copy(bufSize); const fadeOn = !STYLE.closed && !LEVEL.halls; FADE.a.value = fadeOn ? 108 : 1e6; FADE.b.value = fadeOn ? 146 : 1e6 + 1;
     skyUni.px.value = camera.fov * Math.PI / 180 / h; // the angle one of its pixels spans
     renderer.setRenderTarget(skyRT); renderer.render(skyScene, camera); renderer.setRenderTarget(null);
   }
@@ -3020,6 +3032,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // no glass that stands clear of the floor (a hovering block, a pane gliding up and down) ever comes down into the rails: its lowest
     // edge, at the bottom of its glide, kept 0.6 m over them (only a full-height pane or one in a wall stands on the floor)
     if (o.rot === undefined && o.v - o.h / 2 > 0.3) { const low = o.v - o.h / 2 - (o.move && o.move.axis === "v" ? Math.abs(o.move.amp) : 0); if (low < 0.6) o.v += 0.6 - low; }
+    // and none standing on the floor is sunk in the sleepers, the rails or the deck: its foot, at the bottom of any glide, just over
+    // the rails' tops (0.26), its top where it was
+    if (o.rot === undefined && o.v - o.h / 2 > -0.5) { const glide = o.move && o.move.axis === "v" ? Math.abs(o.move.amp) : 0, foot = o.v - o.h / 2 - glide, FOOT = 0.32;
+      if (foot < FOOT) { const top = o.v + o.h / 2; o.h = top - FOOT - glide; o.v = top - o.h / 2; } } // (a pane born under the deck, rising out of the void as Nox's, left be)
     // armoured glass is thick: one and a half times the band between its two frames (the inner one is 0.86 the size)
     if ((o.hp || 1) > 1 && !o.thick && !o.cross && o.rot === undefined) o.thick = 1.5 * 0.07 * Math.min(o.w, o.h);
     if (o.rot !== undefined) { // a turning bar or cross: its arms' whole reach kept over the rails
@@ -5529,6 +5545,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const bb = new THREE.Box3().setFromObject(body), wall = SW - 0.35;
     c.u = side > 0 ? wall - bb.max.x : -wall - bb.min.x;
     c.inner = side > 0 ? c.u + bb.min.x : -(c.u + bb.max.x); // how near the track its nearest part comes (clear of the cart past 1.6)
+    // where the floor stops short of it (Vitrum's narrow floor, Lux's bridge) a platform for it, out from the floor's edge and held to
+    // it: a deck as thick as the floor's own, a lip along its outer edge, and under it two struts back to the floor's underside
+    const fw = openAt(s) ? BRIDGE_W : STYLE.floorW || SW, outer = side > 0 ? c.u + bb.max.x : -(c.u + bb.min.x);
+    if (outer > fw - 0.05) {
+      const x0 = side * fw - c.u, x1 = side * (outer + 0.35) - c.u, z0 = bb.min.z - 0.35, z1 = bb.max.z + 0.35, w = Math.abs(x1 - x0) + 0.3, xc = (x0 + x1) / 2 - side * 0.15;
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(w, 0.52, z1 - z0), frameMat); deck.position.set(xc, -0.26 - 0.005, (z0 + z1) / 2); c.root.add(deck);
+      const lip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.2, z1 - z0), frameMat); lip.position.set(x1, 0.1, (z0 + z1) / 2); c.root.add(lip);
+      for (const z of [z0 + 0.3, z1 - 0.3]) { const a0 = new THREE.Vector3(x1 - side * 0.2, -0.5, z), a1 = new THREE.Vector3(side * (fw - 0.6) - c.u, -1.6, z), d = a1.clone().sub(a0);
+        const st = new THREE.Mesh(new THREE.BoxGeometry(0.18, d.length(), 0.18), frameMat); st.position.copy(a0).add(a1).multiplyScalar(0.5); st.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); c.root.add(st); }
+      const tie = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.2, z1 - z0), frameMat); tie.position.set(side * (fw - 0.6) - c.u, -1.6, (z0 + z1) / 2); c.root.add(tie); // where the struts meet, under the floor's edge
+      const hang = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.1, 0.2), frameMat); hang.position.set(side * (fw - 0.6) - c.u, -1.05, (z0 + z1) / 2); c.root.add(hang); // up to the floor's underside
+    }
     catas.push(c);
     clearZone(c.cs - 6, s + GATE_CLEAR); // nothing in the way between the weapon and its glass, nor just past it
     return c;
@@ -6372,7 +6400,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0; wheelsDone = 0; triStep = 0; wavesDone = 0; tessGrids = []; tessRow = 0; yyRow = 0; lastYY = -1;
     buildForks();
     computePath();
-    if (spawn) while (nextSpawn < SPAWN_AHEAD) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15); }
+    if (spawn) while (nextSpawn < spawnAhead()) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15); }
   }
   // the app goes to the background: the sound stops at once; back on the scheme it plays on
   window.__silence = () => { if (Sound.ctx && Sound.ctx.state === "running") Sound.ctx.suspend(); if (Sound.fallback) Sound.fallback.pause(); };
@@ -6928,7 +6956,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       pop(f.kinds[f.sign] === "rich" ? T("Богатая ветка", "Rich branch") : T("Тихая ветка · к Свету", "Quiet branch · toward the Light"), "info");
     }
     if (state === "play" && branchAt(sC) === "calm") pending += 0.012 * dt; // the quiet branch draws the cart up toward the Light
-    while (nextSpawn < sC + SPAWN_AHEAD) {
+    while (nextSpawn < sC + spawnAhead()) {
       // nothing spawns around a fork until its branch is chosen; the bend itself stays clear
       if (forks.some(f => !f.locked && nextSpawn > f.s - 36 && nextSpawn < f.s + 46)) break;
       const fl = forks.find(f => nextSpawn > f.s - 36 && nextSpawn < f.s + 46);

@@ -1638,7 +1638,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const ironBallMat = new THREE.MeshStandardMaterial({ map: ironTex, bumpMap: ironTex, bumpScale: 0.0015, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 }); // Ferrum's iron, chipped the same way
   const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const WHITE = new THREE.Color(0xffffff), accelRings = [];
-  const LUX_WHITE = new THREE.Color("#ffffff"), LUX_BLACK = new THREE.Color("#0a0a0e"), LUX_GOLD = new THREE.Color("#f0dc9c"), LUX_BLUE = new THREE.Color("#3a7bff");
+  const LUX_WHITE = new THREE.Color("#ffffff"), LUX_BLACK = new THREE.Color("#0a0a0e"), LUX_GOLD = new THREE.Color("#f0dc9c"), LUX_BLUE = new THREE.Color("#3a7bff"), LUX_TMP = new THREE.Color();
   const blueGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x6fd6ff, transparent: true, opacity: 0.55, depthWrite: false });
   // a mirage is a crystal's reflection: it shimmers, spins the other way, and pays nothing
   const mirageMat = crystalMat.clone(); mirageMat.transparent = true; mirageMat.opacity = 0.6; mirageMat.depthWrite = false;
@@ -1790,11 +1790,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     } else bhHead = null;
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
     shellMat.color.copy(cur.block).lerp(cur.frame, LEVEL.id === "lux" ? 0 : 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
-    const luxE = LEVEL.id === "lux" ? smooth5(clamp(-alt, 0, 1)) : 0; // Lux: white with gold down to the middle of the scale, then evenly on to black with blue
-    if (LEVEL.id === "lux") shellMat.color.copy(LUX_WHITE).lerp(LUX_BLACK, luxE);
+    const luxE = LEVEL.id === "lux" ? smooth5(clamp(-alt / 0.45, 0, 1)) : 0, luxB = LEVEL.id === "lux" ? smooth5(clamp(-alt / 0.3, 0, 1)) : 0; // Lux: white with gold down to the middle of the scale, then soon black with blue (the body darkens first: grey had lingered)
+    if (LEVEL.id === "lux") shellMat.color.copy(LUX_WHITE).lerp(LUX_BLACK, luxB);
     luxBlockMat.color.copy(shellMat.color);
     { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; shellIndirect.value = 1; const wk = smooth5((l - 0.45) / 0.4) * (Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) < 0.12 ? 1 : 0); c.lerp(WHITE, wk); shellDirect.value = lerp(1, 0.22, wk); } // (eased in, not at a threshold: the shell had jumped from grey to white) // a white shell takes less of the sky's light, so it stays white yet is not burnt out flat and the sun's glint shows // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
-    accentMat.color.copy(cur.accent); if (LEVEL.id === "lux" && alt < 0) accentMat.color.copy(LUX_GOLD).lerp(LUX_BLUE, luxE);
+    accentMat.color.copy(cur.accent); if (LEVEL.id === "lux" && alt < 0) accentMat.color.copy(LUX_GOLD).multiplyScalar(Math.max(0, 1 - 2 * luxE)).add(LUX_TMP.copy(LUX_BLUE).multiplyScalar(Math.max(0, 2 * luxE - 1))); // (the gold fades out, then the blue comes up: a mix of the two went by white and grey)
     ringMat.color.copy(accentMat.color).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
     const rubyWalls = LEVEL.id === "rubinus"; // its fence: less clear, its lines much brighter, so it shows

@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.335</div>
+      <div class="credit version">v1.0.336</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -895,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.335`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.336`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1520,12 +1520,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const FADE = { fogSky: { value: 0 }, a: { value: 1e6 }, b: { value: 1e6 + 1 }, sky: { value: skyRT.texture }, res: { value: new THREE.Vector2(1, 1) } };
   THREE.Material.prototype.onBeforeCompile = function (sh) {
     if (!/#include <fog_fragment>/.test(sh.fragmentShader)) return;
+    // the haze and the melting by the true distance from the eye, not by depth ahead: by depth, a thing off to the side went later
+    const rad = /#include <project_vertex>/.test(sh.vertexShader);
+    if (rad) sh.vertexShader = "varying float vFadeD;\n" + sh.vertexShader.replace("#include <project_vertex>", "#include <project_vertex>\n  vFadeD = length(mvPosition.xyz);");
     Object.assign(sh.uniforms, { fadeA: FADE.a, fadeB: FADE.b, fadeSky: FADE.sky, fadeRes: FADE.res, fadeFogSky: FADE.fogSky });
     // (over the open void, Nox's, Lux's, Vitrum's, the haze is the sky behind: a dark Dark's fog had drawn far things as black shapes on it)
     // (the sky behind, its thin bright lines taken out (the least of five reads 9 px apart): the supernova's flare, read through a far
     // gear's colour, had drawn the flare across the gear as if in front of it)
-    sh.fragmentShader = "uniform float fadeA, fadeB, fadeFogSky; uniform sampler2D fadeSky; uniform vec2 fadeRes;\nvec3 skyBack() { vec2 u = gl_FragCoord.xy / fadeRes, o = 9.0 / fadeRes; vec3 c = texture2D(fadeSky, u).rgb; c = min(c, texture2D(fadeSky, u + vec2(0.0, o.y)).rgb); c = min(c, texture2D(fadeSky, u - vec2(0.0, o.y)).rgb); c = min(c, texture2D(fadeSky, u + vec2(o.x, 0.0)).rgb); return min(c, texture2D(fadeSky, u - vec2(o.x, 0.0)).rgb); }\n" + sh.fragmentShader.replace("#include <fog_fragment>",
-      "#ifdef USE_FOG\n  { float ff = smoothstep(fogNear, fogFar, fogDepth); vec3 fto = mix(fogColor, skyBack(), fadeFogSky); gl_FragColor.rgb = mix(gl_FragColor.rgb, fto, ff); }\n#endif\n  { float fk = smoothstep(fadeA, fadeB, 1.0 / gl_FragCoord.w); if (fk > 0.0) { gl_FragColor.rgb = mix(gl_FragColor.rgb, skyBack(), fk); gl_FragColor.a *= 1.0 - fk * 0.6; } }");
+    sh.fragmentShader = (rad ? "varying float vFadeD;\n#define FADE_D vFadeD\n" : "#define FADE_D (1.0 / gl_FragCoord.w)\n") + "uniform float fadeA, fadeB, fadeFogSky; uniform sampler2D fadeSky; uniform vec2 fadeRes;\nvec3 skyBack() { vec2 u = gl_FragCoord.xy / fadeRes, o = 9.0 / fadeRes; vec3 c = texture2D(fadeSky, u).rgb; c = min(c, texture2D(fadeSky, u + vec2(0.0, o.y)).rgb); c = min(c, texture2D(fadeSky, u - vec2(0.0, o.y)).rgb); c = min(c, texture2D(fadeSky, u + vec2(o.x, 0.0)).rgb); return min(c, texture2D(fadeSky, u - vec2(o.x, 0.0)).rgb); }\n" + sh.fragmentShader.replace("#include <fog_fragment>",
+      "#ifdef USE_FOG\n  { float ff = smoothstep(fogNear, fogFar, FADE_D); vec3 fto = mix(fogColor, skyBack(), fadeFogSky); gl_FragColor.rgb = mix(gl_FragColor.rgb, fto, ff); }\n#endif\n  { float fk = smoothstep(fadeA, fadeB, FADE_D); if (fk > 0.0) { gl_FragColor.rgb = mix(gl_FragColor.rgb, skyBack(), fk); gl_FragColor.a *= 1.0 - fk * 0.6; } }");
   };
   const bufSize = new THREE.Vector2();
   function renderSky() {
@@ -7098,6 +7101,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     AHEAD = LTW.some(m => m.kind === "spiral" && sC > m.sw - 110 && sC < m.tw1 + 10) ? AHEAD_MAX : 150;
     BEHIND = LTW.some(m => m.kind === "spiral" && sC > m.tw0 && sC < m.tw1 + 150) ? 150 : 10;
     computePath();
+    if (AHEAD < AHEAD_MAX && !STYLE.closed && !LEVEL.halls) { // the track drawn, and things set down, out to where it is past the melting by a straight line, not by its own length: round a bend its end, nearer, was cut off still showing
+      const x0 = PP[BACK * 3], y0 = PP[BACK * 3 + 1], z0 = PP[BACK * 3 + 2]; let j = BACK + 146;
+      while (j < BACK + 330 && Math.hypot(PP[j * 3] - x0, PP[j * 3 + 1] - y0, PP[j * 3 + 2] - z0) < 150) j += 2;
+      AHEAD = j - BACK + 4;
+    }
     samplePalette(alt); tintBranch(dt); applyPalette();
     layoutCorridor();
     layoutStation();

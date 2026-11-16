@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.340</div>
+      <div class="credit version">v1.0.341</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -895,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.340`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.341`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1815,17 +1815,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the blocks' lit edges drawn by the shader, a fixed 3 cm wide whatever the block's size (a texture's lines grew fat on the big
   // ones), never under a pixel: the distance to the nearest edge on the face, in metres, from where the point is in the unit box
   // and the instance's own scale
-  const edgeLines = (mat, key, colour) => { mat.extensions = { derivatives: true };
+  const edgeLines = (mat, key, colour, lw0 = "0.03", px = "0.9") => { // lw0 the line's width in metres, px the least it may be in pixels mat.extensions = { derivatives: true };
     mat.onBeforeCompile = (sh, r) => { THREE.Material.prototype.onBeforeCompile.call(mat, sh, r); Object.assign(sh.uniforms, { luxGold, luxTime, noxLine, luxAcc: { value: accentMat.color } });
       sh.vertexShader = "varying vec3 vEdgeP, vEdgeS, vLuxW;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vEdgeP = position; vEdgeS = vec3(1.0); vec4 lw = vec4(transformed, 1.0);\n  #ifdef USE_INSTANCING\n  vEdgeS = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); lw = instanceMatrix * lw;\n  #endif\n  vLuxW = (modelMatrix * lw).xyz;");
       sh.fragmentShader = "uniform float luxGold, luxTime; uniform vec3 noxLine, luxAcc; varying vec3 vEdgeP, vEdgeS, vLuxW;\n" + sh.fragmentShader.replace("#include <emissivemap_fragment>",
         "vec3 ed = (0.5 - abs(vEdgeP)) * vEdgeS; float e1 = min(ed.x, min(ed.y, ed.z)), e3 = max(ed.x, max(ed.y, ed.z)), e2 = ed.x + ed.y + ed.z - e1 - e3;\n" +
-        "  float aa = fwidth(e2), lw = max(0.03, aa * 0.9), line = 1.0 - smoothstep(lw, lw + aa * 1.2, e2);\n" + colour); };
+        "  float aa = fwidth(e2), lw = max(" + lw0 + ", aa * " + px + "), line = 1.0 - smoothstep(lw, lw + aa * 1.2, e2);\n" + colour); };
     mat.customProgramCacheKey = () => key; };
   // Lux's: white as the cannon's shell, the lines the colour of its rings, as they change
   const luxTime = { value: 0 }, noxLine = { value: new THREE.Color() };
   const luxBlockMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffffff });
-  edgeLines(luxBlockMat, "luxBlock", "vec3 luxC = luxAcc; // the cannon's own ring colour, changing as it does with the karma\n  totalEmissiveRadiance = diffuseColor.rgb * 0.18 * (1.0 - line) + luxC / max(luxC.r, max(luxC.g, luxC.b)) * line; diffuseColor.rgb *= 1.0 - line; // (at full, never over: past it the blue clipped to cyan near and stayed blue far, so blocks differed) // (the edges glow on their own: lit, they differed from face to face)");
+  edgeLines(luxBlockMat, "luxBlock", "vec3 luxC = luxAcc; // the cannon's own ring colour, changing as it does with the karma\n  totalEmissiveRadiance = diffuseColor.rgb * 0.18 * (1.0 - line) + luxC / max(luxC.r, max(luxC.g, luxC.b)) * line; diffuseColor.rgb *= 1.0 - line; // (at full, never over: past it the blue clipped to cyan near and stayed blue far, so blocks differed) // (the edges glow on their own: lit, they differed from face to face)", "0.015", "0.45");
   // Nox's: its own colours, the lines as thin
   const noxBlockMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
   edgeLines(noxBlockMat, "noxBlock", "totalEmissiveRadiance = noxLine * line;");
@@ -3258,7 +3258,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!spawnGroupKind && LEVEL.id === "labyrinthus" && openHallAround(s) && Math.random() < 0.8) pat = "grams";
     const brS = LEVEL.id === "labyrinthus" && !spawnGroupKind && branchAt(s); // the branches: crosses and blocks on the rich one, plain glass on the quiet
     if (brS) { const opts = brS === "rich" ? ["rotor", "rotor2", "grams", "grams"] : ["center", "center", "sides", "triple"]; pat = opts[Math.floor(Math.random() * opts.length)]; }
-    if (!spawnGroupKind && !brS && !hall && LEVEL.every) for (const k in LEVEL.every) if (s - (lastPat[k] ?? 0) > LEVEL.every[k]) { pat = k; break; }
+    if (!spawnGroupKind && !brS && !hall && LEVEL.every) for (const k in LEVEL.every) if (s - (lastPat[k] ?? 0) > LEVEL.every[k] && !(k === "catapult" && LTW.some(m => s > m.sw - 200 && s < m.tw1 + 20))) { pat = k; break; } // (no catapult near a Lux gantry or on its manoeuvre: there, overdue, it had made every group plain glass)
     // just inside a hall, nothing fixed to its walls or vault: from the narrower, lower corridor the hall's end wall hides them
     // till the cart is all but on them, with no time to shoot (Carcer's laser bars and grids, wall axes, grates on chains)
     if (hall && !spawnGroupKind && s - hallStart(s) < HALL_ENTRY + (pat === "axes" ? 9 : 0) && ["lrow", "lgrid", "axes", "grate1", "grate2", "grate3"].includes(pat)) pat = Math.random() < 0.6 ? "center" : "triple";
@@ -3276,8 +3276,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       else if (!BIG.includes(pat) && !near && s - last > 150) pat = BIG[Math.floor(Math.random() * BIG.length)];
     }
     if (!spawnGroupKind && pat === "catapult" && LTW.some(m => s > m.sw - 200 && s < m.tw1 + 20)) pat = "center"; // (its glass flies far: none toward a gantry)
-    const onM = !spawnGroupKind && LTW.find(m => s > m.tw0 - 4 && s < m.tw1 + 14);
-    if (onM && onM.kind !== "spiral") { // on the drill and the corkscrew: glass on the deck or turning over it, blocks on chains in their frames, laser bars, laser mills
+    const onM = !spawnGroupKind && LTW.find(m => s > m.sw && s < m.tw1 + 14); // (from the gantry on: nothing big just past it, hiding its targets)
+    if (onM) { // on every manoeuvre the same: glass on the deck or turning over it, blocks on chains in their frames, laser bars, laser mills
       const opts = ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "abbar", "lblock", "abspin"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
     }
     if (!spawnGroupKind && LUXH.some(h => s > h.b - 4 && s < h.b + 22)) pat = "center"; // and nothing big just out of a hall: its end hid it
@@ -5199,6 +5199,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // spiral's: left or right, up or down) with arrows; the lit one is the way the track will go. Shoot another and the track
   // ahead swings over to it, in sight; 30 m short of the manoeuvre it is set
   let switches = [];
+  const swHingeGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.24, 12), swArmGeo = new THREE.BoxGeometry(0.25 + 0.1, 0.09, 0.07); // a gantry target's hinge and arm
   const SW_TR = 0.55, swPostGeo = new THREE.BoxGeometry(0.34, 7.6, 0.34), swBeamGeo = new THREE.BoxGeometry(6.3, 0.4, 0.4), swDiscGeo = new THREE.CircleGeometry(SW_TR, 32), swPlateGeo = new THREE.CylinderGeometry(0.66, 0.66, 0.12, 32).rotateX(Math.PI / 2);
   const swArrow = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
     g.fillStyle = "#fff"; g.beginPath(); g.moveTo(64, 14); g.lineTo(108, 62); g.lineTo(80, 62); g.lineTo(80, 112); g.lineTo(48, 112); g.lineTo(48, 62); g.lineTo(20, 62); g.closePath(); g.fill();
@@ -5214,12 +5215,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const ways = m.kind === "spiral" ? [[-1, 1], [1, 1], [-1, -1], [1, -1]] : [[-1, 0], [1, 0]]; // [left/right, up/down]
     // the targets hang on rods from the gantry's crossbeams into the way through it, each on a hinge at the beam: four (the spiral) in
     // two rows, the lower row from a second beam between them; two halfway between where those rows would be
-    const MID = 5.15; if (m.kind === "spiral") box(2 * GX + 0.34, 0.3, 0.34, 0, MID);
+    const MID = 5.15;
     const targets = ways.map(([x, y]) => {
-      const ty = y ? MID + y * 1.15 : MID, hy = y < 0 ? MID - 0.15 : 7.3; // the target's centre; its hinge, under the beam it hangs from
-      const pv = new THREE.Group(); pv.position.set(x * 1.75, hy, 0); root.add(pv);
-      const rod = new THREE.Mesh(new THREE.BoxGeometry(0.1, hy - ty - 0.6, 0.1), frameMat); rod.position.set(0, -(hy - ty - 0.6) / 2, -0.02); pv.add(rod);
-      const g = new THREE.Group(); g.position.set(0, ty - hy, 0); pv.add(g);
+      // each hung like a door from the post beside it: a small hinge on the post's inner face, a short arm out from it, the disc on the
+      // arm, whole, inside the opening
+      const hx = GX - 0.17 - 0.06, ARM = 0.25, ty = y ? MID + y * 1.15 : MID;
+      const knuckle = new THREE.Mesh(swHingeGeo, frameMat); knuckle.position.set(x * hx, ty, 0); root.add(knuckle);
+      const pv = new THREE.Group(); pv.position.set(x * hx, ty, 0); root.add(pv);
+      const arm = new THREE.Mesh(swArmGeo, frameMat); arm.position.set(-x * ARM / 2, 0, 0); pv.add(arm);
+      const g = new THREE.Group(); g.position.set(-x * (ARM + 0.66), 0, 0); pv.add(g);
       g.add(new THREE.Mesh(swPlateGeo, frameMat));
       const disc = new THREE.Mesh(swDiscGeo, targetOff); disc.position.z = 0.07; g.add(disc);
       const ar = new THREE.Mesh(swDiscGeo, swArrowMat); ar.position.z = 0.08; ar.scale.setScalar(0.9); ar.rotation.z = -Math.atan2(x, y || 0.0001); g.add(ar);
@@ -5250,7 +5254,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       setObj(sw.root, sw.s, 0, 0); sw.root.updateMatrixWorld(true);
       for (const t of sw.targets) t.g.getWorldPosition(t.wp);
       if (!sw.locked && sC > sw.m.tw0 - 30) { sw.locked = true; paintSwitch(sw); }
-      if (sw.locked && sw.fold < 1) { sw.fold = Math.min(1, sw.fold + dt / 0.5); for (const t of sw.targets) t.pv.rotation.x = Math.PI / 2 * smooth5(sw.fold); } // all fold up on their hinges, swinging on the way the cart goes
+      if (sw.locked && sw.fold < 1) { sw.fold = Math.min(1, sw.fold + dt / 0.5); for (const t of sw.targets) t.pv.rotation.y = -t.x * Math.PI / 2 * smooth5(sw.fold); } // all swing open on their pins like doors, away from the cart
     }
     switches = switches.filter(sw => sw.s > sC - 20 || (scene.remove(sw.root), false));
   }
@@ -6281,7 +6285,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       desc: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах стальные решётки на цепях, парящие лазерные балки и сетки и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
       feats: ["Залы с решётками на цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Effugium: побег через камеры"],
       req: { after: "speculum", fare: 30 }, map: { x: 825, y: 440, label: "t" } },
-    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 3200, superLen: 520, pal: PAL_LUX, finale: "triumphus",
+    { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 2880, superLen: 520, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "cube", glassWalls: true, bridge: true, floor: "plain" }, spaceMul: 1.35, crystalMul: 1.5, armor: 1, gainMul: 0.85,
       gateKinds: ["v"], // Nox's gates, as they are there
       // on the bridge: Nox's laser mills and bars, its gates and great gears, Vitrum's catapults and crossbows, Rubinus's walls of glass

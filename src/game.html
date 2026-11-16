@@ -1730,10 +1730,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         "vec3 ed = (0.5 - abs(vEdgeP)) * vEdgeS; float e1 = min(ed.x, min(ed.y, ed.z)), e3 = max(ed.x, max(ed.y, ed.z)), e2 = ed.x + ed.y + ed.z - e1 - e3;\n" +
         "  float aa = fwidth(e2), lw = max(0.03, aa * 0.9), line = 1.0 - smoothstep(lw, lw + aa * 1.2, e2);\n" + colour); };
     mat.customProgramCacheKey = () => key; };
-  // Lux's: white as the cannon's shell, the lines gold as its rings
+  // Lux's: white as the cannon's shell, the lines the colour of its rings, as they change
   const luxTime = { value: 0 }, noxLine = { value: new THREE.Color() };
   const luxBlockMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffffff });
-  edgeLines(luxBlockMat, "luxBlock", "vec3 luxC = vec3(1.0, 0.8, 0.36); // gold, as the cannon's rings in the Light (always: in the Dark the accent pales to white)\n  diffuseColor.rgb = mix(diffuseColor.rgb, luxC, line * 0.9);\n  totalEmissiveRadiance = vec3(1.0) * 0.18 * (1.0 - line) + luxC * line * luxGold;");
+  edgeLines(luxBlockMat, "luxBlock", "vec3 luxC = luxAcc; // the cannon's own ring colour, changing as it does with the karma\n  diffuseColor.rgb = mix(diffuseColor.rgb, luxC, line * 0.9);\n  totalEmissiveRadiance = vec3(1.0) * 0.18 * (1.0 - line) + luxC * line * luxGold;");
   // Nox's: its own colours, the lines as thin
   const noxBlockMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
   edgeLines(noxBlockMat, "noxBlock", "totalEmissiveRadiance = noxLine * line;");

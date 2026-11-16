@@ -877,7 +877,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       t += len + rand(40, 90); }
   }
   // the spiral: how far round it has turned at s, and how steep it is there
-  const spiralYaw = s => { let y = 0; for (const m of LTW) if (m.kind === "spiral" && s > m.tw0) y += m.dirNow * m.turns * TAU * spanPhase(Math.min(1, (s - m.tw0) / m.len)); return y; };
+  const spiralYaw = s => { let y = 0; for (const m of LTW) if (m.kind === "spiral" && s > m.tw0) y -= m.dirNow * /* (the track's yaw is positive to the left; dir +1 is the gantry's right) */ m.turns * TAU * spanPhase(Math.min(1, (s - m.tw0) / m.len)); return y; };
   const spiralPitch = s => { let p = 0; for (const m of LTW) if (m.kind === "spiral" && s > m.tw0 && s < m.tw1) { const x = (s - m.tw0) / m.len; p += m.pdirNow * m.pitch * smooth5(x / 0.15) * smooth5((1 - x) / 0.15); } return p; };
   function twistAt(s) { for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) return sp.dir * sp.turns * TAU * spanPhase((s - sp.tw0) / (sp.tw1 - sp.tw0));
     for (const m of LTW) if (m.r && s > m.tw0 && s < m.tw1) return m.dirNow * m.turns * TAU * spanPhase((s - m.tw0) / m.len); return 0; }
@@ -3107,10 +3107,21 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     spinners = off(spinners, x => scene.remove(x.root)); rams = off(rams, x => scene.remove(x.root)); lblocks = off(lblocks, x => scene.remove(x.root));
     lbars = off(lbars, x => x.bars.forEach(b => scene.remove(b.root))); prismSets = off(prismSets, x => scene.remove(x.root));
   }
+  // no crystal inside anything solid: a prism gear's disc and teeth (one had sat in a gear's hole), a catapult or crossbow and its
+  // glass, a block on a chain and its swing, a gate, a gantry; whatever came first
+  function crystalsClear() {
+    const inside = c => c.s > sC && (
+      pgears.some(g => Math.abs(g.s - c.s) < 2 && Math.hypot(c.u, c.v - PG_V) < PG_R + PG_L + 1.2) ||
+      catas.some(k => Math.abs(k.s - c.s) < 1.5 || (Math.abs(k.cs - c.s) < 3 && Math.abs(c.u - k.u) < 3.2)) ||
+      hangers.some(h => !h.falling && Math.abs(h.s - c.s) < 3.5 && Math.abs(c.u - h.u0) < h.w / 2 + 0.8) ||
+      gates.some(g => Math.abs(g.s - c.s) < 1.2) || switches.some(w => Math.abs(w.s - c.s) < 1.5));
+    crystals = crystals.filter(c => (c.alive && inside(c)) ? (scene.remove(c.group), false) : true);
+  }
   function spawnGroup(s) {
     const n0 = panes.length; spawnGroupAt(s);
     const fresh = panes.slice(n0); bigRun = fresh.length && fresh.every(p => p.h >= SH - 0.6) ? bigRun + fresh.length : 0;
     for (const set of gears) for (const g of set.gears) if (g.s > sC) clearZone(g.s - 2.4, g.s + 2.4); // and nothing in a gear's way
+    crystalsClear();
     for (const dr of doors) if (!dr.open) clearDoorZone(dr);
     for (const g of [...gates, ...doors]) if (g.s > sC) { // and nothing a pattern reached past a gate with
       clearZone(g.s + 0.3, g.s + GATE_CLEAR);
@@ -3125,7 +3136,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function spawnGroupAt(s) {
     // Carcer's doors come up as the track reaches them, and nothing else is set down right at one
     while (doorPlan.length && doorPlan[0].s < s + 12) spawnDoor(doorPlan.shift());
-    while (pgPlan.length && pgPlan[0] < s + 12) addPrismGear(pgPlan.shift());
+    while (pgPlan.length && pgPlan[0] < s + 12) { addPrismGear(pgPlan.shift()); crystalsClear(); }
     while (luxPlan.length && luxPlan[0].s < s + 12) { const q = luxPlan.shift(); if (q.k === "iris") addGate(q.s, "iris"); else addSwitch(q.m); }
     if (LTW.some(m => Math.abs(s - m.sw) < 16)) return; // nothing at a manoeuvre's gantry
     if (pgears.some(g => Math.abs(g.s - s) < 8)) return; // nothing under a prism gear

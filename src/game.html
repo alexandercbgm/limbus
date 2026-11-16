@@ -781,8 +781,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const HALL_W = 8.5, HALL_H = 10;
   let HALLS = []; // [start, end] of each hall along the track, planned afresh for every ride
   const BRIDGE_W = 1.75, PYLON_H = 40; // Abyssus: half the bridge's width, and how far its pylons reach down
-  const DS = 1, BACK = 44, AHEAD_MAX = 480, NS = BACK + AHEAD_MAX + 1, SL = 2;
-  let AHEAD = 150; // how far ahead the track is drawn: twice as far round Lux's spiral, whose coils show from across it
+  const DS = 1, BACK = 160, AHEAD_MAX = 480, NS = BACK + AHEAD_MAX + 1, SL = 2;
+  let AHEAD = 150, BEHIND = 10; // and how far behind: on Lux's spiral the turns below and above the cart, passed, stay drawn // how far ahead the track is drawn: twice as far round Lux's spiral, whose coils show from across it
   const spawnAhead = () => AHEAD - 4; // objects come into being at the drawn track's far end, where they melt in out of the sky
   let spiralHold = 0; // on Lux's spiral the track ahead does not tilt with the karma (its coils had bobbed like a spring); 0 → 1 over 40 m
   const START_BALLS = 30, R_BALL = 0.18, G = 11, MAX_SHARDS = 520;
@@ -1396,7 +1396,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           // blue-white flare across it; round it a shell of gas torn into filaments, pink and violet within, fire at its rim
           float hh = abs(h);
           c = mix(c, mix(vec3(0.10, 0.12, 0.30), vec3(0.025, 0.03, 0.09), smoothstep(0.0, 0.7, hh)), amt);
-          c += galaxy(n, vec3(0.45, 0.55, 0.95), amt * 1.1);
+          c += galaxy(n, vec3(0.45, 0.55, 0.95), amt * 1.1 * smoothstep(0.42, 0.7, acos(clamp(dot(n, sd), -1.0, 1.0)))); // (the Milky Way's band fading out before the supernova's cloud)
           // round the sky, away from the supernova: a nebula behind and to the left, three big galaxies and a few far ones
           c += luxNebula(n, normalize(vec3(-0.55, 0.3, 0.78)), t) * amt;
           c += luxGalaxy(n, normalize(vec3(-0.8, 0.42, -0.42)), 0.17, 0.42, 0.6, 1.0, vec3(0.7, 0.78, 1.0)) * amt * 1.8;
@@ -1724,16 +1724,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // ones), never under a pixel: the distance to the nearest edge on the face, in metres, from where the point is in the unit box
   // and the instance's own scale
   const edgeLines = (mat, key, colour) => { mat.extensions = { derivatives: true };
-    mat.onBeforeCompile = (sh, r) => { THREE.Material.prototype.onBeforeCompile.call(mat, sh, r); Object.assign(sh.uniforms, { luxGold, luxTime, noxLine });
+    mat.onBeforeCompile = (sh, r) => { THREE.Material.prototype.onBeforeCompile.call(mat, sh, r); Object.assign(sh.uniforms, { luxGold, luxTime, noxLine, luxAcc: { value: accentMat.color } });
       sh.vertexShader = "varying vec3 vEdgeP, vEdgeS, vLuxW;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vEdgeP = position; vEdgeS = vec3(1.0); vec4 lw = vec4(transformed, 1.0);\n  #ifdef USE_INSTANCING\n  vEdgeS = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); lw = instanceMatrix * lw;\n  #endif\n  vLuxW = (modelMatrix * lw).xyz;");
-      sh.fragmentShader = "uniform float luxGold, luxTime; uniform vec3 noxLine; varying vec3 vEdgeP, vEdgeS, vLuxW;\n" + sh.fragmentShader.replace("#include <emissivemap_fragment>",
+      sh.fragmentShader = "uniform float luxGold, luxTime; uniform vec3 noxLine, luxAcc; varying vec3 vEdgeP, vEdgeS, vLuxW;\n" + sh.fragmentShader.replace("#include <emissivemap_fragment>",
         "vec3 ed = (0.5 - abs(vEdgeP)) * vEdgeS; float e1 = min(ed.x, min(ed.y, ed.z)), e3 = max(ed.x, max(ed.y, ed.z)), e2 = ed.x + ed.y + ed.z - e1 - e3;\n" +
         "  float aa = fwidth(e2), lw = max(0.03, aa * 0.9), line = 1.0 - smoothstep(lw, lw + aa * 1.2, e2);\n" + colour); };
     mat.customProgramCacheKey = () => key; };
-  // Lux's: white as the cannon's shell, the lines a slow wash of the nebula's teal into its rose, through violet, as an LED strip's
+  // Lux's: white as the cannon's shell, the lines gold as its rings
   const luxTime = { value: 0 }, noxLine = { value: new THREE.Color() };
   const luxBlockMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffffff });
-  edgeLines(luxBlockMat, "luxBlock", "float luxW = smoothstep(0.0, 1.0, 0.5 + 0.5 * sin(luxTime * 0.5 + dot(vLuxW, vec3(0.045, 0.03, 0.035))));\n  vec3 luxC = mix(vec3(0.1, 0.55, 1.0), vec3(1.0, 0.15, 0.55), luxW) + vec3(0.25, 0.0, 0.2) * (1.0 - abs(luxW * 2.0 - 1.0));\n  diffuseColor.rgb = mix(diffuseColor.rgb, luxC, line * 0.9);\n  totalEmissiveRadiance = vec3(1.0) * 0.18 * (1.0 - line) + luxC * line * luxGold;");
+  edgeLines(luxBlockMat, "luxBlock", "vec3 luxC = vec3(1.0, 0.8, 0.36); // gold, as the cannon's rings in the Light (always: in the Dark the accent pales to white)\n  diffuseColor.rgb = mix(diffuseColor.rgb, luxC, line * 0.9);\n  totalEmissiveRadiance = vec3(1.0) * 0.18 * (1.0 - line) + luxC * line * luxGold;");
   // Nox's: its own colours, the lines as thin
   const noxBlockMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
   edgeLines(noxBlockMat, "noxBlock", "totalEmissiveRadiance = noxLine * line;");
@@ -1812,7 +1812,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const PP = new Float64Array(NS * 3), PR = new Float64Array(NS * 3), PU = new Float64Array(NS * 3), PT = new Float64Array(NS * 3);
   let sBase = 0;
   const cartPos = new THREE.Vector3();
-  function pitchAt(s) { return (s <= sC ? pitchC : pitchC + (1 - spiralHold) * (pitchTs - pitchC) * (1 - Math.exp(-(s - sC) / LAMBDA))) + (LTW.length ? spiralPitch(s) : 0); }
+  function pitchAt(s) { return (s <= sC ? pitchC : pitchC + ((1 - spiralHold) * pitchTs - pitchC) * (1 - Math.exp(-(s - sC) / LAMBDA))) + (LTW.length ? spiralPitch(s) : 0); }
   // banking (roll) follows the level's own turns only: at a fork both branches stay level, so the other
   // branch's floor never rises over the main track's rails
   // and around a fork the track is not banked at all: a tilted main floor would rise over the other branch's
@@ -2018,7 +2018,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.attributes.position.needsUpdate = g.attributes.normal.needsUpdate = g.attributes.uv.needsUpdate = true;
     strip.visible = seg > 0;
   }
-  const STRIP_N = AHEAD_MAX + 20;
+  const STRIP_N = AHEAD_MAX + 180;
   const endCap = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide })); // fogged through, so the fog's colour
   endCap.matrixAutoUpdate = false; endCap.frustumCulled = false; endCap.visible = false; scene.add(endCap);
   const deckStrip = makeStrip(STRIP_N, concreteMat, true);
@@ -2193,9 +2193,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         sx: 0.8 + h2 * 4, sy: tall ? 18 + h1 * 14 : 0.8 + h3 * 4, sz: 0.8 + h1 * 4,
         rx: h1 * TAU, ry: h2 * TAU, spin: tall ? 0 : (h3 - 0.5) * 0.4,
       };
-      if (STYLE.bridge) { // Nox, Lux: no matchsticks (no side more than 2.2 times another, no towers), and none passing through another
-        if (bl.sy > 6) bl.sy = 0.8 + h3 * 4; // (the towers too: thin as they are, matchsticks seen from afar)
-        const m = Math.min(bl.sx, bl.sy, bl.sz) * 2.2; bl.sx = Math.min(bl.sx, m); bl.sy = Math.min(bl.sy, m); bl.sz = Math.min(bl.sz, m); // their sizes as they were, only the longest side cut down to 2.2 times the shortest
+      if (STYLE.bridge) { // Nox, Lux: few matchsticks, and none passing through another
+        // a few keep their long thin shape (a matchstick, now and then a tower), one in four; the rest have their longest side cut
+        // down to 2.2 times the shortest, so the long ones never crowd
+        if (hash(k * 41 + i * 3) >= 0.25) { if (bl.sy > 6) bl.sy = 0.8 + h3 * 4;
+          const m = Math.min(bl.sx, bl.sy, bl.sz) * 2.2; bl.sx = Math.min(bl.sx, m); bl.sy = Math.min(bl.sy, m); bl.sz = Math.min(bl.sz, m); }
         const rad = b => 0.5 * Math.hypot(b.sx, b.sy, b.sz), s0 = k * SL + SL / 2; // (each as the sphere round it, whichever way it turns)
         const clash = () => { for (let kk = k - 7; kk <= k + 7; kk++) { const o = kk === k ? d : decor.get(kk); if (!o || !o.blocks) continue;
           for (const c of o.blocks) if (c !== bl && Math.hypot((kk - k) * SL, c.u - bl.u, c.v - bl.v) < rad(c) + rad(bl) + 0.3) return true; } return false; };
@@ -2272,7 +2274,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       });
     };
     const wallKey = STYLE.glassWalls ? "gwall" : "wall", blockKey = STYLE.blocks === "quartz" ? "quartz" : STYLE.blocks === "prism" ? "prism" : STYLE.blocks === "coin" ? "coin" : STYLE.blocks === "bush" ? "bush" : STYLE.blocks === "drop" ? "drop" : "block";
-    const k0 = Math.floor((sC - 10) / SL), k1 = Math.floor((sC + AHEAD - 4) / SL);
+    const k0 = Math.floor((sC - BEHIND) / SL), k1 = Math.floor((sC + AHEAD - 4) / SL);
     for (let k = k0; k <= k1; k++) {
       const dec = getDecor(k), s = k * SL + SL / 2;
       // under an up-down gate the track is cut by a slot that takes the lower leaf: no sleeper there, the rails broken
@@ -2361,10 +2363,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (SPANS.length) spanPiers();
     // the deck's underside (it shows when the deck hangs overhead), drawn as a strip so it twists smoothly with the rails
     deckStrip.visible = SPANS.length > 0;
-    if (deckStrip.visible) fillStrip(deckStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, -0.52, 0, s => spanAt(s) ? SW + 0.2 : 0);
+    if (deckStrip.visible) fillStrip(deckStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, -0.52, 0, s => spanAt(s) ? SW + 0.2 : 0);
     const floorW = STYLE.bridge ? (LUXH.length ? s => luxHallAt(s) ? SW : BRIDGE_W : BRIDGE_W) : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // Vitrum: as wide as the hexagon's bottom edge; Lux's halls as wide as their walls
     const onDeck = s => !!(spanAt(s) || spanAt(s - 1) || spanAt(s + 1));
-    fillStrip(floorStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length ? s => (spanAt(s) && spanAt(s - 1) && spanAt(s + 1) ? 0 : floorW) : floorW); // over a bridge, its deck instead
+    fillStrip(floorStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length ? s => (spanAt(s) && spanAt(s - 1) && spanAt(s + 1) ? 0 : floorW) : floorW); // over a bridge, its deck instead
     if (SPANS.length) fillDeckTop(Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, s => onDeck(s) ? SW : 0); else deckTop.visible = false;
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, 0, STYLE.glassWalls ? W + 0.12 : W); else vaultStrip.visible = false; // (Speculum: the vault out to its glass)
     { // where a walled and roofed corridor (Labyrinthus, Carcer) stops being drawn, far ahead, the sky showed through its open
@@ -6138,7 +6140,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       feats: ["Залы с решётками на цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Effugium: побег через камеры"],
       req: { after: "speculum", fare: 30 }, map: { x: 825, y: 440, label: "t" } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 3200, pal: PAL_LUX, finale: "triumphus",
-      style: { arch: "square", blocks: "cube", glassWalls: true, bridge: true, floor: "plain" }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
+      style: { arch: "square", blocks: "cube", glassWalls: true, bridge: true, floor: "plain" }, spaceMul: 1.35, crystalMul: 1.5, armor: 1, gainMul: 0.85,
       gateKinds: ["v"], // Nox's gates, as they are there
       // on the bridge: Nox's laser mills and bars, its gates and great gears, Vitrum's catapults and crossbows, Rubinus's walls of glass
       pats: { doors: [0.9, 1.2, 1.4], gears: [0.6, 0.9, 1.1], abspin: [0.5, 0.8, 1], abbar: [0.5, 0.8, 1], lblock: [0.5, 0.8, 1], catapult: [0.6, 0.8, 1], fblocks: [0.4, 0.7, 0.9],
@@ -6899,7 +6901,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     speedNow = dt > 0 ? ds / dt : 0;
     frameAt(sC + ds / 2); // uses last frame's path; close enough for one step
     cartPos.addScaledVector(SPANS.length || LTW.length ? tangent0(sC + ds / 2) : _T, ds); // the line the track winds round, not the rails' own heading
-    pitchC += (1 - spiralHold) * (pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA));
+    pitchC += ((1 - spiralHold) * pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA)); // (on Lux's spiral to level: a slope of the karma's had cancelled its own climb, its coils lying flat in a stack)
     sC += ds;
     throwCD = Math.max(0, throwCD - dt);
 
@@ -6967,6 +6969,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (LTW.length) updateSwitches(dt);
     spiralHold = 0; for (const m of LTW) if (m.kind === "spiral") spiralHold = Math.max(spiralHold, smooth5((sC - m.sw + 110) / 40) * smooth5((m.tw1 + 50 - sC) / 40));
     AHEAD = LTW.some(m => m.kind === "spiral" && sC > m.sw - 110 && sC < m.tw1 + 10) ? AHEAD_MAX : 150;
+    BEHIND = LTW.some(m => m.kind === "spiral" && sC > m.tw0 && sC < m.tw1 + 150) ? 150 : 10;
     computePath();
     samplePalette(alt); tintBranch(dt); applyPalette();
     layoutCorridor();

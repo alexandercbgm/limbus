@@ -866,7 +866,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const kinds = ["drill", "screw", "spiral"].sort(() => Math.random() - 0.5), L = MAIN_LEN;
     kinds.forEach((kind, i) => {
       const len = kind === "drill" ? 230 : kind === "screw" ? 190 : 280, c = L * (0.26 + i * 0.27) + rand(-50, 50), tw0 = Math.round(c - len / 2);
-      const m = { kind, tw0, tw1: tw0 + len, len, sw: tw0 - 60, dir: Math.random() < 0.5 ? -1 : 1, pdir: Math.random() < 0.5 ? -1 : 1 };
+      const m = { kind, tw0, tw1: tw0 + len, len, sw: tw0 - 32, dir: Math.random() < 0.5 ? -1 : 1, pdir: Math.random() < 0.5 ? -1 : 1 };
       if (kind === "drill") Object.assign(m, { turns: 4, r: 8.5 }); else if (kind === "screw") Object.assign(m, { turns: 2, r: 11 }); else Object.assign(m, { turns: 2, pitch: 0.13 });
       m.dirNow = m.dirFrom = m.dir; m.pdirNow = m.pdirFrom = m.pdir; m.mt = 99; LTW.push(m);
     });
@@ -5151,9 +5151,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return true;
   }
   function updateSwitches(dt) {
-    // the track swings over to the way chosen without passing through itself: it unwinds to straight, then (the spiral) its slope
-    // turns over while it is straight, then it winds up the new way; a spiral flattened while coiled had laid its turns through each other
-    for (const m of LTW) { m.mt += dt; const T = 0.8, slope = m.pdirFrom !== m.pdir ? T : 0;
+    // the track swings over to the way chosen without passing through itself: the drill and the corkscrew unwind to straight, then
+    // wind up the new way; a spiral flattened while still coiled had laid its turns through each other
+    // the spiral: it unwinds and lies flat together, to a straight line level on the deck, then winds up and climbs the new way together
+    // (its turns and its slope scaled alike, a turn's rise stays the same, so the turns never come together)
+    for (const m of LTW) if (m.kind === "spiral") { m.mt += dt; const T = 0.8, k1 = smooth5(Math.min(1, m.mt / T)), k3 = smooth5(clamp((m.mt - T) / T, 0, 1));
+      if (m.mt < T) { m.dirNow = m.dirFrom * (1 - k1); m.pdirNow = m.pdirFrom * (1 - k1); } else { m.dirNow = m.dir * k3; m.pdirNow = m.pdir * k3; } }
+    for (const m of LTW) { if (m.kind === "spiral") continue; m.mt += dt; const T = 0.8, slope = m.pdirFrom !== m.pdir ? T : 0;
       const k1 = smooth5(Math.min(1, m.mt / T)), k2 = slope ? smooth5(clamp((m.mt - T) / T, 0, 1)) : 1, k3 = smooth5(clamp((m.mt - T - slope) / T, 0, 1));
       m.dirNow = m.mt < T + slope ? m.dirFrom * (1 - k1) : m.dir * k3; m.pdirNow = lerp(m.pdirFrom, m.pdir, k2); }
     for (const sw of switches) {

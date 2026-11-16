@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.333</div>
+      <div class="credit version">v1.0.334</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -895,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.333`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.334`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1814,7 +1814,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // and the instance's own scale
   const edgeLines = (mat, key, colour) => { mat.extensions = { derivatives: true };
     mat.onBeforeCompile = (sh, r) => { THREE.Material.prototype.onBeforeCompile.call(mat, sh, r); Object.assign(sh.uniforms, { luxGold, luxTime, noxLine, luxAcc: { value: accentMat.color } });
-      sh.vertexShader = "varying vec3 vEdgeP, vEdgeS, vLuxW;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vEdgeP = position; vEdgeS = vec3(1.0); vec4 lw = vec4(transformed, 1.0);\n  #ifdef USE_INSTANCING\n  vEdgeS = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); lw = instanceMatrix * lw;\n  #endif\n  vLuxW = (modelMatrix * lw).xyz;");
+      sh.vertexShader = "varying vec3 vEdgeP, vEdgeS, vLuxW;\n#ifdef EDGE_SIZE\nuniform vec3 edgeSize;\n#endif\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vEdgeP = position; vEdgeS = vec3(1.0); vec4 lw = vec4(transformed, 1.0);\n  #ifdef EDGE_SIZE\n  vEdgeP = position / edgeSize; vEdgeS = edgeSize;\n  #endif\n  #ifdef USE_INSTANCING\n  vEdgeS = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); lw = instanceMatrix * lw;\n  #endif\n  vLuxW = (modelMatrix * lw).xyz;");
       sh.fragmentShader = "uniform float luxGold, luxTime; uniform vec3 noxLine, luxAcc; varying vec3 vEdgeP, vEdgeS, vLuxW;\n" + sh.fragmentShader.replace("#include <emissivemap_fragment>",
         "vec3 ed = (0.5 - abs(vEdgeP)) * vEdgeS; float e1 = min(ed.x, min(ed.y, ed.z)), e3 = max(ed.x, max(ed.y, ed.z)), e2 = ed.x + ed.y + ed.z - e1 - e3;\n" +
         "  float aa = fwidth(e2), lw = max(0.03, aa * 0.9), line = 1.0 - smoothstep(lw, lw + aa * 1.2, e2);\n" + colour); };
@@ -1822,7 +1822,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // Lux's: white as the cannon's shell, the lines the colour of its rings, as they change
   const luxTime = { value: 0 }, noxLine = { value: new THREE.Color() };
   const luxBlockMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffffff });
-  edgeLines(luxBlockMat, "luxBlock", "vec3 luxC = luxAcc; // the cannon's own ring colour, changing as it does with the karma\n  diffuseColor.rgb = mix(diffuseColor.rgb, luxC, line * 0.9);\n  totalEmissiveRadiance = diffuseColor.rgb * 0.18 * (1.0 - line) + luxC * line * luxGold;");
+  edgeLines(luxBlockMat, "luxBlock", "vec3 luxC = luxAcc; // the cannon's own ring colour, changing as it does with the karma\n  totalEmissiveRadiance = diffuseColor.rgb * 0.18 * (1.0 - line) + luxC * line * luxGold; diffuseColor.rgb *= 1.0 - line; // (the edges glow on their own: lit, they differed from face to face)");
+  const LUX_BLOCK_EDGE = "vec3 luxC = luxAcc; // the cannon's own ring colour, changing as it does with the karma\n  totalEmissiveRadiance = diffuseColor.rgb * 0.18 * (1.0 - line) + luxC * line * luxGold; diffuseColor.rgb *= 1.0 - line; // (the edges glow on their own: lit, they differed from face to face)";
+  const luxHangMats = {}; // a plain box on a chain, its own size to the shader, so its edges are drawn as the instanced blocks' are
+  const luxHangMat = (w, h, d) => { const k = w + "," + h + "," + d; if (!luxHangMats[k]) { const m = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffffff }); m.defines = { EDGE_SIZE: "" }; edgeLines(m, "luxHang", LUX_BLOCK_EDGE); const ob = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { ob(sh, r); sh.uniforms.edgeSize = { value: new THREE.Vector3(w, h, d) }; }; luxHangMats[k] = m; } return luxHangMats[k]; };
   // Nox's: its own colours, the lines as thin
   const noxBlockMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
   edgeLines(noxBlockMat, "noxBlock", "totalEmissiveRadiance = noxLine * line;");
@@ -1876,11 +1879,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     } else bhHead = null;
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
     shellMat.color.copy(cur.block).lerp(cur.frame, LEVEL.id === "lux" ? 0 : 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
-    const luxE = LEVEL.id === "lux" ? smooth5(clamp(-alt / 0.45, 0, 1)) : 0, luxB = LEVEL.id === "lux" ? smooth5(clamp(-alt / 0.3, 0, 1)) : 0; // Lux: white with gold down to the middle of the scale, then soon black with blue (the body darkens first: grey had lingered)
-    luxBlockMat.color.copy(LUX_WHITE).lerp(LUX_BLACK, luxB);
-    if (LEVEL.id === "lux") shellMat.color.copy(LUX_WHITE).lerp(LUX_DIM, luxB).lerp(LUX_BLACK, smooth5(clamp((-alt - 0.75) / 0.25, 0, 1))); // the cannon only very dark grey, its shape still seen, till the very depth of the Dark
+    const luxA = LEVEL.id === "lux" ? clamp(-alt, 0, 1) : 0, luxB = smooth5(luxA / 0.3), luxL = smooth5(luxA / 0.3), luxU = smooth5((luxA - 0.3) / 0.45); // Lux, below the middle of the scale: body white to very dark grey and edges gold to lilac by -0.3, edges on to blue by -0.75, body black only in the last quarter
+    luxBlockMat.color.copy(LUX_WHITE).lerp(LUX_DIM, luxB).lerp(LUX_BLACK, smooth5((luxA - 0.75) / 0.25)); for (const k in luxHangMats) luxHangMats[k].color.copy(luxBlockMat.color); // blocks, those on chains too, the same as the cannon
+    if (LEVEL.id === "lux") shellMat.color.copy(luxBlockMat.color); // the cannon very dark grey, its shape still seen, till the very depth of the Dark
     { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; shellIndirect.value = 1; const wk = smooth5((l - 0.45) / 0.4) * (Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) < 0.12 ? 1 : 0); c.lerp(WHITE, wk); shellDirect.value = lerp(1, 0.22, wk); } // (eased in, not at a threshold: the shell had jumped from grey to white) // a white shell takes less of the sky's light, so it stays white yet is not burnt out flat and the sun's glint shows // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
-    accentMat.color.copy(cur.accent); if (LEVEL.id === "lux" && alt < 0) { const e2 = smooth5((0.225 + (-alt - 0.225) / 2) / 0.45); accentMat.color.copy(LUX_GOLD).lerp(LUX_LILAC, smooth5(2 * luxE)).lerp(LUX_BLUE, smooth5(2 * e2 - 1)); } // (lilac into blue taken twice as long) // gold, by a soft lilac, into blue (straight across it went by white, and fading out left the edges dark)
+    accentMat.color.copy(cur.accent); if (LEVEL.id === "lux" && alt < 0) accentMat.color.copy(LUX_GOLD).lerp(LUX_LILAC, luxL).lerp(LUX_BLUE, luxU); // gold, by a soft lilac, into blue
     ringMat.color.copy(accentMat.color).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
     const rubyWalls = LEVEL.id === "rubinus"; // its fence: less clear, its lines much brighter, so it shows
@@ -1889,7 +1892,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     plainGlassWallMat.color.copy(cur.wall); plainGlassWallMat.opacity = glassWallMat.opacity; roofMat.color.copy(surfMat.color); roofMat.emissive.copy(surfMat.emissive);
     quartzMat.color.copy(cur.frame).lerp(cur.glass, 0.3); quartzMat.emissive.copy(cur.frame).multiplyScalar(0.25); // Vitrum's crystals: the frames' sapphire, lit a little from within
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
-    luxGold.value = lerp(0.35, 2.6, smooth5((smooth5((0.225 + (-alt - 0.225) / 2) / 0.45) - 0.45) / 0.55)); luxTime.value = performance.now() / 1000; // brighter lines in the Dark
+    luxGold.value = lerp(1, 2.6, luxU); luxTime.value = performance.now() / 1000; // the edges lit from within, brighter as they turn blue
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
     stationMat.color.copy(cur.surf).lerp(cur.frame, 0.12);
     coinMat.color.copy(cur.accent).lerp(WHITE, 0.15); coinMat.emissive.copy(cur.accent).multiplyScalar(0.22 + cur.frameEI * 0.2);
@@ -3778,7 +3781,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // a laser beam hangs high, over the cart, and its lasers reach down to the floor
     const L = laser ? top - 4.4 : top - (CAM_V + 0.25) - h / 2, arm = pend ? L + h / 2 : L; // pivot to the slab's center (pendulum) or chain length (gate)
     const root = new THREE.Group(); root.matrixAutoUpdate = false;
-    const geo = new THREE.BoxGeometry(w, h, d), body = new THREE.Mesh(geo, bars ? hitBoxMat : laser ? laserBaseMat : monoMat);
+    const geo = new THREE.BoxGeometry(w, h, d), luxOwn = LEVEL.id === "lux" && !bars && !laser, body = new THREE.Mesh(geo, bars ? hitBoxMat : laser ? laserBaseMat : luxOwn ? luxHangMat(w, h, d) : monoMat); // (Lux: as its other blocks)
     if (bars && opt.look === "modern") { // a modern cell door: thin polished bars in a heavy frame
       for (let x = -w / 2 + 0.22; x <= w / 2 - 0.2; x += 0.26) { const b = new THREE.Mesh(barGeo, steelMat); b.scale.set(0.55, h - 0.2, 0.55); b.position.x = x; body.add(b); }
       for (const y of [-h / 2 + 0.07, h / 2 - 0.07]) { const b = new THREE.Mesh(frameBarGeo, darkSteelMat); b.scale.x = w; b.position.y = y; body.add(b); }
@@ -3789,7 +3792,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (opt.look === "medieval") { const sp = new THREE.Mesh(spikeTipGeo, ironMat); sp.position.set(x, -h / 2 - 0.14, 0); body.add(sp); }
       }
       for (const y of [-h / 2 + 0.08, 0, h / 2 - 0.08]) { const b = new THREE.Mesh(barGeo, ironMat); b.scale.set(1.4, w, 1.4); b.rotation.z = Math.PI / 2; b.position.y = y; body.add(b); }
-    } else body.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), laser ? laserEdgeMat : edgeMat));
+    } else if (!luxOwn) body.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), laser ? laserEdgeMat : edgeMat));
     root.add(body);
     // a glowing recess in the underside near each end, the laser out of it; a beam that hangs still has a third in the middle, or the cart would pass between
     const emitters = laser ? (pend ? [-1, 1] : [-1, 0, 1]).map(sd => {

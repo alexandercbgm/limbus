@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.311</div>
+      <div class="credit version">v1.0.312</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -894,7 +894,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.311`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.312`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3782,7 +3782,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let mounts = [];
   function keepMounts(hg) {
     const ps = hg.root.children.filter(o => o.userData.mount);
-    if (ps.length) { const g = new THREE.Group(); g.matrixAutoUpdate = false; g.matrix.copy(hg.root.matrix); g.matrixWorldNeedsUpdate = true; ps.forEach(p => g.add(p)); scene.add(g); mounts.push({ s: hg.s, g }); }
+    if (ps.length) { const g = new THREE.Group(); g.matrixAutoUpdate = false; g.matrix.copy(hg.root.matrix); g.matrixWorldNeedsUpdate = true; ps.forEach(p => g.add(p)); scene.add(g); mounts.push({ s: hg.s, u: hg.u0, v: hg.top, g }); } // (it follows the track as it tilts: frozen, it had sunk or risen with the karma)
     scene.remove(hg.root);
   }
   function dropHanger(hg) {
@@ -7148,8 +7148,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (!hg.laser && Math.abs(bu) < hg.w / 2 + 0.55 && bv - low < CAM_V + 0.1) hangerCrash(hg);
       }
       if (hg.alive && hg.s < sC - 6) { hg.alive = false; scene.remove(hg.root); }
-      if (mounts.length && mounts[0].s < sC - 8) mounts = mounts.filter(m => m.s >= sC - 8 || (scene.remove(m.g), false));
     }
+    if (mounts.length && mounts[0].s < sC - 8) mounts = mounts.filter(m => m.s >= sC - 8 || (scene.remove(m.g), false));
+    for (const m of mounts) setObj(m.g, m.s, m.u, m.v); // (once per frame, hangers left or not)
     hangers = hangers.filter(h => h.alive);
 
     for (const d of drops) {

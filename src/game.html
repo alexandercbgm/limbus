@@ -1396,10 +1396,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           // blue-white flare across it; round it a shell of gas torn into filaments, pink and violet within, fire at its rim
           float hh = abs(h);
           c = mix(c, mix(vec3(0.10, 0.12, 0.30), vec3(0.025, 0.03, 0.09), smoothstep(0.0, 0.7, hh)), amt);
-          c += galaxyAx(n, vec3(0.45, 0.55, 0.95), amt * 1.1, normalize(vec3(0.476, 0.35, -0.88))); // (the Milky Way slanting across the sky between the supernova and the nebula, some 60 degrees clear of each)
+          c += galaxyAx(n, vec3(0.45, 0.55, 0.95), amt * 1.1, normalize(vec3(0.698, 0.70, -0.124))); // (the Milky Way slanting across the sky, clear of the supernova and the nebula)
           // round the sky, away from the supernova: a nebula behind and to the left, three big galaxies and a few far ones
           c += luxNebula(n, normalize(vec3(-0.55, 0.3, 0.78)), t) * amt;
-          c += luxGalaxy(n, normalize(vec3(-0.8, 0.42, -0.42)), 0.17, 0.42, 0.6, 1.0, vec3(0.7, 0.78, 1.0)) * amt * 1.8;
+          c += luxGalaxy(n, normalize(vec3(-0.6, -0.25, -0.76)), 0.17, 0.42, 0.6, 1.0, vec3(0.7, 0.78, 1.0)) * amt * 1.8;
           c += luxGalaxy(n, normalize(vec3(0.85, 0.35, 0.4)), 0.12, 0.75, 2.1, 4.0, vec3(1.0, 0.85, 0.72)) * amt * 1.6;
           c += luxGalaxy(n, normalize(vec3(0.1, 0.85, 0.5)), 0.14, 0.55, 1.2, 7.0, vec3(0.8, 0.75, 1.0)) * amt * 1.6;
           if (dot(n, sd) < 0.75) c += farGalaxies(n, amt * 1.2);
@@ -1436,8 +1436,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!/#include <fog_fragment>/.test(sh.fragmentShader)) return;
     Object.assign(sh.uniforms, { fadeA: FADE.a, fadeB: FADE.b, fadeSky: FADE.sky, fadeRes: FADE.res, fadeFogSky: FADE.fogSky });
     // (over the open void, Nox's, Lux's, Vitrum's, the haze is the sky behind: a dark Dark's fog had drawn far things as black shapes on it)
-    sh.fragmentShader = "uniform float fadeA, fadeB, fadeFogSky; uniform sampler2D fadeSky; uniform vec2 fadeRes;\n" + sh.fragmentShader.replace("#include <fog_fragment>",
-      "#ifdef USE_FOG\n  { float ff = smoothstep(fogNear, fogFar, fogDepth); vec3 fto = mix(fogColor, texture2D(fadeSky, gl_FragCoord.xy / fadeRes).rgb, fadeFogSky); gl_FragColor.rgb = mix(gl_FragColor.rgb, fto, ff); }\n#endif\n  { float fk = smoothstep(fadeA, fadeB, 1.0 / gl_FragCoord.w); if (fk > 0.0) { gl_FragColor.rgb = mix(gl_FragColor.rgb, texture2D(fadeSky, gl_FragCoord.xy / fadeRes).rgb, fk); gl_FragColor.a *= 1.0 - fk * 0.6; } }");
+    // (the sky behind, its thin bright lines taken out (the least of five reads 9 px apart): the supernova's flare, read through a far
+    // gear's colour, had drawn the flare across the gear as if in front of it)
+    sh.fragmentShader = "uniform float fadeA, fadeB, fadeFogSky; uniform sampler2D fadeSky; uniform vec2 fadeRes;\nvec3 skyBack() { vec2 u = gl_FragCoord.xy / fadeRes, o = 9.0 / fadeRes; vec3 c = texture2D(fadeSky, u).rgb; c = min(c, texture2D(fadeSky, u + vec2(0.0, o.y)).rgb); c = min(c, texture2D(fadeSky, u - vec2(0.0, o.y)).rgb); c = min(c, texture2D(fadeSky, u + vec2(o.x, 0.0)).rgb); return min(c, texture2D(fadeSky, u - vec2(o.x, 0.0)).rgb); }\n" + sh.fragmentShader.replace("#include <fog_fragment>",
+      "#ifdef USE_FOG\n  { float ff = smoothstep(fogNear, fogFar, fogDepth); vec3 fto = mix(fogColor, skyBack(), fadeFogSky); gl_FragColor.rgb = mix(gl_FragColor.rgb, fto, ff); }\n#endif\n  { float fk = smoothstep(fadeA, fadeB, 1.0 / gl_FragCoord.w); if (fk > 0.0) { gl_FragColor.rgb = mix(gl_FragColor.rgb, skyBack(), fk); gl_FragColor.a *= 1.0 - fk * 0.6; } }");
   };
   const bufSize = new THREE.Vector2();
   function renderSky() {
@@ -1787,8 +1789,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     } else bhHead = null;
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
     shellMat.color.copy(cur.block).lerp(cur.frame, LEVEL.id === "lux" ? 0 : 0.3); luxBlockMat.color.copy(cur.block); // (Lux: white with gold to the middle of the scale, then on to black with blue) shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
-    { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; shellIndirect.value = 1; shellDirect.value = 1; if (l > 0.6 && Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) < 0.12) { c.setRGB(1, 1, 1); shellIndirect.value = 1; shellDirect.value = 0.22; } } // a white shell takes less of the sky's light, so it stays white yet is not burnt out flat and the sun's glint shows // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
-    accentMat.color.copy(cur.accent); ringMat.color.copy(cur.accent).lerp(WHITE, recoil * 0.8);
+    { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; shellIndirect.value = 1; const wk = smooth5((l - 0.45) / 0.4) * (Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) < 0.12 ? 1 : 0); c.lerp(WHITE, wk); shellDirect.value = lerp(1, 0.22, wk); } // (eased in, not at a threshold: the shell had jumped from grey to white) // a white shell takes less of the sky's light, so it stays white yet is not burnt out flat and the sun's glint shows // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
+    accentMat.color.copy(cur.accent); if (LEVEL.id === "lux") { const t = clamp(-alt / 0.55, 0, 1); const e = smooth5(t); accentMat.color.setHSL(((38 - 180 * e) / 360 + 1) % 1, lerp(0.62, 0.8, e), lerp(0.45, 0.6, e)); } // (the gold deep, as metal, not yellow) // (Lux: gold into blue the long way round, by rose and violet: straight across it went by grey)
+    ringMat.color.copy(accentMat.color).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
     const rubyWalls = LEVEL.id === "rubinus"; // its fence: less clear, its lines much brighter, so it shows
     glassWallMat.opacity = rubyWalls ? 0.5 : 0.3;
@@ -1796,7 +1799,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     plainGlassWallMat.color.copy(cur.wall); plainGlassWallMat.opacity = glassWallMat.opacity; roofMat.color.copy(surfMat.color); roofMat.emissive.copy(surfMat.emissive);
     quartzMat.color.copy(cur.frame).lerp(cur.glass, 0.3); quartzMat.emissive.copy(cur.frame).multiplyScalar(0.25); // Vitrum's crystals: the frames' sapphire, lit a little from within
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
-    luxGold.value = lerp(0.35, 2.6, curD()); luxTime.value = performance.now() / 1000; // brighter lines in the Dark
+    luxGold.value = 2.6 * smooth5((curD() - 0.45) / 0.55); // (lit only in the dark half: in the light the gold is the edges' own colour, which a glow had turned yellow) luxTime.value = performance.now() / 1000; // brighter lines in the Dark
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
     stationMat.color.copy(cur.surf).lerp(cur.frame, 0.12);
     coinMat.color.copy(cur.accent).lerp(WHITE, 0.15); coinMat.emissive.copy(cur.accent).multiplyScalar(0.22 + cur.frameEI * 0.2);
@@ -2184,7 +2187,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       decor.set(k, d); return d;
     }
-    const nb = STYLE.mirror || LTW.some(m => s > m.sw - 30 && s < m.tw1 + 30) ? 0 : // (none over Lux's manoeuvres: reshaping, they would pass through the track)
+    const twM = LTW.find(m => s > m.sw - 30 && s < m.tw1 + 30); // Lux's manoeuvres: none over the spiral (reshaping, its track sweeps wide)
+    const nb = STYLE.mirror || (twM && twM.kind === "spiral") ? 0 :
       (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
     for (let i = 0; i < nb; i++) {
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
@@ -2194,6 +2198,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         sx: 0.8 + h2 * 4, sy: tall ? 18 + h1 * 14 : 0.8 + h3 * 4, sz: 0.8 + h1 * 4,
         rx: h1 * TAU, ry: h2 * TAU, spin: tall ? 0 : (h3 - 0.5) * 0.4,
       };
+      // over the drill and the corkscrew, which turn the track round a line over it: only where the track never comes, well outside its
+      // circle round that line or well inside it, whichever way it turns
+      if (twM && twM.r) { const d = Math.hypot(bl.u, bl.v - twM.r), rr = 0.5 * Math.hypot(bl.sx, Math.min(bl.sy, 6), bl.sz) + 3; if (Math.abs(d - twM.r) < rr || bl.sy > 6) continue; }
       if (STYLE.bridge) { // Nox, Lux: few matchsticks, and none passing through another
         // a few keep their long thin shape (a matchstick, now and then a tower), one in four; the rest have their longest side cut
         // down to 2.2 times the shortest, so the long ones never crowd
@@ -3850,7 +3857,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // spawns one beat of the level's finale at s and returns the gap to the next beat
   // Triumphus: the finales of the stations this player has finished (dead ends too), in the order of the scheme
   function triumphTrials() {
-    const t = [...new Set(LEVELS.filter(l => l.id !== "lux" && l.playable && l.finale && progress.done[l.id]).map(l => l.finale))];
+    const t = [...new Set(LEVELS.filter(l => l.id !== "lux" && l.id !== "hortus" && l.playable && l.finale && progress.done[l.id]).map(l => l.finale))];
     return t.length ? t : ["iudicium", "reflexio", "rota", "portae", "pluvia"]; // a test ride straight to Lux
   }
   function spawnFinale(s, f = LEVEL.finale) {
@@ -5101,8 +5108,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const swArrowMat = new THREE.MeshBasicMaterial({ map: swArrow, transparent: true, depthWrite: false, color: 0x10161c });
   function addSwitch(m) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
-    for (const u of [-1, 1]) { const p = new THREE.Mesh(swPostGeo, frameMat); p.position.set(u * (BRIDGE_W + 1.1), 3.8, 0); root.add(p); }
-    const beam = new THREE.Mesh(swBeamGeo, frameMat); beam.position.y = 7.5; root.add(beam);
+    // its posts past the deck's edges, down to a crossbar under the deck that holds them, as the frames for blocks on chains
+    const GX = BRIDGE_W + 0.45, foot = -0.82, box = (w, h, d, x, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat); m.position.set(x, y, 0); root.add(m); };
+    for (const u of [-1, 1]) { box(0.34, 7.7 - foot, 0.34, u * GX, (7.7 + foot) / 2); box(0.5, 0.12, 0.42, u * (BRIDGE_W + 0.1), -0.58); }
+    box(2 * GX + 0.34, 0.3, 0.42, 0, foot + 0.15);
+    const beam = new THREE.Mesh(swBeamGeo, frameMat); beam.scale.x = (2 * GX + 0.34) / 6.3; beam.position.y = 7.5; root.add(beam);
     const ways = m.kind === "spiral" ? [[-1, 1], [1, 1], [-1, -1], [1, -1]] : [[-1, 0], [1, 0]]; // [left/right, up/down]
     const targets = ways.map(([x, y]) => {
       const g = new THREE.Group(); g.position.set(x * 1.75, y ? 5.15 + y * 1.15 : 5.2, 0); root.add(g);

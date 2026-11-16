@@ -2193,8 +2193,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         sx: 0.8 + h2 * 4, sy: tall ? 18 + h1 * 14 : 0.8 + h3 * 4, sz: 0.8 + h1 * 4,
         rx: h1 * TAU, ry: h2 * TAU, spin: tall ? 0 : (h3 - 0.5) * 0.4,
       };
-      if (STYLE.bridge) { // Nox, Lux: no matchsticks (no side more than 1.6 times another, no towers), and none passing through another
-        const m = Math.max(bl.sx, bl.sy, bl.sz) / 1.6; bl.sx = Math.max(bl.sx, m); bl.sy = Math.max(Math.min(bl.sy, 4.8), m); bl.sz = Math.max(bl.sz, m);
+      if (STYLE.bridge) { // Nox, Lux: no matchsticks (no side more than 2.2 times another, no towers), and none passing through another
+        if (bl.sy > 6) bl.sy = 0.8 + h3 * 4; // (the towers too: thin as they are, matchsticks seen from afar)
+        const m = Math.min(bl.sx, bl.sy, bl.sz) * 2.2; bl.sx = Math.min(bl.sx, m); bl.sy = Math.min(bl.sy, m); bl.sz = Math.min(bl.sz, m); // their sizes as they were, only the longest side cut down to 2.2 times the shortest
         const rad = b => 0.5 * Math.hypot(b.sx, b.sy, b.sz), s0 = k * SL + SL / 2; // (each as the sphere round it, whichever way it turns)
         const clash = () => { for (let kk = k - 7; kk <= k + 7; kk++) { const o = kk === k ? d : decor.get(kk); if (!o || !o.blocks) continue;
           for (const c of o.blocks) if (c !== bl && Math.hypot((kk - k) * SL, c.u - bl.u, c.v - bl.v) < rad(c) + rad(bl) + 0.3) return true; } return false; };

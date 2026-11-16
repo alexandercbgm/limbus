@@ -1429,12 +1429,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // what is drawn far ahead melts in out of the sky behind it, not popping up: from 108 m to 146 m off every surface's colour is
   // mixed into the sky's (read from the sky's own picture, so no fragment is thrown away: that would cost a phone's GPU); off where
   // a closed corridor ends in a cap (the sky must not show through it)
-  const FADE = { a: { value: 1e6 }, b: { value: 1e6 + 1 }, sky: { value: skyRT.texture }, res: { value: new THREE.Vector2(1, 1) } };
+  const FADE = { fogSky: { value: 0 }, a: { value: 1e6 }, b: { value: 1e6 + 1 }, sky: { value: skyRT.texture }, res: { value: new THREE.Vector2(1, 1) } };
   THREE.Material.prototype.onBeforeCompile = function (sh) {
     if (!/#include <fog_fragment>/.test(sh.fragmentShader)) return;
-    Object.assign(sh.uniforms, { fadeA: FADE.a, fadeB: FADE.b, fadeSky: FADE.sky, fadeRes: FADE.res });
-    sh.fragmentShader = "uniform float fadeA, fadeB; uniform sampler2D fadeSky; uniform vec2 fadeRes;\n" + sh.fragmentShader.replace("#include <fog_fragment>",
-      "#include <fog_fragment>\n  { float fk = smoothstep(fadeA, fadeB, 1.0 / gl_FragCoord.w); if (fk > 0.0) { gl_FragColor.rgb = mix(gl_FragColor.rgb, texture2D(fadeSky, gl_FragCoord.xy / fadeRes).rgb, fk); gl_FragColor.a *= 1.0 - fk * 0.6; } }");
+    Object.assign(sh.uniforms, { fadeA: FADE.a, fadeB: FADE.b, fadeSky: FADE.sky, fadeRes: FADE.res, fadeFogSky: FADE.fogSky });
+    // (over the open void, Nox's, Lux's, Vitrum's, the haze is the sky behind: a dark Dark's fog had drawn far things as black shapes on it)
+    sh.fragmentShader = "uniform float fadeA, fadeB, fadeFogSky; uniform sampler2D fadeSky; uniform vec2 fadeRes;\n" + sh.fragmentShader.replace("#include <fog_fragment>",
+      "#ifdef USE_FOG\n  { float ff = smoothstep(fogNear, fogFar, fogDepth); vec3 fto = mix(fogColor, texture2D(fadeSky, gl_FragCoord.xy / fadeRes).rgb, fadeFogSky); gl_FragColor.rgb = mix(gl_FragColor.rgb, fto, ff); }\n#endif\n  { float fk = smoothstep(fadeA, fadeB, 1.0 / gl_FragCoord.w); if (fk > 0.0) { gl_FragColor.rgb = mix(gl_FragColor.rgb, texture2D(fadeSky, gl_FragCoord.xy / fadeRes).rgb, fk); gl_FragColor.a *= 1.0 - fk * 0.6; } }");
   };
   const bufSize = new THREE.Vector2();
   function renderSky() {
@@ -1444,7 +1445,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const div = skyUni.mode.value === 6 ? (PHONE ? Math.max(1.5, renderer.getPixelRatio()) : 1.5) : PHONE ? Math.max(2, renderer.getPixelRatio() * 1.5) : 2;
     const w = Math.max(2, Math.round(bufSize.x / div)), h = Math.max(2, Math.round(bufSize.y / div));
     if (skyRT.width !== w || skyRT.height !== h) skyRT.setSize(w, h);
-    FADE.res.value.copy(bufSize); const fadeOn = !STYLE.closed && !LEVEL.halls; FADE.a.value = fadeOn ? 108 : 1e6; FADE.b.value = fadeOn ? 146 : 1e6 + 1;
+    FADE.res.value.copy(bufSize); const fadeOn = !STYLE.closed && !LEVEL.halls; FADE.a.value = fadeOn ? 108 : 1e6; FADE.fogSky.value = STYLE.bridge || STYLE.bare ? 1 : 0; FADE.b.value = fadeOn ? 146 : 1e6 + 1;
     skyUni.px.value = camera.fov * Math.PI / 180 / h; // the angle one of its pixels spans
     renderer.setRenderTarget(skyRT); renderer.render(skyScene, camera); renderer.setRenderTarget(null);
   }
@@ -1714,6 +1715,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const RUBY_COL = new THREE.Color(0xa8001e); // pomegranate juice: deep, a touch toward crimson
   const rubyMat = new THREE.MeshStandardMaterial({ color: RUBY_COL, emissive: 0x2a0005, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.7, vertexColors: true }); // see-through to the sky behind; only its near facets drawn, in depth
   const prismMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.72, roughness: 0.1, metalness: 0.25, flatShading: true });
+  // Lux's floating prisms: white, glowing a little, with gold lines along their edges that burn brighter the darker it is (as Nox's
+  // lines do). Each face knows how near its edge a point is (bary: its corners' weights), so the lines need no second mesh
+  const luxGold = { value: 1 };
+  const luxPrismMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xdfe8ff, emissiveIntensity: 0.22, roughness: 0.3, metalness: 0.1, flatShading: true });
+  luxPrismMat.onBeforeCompile = (sh, r) => { THREE.Material.prototype.onBeforeCompile.call(luxPrismMat, sh, r); sh.uniforms.luxGold = luxGold;
+    sh.vertexShader = "attribute vec3 bary; varying vec3 vBary;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vBary = bary;");
+    sh.fragmentShader = "uniform float luxGold; varying vec3 vBary;\n" + sh.fragmentShader.replace("#include <emissivemap_fragment>",
+      "#include <emissivemap_fragment>\n  float edgeD = min(min(vBary.x, vBary.y), vBary.z), gl = 1.0 - smoothstep(0.025, 0.06, edgeD);\n  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.85, 0.55, 0.12), gl);\n  totalEmissiveRadiance += vec3(1.0, 0.72, 0.28) * gl * luxGold;"); };
+  luxPrismMat.customProgramCacheKey = () => "luxPrism";
   const sigilMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8 });
   const stationMat = new THREE.MeshStandardMaterial({ map: floorTex.map, roughness: 0.6, metalness: 0.1 });
   const coinMat = new THREE.MeshStandardMaterial({ roughness: 0.35, metalness: 0.3 });
@@ -1772,6 +1782,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     plainGlassWallMat.color.copy(cur.wall); plainGlassWallMat.opacity = glassWallMat.opacity; roofMat.color.copy(surfMat.color); roofMat.emissive.copy(surfMat.emissive);
     quartzMat.color.copy(cur.frame).lerp(cur.glass, 0.3); quartzMat.emissive.copy(cur.frame).multiplyScalar(0.25); // Vitrum's crystals: the frames' sapphire, lit a little from within
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
+    luxGold.value = lerp(1.1, 2.6, curD()); luxPrismMat.emissiveIntensity = lerp(0.22, 0.4, curD()); // brighter lines and glow in the Dark
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
     stationMat.color.copy(cur.surf).lerp(cur.frame, 0.12);
     coinMat.color.copy(cur.accent).lerp(WHITE, 0.15); coinMat.emissive.copy(cur.accent).multiplyScalar(0.22 + cur.frameEI * 0.2);
@@ -1930,7 +1941,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     hexpane: inst(new THREE.PlaneGeometry(HEXPANE_R, SL + 0.02).rotateX(Math.PI / 2), glassWallMat, 420), // Vitrum: a face of the hexagon glazed, 2 m of it
     hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
-    prism: inst(new THREE.OctahedronGeometry(0.75, 0), prismMat, 260),
+    prism: inst((() => { const g = new THREE.OctahedronGeometry(0.75, 0), n = g.attributes.position.count, b = new Float32Array(n * 3); for (let i = 0; i < n; i++) b[i * 3 + i % 3] = 1; g.setAttribute("bary", new THREE.BufferAttribute(b, 3)); return g; })(), prismMat, 260), // (bary: for Lux's gold edges)
     gDia: inst(GEM_CUTS.gDia, rubyMat, 40), gEmer: inst(GEM_CUTS.gEmer, rubyMat, 40), // Rubinus: rubies over the abyss
     gOval: inst(GEM_CUTS.gOval, rubyMat, 40), gPear: inst(GEM_CUTS.gPear, rubyMat, 40),
     // Vitrum, out over the abyss: crystals of quartz, six-sided, pointed at both ends, 2 high and 0.64 across before they're scaled
@@ -5460,12 +5471,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     c.u = side > 0 ? wall - bb.max.x : -wall - bb.min.x;
     c.inner = side > 0 ? c.u + bb.min.x : -(c.u + bb.max.x); // how near the track its nearest part comes (clear of the cart past 1.6)
     // where the floor stops short of it (Vitrum's narrow floor, Lux's bridge) a platform for it, out from the floor's edge and held to
-    // it: a deck as thick as the floor's own, a lip along its outer edge, and under it two struts back to the floor's underside
+    // it: a flat plinth, as thick as the floor and level with it, no lip, and under it two struts back to the floor's underside
     const fw = openAt(s) ? BRIDGE_W : STYLE.floorW || SW, outer = side > 0 ? c.u + bb.max.x : -(c.u + bb.min.x);
     if (outer > fw - 0.05) {
       const x0 = side * fw - c.u, x1 = side * (outer + 0.35) - c.u, z0 = bb.min.z - 0.35, z1 = bb.max.z + 0.35, w = Math.abs(x1 - x0) + 0.3, xc = (x0 + x1) / 2 - side * 0.15;
-      const deck = new THREE.Mesh(new THREE.BoxGeometry(w, 0.52, z1 - z0), frameMat); deck.position.set(xc, -0.26 - 0.005, (z0 + z1) / 2); c.root.add(deck);
-      const lip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.2, z1 - z0), frameMat); lip.position.set(x1, 0.1, (z0 + z1) / 2); c.root.add(lip);
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(w, 0.52, z1 - z0), frameMat); deck.position.set(xc, -0.26 + 0.01, (z0 + z1) / 2); c.root.add(deck);
       for (const z of [z0 + 0.3, z1 - 0.3]) { const a0 = new THREE.Vector3(x1 - side * 0.2, -0.5, z), a1 = new THREE.Vector3(side * (fw - 0.6) - c.u, -1.6, z), d = a1.clone().sub(a0);
         const st = new THREE.Mesh(new THREE.BoxGeometry(0.18, d.length(), 0.18), frameMat); st.position.copy(a0).add(a1).multiplyScalar(0.5); st.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); c.root.add(st); }
       const tie = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.2, z1 - z0), frameMat); tie.position.set(side * (fw - 0.6) - c.u, -1.6, (z0 + z1) / 2); c.root.add(tie); // where the struts meet, under the floor's edge
@@ -6288,7 +6298,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     LEVEL = lv; STYLE = Object.assign({}, lv.style, (LEVEL_LOOK[lv.id] || {}).style);
     [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;
     mirStrips.forEach(m => { m.o = m.k * 2 * (SW + 0.12); });
-    I.ceil.material = lv.id === "vitrum" ? glassWallMat : surfMat; // Vitrum's roof, where there is one, of clear glass
+    I.ceil.material = lv.id === "vitrum" ? glassWallMat : surfMat;
+    I.prism.material = lv.id === "lux" ? luxPrismMat : prismMat; // Vitrum's roof, where there is one, of clear glass
     I.gwall.material = lv.id === "lux" ? plainGlassWallMat : glassWallMat; // Lux: its roof and its glass walls whole, no lit seams (they read as gaps between the panels)
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, STYLE.floor || { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", mirror: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;

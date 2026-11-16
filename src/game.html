@@ -1794,7 +1794,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     luxBlockMat.color.copy(LUX_WHITE).lerp(LUX_BLACK, luxB);
     if (LEVEL.id === "lux") shellMat.color.copy(LUX_WHITE).lerp(LUX_DIM, luxB).lerp(LUX_BLACK, smooth5(clamp((-alt - 0.75) / 0.25, 0, 1))); // the cannon only very dark grey, its shape still seen, till the very depth of the Dark
     { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; shellIndirect.value = 1; const wk = smooth5((l - 0.45) / 0.4) * (Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) < 0.12 ? 1 : 0); c.lerp(WHITE, wk); shellDirect.value = lerp(1, 0.22, wk); } // (eased in, not at a threshold: the shell had jumped from grey to white) // a white shell takes less of the sky's light, so it stays white yet is not burnt out flat and the sun's glint shows // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
-    accentMat.color.copy(cur.accent); if (LEVEL.id === "lux" && alt < 0) { const e2 = smooth5((0.225 + (-alt - 0.225) / 1.5) / 0.45); accentMat.color.copy(LUX_GOLD).lerp(LUX_LILAC, smooth5(2 * luxE)).lerp(LUX_BLUE, smooth5(2 * e2 - 1)); } // (lilac into blue taken half as long again) // gold, by a soft lilac, into blue (straight across it went by white, and fading out left the edges dark)
+    accentMat.color.copy(cur.accent); if (LEVEL.id === "lux" && alt < 0) { const e2 = smooth5((0.225 + (-alt - 0.225) / 2) / 0.45); accentMat.color.copy(LUX_GOLD).lerp(LUX_LILAC, smooth5(2 * luxE)).lerp(LUX_BLUE, smooth5(2 * e2 - 1)); } // (lilac into blue taken twice as long) // gold, by a soft lilac, into blue (straight across it went by white, and fading out left the edges dark)
     ringMat.color.copy(accentMat.color).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
     const rubyWalls = LEVEL.id === "rubinus"; // its fence: less clear, its lines much brighter, so it shows
@@ -1803,7 +1803,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     plainGlassWallMat.color.copy(cur.wall); plainGlassWallMat.opacity = glassWallMat.opacity; roofMat.color.copy(surfMat.color); roofMat.emissive.copy(surfMat.emissive);
     quartzMat.color.copy(cur.frame).lerp(cur.glass, 0.3); quartzMat.emissive.copy(cur.frame).multiplyScalar(0.25); // Vitrum's crystals: the frames' sapphire, lit a little from within
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
-    luxGold.value = lerp(0.35, 2.6, smooth5((smooth5((0.225 + (-alt - 0.225) / 1.5) / 0.45) - 0.45) / 0.55)); luxTime.value = performance.now() / 1000; // brighter lines in the Dark
+    luxGold.value = lerp(0.35, 2.6, smooth5((smooth5((0.225 + (-alt - 0.225) / 2) / 0.45) - 0.45) / 0.55)); luxTime.value = performance.now() / 1000; // brighter lines in the Dark
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
     stationMat.color.copy(cur.surf).lerp(cur.frame, 0.12);
     coinMat.color.copy(cur.accent).lerp(WHITE, 0.15); coinMat.emissive.copy(cur.accent).multiplyScalar(0.22 + cur.frameEI * 0.2);

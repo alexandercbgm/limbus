@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.326</div>
+      <div class="credit version">v1.0.327</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -895,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.326`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.327`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1482,11 +1482,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           // blue-white flare across it; round it a shell of gas torn into filaments, pink and violet within, fire at its rim
           float hh = abs(h);
           c = mix(c, mix(vec3(0.10, 0.12, 0.30), vec3(0.025, 0.03, 0.09), smoothstep(0.0, 0.7, hh)), amt);
-          c += galaxyAx(n, vec3(0.45, 0.55, 0.95), amt * 1.1, normalize(vec3(0.698, 0.70, -0.124))); // (the Milky Way slanting across the sky, clear of the supernova and the nebula)
+          c += galaxyAx(n, vec3(0.45, 0.55, 0.95), amt * 1.1, normalize(vec3(-0.24, 0.629, 0.739))); // (the Milky Way right of the supernova, turned clear of its halo and of the nebula)
           // round the sky, away from the supernova: a nebula behind and to the left, three big galaxies and a few far ones
           c += luxNebula(n, normalize(vec3(-0.55, 0.3, 0.78)), t) * amt;
-          c += luxGalaxy(n, normalize(vec3(-0.6, -0.25, -0.76)), 0.17, 0.42, 0.6, 1.0, vec3(0.7, 0.78, 1.0)) * amt * 1.8;
-          c += luxGalaxy(n, normalize(vec3(0.85, 0.35, 0.4)), 0.12, 0.75, 2.1, 4.0, vec3(1.0, 0.85, 0.72)) * amt * 1.6;
+          c += luxGalaxy(n, normalize(vec3(-0.74, 0.64, -0.21)), 0.17, 0.42, 0.6, 1.0, vec3(0.7, 0.78, 1.0)) * amt * 1.8;
+          c += luxGalaxy(n, normalize(vec3(0.74, 0.41, 0.54)), 0.12, 0.75, 2.1, 4.0, vec3(1.0, 0.85, 0.72)) * amt * 1.6;
           c += luxGalaxy(n, normalize(vec3(0.1, 0.85, 0.5)), 0.14, 0.55, 1.2, 7.0, vec3(0.8, 0.75, 1.0)) * amt * 1.6;
           if (dot(n, sd) < 0.75) c += farGalaxies(n, amt * 1.2);
           vec3 ax = normalize(cross(sd, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sd);
@@ -1724,6 +1724,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const ironBallMat = new THREE.MeshStandardMaterial({ map: ironTex, bumpMap: ironTex, bumpScale: 0.0015, metalness: 0.9, roughness: 0.45, emissive: 0x401006, emissiveIntensity: 0.6 }); // Ferrum's iron, chipped the same way
   const accentMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const WHITE = new THREE.Color(0xffffff), accelRings = [];
+  const LUX_WHITE = new THREE.Color("#ffffff"), LUX_BLACK = new THREE.Color("#0a0a0e"), LUX_GOLD = new THREE.Color("#f0dc9c"), LUX_BLUE = new THREE.Color("#3a7bff");
   const blueGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x6fd6ff, transparent: true, opacity: 0.55, depthWrite: false });
   // a mirage is a crystal's reflection: it shimmers, spins the other way, and pays nothing
   const mirageMat = crystalMat.clone(); mirageMat.transparent = true; mirageMat.opacity = 0.6; mirageMat.depthWrite = false;
@@ -1874,9 +1875,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       skyUni.bhRot.value = 0.025 * Math.sin(time * 0.21);
     } else bhHead = null;
     sun.intensity = cur.sunI * (LEVEL.lightMul || 1);
-    shellMat.color.copy(cur.block).lerp(cur.frame, LEVEL.id === "lux" ? 0 : 0.3); luxBlockMat.color.copy(cur.block); // (Lux: white with gold to the middle of the scale, then on to black with blue) shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
+    shellMat.color.copy(cur.block).lerp(cur.frame, LEVEL.id === "lux" ? 0 : 0.3); shellMat.emissive.copy(cur.accent).multiplyScalar(cur.frameEI * 0.08);
+    const luxE = LEVEL.id === "lux" ? smooth5(clamp(-alt, 0, 1)) : 0; // Lux: white with gold down to the middle of the scale, then evenly on to black with blue
+    if (LEVEL.id === "lux") shellMat.color.copy(LUX_WHITE).lerp(LUX_BLACK, luxE);
+    luxBlockMat.color.copy(shellMat.color);
     { const c = shellMat.color, l = 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; shellIndirect.value = 1; const wk = smooth5((l - 0.45) / 0.4) * (Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) < 0.12 ? 1 : 0); c.lerp(WHITE, wk); shellDirect.value = lerp(1, 0.22, wk); } // (eased in, not at a threshold: the shell had jumped from grey to white) // a white shell takes less of the sky's light, so it stays white yet is not burnt out flat and the sun's glint shows // never quite white: on white the sun's glint was lost, and Initium's cannons looked matte
-    accentMat.color.copy(cur.accent); if (LEVEL.id === "lux") { const t = clamp(-alt / 0.55, 0, 1); const e = smooth5(t); accentMat.color.setHSL(((38 - 180 * e) / 360 + 1) % 1, lerp(0.62, 0.8, e), lerp(0.45, 0.6, e)); } // (the gold deep, as metal, not yellow) // (Lux: gold into blue the long way round, by rose and violet: straight across it went by grey)
+    accentMat.color.copy(cur.accent); if (LEVEL.id === "lux" && alt < 0) accentMat.color.copy(LUX_GOLD).lerp(LUX_BLUE, luxE);
     ringMat.color.copy(accentMat.color).lerp(WHITE, recoil * 0.8);
     dustMat.color.copy(cur.dust);
     const rubyWalls = LEVEL.id === "rubinus"; // its fence: less clear, its lines much brighter, so it shows
@@ -1885,7 +1889,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     plainGlassWallMat.color.copy(cur.wall); plainGlassWallMat.opacity = glassWallMat.opacity; roofMat.color.copy(surfMat.color); roofMat.emissive.copy(surfMat.emissive);
     quartzMat.color.copy(cur.frame).lerp(cur.glass, 0.3); quartzMat.emissive.copy(cur.frame).multiplyScalar(0.25); // Vitrum's crystals: the frames' sapphire, lit a little from within
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
-    luxGold.value = 2.6 * smooth5((curD() - 0.45) / 0.55); // (lit only in the dark half: in the light the gold is the edges' own colour, which a glow had turned yellow) luxTime.value = performance.now() / 1000; // brighter lines in the Dark
+    luxGold.value = lerp(0.35, 2.6, luxE); luxTime.value = performance.now() / 1000; // brighter lines in the Dark
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
     stationMat.color.copy(cur.surf).lerp(cur.frame, 0.12);
     coinMat.color.copy(cur.accent).lerp(WHITE, 0.15); coinMat.emissive.copy(cur.accent).multiplyScalar(0.22 + cur.frameEI * 0.2);
@@ -6070,13 +6074,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       dust: "#c8ccd8", block: "#16171d", cart: "#30323a", accent: "#4a8cff" },
     { sky: "#c4c6cc", hor: "#b0b2b8", gnd: "#8c8e96", surf: "#dcdee2", wall: "#c6c8ce", line: "#ffffff", lineI: 0.05, frame: "#6c6e76", frameE: "#000000", frameEI: 0,
       rail: "#9c9ea6", sleeper: "#7c7e86", glass: "#eef0f6", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 90, hemiS: "#ffffff", hemiG: "#9ea0a8", hemiI: 0.95, sunI: 0.7,
-      dust: "#ffffff", block: "#ffffff", cart: "#585a62", accent: "#e8b84a" },
+      dust: "#ffffff", block: "#ffffff", cart: "#585a62", accent: "#f0dc9c" },
     { sky: "#fbfbfd", hor: "#ffffff", gnd: "#e4e6ec", surf: "#ffffff", wall: "#f6f7fa", line: "#e8dcb4", lineI: 0.15, frame: "#c4c8d2", frameE: "#000000", frameEI: 0,
       rail: "#d0d4dc", sleeper: "#e6e8ee", glass: "#f4f6ff", glassO: 0.38, edge: "#ffffff", fogN: 16, fogF: 104, hemiS: "#ffffff", hemiG: "#e8eaf0", hemiI: 1.1, sunI: 0.85,
-      dust: "#fffaf0", block: "#ffffff", cart: "#8a8e98", accent: "#e8b84a" },
+      dust: "#fffaf0", block: "#ffffff", cart: "#8a8e98", accent: "#f0dc9c" },
     { sky: "#ffffff", hor: "#ffffff", gnd: "#f6f6fa", surf: "#ffffff", wall: "#ffffff", line: "#fff0c0", lineI: 0.5, frame: "#ecebe6", frameE: "#fffbe8", frameEI: 0.6,
       rail: "#eceef2", sleeper: "#f8f8fa", glass: "#ffffff", glassO: 0.34, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#f4f4f8", hemiI: 1.2, sunI: 0.9,
-      dust: "#fff4d0", block: "#ffffff", cart: "#9a9ea8", accent: "#e8b84a" },
+      dust: "#fff4d0", block: "#ffffff", cart: "#9a9ea8", accent: "#ffe8a0" },
   ];
 
   // Abyssus: a bridge through deep space. The Milky Way arches over it and the stars go on below the deck too.

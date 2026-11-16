@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.310</div>
+      <div class="credit version">v1.0.311</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -894,7 +894,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.310`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.311`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3718,7 +3718,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const arm0 = arm - (top - (H - 0.06)), kArm = arm0 / arm;
     // a monolith pendulum swings wide, as near the walls as its corners allow; half of them swing along the track instead,
     // at the cart and away
-    const mono = pend && !laser && !bars, fore = mono && Math.random() < 0.5, shellW = inHall(s) ? HALL_W : STYLE.bare ? 4.4 : SW; // Vitrum: within the hexagon
+    const mono = pend && !laser && !bars, fore = (mono && (LTW.length || Math.random() < 0.5)) || (LTW.length > 0 && !laser && !bars), // (Lux: its glass blocks swing only along the rails, on one chain or two)
+      shellW = inHall(s) ? HALL_W : STYLE.bare ? 4.4 : SW; // Vitrum: within the hexagon
     const wn2 = G / arm0, amp = !pend ? 0 : fore ? rand(0.5, 0.62) : mono ? Math.asin(clamp((shellW - 1.9) / arm, 0.2, 0.9)) * rand(0.85, 1) : rand(0.4, 0.52) * kArm, ph = rand(0, TAU);
     // swMax: the widest its swing may grow under hits (a gate wider, to swing clear of the cart)
     hangers.push({ s, kind, w, h, d, L, arm, wn2, kArm, top, fore, u0: pend || laser ? 0 : rand(-0.4, 0.4), theta: amp * Math.sin(ph), omega: amp * Math.sqrt(wn2) * Math.cos(ph), swMax: pend ? clamp(amp * 1.5, 0.5, 1.2) : 1.2, tilt: 0,
@@ -3772,7 +3773,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     addScore(15); Sound.clink(); Sound.tone(900, 0.12, 0.08, "square", 0, 300);
     scatterChain(hg, c, at);
     const left = hg.chains.filter(x => x.alive);
-    if (!left.length) dropHanger(hg);
+    if (!left.length || hg.fore) dropHanger(hg); // (one swinging along the track falls once a chain goes)
     else { // one chain gone: the slab swings down on the other from the corner it hangs by, till its middle is under it
       const k = left[0]; hg.one = { x: k.x, phi: 0, w: 0, r: Math.hypot(k.x, hg.h / 2), eq: Math.PI / 2 - Math.atan2(hg.h / 2, k.x), rest: false };
     }
@@ -6156,7 +6157,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // on the bridge: Nox's laser mills and bars, its gates and great gears, Vitrum's catapults and crossbows, Rubinus's walls of glass
       pats: { doors: [0.9, 1.2, 1.4], gears: [0.6, 0.9, 1.1], abspin: [0.5, 0.8, 1], abbar: [0.5, 0.8, 1], lblock: [0.5, 0.8, 1], catapult: [0.6, 0.8, 1], fblocks: [0.4, 0.7, 0.9],
         wall: [0.5, 0.7, 0.9], shutter: [0.3, 0.7, 1.1], zigzag: [0.3, 0.6, 0.9], rotor: [0.6, 1, 1.2], slider: [1, 1.5, 1.5], center: [2, 2, 1.5], reinf: [0, 0.8, 1.5],
-        triple: [1, 1, 0.8], double: [0, 1, 1.5], sides: [1.2, 0.6, 0], bonus: [1.5, 0.5, 0], lift: [0, 0, 0], imps: [0, 0, 0], gate: [0.7, 0.9, 1.1], pendulum: [0.6, 0.8, 1], lhang: [0.3, 0.5, 0.7] },
+        triple: [1, 1, 0.8], double: [0, 1, 1.5], sides: [1.2, 0.6, 0], bonus: [1.5, 0.5, 0], lift: [0, 0, 0], imps: [0, 0, 0], gate: [0.7, 0.9, 1.1], pendulum: [0.6, 0.8, 1], lhang: [0, 0, 0] },
       // and monoliths on one chain or two and laser beams on chains, each from a square arch standing on the deck
       every: { catapult: 420, gears: 380, abbar: 300 },
       turns: [[110, 60, 50], [240, 60, -60], [370, 50, 45], [480, 80, -85], [640, 50, 50], [750, 60, -55], [870, 50, 45],

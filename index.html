@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.321</div>
+      <div class="credit version">v1.0.322</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -895,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.321`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.322`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3234,6 +3234,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (s < spn.a + 16 || s > spn.b - 8) return;
       const opts = ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
     }
+    if (!spawnGroupKind && LTW.length) { // Lux: its big obstacles evenly spread, never two within 55 m (they had heaped up: two pairs of gears and a
+      // catapult, none to be shot down in time, and then hundreds of metres with none); past 150 m without one, the next group is one
+      const BIG = ["gears", "abspin", "abbar", "lblock", "pendulum", "gate", "doors", "catapult", "fblocks"];
+      const bigAt = [...gears.map(x => x.s), ...pgears.map(x => x.s), ...catas.flatMap(c => [c.cs, c.s]), ...gates.map(g => g.s), ...hangers.map(h => h.s), ...spinners.map(x => x.s), ...lbars.map(x => x.s), ...lblocks.map(x => x.s)];
+      const near = bigAt.some(x => Math.abs(x - s) < 55), last = Math.max(-1e9, ...bigAt.filter(x => x < s));
+      if (BIG.includes(pat) && near) pat = Math.random() < 0.6 ? "center" : "slider";
+      else if (!BIG.includes(pat) && !near && s - last > 150) pat = BIG[Math.floor(Math.random() * BIG.length)];
+      // the spiral comes out over where it went in: past its end, things set down while the cart was still before it were already
+      // in sight, near, and sprang up there; nothing there till 90 m on
+      if (LTW.some(m => m.kind === "spiral" && s > m.tw1 + 10 && s < m.tw1 + 90)) return;
+    }
     if (!spawnGroupKind && pat === "catapult" && LTW.some(m => s > m.sw - 200 && s < m.tw1 + 20)) pat = "center"; // (its glass flies far: none toward a gantry)
     if (!spawnGroupKind && LTW.some(m => s > m.sw - 70 && s < m.tw1 + 14)) { // on a Lux manoeuvre, and on the way up to its gantry (so the targets show), only glass, standing on the deck or turning over it
       const opts = ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
@@ -5492,9 +5503,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const CATA_COST = 4, CATA_GAP = 80, CATA_LEAD = 18, CATA_K = 1.1, CATA_TG = 0.8 * 1.1; // its toll, the least room between two, its lead on its glass (midway between frames), its size, how far out it stands, its target's reach
   const HEX_PTS = Array.from({ length: 6 }, (_, k) => [Math.cos(k * Math.PI / 3) * 4.9, Math.sin(k * Math.PI / 3) * 4.9]); // the frame's hexagon (flat on top and bottom)
   // Lux's slabs square cut, as wide as its bridge and a little over (a hexagon fills Vitrum's frames; Lux has none): about the same middle
-  const SLAB_RECT = [[-2.7, -4.2], [2.7, -4.2], [2.7, 1.3], [-2.7, 1.3]], SLAB_RECT_CY = -1.45;
+  const SLAB_RECT = [[-2.7, -3.55], [2.7, -3.55], [2.7, 1.95], [-2.7, 1.95]], SLAB_RECT_CY = -0.8; // (its foot 0.65 m over the deck: clear of the rails, the kerbs and the sleepers)
   const cataRectGeo = new THREE.ExtrudeGeometry(new THREE.Shape(SLAB_RECT.map(([x, y]) => new THREE.Vector2(x, y))), { depth: 0.6, bevelEnabled: false }).translate(0, 0, -0.3);
-  const inSlab = (c, x, y, m) => c.pts === HEX_PTS ? inHex(x, y, m) : Math.abs(x) <= 2.7 - m && y - HEX_V >= -4.2 + m && y - HEX_V <= 1.3 - m;
+  const inSlab = (c, x, y, m) => c.pts === HEX_PTS ? inHex(x, y, m) : Math.abs(x) <= 2.7 - m && y - HEX_V >= -3.55 + m && y - HEX_V <= 1.95 - m;
   const cataSlabGeo = (() => { const sh = new THREE.Shape(HEX_PTS.map(([x, y]) => new THREE.Vector2(x, y))); return new THREE.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: false }).translate(0, 0, -0.3); })();
   // the thick glass bends the sky behind it: it draws the sky the game has drawn this frame (skyRT), shifted by its own
   // curve, bright at its rims; one more texture read where it shows, no extra pass
@@ -6423,7 +6434,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
     planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
     pgPlan = SPANS.length ? [SPANS[0].a - 120, ...SPANS.map(sp => sp.b + 75)] : []; // Speculum's prism gears: in the first halls, before the first bridge, and past each corkscrew
-    if (LTW.length) pgPlan = [0.1, ...LTW.map(m => (m.tw1 + 90) / MAIN_LEN)].map(f => Math.round(f * MAIN_LEN + rand(-15, 15))).filter(x => x < MAIN_LEN - 60 && !LTW.some(m => x > m.sw - 70 && x < m.tw1 + 20)); // Lux: prism gears out on the bridge, between its manoeuvres
+    if (LTW.length) pgPlan = [0.1, ...LTW.map(m => (m.tw1 + 110) / MAIN_LEN)].map(f => Math.round(f * MAIN_LEN + rand(-10, 15))).filter(x => x < MAIN_LEN - 60 && !LTW.some(m => x > m.sw - 70 && x < m.tw1 + 95)); // Lux: prism gears out on the bridge, between its manoeuvres
     if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind: "tall" }, { s: sp.b, kind: "tall" }]); }
     buildStation();
   }

@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.316</div>
+      <div class="credit version">v1.0.317</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -895,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.316`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.317`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1806,13 +1806,23 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const luxGold = { value: 1 };
   // Lux's floating blocks: Nox's, white as the cannon's shell, their thin lines lit and shifting between the nebula's two colours,
   // its teal and its rose, in slow waves across them (brighter the darker it is)
-  const luxTime = { value: 0 };
-  const luxBlockMat = new THREE.MeshLambertMaterial({ map: blockTex.map, emissiveMap: blockTex.emi, color: 0xffffff, emissive: 0xffffff });
-  luxBlockMat.onBeforeCompile = (sh, r) => { THREE.Material.prototype.onBeforeCompile.call(luxBlockMat, sh, r); sh.uniforms.luxGold = luxGold; sh.uniforms.luxTime = luxTime;
-    sh.vertexShader = "varying vec3 vLuxW;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  { vec4 lw = vec4(transformed, 1.0);\n  #ifdef USE_INSTANCING\n  lw = instanceMatrix * lw;\n  #endif\n  vLuxW = (modelMatrix * lw).xyz; }");
-    sh.fragmentShader = "uniform float luxGold, luxTime; varying vec3 vLuxW;\n" + sh.fragmentShader.replace("#include <emissivemap_fragment>",
-      "vec4 luxE = texture2D(emissiveMap, vUv);\n  float luxW = 0.5 + 0.5 * sin(luxTime * 1.4 + dot(vLuxW, vec3(0.21, 0.13, 0.17)));\n  vec3 luxC = mix(vec3(0.05, 0.7, 0.85), vec3(1.0, 0.2, 0.55), luxW); diffuseColor.rgb = mix(diffuseColor.rgb, luxC, luxE.r * 0.85);\n  totalEmissiveRadiance = vec3(1.0) * 0.18 * (1.0 - luxE.r) + luxC * luxE.r * luxGold;"); };
-  luxBlockMat.customProgramCacheKey = () => "luxBlock";
+  // the blocks' lit edges drawn by the shader, a fixed 3 cm wide whatever the block's size (a texture's lines grew fat on the big
+  // ones), never under a pixel: the distance to the nearest edge on the face, in metres, from where the point is in the unit box
+  // and the instance's own scale
+  const edgeLines = (mat, key, colour) => { mat.extensions = { derivatives: true };
+    mat.onBeforeCompile = (sh, r) => { THREE.Material.prototype.onBeforeCompile.call(mat, sh, r); Object.assign(sh.uniforms, { luxGold, luxTime, noxLine });
+      sh.vertexShader = "varying vec3 vEdgeP, vEdgeS, vLuxW;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vEdgeP = position; vEdgeS = vec3(1.0); vec4 lw = vec4(transformed, 1.0);\n  #ifdef USE_INSTANCING\n  vEdgeS = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); lw = instanceMatrix * lw;\n  #endif\n  vLuxW = (modelMatrix * lw).xyz;");
+      sh.fragmentShader = "uniform float luxGold, luxTime; uniform vec3 noxLine; varying vec3 vEdgeP, vEdgeS, vLuxW;\n" + sh.fragmentShader.replace("#include <emissivemap_fragment>",
+        "vec3 ed = (0.5 - abs(vEdgeP)) * vEdgeS; float e1 = min(ed.x, min(ed.y, ed.z)), e3 = max(ed.x, max(ed.y, ed.z)), e2 = ed.x + ed.y + ed.z - e1 - e3;\n" +
+        "  float aa = fwidth(e2), lw = max(0.03, aa * 0.9), line = 1.0 - smoothstep(lw, lw + aa * 1.2, e2);\n" + colour); };
+    mat.customProgramCacheKey = () => key; };
+  // Lux's: white as the cannon's shell, the lines a slow wash of the nebula's teal into its rose, through violet, as an LED strip's
+  const luxTime = { value: 0 }, noxLine = { value: new THREE.Color() };
+  const luxBlockMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffffff });
+  edgeLines(luxBlockMat, "luxBlock", "float luxW = smoothstep(0.0, 1.0, 0.5 + 0.5 * sin(luxTime * 0.5 + dot(vLuxW, vec3(0.045, 0.03, 0.035))));\n  vec3 luxC = mix(vec3(0.1, 0.55, 1.0), vec3(1.0, 0.15, 0.55), luxW) + vec3(0.25, 0.0, 0.2) * (1.0 - abs(luxW * 2.0 - 1.0));\n  diffuseColor.rgb = mix(diffuseColor.rgb, luxC, line * 0.9);\n  totalEmissiveRadiance = vec3(1.0) * 0.18 * (1.0 - line) + luxC * line * luxGold;");
+  // Nox's: its own colours, the lines as thin
+  const noxBlockMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  edgeLines(noxBlockMat, "noxBlock", "totalEmissiveRadiance = noxLine * line;");
   const sigilMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8 });
   const stationMat = new THREE.MeshStandardMaterial({ map: floorTex.map, roughness: 0.6, metalness: 0.1 });
   const coinMat = new THREE.MeshStandardMaterial({ roughness: 0.35, metalness: 0.3 });
@@ -1837,6 +1847,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     surfMat.color.copy(cur.surf); surfMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     wallMat.color.copy(cur.wall); wallMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     blockMat.color.copy(cur.block); blockMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.8);
+    noxBlockMat.color.copy(cur.block); noxLine.value.copy(cur.line).multiplyScalar(cur.lineI * 1.6);
     dropMat.color.copy(cur.block).lerp(WHITE, 0.5); dropMat.emissive.copy(cur.hor).multiplyScalar(0.7);
     bushMat.color.copy(cur.block); bushMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.35);
     frameMat.color.copy(cur.frame); frameMat.emissive.copy(cur.frameE).multiplyScalar(cur.frameEI);
@@ -2124,7 +2135,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const gFloorStrip = makeStrip(GHOST_N, surfMat, false), gVaultStrip = makeStrip(GHOST_N, surfMat, true);
   // a mirror wall reflects the corridor to an offset of 2 × (SW + 0.12) on its side (set with the level)
   const mirStrips = [-1, 1].map(k => ({ o: k * 2 * (W + 0.12), k, floor: makeStrip(STRIP_N, surfMat, false), vault: makeStrip(STRIP_N, surfMat, true) }));
-  const decor = new Map();
+  const decor = new Map(), decorW = []; // decorW: Nox's and Lux's floating blocks where they stand in the world, the last 400
   // Initium, Vitrum, Lux: whether a bay (the 4 stretches from one frame's middle to the next's) has its walls and roof, drawn once
   // a bay; one whose frame is gone takes the bay's before it
   const bayBase = new Map(), bayForce = new Set();
@@ -2263,11 +2274,24 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (let i = 0; i < nb; i++) {
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
       const side = h1 < 0.5 ? -1 : 1, tall = z < 0.4 && h3 < 0.35 && STYLE.blocks === "cube";
-      d.blocks.push({
+      const bl = {
         u: side * (SW + 3 + h2 * 20), v: tall ? -14 + h3 * 10 : -8 + h3 * 20,
         sx: 0.8 + h2 * 4, sy: tall ? 18 + h1 * 14 : 0.8 + h3 * 4, sz: 0.8 + h1 * 4,
         rx: h1 * TAU, ry: h2 * TAU, spin: tall ? 0 : (h3 - 0.5) * 0.4,
-      });
+      };
+      if (STYLE.bridge) { // Nox, Lux: no matchsticks (no side more than 1.6 times another, no towers), and none passing through another
+        const m = Math.max(bl.sx, bl.sy, bl.sz) / 1.6; bl.sx = Math.max(bl.sx, m); bl.sy = Math.max(Math.min(bl.sy, 4.8), m); bl.sz = Math.max(bl.sz, m);
+        const rad = b => 0.5 * Math.hypot(b.sx, b.sy, b.sz), s0 = k * SL + SL / 2; // (each as the sphere round it, whichever way it turns)
+        const clash = () => { for (let kk = k - 7; kk <= k + 7; kk++) { const o = kk === k ? d : decor.get(kk); if (!o || !o.blocks) continue;
+          for (const c of o.blocks) if (c !== bl && Math.hypot((kk - k) * SL, c.u - bl.u, c.v - bl.v) < rad(c) + rad(bl) + 0.3) return true; } return false; };
+        // and where the track coils (Lux's spiral) one turn's blocks come near another's: those checked where they are in the world
+        const wp = () => { placeM(M, s0, bl.u, bl.v); return new THREE.Vector3().setFromMatrixPosition(M); };
+        const clashW = () => { const p = wp(); for (const c of decorW) if (c.p.distanceTo(p) < c.r + rad(bl) + 0.3) return true; return false; };
+        let tries = 0; while ((clash() || clashW()) && tries++ < 6) bl.v += rad(bl) * 1.5 + 0.5;
+        if (clash() || clashW()) continue;
+        decorW.push({ k, p: wp(), r: rad(bl) }); if (decorW.length > 400) decorW.splice(0, decorW.length - 400);
+      }
+      d.blocks.push(bl);
     }
     decor.set(k, d);
     return d;
@@ -3136,7 +3160,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     beamMat.opacity = 0; needle.t0 = -9; needleHead.visible = false; trails.forEach(t => { t.visible = false; }); gasBirth.fill(-99); gasGeo.attributes.birth.needsUpdate = true;
     ballsArr.forEach(b => { scene.remove(b.mesh); if (b.cs) scene.remove(b.cs.g.mesh); }); ballsArr = [];
     shards.forEach(dropShard); shards = [];
-    decor.clear(); bayBase.clear(); bayForce.clear();
+    decor.clear(); bayBase.clear(); bayForce.clear(); decorW.length = 0;
   }
 
   // ---------- procedural spawning: what appears ahead depends on where the cart is between heaven and hell ----------
@@ -5562,7 +5586,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // where the floor stops short of it (Vitrum's narrow floor, Lux's bridge) a platform for it, out from the floor's edge and held to
     // it: a flat plinth, as thick as the floor and level with it, no lip, and under it two struts back to the floor's underside
     const fw = openAt(s) ? BRIDGE_W : STYLE.floorW || SW, outer = side > 0 ? c.u + bb.max.x : -(c.u + bb.min.x);
-    if (outer > fw - 0.05) {
+    if (outer > fw - 0.05) { if (openAt(s)) c.y0 = 0.2; // (over a bridge level with the tops of its kerbs, and the weapon on it so)
       const x0 = side * fw - c.u, x1 = side * (outer + 0.35) - c.u, z0 = bb.min.z - 0.35, z1 = bb.max.z + 0.35, w = Math.abs(x1 - x0) + 0.3, xc = (x0 + x1) / 2 - side * 0.15;
       const deck = new THREE.Mesh(new THREE.BoxGeometry(w, 0.52, z1 - z0), frameMat); deck.position.set(xc, -0.26 + 0.01, (z0 + z1) / 2); c.root.add(deck);
       for (const z of [z0 + 0.3, z1 - 0.3]) { const a0 = new THREE.Vector3(x1 - side * 0.2, -0.5, z), a1 = new THREE.Vector3(side * (fw - 0.6) - c.u, -1.6, z), d = a1.clone().sub(a0);
@@ -5614,7 +5638,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function updateCatapults(dt) {
     for (const c of catas) {
       setObj(c.slab, c.s, 0, 0); c.slab.updateMatrixWorld(true); c.inv.copy(c.slab.matrixWorld).invert();
-      setObj(c.root, c.cs, c.u, 0); c.root.updateMatrixWorld(true);
+      setObj(c.root, c.cs, c.u, c.y0 || 0); c.root.updateMatrixWorld(true);
       if (c.beam) { // the laser sight's beam, straight on along the bow and on down the track, as Lux's lasers; its spot on the glass where the rod will strike it
         c.dot.visible = !c.broken;
         { const a = tmpV.copy(c.sightAt).applyMatrix4(c.bow.matrixWorld).clone(), dir = new THREE.Vector3(0, 0, -1).transformDirection(c.bow.matrixWorld);
@@ -6388,7 +6412,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;
     mirStrips.forEach(m => { m.o = m.k * 2 * (SW + 0.12); });
     I.ceil.material = lv.id === "vitrum" ? glassWallMat : surfMat;
-    I.block.material = lv.id === "lux" ? luxBlockMat : blockMat; // Vitrum's roof, where there is one, of clear glass
+    I.block.material = lv.id === "lux" ? luxBlockMat : lv.id === "abyssus" ? noxBlockMat : blockMat; // Vitrum's roof, where there is one, of clear glass
     I.gwall.material = lv.id === "lux" ? plainGlassWallMat : glassWallMat; // Lux: its roof and its glass walls whole, no lit seams (they read as gaps between the panels)
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, STYLE.floor || { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", mirror: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
@@ -8421,7 +8445,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
   // test hook: lets an automated check jump the karma or the distance
   window.__rails = { music: () => (Sound.music ? "webaudio" : Sound.fallback ? "element" : "none"), track: () => Sound.track, musicAt: () => Sound.at0, setAlt(a) { alt = a; },
-    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ fore: hangers.map(h => h.fore ? 1 : 0).join(), hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, noCrystals() { crystals.forEach(c => scene.remove(c.group)); crystals = []; }, quiet() { nextSpawn = 1e9; }, sunK(k) { skyUni.sunK.value = k; }, decorVis(k, v) { if (I[k]) I[k].visible = v; }, finish: () => endRun(true), tally(reset) { const t = crystalTally; if (reset) crystalTally = 0; return t; }, mainLen: () => MAIN_LEN, levelId: () => LEVEL.id, status: () => Object.fromEntries(LEVELS.map(l => [l.id, stationStatus(l)])), wallsBack(a, b, ceil) { for (let k = Math.floor((sC + a) / SL); k <= Math.floor((sC + b) / SL); k++) { const d = getDecor(k); d.wl = d.wr = true; if (ceil !== undefined) d.ceil = ceil; } }, ballCount: () => ballsArr.length, ramPos: () => rams.map(r => { r.body.updateMatrixWorld(true); frameAt(r.s); const p = new THREE.Vector3().setFromMatrixPosition(r.body.matrixWorld).sub(_P); return [+(r.s - sC).toFixed(1), +p.dot(_R).toFixed(2), +p.dot(_U).toFixed(2)]; }), pause: () => pauseGame(), crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); }, halls: () => [...decor.entries()].filter(([, d]) => d.hall).map(([k]) => k * SL), bars(ahead) { addHanger(sC + ahead, 'gate', false, true); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.map(s => s.cones.filter(c => c.alive).length), lblocks: lblocks.length, hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), rams(ahead, both) { addRams(sC + ahead, both); }, cutRam() { const r = rams.find(x => !x.falling); if (!r) return null; const c = r.chains.find(x => x.alive); breakRamChain(r, c, c.A.clone()); return r.chains.map(x => x.alive).join(); }, hammer(ahead, side = 1, dir = 1, n = 2, axe = false) { addHammerMill(sC + ahead, side, dir, n, axe); }, carcerPlan: () => ({ halls: HALLS.map(h => h.map(Math.round)), doors: doorPlan.map(d => [Math.round(d.s), d.kind]) }), carcer(kind, ahead, look) { const s = sC + ahead;
+    level(id) { startLevel(byId(id)); }, hanger(ahead, kind) { addHanger(sC + ahead, kind); }, weapon(id) { progress.weapons[id] = true; progress.weapon = id; setWeaponVisual(id); }, probe() { const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const c = hg.chains.find(c => c.alive); return { A: c.A.toArray(), B: c.B.toArray(), balls: ballsArr.map(b => b.mesh.position.toArray()), s: hg.s - sC, kind: hg.kind }; }, counts: () => ({ fore: hangers.map(h => h.fore ? 1 : 0).join(), hangers: hangers.length, falling: hangers.filter(h => h.falling).length, drops: drops.length, chains: hangers.map(h => h.chains.filter(c => c.alive).length).join(), hp: hangers.map(h => h.hp).join(), theta: hangers.map(h => h.theta.toFixed(2)).join(), kinds: hangers.map(h => h.kind).join() }), forks: () => forks.map(f => ({ s: f.s, sign: f.sign, locked: f.locked, kind: f.kinds[f.sign] })), flip(i) { flipFork(forks[i]); }, crystalAhead(d, u, v) { addCrystal(sC + d, u, v, 3); }, ballsLeft: () => balls, noCrystals() { crystals.forEach(c => scene.remove(c.group)); crystals = []; }, quiet() { nextSpawn = 1e9; }, sunK(k) { skyUni.sunK.value = k; }, decorVis(k, v) { if (I[k]) I[k].visible = v; }, finish: () => endRun(true), tally(reset) { const t = crystalTally; if (reset) crystalTally = 0; return t; }, mainLen: () => MAIN_LEN, levelId: () => LEVEL.id, status: () => Object.fromEntries(LEVELS.map(l => [l.id, stationStatus(l)])), wallsBack(a, b, ceil) { for (let k = Math.floor((sC + a) / SL); k <= Math.floor((sC + b) / SL); k++) { const d = getDecor(k); d.wl = d.wr = true; if (ceil !== undefined) d.ceil = ceil; } }, ballCount: () => ballsArr.length, ramPos: () => rams.map(r => { r.body.updateMatrixWorld(true); frameAt(r.s); const p = new THREE.Vector3().setFromMatrixPosition(r.body.matrixWorld).sub(_P); return [+(r.s - sC).toFixed(1), +p.dot(_R).toFixed(2), +p.dot(_U).toFixed(2)]; }), pause: () => pauseGame(), crystalScreen() { const r = canvas.getBoundingClientRect(); const c = crystals.filter(c => c.alive && c.s > sC + 5).sort((a, b) => a.s - b.s)[0]; if (!c) return null; const v = c.wp.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, knock(side) { const hg = hangers.filter(h => !h.falling && h.s > sC).sort((a, b) => a.s - b.s)[0]; if (hg) hitBody(hg, new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld), new THREE.Vector3().copy(_R).multiplyScalar(side * 40)); }, bodyScreen() { const r = canvas.getBoundingClientRect(); const hg = hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s)[0]; if (!hg) return null; const v = new THREE.Vector3().setFromMatrixPosition(hg.body.matrixWorld).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; }, hangerScreen() { const r = canvas.getBoundingClientRect(); return hangers.filter(h => !h.falling && h.s > sC + 8).sort((a, b) => a.s - b.s).slice(0, 1).map(h => h.chains.filter(c => c.alive).map(c => { const v = c.A.clone().lerp(c.B, 0.45).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; })).flat(); }, hitSigil() { const g = sigils.find(x => x.alive); if (g) hitSigil(g, { v: new THREE.Vector3() }); return !!g; }, setBalls(n) { balls = n; updateCount(); }, menu: showMenu, progress: () => progress, jump(s) { clearDynamic(); sC = s; nextSpawn = s + 40; }, thorn(ahead, side = -1, v = 1.4) { addThornAt(sC + ahead, side, v); return true; }, clearDecor() { decor.clear(); decorW.length = 0; }, halls: () => [...decor.entries()].filter(([, d]) => d.hall).map(([k]) => k * SL), bars(ahead) { addHanger(sC + ahead, 'gate', false, true); }, spinner(ahead, side = 1, dir = 1) { addSpinner(sC + ahead, side, dir); }, lblock(ahead, orient = 'h') { addLaserBlock(sC + ahead, orient); }, lhang(ahead, kind = 'gate') { addHanger(sC + ahead, kind, true); }, laserState: () => ({ spinners: spinners.map(s => s.cones.filter(c => c.alive).length), lblocks: lblocks.length, hangers: hangers.map(h => h.emitters.map(e => e.alive).join()) }), rams(ahead, both) { addRams(sC + ahead, both); }, cutRam() { const r = rams.find(x => !x.falling); if (!r) return null; const c = r.chains.find(x => x.alive); breakRamChain(r, c, c.A.clone()); return r.chains.map(x => x.alive).join(); }, hammer(ahead, side = 1, dir = 1, n = 2, axe = false) { addHammerMill(sC + ahead, side, dir, n, axe); }, carcerPlan: () => ({ halls: HALLS.map(h => h.map(Math.round)), doors: doorPlan.map(d => [Math.round(d.s), d.kind]) }), carcer(kind, ahead, look) { const s = sC + ahead;
       if (/^n?(side|top|grid)$/.test(kind)) { const k = kind.replace(/^n/, ""); lastSet = addLaserBars(s, k === "side" ? "v" : k === "top" ? "h" : "grid", typeof look === "number" ? look : 0, kind[0] === "n"); } else if (kind === "axes2" || kind === "axes4") addHammerMill(s, 1, 1, kind === "axes2" ? 2 : 4, true);
       else if (kind === "flap" || kind === "bolt" || kind === "tall") spawnDoor({ s, kind }); else addHanger(s, kind === "grate1" ? "pendulum" : "gate", false, true, { look, wide: kind === "grate3" }); },
     doorHit(what) { const dr = doors[0]; if (!dr) return null; const at = new THREE.Vector3(), v = new THREE.Vector3();

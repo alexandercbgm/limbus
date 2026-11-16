@@ -1412,7 +1412,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           float inner = smoothstep(R * 1.02, R * 0.1, rr) * smoothstep(0.32, 0.78, f3) * (0.45 + 0.9 * f2);
           float core = exp(-r * 70.0) * 3.0 + exp(-r * 16.0) * 0.9 + exp(-r * 5.0) * 0.18;
           // its flare a band along the great circle through it, so it runs on round the sky, fading, not ending at a ninety-degree edge
-          float off = dot(n, ay), along = acos(clamp(dot(normalize(n - ay * off), sd), -1.0, 1.0));
+          // (in the plane of the star and the start's left-right: from the start it runs straight across the view, level; a great circle
+          // seen from its own plane is a straight line, where one along the star's elevation had bowed into an arc)
+          vec3 fp = normalize(cross(sd, vec3(1.0, 0.0, 0.0))); float off = dot(n, fp), along = acos(clamp(dot(normalize(n - fp * off), sd), -1.0, 1.0));
           float flare = exp(-abs(off) * 260.0) * (exp(-along * 1.1) * 1.4 + 0.12) + exp(-abs(off) * 45.0) * exp(-along * 3.0) * 0.4;
           vec3 fire = mix(vec3(1.0, 0.32, 0.08), vec3(1.0, 0.72, 0.3), f2), gas = mix(vec3(0.9, 0.5, 0.72), vec3(0.55, 0.52, 1.0), f1);
           vec3 nova = fire * shell + gas * inner * 0.95 + vec3(0.82, 0.9, 1.0) * core;
@@ -1715,15 +1717,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const RUBY_COL = new THREE.Color(0xa8001e); // pomegranate juice: deep, a touch toward crimson
   const rubyMat = new THREE.MeshStandardMaterial({ color: RUBY_COL, emissive: 0x2a0005, roughness: 0.1, metalness: 0.2, transparent: true, opacity: 0.7, vertexColors: true }); // see-through to the sky behind; only its near facets drawn, in depth
   const prismMat = new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.72, roughness: 0.1, metalness: 0.25, flatShading: true });
-  // Lux's floating prisms: white, glowing a little, with gold lines along their edges that burn brighter the darker it is (as Nox's
-  // lines do). Each face knows how near its edge a point is (bary: its corners' weights), so the lines need no second mesh
   const luxGold = { value: 1 };
-  const luxPrismMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xdfe8ff, emissiveIntensity: 0.22, roughness: 0.3, metalness: 0.1, flatShading: true });
-  luxPrismMat.onBeforeCompile = (sh, r) => { THREE.Material.prototype.onBeforeCompile.call(luxPrismMat, sh, r); sh.uniforms.luxGold = luxGold;
-    sh.vertexShader = "attribute vec3 bary; varying vec3 vBary;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  vBary = bary;");
-    sh.fragmentShader = "uniform float luxGold; varying vec3 vBary;\n" + sh.fragmentShader.replace("#include <emissivemap_fragment>",
-      "#include <emissivemap_fragment>\n  float edgeD = min(min(vBary.x, vBary.y), vBary.z), gl = 1.0 - smoothstep(0.025, 0.06, edgeD);\n  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.85, 0.55, 0.12), gl);\n  totalEmissiveRadiance += vec3(1.0, 0.72, 0.28) * gl * luxGold;"); };
-  luxPrismMat.customProgramCacheKey = () => "luxPrism";
+  // Lux's floating blocks: Nox's, white as the cannon's shell, their thin lines lit and shifting between the nebula's two colours,
+  // its teal and its rose, in slow waves across them (brighter the darker it is)
+  const luxTime = { value: 0 };
+  const luxBlockMat = new THREE.MeshLambertMaterial({ map: blockTex.map, emissiveMap: blockTex.emi, color: 0xffffff, emissive: 0xffffff });
+  luxBlockMat.onBeforeCompile = (sh, r) => { THREE.Material.prototype.onBeforeCompile.call(luxBlockMat, sh, r); sh.uniforms.luxGold = luxGold; sh.uniforms.luxTime = luxTime;
+    sh.vertexShader = "varying vec3 vLuxW;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n  { vec4 lw = vec4(transformed, 1.0);\n  #ifdef USE_INSTANCING\n  lw = instanceMatrix * lw;\n  #endif\n  vLuxW = (modelMatrix * lw).xyz; }");
+    sh.fragmentShader = "uniform float luxGold, luxTime; varying vec3 vLuxW;\n" + sh.fragmentShader.replace("#include <emissivemap_fragment>",
+      "vec4 luxE = texture2D(emissiveMap, vUv);\n  float luxW = 0.5 + 0.5 * sin(luxTime * 1.4 + dot(vLuxW, vec3(0.21, 0.13, 0.17)));\n  vec3 luxC = mix(vec3(0.05, 0.7, 0.85), vec3(1.0, 0.2, 0.55), luxW); diffuseColor.rgb = mix(diffuseColor.rgb, luxC, luxE.r * 0.85);\n  totalEmissiveRadiance = vec3(1.0) * 0.18 * (1.0 - luxE.r) + luxC * luxE.r * luxGold;"); };
+  luxBlockMat.customProgramCacheKey = () => "luxBlock";
   const sigilMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8 });
   const stationMat = new THREE.MeshStandardMaterial({ map: floorTex.map, roughness: 0.6, metalness: 0.1 });
   const coinMat = new THREE.MeshStandardMaterial({ roughness: 0.35, metalness: 0.3 });
@@ -1782,7 +1785,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     plainGlassWallMat.color.copy(cur.wall); plainGlassWallMat.opacity = glassWallMat.opacity; roofMat.color.copy(surfMat.color); roofMat.emissive.copy(surfMat.emissive);
     quartzMat.color.copy(cur.frame).lerp(cur.glass, 0.3); quartzMat.emissive.copy(cur.frame).multiplyScalar(0.25); // Vitrum's crystals: the frames' sapphire, lit a little from within
     prismMat.color.copy(cur.block); prismMat.emissive.copy(cur.accent).multiplyScalar(0.15 + cur.frameEI * 0.3);
-    luxGold.value = lerp(1.1, 2.6, curD()); luxPrismMat.emissiveIntensity = lerp(0.22, 0.4, curD()); // brighter lines and glow in the Dark
+    luxGold.value = lerp(0.35, 2.6, curD()); luxTime.value = performance.now() / 1000; // brighter lines in the Dark
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
     stationMat.color.copy(cur.surf).lerp(cur.frame, 0.12);
     coinMat.color.copy(cur.accent).lerp(WHITE, 0.15); coinMat.emissive.copy(cur.accent).multiplyScalar(0.22 + cur.frameEI * 0.2);
@@ -6110,7 +6113,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       feats: ["Залы с решётками на цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Effugium: побег через камеры"],
       req: { after: "speculum", fare: 30 }, map: { x: 825, y: 440, label: "t" } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 3200, pal: PAL_LUX, finale: "triumphus",
-      style: { arch: "square", blocks: "prism", glassWalls: true, bridge: true, floor: "plain" }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
+      style: { arch: "square", blocks: "cube", glassWalls: true, bridge: true, floor: "plain" }, crystalMul: 1.5, armor: 1, gainMul: 0.85,
       gateKinds: ["v"], // Nox's gates, as they are there
       // on the bridge: Nox's laser mills and bars, its gates and great gears, Vitrum's catapults and crossbows, Rubinus's walls of glass
       pats: { doors: [0.9, 1.2, 1.4], gears: [0.6, 0.9, 1.1], abspin: [0.5, 0.8, 1], abbar: [0.5, 0.8, 1], lblock: [0.5, 0.8, 1], catapult: [0.6, 0.8, 1], fblocks: [0.4, 0.7, 0.9],
@@ -6299,7 +6302,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;
     mirStrips.forEach(m => { m.o = m.k * 2 * (SW + 0.12); });
     I.ceil.material = lv.id === "vitrum" ? glassWallMat : surfMat;
-    I.prism.material = lv.id === "lux" ? luxPrismMat : prismMat; // Vitrum's roof, where there is one, of clear glass
+    I.block.material = lv.id === "lux" ? luxBlockMat : blockMat; // Vitrum's roof, where there is one, of clear glass
     I.gwall.material = lv.id === "lux" ? plainGlassWallMat : glassWallMat; // Lux: its roof and its glass walls whole, no lit seams (they read as gaps between the panels)
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, STYLE.floor || { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", mirror: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;

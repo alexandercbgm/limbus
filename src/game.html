@@ -781,7 +781,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const HALL_W = 8.5, HALL_H = 10;
   let HALLS = []; // [start, end] of each hall along the track, planned afresh for every ride
   const BRIDGE_W = 1.75, PYLON_H = 40; // Abyssus: half the bridge's width, and how far its pylons reach down
-  const DS = 1, BACK = 44, AHEAD = 150, NS = BACK + AHEAD + 1, SL = 2;
+  const DS = 1, BACK = 44, AHEAD_MAX = 300, NS = BACK + AHEAD_MAX + 1, SL = 2;
+  let AHEAD = 150; // how far ahead the track is drawn: twice as far round Lux's spiral, whose coils show from across it
+  let spiralHold = 0; // on Lux's spiral the track ahead does not tilt with the karma (its coils had bobbed like a spring); 0 → 1 over 40 m
   const START_BALLS = 30, R_BALL = 0.18, G = 11, MAX_SHARDS = 520;
   const SPAWN_AHEAD = 118, LAMBDA = 14, BASE_SPEED = 12.5;
   // along s a level is: the main run, then the Iudicium finale, then the arrival station; the cart stops at END_S
@@ -1773,7 +1775,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const PP = new Float64Array(NS * 3), PR = new Float64Array(NS * 3), PU = new Float64Array(NS * 3), PT = new Float64Array(NS * 3);
   let sBase = 0;
   const cartPos = new THREE.Vector3();
-  function pitchAt(s) { return (s <= sC ? pitchC : pitchTs + (pitchC - pitchTs) * Math.exp(-(s - sC) / LAMBDA)) + (LTW.length ? spiralPitch(s) : 0); }
+  function pitchAt(s) { return (s <= sC ? pitchC : pitchC + (1 - spiralHold) * (pitchTs - pitchC) * (1 - Math.exp(-(s - sC) / LAMBDA))) + (LTW.length ? spiralPitch(s) : 0); }
   // banking (roll) follows the level's own turns only: at a fork both branches stay level, so the other
   // branch's floor never rises over the main track's rails
   // and around a fork the track is not banked at all: a tilted main floor would rise over the other branch's
@@ -1979,7 +1981,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.attributes.position.needsUpdate = g.attributes.normal.needsUpdate = g.attributes.uv.needsUpdate = true;
     strip.visible = seg > 0;
   }
-  const STRIP_N = AHEAD + 20;
+  const STRIP_N = AHEAD_MAX + 20;
   const endCap = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide })); // fogged through, so the fog's colour
   endCap.matrixAutoUpdate = false; endCap.frustumCulled = false; endCap.visible = false; scene.add(endCap);
   const deckStrip = makeStrip(STRIP_N, concreteMat, true);
@@ -2246,7 +2248,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (open !== -1) for (const [a, b, on] of halves(dec.wl, dec.wl0)) if (on) putWall(wk, s, -ww - 0.12, wh, a, b);
         if (open !== 1) for (const [a, b, on] of halves(dec.wr, dec.wr0)) if (on) putWall(wk, s, ww + 0.12, wh, a, b);
       }
-      if (!STYLE.closed && !STYLE.bare) for (const [a, b, on] of halves(dec.ceil, dec.ceil0)) if (on) sheetQuad(roofSheet, a, b, -ww - rx, wh, ww + rx, wh, 0, -1); // the roof one sheet: no gaps on a bend; out to the glass's plane (it stands 0.12 out)
+      if (!STYLE.closed && !STYLE.bare && !openAt(s)) for (const [a, b, on] of halves(dec.ceil, dec.ceil0)) if (on) sheetQuad(roofSheet, a, b, -ww - rx, wh, ww + rx, wh, 0, -1); // the roof one sheet: no gaps on a bend; out to the glass's plane (it stands 0.12 out)
       if (LEVEL.halls && !!dec.hw !== !!getDecor(k - 1).hw && (dec.hw || getDecor(k - 1).hw)) { // where a corridor meets a hall: the hall's end wall, seen from both sides
         const s0 = k * SL;
         I.portal.setMatrixAt(n.portal++, placeM(M, s0, 0, 0));
@@ -3625,7 +3627,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     scene.add(root);
     // a monolith always hangs under a ceiling: close the vault over it
-    for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) getDecor(k).ceil = true;
+    if (!openAt(s)) for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) getDecor(k).ceil = true; // (over a bridge its arch holds it: no roof)
     // under a raised ceiling the chains are longer, but the swing keeps the tempo and sideways reach of a normal one
     const arm0 = arm - (top - (H - 0.06)), kArm = arm0 / arm;
     // a monolith pendulum swings wide, as near the walls as its corners allow; half of them swing along the track instead,
@@ -6823,7 +6825,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     speedNow = dt > 0 ? ds / dt : 0;
     frameAt(sC + ds / 2); // uses last frame's path; close enough for one step
     cartPos.addScaledVector(SPANS.length || LTW.length ? tangent0(sC + ds / 2) : _T, ds); // the line the track winds round, not the rails' own heading
-    pitchC += (pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA));
+    pitchC += (1 - spiralHold) * (pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA));
     sC += ds;
     throwCD = Math.max(0, throwCD - dt);
 
@@ -6889,6 +6891,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
   function updateWorld(dt) {
     if (LTW.length) updateSwitches(dt);
+    spiralHold = 0; for (const m of LTW) if (m.kind === "spiral") spiralHold = Math.max(spiralHold, smooth5((sC - m.sw + 110) / 40) * smooth5((m.tw1 + 50 - sC) / 40));
+    AHEAD = LTW.some(m => m.kind === "spiral" && sC > m.sw - 110 && sC < m.tw1 + 10) ? AHEAD_MAX : 150;
     computePath();
     samplePalette(alt); tintBranch(dt); applyPalette();
     layoutCorridor();

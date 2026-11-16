@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.336</div>
+      <div class="credit version">v1.0.337</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -895,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.336`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.337`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2301,12 +2301,19 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           const m = Math.min(bl.sx, bl.sy, bl.sz) * 2.2; bl.sx = Math.min(bl.sx, m); bl.sy = Math.min(bl.sy, m); bl.sz = Math.min(bl.sz, m); }
         const rad = b => 0.5 * Math.hypot(b.sx, b.sy, b.sz), s0 = k * SL + SL / 2; // (each as the sphere round it, whichever way it turns)
         const clash = () => { for (let kk = k - 7; kk <= k + 7; kk++) { const o = kk === k ? d : decor.get(kk); if (!o || !o.blocks) continue;
-          for (const c of o.blocks) if (c !== bl && Math.hypot((kk - k) * SL, c.u - bl.u, c.v - bl.v) < rad(c) + rad(bl) + 0.3) return true; } return false; };
+          for (const c of o.blocks) if (c !== bl && Math.hypot((kk - k) * SL, c.u - bl.u, c.v - bl.v) < rad(c) + rad(bl) + 0.3) return true; }
+          // over the drill and the corkscrew a gantry may turn the winding the other way after they are set down, so there two may not share
+          // a distance from the line it turns round anywhere they could come together, whichever way it winds (it gains on that line slowly)
+          if (twM && twM.r) { const rb = Math.hypot(bl.u, bl.v - twM.r);
+            for (let kk = k - 14; kk <= k + 14; kk++) { const o = kk === k ? d : decor.get(kk); if (!o || !o.blocks) continue;
+              for (const c of o.blocks) if (c !== bl && c.tw === twM && Math.abs(kk - k) * SL * 0.3 < rad(c) + rad(bl) + 0.3 && Math.abs(Math.hypot(c.u, c.v - twM.r) - rb) < rad(c) + rad(bl) + 0.3) return true; } }
+          return false; };
         // and where the track coils (Lux's spiral) one turn's blocks come near another's: those checked where they are in the world
         const wp = () => { placeM(M, s0, bl.u, bl.v); return new THREE.Vector3().setFromMatrixPosition(M); };
         const clashW = () => { const p = wp(); for (const c of decorW) if (c.p.distanceTo(p) < c.r + rad(bl) + 0.3) return true; return false; };
         let tries = 0; while ((clash() || clashW()) && tries++ < 6) bl.v += rad(bl) * 1.5 + 0.5;
         if (clash() || clashW()) continue;
+        if (twM && twM.r) bl.tw = twM;
         decorW.push({ k, p: wp(), r: rad(bl) }); if (decorW.length > 400) decorW.splice(0, decorW.length - 400);
       }
       d.blocks.push(bl);
@@ -6068,18 +6075,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 
   // Lux: light itself. Pure white and pale glass in the light with a faint gold shimmer, pearl grey in between,
   // and in the dark an eclipse: black with a white-hot corona
-  const PAL_LUX = [
+  const PAL_LUX = [ // (its haze as far in the Dark as in the Light)
     { sky: "#040406", hor: "#010102", gnd: "#1a1a22", surf: "#07070a", wall: "#0a0a0e", line: "#f4f0ff", lineI: 0.8, frame: "#050507", frameE: "#fff6dc", frameEI: 0.8,
-      rail: "#2c2c36", sleeper: "#101014", glass: "#e8e8ff", glassO: 0.45, edge: "#ffffff", fogN: 4, fogF: 56, hemiS: "#e8e8ff", hemiG: "#08080e", hemiI: 0.55, sunI: 0.3,
+      rail: "#2c2c36", sleeper: "#101014", glass: "#e8e8ff", glassO: 0.45, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#e8e8ff", hemiG: "#08080e", hemiI: 0.55, sunI: 0.3,
       dust: "#ffffff", block: "#0a0a0e", cart: "#16161c", accent: "#3a7bff" },
     { sky: "#34363e", hor: "#1a1c22", gnd: "#101116", surf: "#3c3e48", wall: "#30323a", line: "#b8bcc8", lineI: 0.22, frame: "#1a1c22", frameE: "#000000", frameEI: 0,
-      rail: "#646874", sleeper: "#26282e", glass: "#d4d8e4", glassO: 0.42, edge: "#f0f2f8", fogN: 8, fogF: 72, hemiS: "#d8dce8", hemiG: "#1a1c22", hemiI: 0.75, sunI: 0.5,
+      rail: "#646874", sleeper: "#26282e", glass: "#d4d8e4", glassO: 0.42, edge: "#f0f2f8", fogN: 18, fogF: 120, hemiS: "#d8dce8", hemiG: "#1a1c22", hemiI: 0.75, sunI: 0.5,
       dust: "#c8ccd8", block: "#16171d", cart: "#30323a", accent: "#4a8cff" },
     { sky: "#c4c6cc", hor: "#b0b2b8", gnd: "#8c8e96", surf: "#dcdee2", wall: "#c6c8ce", line: "#ffffff", lineI: 0.05, frame: "#6c6e76", frameE: "#000000", frameEI: 0,
-      rail: "#9c9ea6", sleeper: "#7c7e86", glass: "#eef0f6", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 90, hemiS: "#ffffff", hemiG: "#9ea0a8", hemiI: 0.95, sunI: 0.7,
+      rail: "#9c9ea6", sleeper: "#7c7e86", glass: "#eef0f6", glassO: 0.42, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#9ea0a8", hemiI: 0.95, sunI: 0.7,
       dust: "#ffffff", block: "#ffffff", cart: "#585a62", accent: "#f0dc9c" },
     { sky: "#fbfbfd", hor: "#ffffff", gnd: "#e4e6ec", surf: "#ffffff", wall: "#f6f7fa", line: "#e8dcb4", lineI: 0.15, frame: "#c4c8d2", frameE: "#000000", frameEI: 0,
-      rail: "#d0d4dc", sleeper: "#e6e8ee", glass: "#f4f6ff", glassO: 0.38, edge: "#ffffff", fogN: 16, fogF: 104, hemiS: "#ffffff", hemiG: "#e8eaf0", hemiI: 1.1, sunI: 0.85,
+      rail: "#d0d4dc", sleeper: "#e6e8ee", glass: "#f4f6ff", glassO: 0.38, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#e8eaf0", hemiI: 1.1, sunI: 0.85,
       dust: "#fffaf0", block: "#ffffff", cart: "#8a8e98", accent: "#f0dc9c" },
     { sky: "#ffffff", hor: "#ffffff", gnd: "#f6f6fa", surf: "#ffffff", wall: "#ffffff", line: "#fff0c0", lineI: 0.5, frame: "#ecebe6", frameE: "#fffbe8", frameEI: 0.6,
       rail: "#eceef2", sleeper: "#f8f8fa", glass: "#ffffff", glassO: 0.34, edge: "#ffffff", fogN: 18, fogF: 120, hemiS: "#ffffff", hemiG: "#f4f4f8", hemiI: 1.2, sunI: 0.9,

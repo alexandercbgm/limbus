@@ -951,10 +951,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     { sky: "#5d84ad", hor: "#bccbd8", gnd: "#a7b6c2", surf: "#c8cacc", wall: "#b9bcbe", line: "#ffffff", lineI: 0.0, frame: "#4e5257", frameE: "#000000", frameEI: 0,
       rail: "#8c9197", sleeper: "#6e7175", glass: "#d2e5eb", glassO: 0.42, edge: "#ffffff", fogN: 20, fogF: 130, hemiS: "#ffffff", hemiG: "#8796a4", hemiI: 0.95, sunI: 0.7,
       dust: "#ffffff", block: "#a6aaae", cart: "#454a50", accent: "#ffffff" },
-    { sky: "#3f88d6", hor: "#dcebf7", gnd: "#8cafd0", surf: "#fbfcfc", wall: "#eef1f2", line: "#ffffff", lineI: 0.0, frame: "#8b98a0", frameE: "#000000", frameEI: 0,
+    { sky: "#4a80bd", hor: "#cadcec", gnd: "#346c94", surf: "#fbfcfc", wall: "#eef1f2", line: "#ffffff", lineI: 0.0, frame: "#8b98a0", frameE: "#000000", frameEI: 0,
       rail: "#a9b3b9", sleeper: "#c5cbcf", glass: "#c6eff9", glassO: 0.42, edge: "#ffffff", fogN: 60, fogF: 220, hemiS: "#ffffff", hemiG: "#86a8c8", hemiI: 1.0, sunI: 0.75,
       dust: "#ffffff", block: "#e1e6e9", cart: "#5d6a72", accent: "#9fdcff" },
-    { sky: "#2c7ad0", hor: "#d6e9f8", gnd: "#7fa7d0", surf: "#ffffff", wall: "#e9f5ff", line: "#7cc8ff", lineI: 0.35, frame: "#a4d2f0", frameE: "#bfe6ff", frameEI: 0.45,
+    { sky: "#3d78bd", hor: "#c9def0", gnd: "#2f6a96", surf: "#ffffff", wall: "#e9f5ff", line: "#7cc8ff", lineI: 0.35, frame: "#a4d2f0", frameE: "#bfe6ff", frameEI: 0.45,
       rail: "#d4eaf8", sleeper: "#e6f3fc", glass: "#9fe1ff", glassO: 0.4, edge: "#ffffff", fogN: 70, fogF: 240, hemiS: "#ffffff", hemiG: "#7ea7cf", hemiI: 1.1, sunI: 0.8,
       dust: "#8fd2ff", block: "#eef7ff", cart: "#6f8796", accent: "#6cc6ff" },
   ];
@@ -1395,15 +1395,19 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             c = mix(c, vec3(1.0, 0.86, 0.55) * 1.3, smoothstep(1.0, 0.97, q) * step(0.0, h)); // one even, glowing disc
           }
         } else if (m == 10.0) { // Initium: a clear day, stars faint in the blue, the sun white-hot and its rays running out across the sky
-          if (h < 0.0) c = mix(c, mix(hor, bot, smoothstep(0.0, 0.25, -h)), amt); // below the horizon the haze over the city, blue
           c += vec3(0.92, 0.96, 1.0) * (starAt(n, 90.0, 0.985) * 0.45 + starAt(n, 210.0, 0.992) * 0.3) * amt * smoothstep(0.02, 0.35, h);
           vec3 sdn = normalize(vec3(0.42, 0.36, -0.83)); float cd = dot(n, sdn), sg = acos(clamp(cd, -1.0, 1.0)), sp = max(cd, 0.0);
           vec3 ax = normalize(cross(sdn, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sdn); float a = atan(dot(n, ay), dot(n, ax));
           float ray = (0.5 + 0.5 * sin(a * 11.0 + 2.0 * sin(a * 3.0) + t * 0.04)) * (0.55 + 0.45 * sin(a * 27.0 - t * 0.03 + 1.7));
-          ray = pow(ray, 2.5) * exp(-sg * 1.6) * smoothstep(0.05, 0.09, sg) * smoothstep(-0.05, 0.1, h); // (from its disc's edge out)
+          ray = pow(ray, 2.5) * exp(-sg * 1.6) * smoothstep(0.02, 0.1, sg) * smoothstep(-0.05, 0.1, h);
           float day = amt * smoothstep(0.2, 0.55, lum); // (a day sky's sun: none in the Dark)
-          c += vec3(1.0, 0.98, 0.93) * (exp(-max(sg - 0.07, 0.0) * 30.0) * 0.4 + pow(sp, 12.0) * 0.2 + ray * 0.55) * day;
-          c = mix(c, vec3(1.0, 0.99, 0.95) * 1.15, smoothstep(0.075, 0.068, sg) * day); // (its disc half as wide again) // its disc, sharp-edged: a soft glare had hidden it
+          // below the horizon the sea, far under the city: pale where it meets the sky, deepening toward the cart, the sun's path glittering on it
+          if (h < 0.0) { vec3 deep = mix(bot, vec3(0.12, 0.42, 0.6) * (0.35 + 0.9 * lum), day / max(amt, 0.001) * 0.8);
+            vec3 sea = mix(mix(hor, deep, 0.35), deep, smoothstep(0.0, 0.18, -h));
+            vec3 rn = vec3(n.x, -n.y, n.z); float path = pow(max(dot(rn, sdn), 0.0), 40.0), wave = h3(floor(vec3(atan(n.x, -n.z) * 900.0, log(-h + 0.003) * 140.0, 3.0)));
+            sea += vec3(1.0, 0.97, 0.88) * (path * 0.35 + step(0.93, wave) * pow(max(dot(rn, sdn), 0.0), 40.0) * 0.8) * day;
+            c = mix(c, sea, amt); }
+          c += vec3(1.0, 0.98, 0.93) * (pow(sp, 3000.0) * 8.0 + pow(sp, 300.0) * 1.2 + pow(sp, 12.0) * 0.28 + ray * 0.5) * day; // the sun: a white-hot core and its glare, the rays reaching in to it
         } else if (m == 7.0) { // ink wash: drifting bands of mist and a slowly turning yin-yang in place of the sun
           float mist = smoothstep(0.45, 0.8, fbm(vec3(n.x * 2.0, n.y * 7.0, n.z * 2.0) + vec3(t * 0.012, 0.0, t * 0.008))) * smoothstep(-0.1, 0.25, h) * (1.0 - smoothstep(0.35, 0.8, h));
           vec3 ink = mix(vec3(0.05), vec3(0.95, 0.93, 0.88), lum);

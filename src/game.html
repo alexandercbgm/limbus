@@ -1399,7 +1399,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           c += vec3(0.92, 0.96, 1.0) * (starAt(n, 90.0, 0.985) * 0.45 + starAt(n, 210.0, 0.992) * 0.3) * amt * smoothstep(0.02, 0.35, h);
           vec3 sdn = normalize(vec3(0.42, 0.36, -0.83)); float cd = dot(n, sdn), sg = acos(clamp(cd, -1.0, 1.0)), sp = max(cd, 0.0);
           vec3 ax = normalize(cross(sdn, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sdn); float a = atan(dot(n, ay), dot(n, ax));
-          float ray = pow(0.5 + 0.5 * sin(a * 24.0 + t * 0.03), 14.0); // twenty-four rays, all alike and evenly spaced, faint (a wide uneven fan had drowned the sky)
+          float ray = pow(0.5 + 0.5 * sin(a * 24.0 + mod(t, 45.0) * 3.3510), 14.0); // (turning clockwise, once round in 45 s: a counts anticlockwise on screen, so a rising phase carries the rays the other way) // twenty-four rays, all alike and evenly spaced, faint (a wide uneven fan had drowned the sky)
           ray = ray * exp(-sg * 1.6) * smoothstep(0.072, 0.088, sg) * smoothstep(-0.05, 0.1, h); // (right up to the disc's edge)
           float day = amt * smoothstep(0.2, 0.55, lum); // (a day sky's sun: none in the Dark)
           // below the horizon the sea, far under the city: pale where it meets the sky, deepening toward the cart, the sun's path glittering on it

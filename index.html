@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.341</div>
+      <div class="credit version">v1.0.342</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -895,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.341`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.342`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -7517,6 +7517,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         frameAt(s.fs); s.fs += tmpV.copy(pos).sub(_P).dot(_T); frameAt(s.fs); tmpV.copy(pos).sub(_P);
         const h = tmpV.dot(_U) - s.fo - 0.03;
         if (!s.seen) { s.seen = true; if (h < -0.15) { s.fs = undefined; s.under = true; } }
+        // a piece already under the floor's level (it fell past the edge) has no floor any more: when the karma shifted the track
+        // over it, the floor found above it had lifted it from far below back onto the deck
+        else if (h < 0 && !s.rest && s.ph !== undefined && s.ph < -0.05) { s.fs = undefined; s.under = true; }
         else if (h < 0 && Math.abs(tmpV.dot(_R)) <= floorHW(s.fs) + 0.2) { // (past the floor's edge, as it is drawn, there is none: Vitrum's is only the hexagon's bottom)
           pos.addScaledVector(_U, -h);
           if (s.rest) {} else {
@@ -7528,6 +7531,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             }
           }
         } else if (s.rest && h > 0) pos.addScaledVector(_U, -h); // and stays on the floor as the track under it shifts
+        if (s.fs !== undefined) { frameAt(s.fs); s.ph = tmpV.copy(pos).sub(_P).dot(_U) - s.fo - 0.03; } // where it was against the floor, for the next frame
       }
       s.life -= dt;
       if (s.life <= 0) { dropShard(s); shards.splice(i, 1); }

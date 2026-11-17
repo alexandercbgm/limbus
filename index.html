@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.368</div>
+      <div class="credit version">v1.0.369</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -906,7 +906,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.368`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.369`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1430,7 +1430,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       void main(){ vec3 n = normalize(vP); float h = n.y;
         if (mode > 8.5 && mode < 9.5) { gl_FragColor = vec4(blackHole(n), 1.0); return; }
         if (mode > 5.5 && mode < 6.5) { gl_FragColor = vec4(rubySky(n), 1.0); return; } // Rubinus: its own sky alone // Speculum: its own sky alone, none of the rest worked out under it
-        vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, bot, pow(-h, 0.5));
+        float e = px * 3.0; // (the gradient eased off at the horizon over a few of the sky's pixels: its kink there came out in steps)
+        vec3 c = h > 0.0 ? mix(hor, top, pow(h + e, 0.55) - pow(e, 0.55)) : mix(hor, bot, pow(-h + e, 0.5) - pow(e, 0.5));
         float lum = dot(top, vec3(0.3, 0.55, 0.15)), m = floor(mode + 0.5), night = 1.0 - smoothstep(0.08, 0.45, lum);
         vec3 sd = normalize(vec3(0.35, 0.32, -0.88));
         float sdot = max(dot(n, sd), 0.0);
@@ -1469,7 +1470,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             horC = mix(horC, vec3(0.75, 0.42, 0.55), glowK * glowK * smoothstep(0.02, 0.18, ch) * exp(-ch * 6.0) * 0.6); // rose above it
             vec3 zen = mix(nightZ, vec3(0.08, 0.13, 0.32), glowK * 0.7);
             vec3 dusk = mix(horC, zen, pow(ch, 0.38)) + vec3(1.0, 0.75, 0.45) * pow(max(back, 0.0), 8.0) * exp(-ch * 14.0) * 0.5;
-            if (h < 0.0) dusk = mix(horC, nightZ * 0.6, sqrt(min(-h * 6.0, 1.0))); // under the horizon, quickly dark
+            if (h < 0.0) { float u = min(-h * 6.0, 1.0); dusk = mix(horC, nightZ * 0.6, u / sqrt(u + px * 18.0) * sqrt(1.0 + px * 18.0)); } // under the horizon, quickly dark (not at once: a cut that sharp came out in steps)
             c = dusk * dim;
             float starK = smoothstep(0.02, 0.2, h); // the stars, as over Nox, all over the sky, the sun's side too
             c += galaxy(n, vec3(0.45, 0.55, 0.95), starK) + galaxyAx(n, vec3(0.6, 0.45, 0.9), starK * 0.6, normalize(vec3(-0.62, 0.48, 0.2))) + farGalaxies(n, starK);
@@ -1477,8 +1478,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             // the horizon cuts it
             vec3 sunD = normalize(vec3(SUN_AZ.x, sin(SUN_R / 3.0), SUN_AZ.z));
             float ang = acos(clamp(dot(n, sunD), -1.0, 1.0)), q = ang / SUN_R;
-            c += vec3(1.0, 0.55, 0.25) * (exp(-ang * 14.0) * 0.55 + exp(-ang * 4.0) * 0.18 + exp(-max(q - 1.0, 0.0) * 6.0) * 0.35) * dim * step(-0.02, h);
-            c = mix(c, vec3(1.0, 0.86, 0.55) * 1.3, smoothstep(1.0, 0.97, q) * step(0.0, h)); // one even, glowing disc
+            c += vec3(1.0, 0.55, 0.25) * (exp(-ang * 14.0) * 0.55 + exp(-ang * 4.0) * 0.18 + exp(-max(q - 1.0, 0.0) * 6.0) * 0.35) * dim * smoothstep(-0.02 - px * 2.0, -0.02 + px * 2.0, h);
+            c = mix(c, vec3(1.0, 0.86, 0.55) * 1.3, smoothstep(1.0, 0.97, q) * smoothstep(-px * 1.5, px * 1.5, h)); // one even, glowing disc
           }
         } else if (m == 10.0) { // Initium: a clear day, stars faint in the blue, the sun white-hot and its rays running out across the sky
           c += vec3(0.92, 0.96, 1.0) * (starAt(n, 90.0, 0.985) * 0.45 + starAt(n, 210.0, 0.992) * 0.3) * amt * smoothstep(0.02, 0.35, h);
@@ -1488,11 +1489,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           ray = pow(ray, 2.5) * exp(-sg * 1.6) * smoothstep(0.072, 0.088, sg) * smoothstep(-0.05, 0.1, h); // (right up to the disc's edge)
           float day = amt * smoothstep(0.2, 0.55, lum); // (a day sky's sun: none in the Dark)
           // below the horizon the sea, far under the city: pale where it meets the sky, deepening toward the cart, the sun's path glittering on it
-          if (h < 0.0) { vec3 deep = mix(bot, vec3(0.12, 0.42, 0.6) * (0.35 + 0.9 * lum), day / max(amt, 0.001) * 0.8);
-            vec3 sea = mix(mix(hor, deep, 0.35), deep, smoothstep(0.0, 0.18, -h));
-            vec3 rn = vec3(n.x, -n.y, n.z); float path = pow(max(dot(rn, sdn), 0.0), 40.0), wave = h3(floor(vec3(atan(n.x, -n.z) * 900.0, log(-h + 0.003) * 140.0, 3.0)));
+          { float hb = min(h, 0.0); vec3 deep = mix(bot, vec3(0.12, 0.42, 0.6) * (0.35 + 0.9 * lum), day / max(amt, 0.001) * 0.8);
+            vec3 sea = mix(mix(hor, deep, 0.35), deep, smoothstep(0.0, 0.18, -hb));
+            vec3 rn = vec3(n.x, -abs(n.y), n.z); float path = pow(max(dot(rn, sdn), 0.0), 40.0), wave = h3(floor(vec3(atan(n.x, -n.z) * 900.0, log(-hb + 0.003) * 140.0, 3.0)));
             sea += vec3(1.0, 0.97, 0.88) * (path * 0.35 + step(0.93, wave) * pow(max(dot(rn, sdn), 0.0), 40.0) * 0.8) * day;
-            c = mix(c, sea, amt); }
+            c = mix(c, sea, amt * smoothstep(px * 1.5, -px * 1.5, h)); } // (its edge eased over a few of the sky's pixels: drawn at half size, a hard one came out in steps)
           // the sun: an even glowing disc, sharp-edged, a thin rim of light round it, the rays reaching right in to it (a wide glare had
           // made of it a shapeless white blot on the bright sky); the broad light about it as before
           c += vec3(1.0, 0.98, 0.93) * (exp(-max(sg - 0.078, 0.0) * 60.0) * 0.45 * step(0.078, sg) + pow(sp, 12.0) * 0.28 + ray * 0.6) * day;
@@ -1953,14 +1954,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const PP = new Float64Array(NS * 3), PR = new Float64Array(NS * 3), PU = new Float64Array(NS * 3), PT = new Float64Array(NS * 3);
   let sBase = 0;
   const cartPos = new THREE.Vector3();
-  // the track's slope is laid down once, metre by metre, where it comes into being at the far end of what is drawn, from the karma's
-  // swing at that moment, and stays so: worked out afresh every frame from the karma, the whole track ahead had swayed with it
-  const PREC = new Float32Array(8192); let precF = 0;
-  const precAt = s => { s = clamp(s, 0, 8190); const i = s | 0, t = s - i; return PREC[i] + (PREC[i + 1] - PREC[i]) * t; };
-  const holdAt = s => { let h = 0; for (const m of LTW) if (m.kind === "spiral") h = Math.max(h, smooth5((s - m.sw + 110) / 40) * smooth5((m.tw1 + 50 - s) / 40)); return h; }; // (none on Lux's spiral)
-  function advancePitch() { const to = Math.min(8190, Math.ceil(sC + AHEAD + 2)), k = 1 - Math.exp(-1 / LAMBDA);
-    while (precF < to) { const s = precF + 1, tgt = s > SUPER_END - 40 ? 0 : (1 - holdAt(s)) * pitchTs; PREC[s] = PREC[precF] + (tgt - PREC[precF]) * k; precF = s; } }
-  function pitchAt(s) { return precAt(s) + (LTW.length ? spiralPitch(s) : 0); }
+  function pitchAt(s) { return (s <= sC ? pitchC : pitchC + ((1 - spiralHold) * pitchTs - pitchC) * (1 - Math.exp(-(s - sC) / LAMBDA))) + (LTW.length ? spiralPitch(s) : 0); }
   // banking (roll) follows the level's own turns only: at a fork both branches stay level, so the other
   // branch's floor never rises over the main track's rails
   // and around a fork the track is not banked at all: a tilted main floor would rise over the other branch's
@@ -1987,7 +1981,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     PU[k] = ux; PU[k + 1] = uy; PU[k + 2] = uz;
   }
   function computePath() {
-    advancePitch();
     sBase = sC - BACK * DS;
     for (let j = 0; j < NS; j++) basisInto(sBase + j * DS, j);
     let k = BACK * 3;
@@ -6592,7 +6585,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let stats = { thrown: 0, hits: 0, broken: 0, crystals: 0 };
 
   function resetWorld(spawn) {
-    PREC.fill(0); precF = 0;
     clearDynamic();
     sC = 0; alt = 0.35; pending = 0; altVel = 0; pitchC = 0; pitchTs = 0;
     cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0; lastPat = {};
@@ -7162,7 +7154,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     alt = clamp(alt + dA - drift * dt, -1, 1);
     altVel += ((alt - prevAlt) / dt - altVel) * (1 - Math.exp(-dt / 0.6));
     const up = altVel > 0 && alt > 0 ? 1.15 : 1; // climbs in the light half are 15% steeper, so they read
-    const rawPitch = sC > SUPER_END - 40 ? 0 : clamp(altVel * 7 * up, -0.42, 0.3 * up); // the station sits level
+    const rawPitch = sC > SUPER_END - 40 || LEVEL.id === "initium" ? 0 : clamp(altVel * 7 * up, -0.42, 0.3 * up); // the station sits level; Initium's bridge over its city never tilts with the karma
     pitchTs += (rawPitch - pitchTs) * (1 - Math.exp(-dt * 2.5));
 
     // motion: uphill is slower, downhill faster
@@ -7175,7 +7167,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     speedNow = dt > 0 ? ds / dt : 0;
     frameAt(sC + ds / 2); // uses last frame's path; close enough for one step
     cartPos.addScaledVector(SPANS.length || LTW.length ? tangent0(sC + ds / 2) : _T, ds); // the line the track winds round, not the rails' own heading
-    sC += ds; pitchC = precAt(sC); // the cart on the slope laid down for it
+    pitchC += ((1 - spiralHold) * pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA)); // (on Lux's spiral to level: a slope of the karma's had cancelled its own climb, its coils lying flat in a stack)
+    sC += ds;
     throwCD = Math.max(0, throwCD - dt);
 
     if (sC > nextClack) { nextClack = sC + 6; Sound.clack(); }

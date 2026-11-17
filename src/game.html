@@ -1867,7 +1867,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const PP = new Float64Array(NS * 3), PR = new Float64Array(NS * 3), PU = new Float64Array(NS * 3), PT = new Float64Array(NS * 3);
   let sBase = 0;
   const cartPos = new THREE.Vector3();
-  function pitchAt(s) { return (s <= sC ? pitchC : pitchC + ((1 - spiralHold) * pitchTs - pitchC) * (1 - Math.exp(-(s - sC) / LAMBDA))) + (LTW.length ? spiralPitch(s) : 0); }
+  // the track's slope is laid down once, metre by metre, where it comes into being at the far end of what is drawn, from the karma's
+  // swing at that moment, and stays so: worked out afresh every frame from the karma, the whole track ahead had swayed with it
+  const PREC = new Float32Array(8192); let precF = 0;
+  const precAt = s => { s = clamp(s, 0, 8190); const i = s | 0, t = s - i; return PREC[i] + (PREC[i + 1] - PREC[i]) * t; };
+  const holdAt = s => { let h = 0; for (const m of LTW) if (m.kind === "spiral") h = Math.max(h, smooth5((s - m.sw + 110) / 40) * smooth5((m.tw1 + 50 - s) / 40)); return h; }; // (none on Lux's spiral)
+  function advancePitch() { const to = Math.min(8190, Math.ceil(sC + AHEAD + 2)), k = 1 - Math.exp(-1 / LAMBDA);
+    while (precF < to) { const s = precF + 1, tgt = s > SUPER_END - 40 ? 0 : (1 - holdAt(s)) * pitchTs; PREC[s] = PREC[precF] + (tgt - PREC[precF]) * k; precF = s; } }
+  function pitchAt(s) { return precAt(s) + (LTW.length ? spiralPitch(s) : 0); }
   // banking (roll) follows the level's own turns only: at a fork both branches stay level, so the other
   // branch's floor never rises over the main track's rails
   // and around a fork the track is not banked at all: a tilted main floor would rise over the other branch's
@@ -1894,6 +1901,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     PU[k] = ux; PU[k + 1] = uy; PU[k + 2] = uz;
   }
   function computePath() {
+    advancePitch();
     sBase = sC - BACK * DS;
     for (let j = 0; j < NS; j++) basisInto(sBase + j * DS, j);
     let k = BACK * 3;
@@ -6498,6 +6506,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let stats = { thrown: 0, hits: 0, broken: 0, crystals: 0 };
 
   function resetWorld(spawn) {
+    PREC.fill(0); precF = 0;
     clearDynamic();
     sC = 0; alt = 0.35; pending = 0; altVel = 0; pitchC = 0; pitchTs = 0;
     cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0; lastPat = {};
@@ -7080,8 +7089,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     speedNow = dt > 0 ? ds / dt : 0;
     frameAt(sC + ds / 2); // uses last frame's path; close enough for one step
     cartPos.addScaledVector(SPANS.length || LTW.length ? tangent0(sC + ds / 2) : _T, ds); // the line the track winds round, not the rails' own heading
-    pitchC += ((1 - spiralHold) * pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA)); // (on Lux's spiral to level: a slope of the karma's had cancelled its own climb, its coils lying flat in a stack)
-    sC += ds;
+    sC += ds; pitchC = precAt(sC); // the cart on the slope laid down for it
     throwCD = Math.max(0, throwCD - dt);
 
     if (sC > nextClack) { nextClack = sC + 6; Sound.clack(); }

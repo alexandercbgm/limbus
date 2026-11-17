@@ -2933,7 +2933,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const aimLocal = new THREE.Vector3(0, 0, -1);
   const DIM_SILVER = new THREE.Color(0xd2d9e0), HALO_SILVER = new THREE.Color(0x9aa3ac); // Lumen's rod at the bottom of its pulse (no grey: it stays lit), its halo
   let recoil = 0, triSpin = 1, lastShotT = -9; // Triplex's barrels' spin, the time of the last shot
-  const GCELL_OFF = new THREE.Color(0x2a3038), INI_BLUE = new THREE.Color(0x4a8fe0); // a spent charge cell
+  const GCELL_OFF = new THREE.Color(0x2a3038), GCELL_ON = new THREE.Color(0xf0c860), INI_BLUE = new THREE.Color(0x4a8fe0); // a spent charge cell
   const gemKick = { t: 0, side: 1 }; // Gemini's last shot: how fresh (1 → 0), and which way the turret jerked
   yawG.name = "yaw"; pitchG.name = "pitch"; barrel.name = "barrel";
   const cannonB = cannon.clone(); cart.add(cannonB);
@@ -7632,8 +7632,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const k = time - lastShotT;
       GUNS[0].models.ballista.children.forEach(o => { if (o.name && o.name.startsWith("gcoil")) { const i = +o.name.slice(5), e = Math.max(0, 1 - Math.abs(k - 0.012 - i * 0.012) / 0.04); // (in step with the ball running out through them)
         o.material.color.copy(accentMat.color).lerp(WHITE, e); o.scale.setScalar(1 + e * 0.15); }
-        else if (o.name && o.name.startsWith("gcell")) { const i = +o.name.slice(5), fl = Math.max(0, 1 - k / 0.15), on = Math.max(fl, clamp(Math.min(1, k) * 12 - i, 0.12, 1)); o.material.color.copy(GCELL_OFF).lerp(accentMat.color, on).lerp(WHITE, fl * 0.85); }
-        else if (o.name === "gport") o.material.color.copy(accentMat.color).lerp(WHITE, Math.max(1 - clamp(k, 0, 1), 0.1 + 0.08 * Math.sin(time * 3.3)));
+        else if (o.name && o.name.startsWith("gcell")) { const i = +o.name.slice(5), fl = Math.max(0, 1 - k / 0.15), on = Math.max(fl, clamp(Math.min(1, k) * 12 - i, 0.12, 1)); o.material.color.copy(GCELL_OFF).lerp(GCELL_ON, on).lerp(WHITE, fl * 0.85); } // (the drum always its own gold, on every level, whatever the karma)
+        else if (o.name === "gport") o.material.color.copy(GCELL_ON).lerp(WHITE, Math.max(1 - clamp(k, 0, 1), 0.1 + 0.08 * Math.sin(time * 3.3)));
         else if (o.name === "gball") { o.visible = k < 0.075 || k > 0.35; o.position.z = k < 0.075 ? -0.02 - 1.2 * (k / 0.075) : -0.02; } }); // the ball runs out from the breech through the coils to the muzzle, and the next one is in a third of a second after
     }
     ringMat.opacity = 0.65 + 0.25 * Math.sin(time * 6) + recoil * 0.3;

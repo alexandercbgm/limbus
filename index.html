@@ -426,6 +426,11 @@ video.mini { background: none; object-fit: contain; }
 .prize svg { width: 46px; height: 46px; flex: none; fill: none; stroke: #6b4e08; stroke-width: 1.5; stroke-linecap: round; }
 .prize b { display: block; font-family: var(--display); font-size: 17px; letter-spacing: 0.04em; } .prize span { font-size: 13px; line-height: 1.35; }
 @keyframes prize { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+/* a station's gift, before its results: a cannon (its picture) or a level of an upgrade (three pips, the new ones lit) */
+.gift-pic { width: 72px; height: 72px; flex: none; display: grid; place-items: center; } .gift-pic img { width: 72px; height: 72px; object-fit: contain; }
+.gift-pic svg { width: 46px; height: 46px; fill: none; stroke: #6b4e08; stroke-width: 1.5; stroke-linecap: round; }
+.gift-pips { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 10px 0 0; font-size: 13px; letter-spacing: 0.04em; }
+.gift-pips i { width: 26px; height: 8px; border-radius: 4px; background: rgba(127, 127, 127, 0.25); } .gift-pips i.on { background: #c9a02e; box-shadow: 0 0 8px rgba(201, 160, 46, 0.6); }
 /* Emptio: the crystal packs */
 .pack h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .pack h3 small { margin-left: 0; color: #a07c18; }
 .pk-ico { width: 40px; height: 28px; flex: none; fill: none; stroke: #c9a02e; stroke-width: 1.4; stroke-linejoin: round; } .pk-ico text { fill: #a07c18; stroke: none; font-family: var(--display); }
@@ -713,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.349</div>
+      <div class="credit version">v1.0.350</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -725,7 +730,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     <h1 id="howTitle" data-en="How to play">Как играть</h1>
     <p data-pg="1" data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it. &lt;span class=&quot;spc&quot;&gt;Space fires at the centre.&lt;/span&gt;">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь. <span class="spc">Пробел стреляет в центр.</span></p>
     <p data-pg="2" data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and blue crystals come often, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystal imps and red decoys, and fewer blue crystals, yet each one there gives almost twice the balls and banks two crystals."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, голубые кристаллы попадаются часто, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы бесы и красные ловушки, а голубых кристаллов меньше — зато каждый даёт почти вдвое больше шаров и два кристалла в запас.</p>
-    <p data-pg="2" data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy cannons and upgrades at Armamentarium. Later stations hold more crystals, and tougher glass. Two lines leave Vitrum: the lower through Rubinus to Speculum, the upper through Labyrinthus to Tao, from where the Way of Tao leads through Nox to Lux.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки, пушки и улучшения в Armamentarium. Дальше по линии кристаллов больше, но и стекло прочнее. Из Vitrum расходятся две линии: нижняя через Rubinus к Speculum, верхняя через Labyrinthus к Tao, откуда путь Дао ведёт через Nox к Lux.</p>
+    <p data-pg="2" data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the fares on dead-end branches and buy upgrades at Armamentarium. New cannons, and some upgrades, are stations' gifts the first time you finish them. Later stations hold more crystals, and tougher glass. Two lines leave Vitrum: the lower through Rubinus to Speculum, the upper through Labyrinthus to Tao, from where the Way of Tao leads through Nox to Lux.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за тупиковые ветки и улучшения в Armamentarium. Новые пушки и часть улучшений станции дарят, когда вы проходите их впервые. Дальше по линии кристаллов больше, но и стекло прочнее. Из Vitrum расходятся две линии: нижняя через Rubinus к Speculum, верхняя через Labyrinthus к Tao, откуда путь Дао ведёт через Nox к Lux.</p>
     <ul class="rules" data-pg="1">
       <li><b>−1</b><span data-en="ball a shot">шар за выстрел</span></li>
       <li><b>+4/+7</b><span data-en="a blue crystal, for every ball that hits it; +7 in the Dark">голубой кристалл за каждый попавший шар, во Тьме +7</span></li>
@@ -788,7 +793,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="nagTitle">
     <p class="eyebrow" data-en="Three tries in a row">Три попытки подряд</p>
     <h1 id="nagTitle" data-en="Gather crystals, visit Armamentarium">Собирайте кристаллы и загляните в Арсенал</h1>
-    <p data-en="Crystals from every ride go to the bank, and Hortus and Thesaurus give the most. At Armamentarium they buy new cannons and upgrades: more balls at the start, stronger shots, a second wind. The way gets easier with them.">Кристаллы с каждого заезда уходят в запас, больше всего их на Hortus (Сад) и Thesaurus (Сокровищница). В Armamentarium (Арсенал) на них покупают новые пушки и улучшения: больше шаров на старте, сильнее выстрел, второе дыхание. С ними путь станет легче.</p>
+    <p data-en="Crystals from every ride go to the bank, and Hortus and Thesaurus give the most. At Armamentarium they buy upgrades: more balls at the start, a second wind, more balls from every crystal. The way gets easier with them.">Кристаллы с каждого заезда уходят в запас, больше всего их на Hortus (Сад) и Thesaurus (Сокровищница). В Armamentarium (Арсенал) на них покупают улучшения: больше шаров на старте, второе дыхание, больше шаров с каждого кристалла. С ними путь станет легче.</p>
     <div class="btns">
       <button class="cta" id="nagGo" type="button" data-en="To the Armoury">В Арсенал</button>
       <button class="ghost" id="nagLater" type="button" data-en="Remind me later">Напомнить позже</button>
@@ -814,15 +819,21 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   </div>
 </section>
 
+<section class="overlay" id="gift" hidden>
+  <div class="panel">
+    <p class="eyebrow" id="giftEyebrow"></p>
+    <h1 id="giftTitle"></h1>
+    <div class="prize gift-prize"><span class="gift-pic" id="giftPic"></span><div><b id="giftName"></b><span id="giftDesc"></span></div></div>
+    <p class="gift-pips" id="giftPips" hidden></p>
+    <p id="giftNote"></p>
+    <div class="btns"><button class="cta" id="giftGo" type="button" data-en="On">Дальше</button></div>
+  </div>
+</section>
 <section class="overlay" id="win" hidden>
   <div class="panel">
     <p class="eyebrow" id="winEyebrow">Станция прибытия</p>
     <h1 id="winTitle">Вы доехали до Небес</h1>
     <p id="winNote" style="white-space: pre-line"></p>
-    <div class="prize" id="winPrize" hidden>
-      <svg viewBox="-12 -12 24 24" aria-hidden="true"><circle r="10.5"/><path d="M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5"/></svg>
-      <div><b data-en="The Ferrum cannon is free!">Пушка Ferrum освобождена!</b><span data-en="Its heavy iron ball goes through glass at one hit. Mount it on the cart at Armamentarium.">Тяжёлое железное ядро пробивает стекло с одного попадания. Поставьте её на вагонетку в Арсенале.</span></div>
-    </div>
     <div class="stats">
       <div class="stat"><span data-en="Score">Очки</span><b id="wScore">0</b></div>
       <div class="stat"><span data-en="Balls left">Осталось шаров</span><b id="wBalls">0</b></div>
@@ -895,7 +906,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.349`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.350`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5976,16 +5987,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     showOverlay("titlecard", `<div><span class="tc-num">STATIO</span><span class="tc-name">${lv.latin.toUpperCase()}</span><span class="tc-ru">${lv.ru}</span></div>`, 3500);
   }
 
-  // ---------- weapons: bought for crystals at Armamentarium ----------
+  // ---------- weapons: each given by a station, the first time it is finished (from: which) ----------
   // cost: balls per shot; mul: how many balls a blue crystal (or finale reward) gives compared with the plain cannon
   // cost: balls per shot. A crystal (or a finale target) pays its value once for every ball of the shot that hits it.
   const WEAPONS = {
     ballista: { name: "Gauss", ru: "Гаусс", cost: 1, price: 0, desc: "Один шар за выстрел. Попадание в кристалл даёт его обычную цену." },
-    gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: 90, desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
-    triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: 60, desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
-    hexa: { name: "Hexa", ru: "Гекса", cost: 6, price: 220, desc: "Два Тройника на каркасе: шесть шаров за выстрел, по три из каждого ствола. Кристалл платит за каждый попавший в него шар." },
-    radius: { name: "Lumen", ru: "Луч", cost: 1, price: 140, desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии, а армированное прожигает вдвое быстрее. Выстрел стоит 1 шар, луч один, поэтому кристалл платит свою цену один раз." },
-    ferrum: { name: "Ferrum", ru: "Железо", cost: 2, price: null, desc: "Мортира из Темницы. За 2 шара — книппель: два железных ядра на цепи, вращаются в полёте. Ядра и цепь пробивают стекло насквозь и летят дальше. Твёрдое останавливает снаряд целиком. На складе не продаётся." },
+    gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: null, from: "initium", desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
+    triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: null, from: "labyrinthus", desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
+    hexa: { name: "Hexa", ru: "Гекса", cost: 6, price: null, from: "abyssus", desc: "Два Тройника на каркасе: шесть шаров за выстрел, по три из каждого ствола. Кристалл платит за каждый попавший в него шар." },
+    radius: { name: "Lumen", ru: "Луч", cost: 1, price: null, from: "rubinus", desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии, а армированное прожигает вдвое быстрее. Выстрел стоит 1 шар, луч один, поэтому кристалл платит свою цену один раз." },
+    ferrum: { name: "Ferrum", ru: "Железо", cost: 2, price: null, from: "carcer", desc: "Мортира из Темницы. За 2 шара — книппель: два железных ядра на цепи, вращаются в полёте. Ядра и цепь пробивают стекло насквозь и летят дальше. Твёрдое останавливает снаряд целиком. На складе не продаётся." },
   };
   // upgrades sold at the depot, three levels each: more balls at the start, a second wind once a ride, more balls a crystal
   const UPGRADES = {
@@ -6000,8 +6011,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       now: n => T(`+${n} ${ballsWord(n)} с попадания`, `+${n} ${ballsWord(n)} a hit`) },
   };
   const upLevel = id => progress.up[id] || 0;
-  // a ride through Hortus finds the gardeners' spare cannon: Gemini then costs half at the depot
-  const priceOf = id => id === "gemini" && progress.done.hortus ? WEAPONS.gemini.price / 2 : WEAPONS[id].price;
+  // and three stations give a level of an upgrade, the first time each is finished
+  const UP_FROM = { vitrum: "copia", tao: "spiritus", speculum: "largitas" };
+  const weaponFrom = lvId => Object.keys(WEAPONS).find(id => WEAPONS[id].from === lvId);
   const ballsWord = n => T(n === 1 ? "шар" : n < 5 ? "шара" : "шаров", n === 1 ? "ball" : "balls");
   // The first ball of a shot takes the target; for a moment its spot keeps catching the other balls of the same
   // shot (Gemini's pair, Triplex's three), then the target pays its value times the balls that hit it.
@@ -6203,8 +6215,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       req: { after: "initium" }, map: { x: 270, y: 320, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
-      desc: "Тупиковый склад за Садом (Hortus). Здесь за кристаллы ставят на вагонетку новые пушки и улучшения.",
-      feats: ["Пушки Triplex, Gemini и Lumen", "Улучшения: запас шаров, второе дыхание, щедрость кристаллов", "Купленное остаётся навсегда; пушку можно сменить в меню"],
+      desc: "Тупиковый склад за Садом (Hortus). Здесь за кристаллы покупают улучшения для вагонетки. Пушки здесь не продаются: их дарят станции.",
+      feats: ["Улучшения: запас шаров, второе дыхание, щедрость кристаллов", "У каждого три уровня; купленное остаётся навсегда", "Пушки дарят станции: Initium, Labyrinthus, Nox, Rubinus и Carcer"],
       req: { after: "hortus", toll: 15 }, map: { x: 385, y: 440, label: "t" } },
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.2,
@@ -6300,8 +6312,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["2.2 times the crystals", "A short ride, about a minute", "Finale Pluvia: a rain of crystals"] },
       vitrum: { ru: "Glass", desc: "Prismatic arches over the abyss in a clear evening sky: the sun setting behind, the stars coming out ahead. Hexagonal vaults and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, and thick glass that fills the way breaks only to a catapult: hit its target.",
         feats: ["Glass catapults: hit the target and the shot breaks the thick glass", "Monoliths on chains, turning glass bars and crosses", "Finale Ruina: falling boulders"] },
-      armamentarium: { ru: "Armoury", desc: "A dead-end depot beyond the Garden (Hortus). Here crystals buy new cannons and upgrades for the cart.",
-        feats: ["The Triplex, Gemini and Lumen cannons", "Upgrades: a bigger reserve, a second wind, more bounty from crystals", "What you buy stays yours; switch cannons in the menu"] },
+      armamentarium: { ru: "Armoury", desc: "A dead-end depot beyond the Garden (Hortus). Here crystals buy upgrades for the cart. Cannons are not sold here: stations give them.",
+        feats: ["Upgrades: a bigger reserve, a second wind, more bounty from crystals", "Three levels each; what you buy stays yours", "Cannons are stations' gifts: Initium, Labyrinthus, Nox, Rubinus and Carcer"] },
       labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hang two boards, a flip target under each; the lit board is the branch the rails take. Hit the hanging target: it flips up, its board lights, and the rails turn into its branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains.",
         feats: ["Three forks: pick the branch by shooting the target under its board", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       hortus: { ru: "Garden", desc: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it.",
@@ -6390,11 +6402,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const weapons = Object.assign({ ballista: true }, p.weapons || {});
       const r = { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {}, t: p.t || 0,
         // anything bought at Armamentarium (older saves: a cannon other than the free ones, or an upgrade); the run of failed rides; the reminder turned off
-        bought: p.bought || Object.keys(weapons).some(id => id !== "ballista" && id !== "ferrum") || Object.values(p.up || {}).some(v => v > 0), fails: p.fails || 0, noNag: !!p.noNag, play: p.play || [],
-        rode: p.rode || Object.keys(p.done || {}).length > 0 }; // set off at least once (older saves: any level done)
+        bought: p.bought || (!p.gifts && (Object.keys(weapons).some(id => id !== "ballista" && id !== "ferrum") || Object.values(p.up || {}).some(v => v > 0))), // (saves since the stations' gifts: a cannon or an upgrade had may be a gift) fails: p.fails || 0, noNag: !!p.noNag, play: p.play || [],
+        rode: p.rode || Object.keys(p.done || {}).length > 0, gifts: p.gifts || {} }; // set off at least once (older saves: any level done); the stations whose gifts are given
       if (r.bought) r.open.armamentarium = true; // something bought there: its entry is paid (older saves bought before it had one)
       return r;
-    } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {}, t: 0, bought: false, fails: 0, noNag: false, play: [], rode: false }; }
+    } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {}, t: 0, bought: false, fails: 0, noNag: false, play: [], rode: false, gifts: {} }; }
   }
   function loadProgress() { let str = null; try { str = localStorage.getItem(STORE); } catch (e) { /* storage unavailable */ } return parseProgress(str); }
   // in Telegram the progress is kept in the bot's cloud as well, so it follows the player from phone to computer
@@ -6492,7 +6504,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the app goes to the background: the sound stops at once; back on the scheme it plays on
   window.__silence = () => { if (Sound.ctx && Sound.ctx.state === "running") Sound.ctx.suspend(); if (Sound.fallback) Sound.fallback.pause(); };
   window.__wake = () => { if (state === "menu") leavePause(); };
-  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "pause", "how", "support"].forEach(id => { $(id).hidden = true; }); $("sheet").classList.remove("waiting"); }
+  function hidePanels() { ["menu", "sheet", "nag", "over", "win", "gift", "pause", "how", "support"].forEach(id => { $(id).hidden = true; }); $("sheet").classList.remove("waiting"); }
   // pause: the world freezes (render only), the music stops until the run continues
   // the Android app's back button: returns true if the game used it
   window.__back = () => {
@@ -6502,6 +6514,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (state === "play") { pauseGame(); return true; }
     if (state === "paused") { $("pauseMenu").click(); return true; }
     if (!$("nag").hidden) { $("nagLater").click(); return true; }
+    if (!$("gift").hidden) { $("giftGo").click(); return true; } // (back past a gift goes on to the results)
     if (!$("over").hidden || !$("win").hidden) { showMenu(); return true; }
     return false;
   };
@@ -6561,9 +6574,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     $("winTitle").textContent = first ? T("Limbus пройден!", "Limbus complete!") : T("Снова в Свете", "Back in the Light");
     const built = LEVELS.filter(l => l.playable), done = built.filter(l => progress.done[l.id]), left = built.filter(l => !progress.done[l.id]);
     const total = Object.values(progress.best).reduce((t, v) => t + v, 0);
-    const cannons = Object.keys(WEAPONS).filter(id => !progress.weapons[id] && WEAPONS[id].price !== null);
+    const cannons = Object.keys(WEAPONS).filter(id => !progress.weapons[id] && WEAPONS[id].from); // not yet given: each by its station
     const ups = Object.keys(UPGRADES).reduce((t, id) => t + 3 - upLevel(id), 0);
-    const cost = cannons.reduce((t, id) => t + priceOf(id), 0) + Object.keys(UPGRADES).reduce((t, id) => t + UPGRADES[id].prices.slice(upLevel(id)).reduce((a, b) => a + b, 0), 0);
+    const cost = Object.keys(UPGRADES).reduce((t, id) => t + UPGRADES[id].prices.slice(upLevel(id)).reduce((a, b) => a + b, 0), 0);
     let h = `<h2>${first ? T("Поздравляем!", "Congratulations!") : T("Ваш путь", "Your journey")}</h2>`;
     h += `<p>${first ? T("Вы прошли путь от Initium до Света. ", "You have ridden from Initium to the Light. ") : ""}${T("Пройдено станций", "Stations finished")}: <b>${done.length} ${T("из", "of")} ${built.length}</b> · ${T("сумма лучших результатов", "best scores in all")}: <b>${total.toLocaleString(T("ru-RU", "en-US"))}</b></p>`;
     if (left.length) {
@@ -6573,9 +6586,34 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         return `<li><b>${esc(l.latin)}</b> · ${esc(l.ru)} — ${esc(how)}${l.id === "carcer" && !progress.weapons.ferrum ? T(", в конце пушка Ferrum", ", with the Ferrum cannon at its end") : ""}</li>`;
       }).join("") + "</ul>";
     }
-    if (cannons.length || ups) h += `<p>${T("В Armamentarium ещё", "Still at Armamentarium")}: ${cannons.length ? `<b>${cannons.map(id => WEAPONS[id].name).join(", ")}</b>` : ""}${cannons.length && ups ? T(" и ", " and ") : ""}${ups ? `<b>${ups}</b> ${T("уровней улучшений", "upgrade levels")}` : ""} — ◆ ${cost} ${T("на всё", "for all of it")}.</p>`;
+    if (cannons.length) h += `<p>${T("Ещё не получены пушки", "Cannons not yet had")}: ${cannons.map(id => `<b>${WEAPONS[id].name}</b> (${T("станция", "station")} ${byId(WEAPONS[id].from).latin})`).join(", ")}.</p>`;
+    if (ups) h += `<p>${T("В Armamentarium ещё", "Still at Armamentarium")}: <b>${ups}</b> ${T("уровней улучшений", "upgrade levels")} — ◆ ${cost} ${T("на всё", "for all of it")}.</p>`;
     if (!left.length && !cannons.length && !ups) h += `<p>${T("Все станции пройдены, весь арсенал собран. Осталось одно — бить свои рекорды.", "Every station finished, the whole arsenal bought. Only your records are left to beat.")}</p>`;
     box.innerHTML = h;
+  }
+  // a station's gift, shown before its results: a cannon, now on the cart, or a level of an upgrade, one of three
+  function showGift(g, then) {
+    $("giftEyebrow").textContent = T(`Подарок станции ${LEVEL.latin}`, `${LEVEL.latin} station's gift`);
+    if (g.w) {
+      const w = WEAPONS[g.w]; try { makeThumbs([g.w]); } catch (e) { /* no picture: the words serve */ }
+      $("giftTitle").textContent = T("Новая пушка!", "A new cannon!");
+      $("giftPic").innerHTML = armThumbs[g.w] ? `<img alt="" src="${armThumbs[g.w]}">` : `<svg viewBox="-12 -12 24 24" aria-hidden="true"><circle r="10.5"/><path d="M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5"/></svg>`;
+      $("giftName").textContent = `${w.name} · ${w.cost} ${ballsWord(w.cost)} ${T("за выстрел", "a shot")}`;
+      $("giftDesc").textContent = w.desc;
+      $("giftPips").hidden = true;
+      $("giftNote").textContent = T("Она уже стоит на вагонетке. Сменить пушку можно в меню.", "It is on the cart already. Switch cannons in the menu.");
+    } else {
+      const u = UPGRADES[g.u];
+      $("giftTitle").textContent = T("Улучшение!", "An upgrade!");
+      $("giftPic").innerHTML = `<svg viewBox="-12 -12 24 24" aria-hidden="true"><path d="${PK_GEM}"/></svg>`;
+      $("giftName").textContent = `${u.name} · ${T(u.ru, u.en)}`;
+      $("giftDesc").textContent = T(...u.desc);
+      $("giftPips").hidden = false; $("giftPips").innerHTML = [1, 2, 3].map(i => `<i class="${i <= g.lvl ? "on" : ""}"></i>`).join("") + `<span>${T(`уровень ${g.lvl} из 3`, `level ${g.lvl} of 3`)}</span>`;
+      $("giftNote").textContent = T(`Уже действует: ${u.now(g.lvl)}.`, `In force already: ${u.now(g.lvl)}.`);
+    }
+    $("gift").hidden = false; Sound.crystal(6); setTimeout(() => Sound.crystal(6), 260);
+    $("giftGo").onclick = () => { $("gift").hidden = true; then(); };
+    requestAnimationFrame(() => $("giftGo").focus());
   }
   function endRun(won) {
     state = won ? "win" : "over";
@@ -6586,8 +6624,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const best = Math.max(progress.best[LEVEL.id] || 0, total);
       const firstFinish = LEVEL.id === "lux" && !progress.done.lux; // the first time the whole way is ridden
       progress.fails = 0; progress.best[LEVEL.id] = best; progress.done[LEVEL.id] = true; progress.bank += stats.crystals;
-      const freed = LEVEL.id === "carcer" && !progress.weapons.ferrum; // the dungeon gives up its cannon
-      if (freed) progress.weapons.ferrum = true;
+      // the station's gift, once: its cannon (mounted at once) or a level of its upgrade
+      let gift = null; const wid = weaponFrom(LEVEL.id), uid = UP_FROM[LEVEL.id];
+      if (wid && !progress.weapons[wid]) { progress.weapons[wid] = true; progress.weapon = wid; setWeaponVisual(wid); gift = { w: wid }; }
+      if (uid && !progress.gifts[LEVEL.id] && upLevel(uid) < 3) { progress.up[uid] = upLevel(uid) + 1; gift = { u: uid, lvl: progress.up[uid] }; }
+      if (wid || uid) progress.gifts[LEVEL.id] = true;
       saveProgress();
       const titles = T(["Вы въехали в Свет", "Вы доехали до Небес", "Вы застряли в Чистилище", "Вы доехали в Сумерках", "Рельсы привели во Тьму"],
         ["You rode into the Light", "You reached Heaven", "You got stuck in Purgatory", "You arrived in the Twilight", "The rails led into the Dark"]);
@@ -6595,7 +6636,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       $("winTitle").textContent = titles[zoneIdx(alt)];
       $("winNote").textContent = T(`Итог: ${total.toLocaleString("ru-RU")} (очки + 10 за каждый оставшийся шар)\nКристаллы ушли в запас: теперь их ${progress.bank}`,
         `Total: ${total.toLocaleString("en-US")} (score + 10 for every ball left)\nThe crystals went to the bank: ${progress.bank}`);
-      $("winPrize").hidden = !freed; if (freed) { Sound.crystal(6); setTimeout(() => Sound.crystal(6), 260); } // the Dungeon gives up its cannon: a prize on the arrival
       $("wScore").textContent = score.toLocaleString(T("ru-RU", "en-US"));
       $("wBalls").textContent = balls;
       $("wCrystals").textContent = "+" + stats.crystals;
@@ -6611,11 +6651,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       $("againBtn").textContent = againText();
       journey(firstFinish);
       if (window.__askNews) setTimeout(window.__askNews, 1500); // a moment after the arrival shows
-      $("win").hidden = false;
-      requestAnimationFrame(() => ["nextBtn", "nextBtn2"].forEach(id => { // a long name that won't fit its button is cut short: Lab.
-        const nb = $(id), nx = byId(nb.dataset.id || ""); if (nb.hidden || !nx || nb.scrollWidth <= nb.clientWidth) return;
-        nb.textContent = `${nx.latin.slice(0, 3)}. →`;
-      }));
+      const showWin = () => { $("win").hidden = false;
+        requestAnimationFrame(() => ["nextBtn", "nextBtn2"].forEach(id => { // a long name that won't fit its button is cut short: Lab.
+          const nb = $(id), nx = byId(nb.dataset.id || ""); if (nb.hidden || !nx || nb.scrollWidth <= nb.clientWidth) return;
+          nb.textContent = `${nx.latin.slice(0, 3)}. →`;
+        })); };
+      if (gift) showGift(gift, showWin); else showWin(); // a gift first, on a card of its own, then the results
     } else {
       const pc = Math.floor(Math.min(1, sC / END_S) * 100);
       $("retryBtn").textContent = againText();
@@ -7733,13 +7774,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     el.innerHTML = `<button type="button" class="arm arm-cur" aria-haspopup="listbox" aria-expanded="${armsOpen}" aria-controls="armPop">${pic(progress.weapon)}<span>${esc(cur.name)}</span> <b>−${cur.cost}</b><svg class="caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
       <div class="arm-pop" id="armPop" role="listbox" aria-label="${esc(T("Пушка на вагонетке", "The cart's cannon"))}"${armsOpen ? "" : " hidden"}></div>`;
     const pop = el.querySelector(".arm-pop"), btn = el.querySelector(".arm-cur");
-    for (const id of all) { // the cannons not yet owned too, dimmed, with where they are to be had
+    for (const id of all) { // the cannons not yet had too, dimmed, with the station that gives them; a tap opens that station's card
       const w = WEAPONS[id], own = !!progress.weapons[id], o = document.createElement("button");
       o.type = "button"; o.className = "arm-opt"; o.setAttribute("role", "option"); o.setAttribute("aria-selected", String(progress.weapon === id));
       if (!own) o.setAttribute("aria-disabled", "true");
-      const where = own ? "" : `<i>${w.price !== null ? `◆ ${w.price} · ${esc(T("в Арсенале", "at the Armoury"))}` : esc(T("не продаётся", "not for sale"))}</i>`;
-      o.innerHTML = `${pic(id)}<span class="ao"><span class="ao-h">${esc(w.name)} <b>−${w.cost}</b>${where}</span><span class="ao-d">${esc(w.desc)}</span></span>`;
-      o.addEventListener("click", () => { if (!own) return; progress.weapon = id; saveProgress(); armsOpen = false; renderArms(); el.querySelector(".arm-cur").focus(); });
+      const src = w.from && byId(w.from), where = own || !src ? "" : `<i>${esc(T(`за станцию ${src.latin}`, `from ${src.latin} station`))}</i>`;
+      const desc = own || !src ? w.desc : T(`Откроется, когда вы пройдёте станцию ${src.latin} (${src.ru}). ${w.desc}`, `Opens once you finish ${src.latin} station. ${w.desc}`);
+      o.innerHTML = `${pic(id)}<span class="ao"><span class="ao-h">${esc(w.name)} <b>−${w.cost}</b>${where}</span><span class="ao-d">${esc(desc)}</span></span>`;
+      o.addEventListener("click", () => {
+        if (!own) { armsOpen = false; renderArms(); if (src) openSheet(src, false, true); return; } // not yet had: the card of the station that gives it
+        progress.weapon = id; saveProgress(); armsOpen = false; renderArms(); el.querySelector(".arm-cur").focus(); });
       pop.appendChild(o);
     }
     btn.addEventListener("click", () => { armsOpen = !armsOpen; renderArms(); if (armsOpen) (el.querySelector('.arm-opt[aria-selected="true"]') || el.querySelector(".arm-opt")).focus(); else el.querySelector(".arm-cur").focus(); });
@@ -7965,7 +8009,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     });
   }
 
-  let depotTab = "arma"; // the depot tab last shown
   // the crystal packs at Emptio: each holds what it names at full price and a quarter more, for additions to come.
   // Their prices in Stars are kept by the bot's server (bot/worker.js); these are what the cards show
   const PK_GEM = "M0 -8L3.6 -5V5L0 8L-3.6 5V-5ZM0 -8V8M-3.6 -5L0 -2.8L3.6 -5M-3.6 5L0 2.8L3.6 5";
@@ -8008,12 +8051,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: opened from the scheme or by a link, so it steps in
     const scroll = keep ? $("sheet").scrollTop : 0;
-    if (!keep) { depotTab = "arma"; shopTab = "guns"; $("sheet").scrollTop = 0; } // opened afresh: the first tab, from the top, never as it was left
+    if (!keep) { shopTab = "guns"; $("sheet").scrollTop = 0; } // opened afresh: the first tab, from the top, never as it was left
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
     $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("кристаллы для Арсенала", "crystals for Armamentarium") : st === "locked" ? T("вход платный", "paid entry") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
     $("shName").innerHTML = `${esc(lv.latin)}<small>${esc(lv.ru)}</small>`;
     $("shDesc").textContent = lv.desc;
     $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead
+    { const wid = weaponFrom(lv.id), uid = UP_FROM[lv.id]; // its gift, while not yet given
+      const gift = wid && !progress.weapons[wid] ? T(`Подарок за прохождение: пушка ${WEAPONS[wid].name}`, `Its gift once finished: the ${WEAPONS[wid].name} cannon`)
+        : uid && !progress.gifts[lv.id] && upLevel(uid) < 3 ? T(`Подарок за прохождение: уровень улучшения ${UPGRADES[uid].name} (${UPGRADES[uid].ru})`, `Its gift once finished: a level of the ${UPGRADES[uid].name} upgrade (${UPGRADES[uid].en})`) : "";
+      if (gift) $("shFeats").insertAdjacentHTML("afterbegin", `<li class="gift-li"><b>${esc(gift)}</b></li>`); }
     const reqs = [];
     if (!lv.gift && !isOpen(lv)) { // what opens it, while it is closed (once open, the line says nothing new)
       if (!req.after) reqs.push([true, T("Открыта с самого начала", "Open from the start")]);
@@ -8107,25 +8154,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
     } else if (lv.depot) {
       if (progress.open[lv.id]) {
-        // two tabs: Arma, the cannons, and Ingenia, the upgrades; on a phone they stick to the top while the cards scroll
-        const tabs = document.createElement("div"); tabs.className = "tabs"; tabs.setAttribute("role", "tablist");
-        const owned = Object.keys(WEAPONS).filter(id => progress.weapons[id]).length, bought = Object.keys(UPGRADES).reduce((t, id) => t + upLevel(id), 0);
-        for (const [id, name, sub, n] of [["arma", "Arma", T("пушки", "cannons"), `${owned}/${Object.keys(WEAPONS).length}`], ["ingenia", "Ingenia", T("улучшения", "upgrades"), `${bought}/${3 * Object.keys(UPGRADES).length}`]]) {
-          const t = document.createElement("button"); t.type = "button"; t.className = "tab"; t.setAttribute("role", "tab"); t.setAttribute("aria-selected", String(depotTab === id));
-          t.innerHTML = `${name}<small>${esc(sub)} · ${n}</small>`;
-          t.addEventListener("click", () => { if (depotTab !== id) { depotTab = id; openSheet(lv, true); } });
-          tabs.appendChild(t);
-        }
-        extra.appendChild(tabs);
-        const pane = tabPanes(["arma", "ingenia"], depotTab);
-        for (const id in WEAPONS) {
-          const w = WEAPONS[id], card = document.createElement("div"); card.className = "wcard";
-          card.innerHTML = `<h3>${esc(w.name)}<small>${esc(w.ru)} · ${w.cost} ${ballsWord(w.cost)} ${T("за выстрел", "a shot")}</small></h3><p>${esc(w.desc)}</p>`;
-          if (progress.weapons[id]) button(card, progress.weapon === id ? "ghost" : "cta", progress.weapon === id ? T("Стоит на вагонетке", "On the cart") : T("Поставить", "Mount"), () => { progress.weapon = id; saveProgress(); openSheet(lv, true); }, progress.weapon === id);
-          else if (w.price === null) button(card, "ghost", T("Заперта в Темнице", "Locked in the Dungeon"), null, true);
-          else { const price = priceOf(id); button(card, "cta", price < w.price ? T(`Купить: ◆ ${price} (скидка из Сада)`, `Buy: ◆ ${price} (Garden discount)`) : T(`Купить: ◆ ${price}`, `Buy: ◆ ${price}`), () => { progress.bank -= price; progress.weapons[id] = true; progress.weapon = id; progress.bought = true; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
-          pane.arma.appendChild(card);
-        }
+        // the upgrades only: the cannons are given by stations (the menu shows which)
+        const pane = { ingenia: extra };
         for (const id in UPGRADES) {
           const u = UPGRADES[id], lvl = upLevel(id), card = document.createElement("div"); card.className = "wcard";
           card.innerHTML = `<h3>${esc(u.name)}<small>${esc(T(u.ru, u.en))} · ${T("уровень", "level")} ${lvl}/3${lvl ? " · " + esc(u.now(lvl)) : ""}</small></h3><p>${esc(T(...u.desc))}</p>`;

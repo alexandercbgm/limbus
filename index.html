@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.376</div>
+      <div class="credit version">v1.0.377</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -906,7 +906,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.376`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.377`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2789,18 +2789,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const gPort = new THREE.Mesh(new THREE.CircleGeometry(0.03, 28), new THREE.MeshBasicMaterial({ color: 0xffffff })); gPort.name = "gport"; gPort.position.z = 0.206; mB.add(gPort);
     for (const sx of [-1, 1]) { const cl = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.13, 0.08), darkMat); cl.position.set(sx * 0.158, 0, 0.135); mB.add(cl); } // two clamps holding the drum
     { // its shield, in front of the mount, as Gemini's: a broad face and two cheeks swept back, leaning to the gunner, a lit line along
-      // its top; a wedge cut down from its top for the barrel, ending in a round recess that the coil there passes through
+      // its top; a slot cut straight down from its top for the barrel, a little narrower than the coils, ending in a round recess that the coil there passes through
       const FW = 0.36, H = 0.47, T = 0.04, LEAN = 0.6, CK = [0.2, 0.24], FOOT = -0.2, Z = -0.42, CY = -FOOT, RR = 0.175, X0 = 0.17, X1 = 0.07, Y1 = 0.08;
-      let t = 0; for (let i = 0; i < 80; i++) { const tt = i / 79, x = X0 + (X1 - X0) * tt, y = H + (Y1 - H) * tt; if (Math.hypot(x, y - CY) <= RR) { t = tt; break; } }
-      const xm = X0 + (X1 - X0) * t, ym = H + (Y1 - H) * t, am = Math.atan2(ym - CY, xm);
-      const f = new THREE.Shape(); f.moveTo(-FW, 0); f.lineTo(FW, 0); f.lineTo(FW, H); f.lineTo(X0, H); f.lineTo(xm, ym); f.absarc(0, CY, RR, am, Math.PI - am - 2 * Math.PI, true); f.lineTo(-X0, H); f.lineTo(-FW, H); f.closePath();
+      const W2 = 0.114, xm = W2, ym = CY + Math.sqrt(RR * RR - W2 * W2), am = Math.atan2(ym - CY, xm);
+      const f = new THREE.Shape(); f.moveTo(-FW, 0); f.lineTo(FW, 0); f.lineTo(FW, H); f.lineTo(W2, H); f.lineTo(xm, ym); f.absarc(0, CY, RR, am, Math.PI - am - 2 * Math.PI, true); f.lineTo(-W2, H); f.lineTo(-FW, H); f.closePath();
       const ex = { depth: T, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 3, curveSegments: 20 }, parts = [new THREE.ExtrudeGeometry(f, ex)];
       const L = Math.hypot(CK[0], CK[1]), a = Math.atan2(CK[1], CK[0]);
       for (const sd of [-1, 1]) { const r = new THREE.Shape(), x0 = sd > 0 ? 0 : -L, x1 = sd > 0 ? L : 0; r.moveTo(x0, 0); r.lineTo(x1, 0); r.lineTo(x1, H); r.lineTo(x0, H); r.closePath(); parts.push(new THREE.ExtrudeGeometry(r, ex).rotateY(-sd * a).translate(sd * FW, 0, 0)); }
       const shear = new THREE.Matrix4().set(1, 0, 0, 0, 0, 1, 0, 0, 0, LEAN, 1, 0, 0, 0, 0, 1);
       for (const q of parts) { q.applyMatrix4(shear); q.computeVertexNormals(); const m = new THREE.Mesh(q, shellMat); m.position.set(0, FOOT, Z); mB.add(m); }
       const Y = H + 0.01, zt = Z + T / 2 + LEAN * Y, y = FOOT + Y, line = (A, B) => { const d = B.clone().sub(A), o = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, d.length(), 8), accentMat); o.position.copy(A).add(B).multiplyScalar(0.5); o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); mB.add(o); };
-      for (const sd of [-1, 1]) { line(new THREE.Vector3(sd * X0, y, zt), new THREE.Vector3(sd * FW, y, zt)); line(new THREE.Vector3(sd * FW, y, zt), new THREE.Vector3(sd * (FW + CK[0]), y, zt + CK[1])); }
+      for (const sd of [-1, 1]) { line(new THREE.Vector3(sd * 0.114, y, zt), new THREE.Vector3(sd * FW, y, zt)); line(new THREE.Vector3(sd * FW, y, zt), new THREE.Vector3(sd * (FW + CK[0]), y, zt + CK[1])); }
     }
     // Triplex, its barrels a quarter bigger than they were: a drum of a body, a cylinder with its square edges rounded off; out of its front a
     // rotary cluster of three barrels held by two discs

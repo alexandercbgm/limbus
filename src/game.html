@@ -2562,11 +2562,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const fr = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(0.72, 0.09, 0.035), { depth: 0.04, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2 }).rotateY(Math.PI / 2), shellMat); fr.position.set(x + sd * 0.06 - 0.02, DY - 0.4, zc); cart.add(fr);
       const fl = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.5), accentMat); fl.position.set(x + sd * 0.09, DY - 0.4, zc); cart.add(fl); // a lit line along it
     }
-    // the deck's edge lit all round, on its top at the very edge, in the cannon's rings' colour, changing as they do: thicker along the
-    // sides, seen glancing, than across the front, seen square on
-    { const y = DY + 0.026, e = X - 0.012, f = ZF + 0.012, b = ZB - 0.012;
-      litLine([V(-e, y, b), V(-e, y, f), V(e, y, f), V(e, y, b)], 0.02); litLine([V(-e, y, b), V(e, y, b)], 0.012);
-      for (const x of [-e, e]) { const j = new THREE.Mesh(new THREE.SphereGeometry(0.02, 12, 8), accentMat); j.position.set(x, y, b); cart.add(j); } }
+    // the deck's edge lit all round, on its top at the very edge, in the cannon's rings' colour, changing as they do, and as thin as
+    // those rings (theirs 0.006 on a cannon scaled to 0.82)
+    { const R = 0.005, y = DY + 0.012 + R, e = X - 0.012, f = ZF + 0.012, b = ZB - 0.012;
+      litLine([V(-e, y, b), V(-e, y, f), V(e, y, f), V(e, y, b), V(-e, y, b), V(-e, y, f)], R); }
   }
   const howitzerMat = new THREE.MeshStandardMaterial({ color: 0x2e2824, roughness: 0.5, metalness: 0.85, side: THREE.DoubleSide });
   const FER_UP = 0.245, FER_BACK = 0.065; // Ferrum's gun stands this far above and ahead of its pivot

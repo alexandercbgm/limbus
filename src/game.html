@@ -2081,8 +2081,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const decor = new Map(), decorW = []; // decorW: Nox's and Lux's floating blocks where they stand in the world, the last 400
   // Initium, Vitrum, Lux: whether a bay (the 4 stretches from one frame's middle to the next's) has its walls and roof, drawn once
   // a bay; one whose frame is gone takes the bay's before it
-  const bayBase = new Map(), bayForce = new Set();
-  const bayState = m => { for (let i = 0; i < 8 && !getDecor(m * 4).arch; i++) m--;
+  const bayBase = new Map(), bayForce = new Set(), bayCut = new Set(); // bayCut: a bay's wall or roof taken away for something, frame to frame
+  const bayStart = m => { for (let i = 0; i < 8 && !getDecor(m * 4).arch; i++) m--; return m; }; // the bay as seen: from the frame there is
+  const bayState = m => { m = bayStart(m);
     let b = bayBase.get(m); if (!b) { const z = curD(), wallP = lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z);
       b = { wl: hash(m * 3 + 1) < wallP, wr: hash(m * 3 + 2) < wallP, ceil: hash(m * 7 + 5) < ceilP };
       if (LEVEL.id === "vitrum") { const g = !!VIT_GLAZE[m]; b = { wl: g, wr: g, ceil: g }; } // a run glazed whole or open
@@ -2105,12 +2106,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (LTW.some(t => Math.abs(s - t.sw) < 5)) d.arch = false; // nor through a manoeuvre's gantry
     if (bays) { // a bay that starts where its frame was taken away (by a gate, a target, glass that turns) carries on as the one before it,
       // to the next frame there is; a wall or roof cleared away here for something (set false) stays away
-      const m = Math.floor(k / 4), cut = { wl: false, wr: false, ceil: false }, st0 = s - SL / 2 > SUPER_END - 6;
+      // a wall or roof cleared away for something goes for its whole bay, frame to frame (cleared only beside the thing, the glass
+      // had ended in the air)
+      const m = Math.floor(k / 4), st0 = s - SL / 2 > SUPER_END - 6;
       for (const key of ["wl", "wr", "ceil"]) {
         // (set true, as a monolith's roof is, the whole bay gets it, frame to frame)
-        const set = v => { cut[key] = !v; if (v) bayForce.add(key + Math.floor(k / 4)); }; // (a monolith's roof wins over one cleared away before it)
-        Object.defineProperty(d, key, { get: () => !cut[key] && !station && (bayState(m)[key] || bayForce.has(key + m)), set, enumerable: true, configurable: true });
-        if (k % 4 === 0) Object.defineProperty(d, key + "0", { get: () => !cut[key] && !st0 && (bayState(m - 1)[key] || bayForce.has(key + (m - 1))), set, enumerable: true, configurable: true }); // (the half before the frame)
+        const set = v => { if (v) { bayForce.add(key + m); bayCut.delete(key + bayStart(m)); } else bayCut.add(key + bayStart(m)); }; // (a monolith's roof wins over one cleared away before it)
+        const set0 = v => { if (v) { bayForce.add(key + (m - 1)); bayCut.delete(key + bayStart(m - 1)); } else bayCut.add(key + bayStart(m - 1)); };
+        Object.defineProperty(d, key, { get: () => !bayCut.has(key + bayStart(m)) && !station && (bayState(m)[key] || bayForce.has(key + m)), set, enumerable: true, configurable: true });
+        if (k % 4 === 0) Object.defineProperty(d, key + "0", { get: () => !bayCut.has(key + bayStart(m - 1)) && !st0 && (bayState(m - 1)[key] || bayForce.has(key + (m - 1))), set: set0, enumerable: true, configurable: true }); // (the half before the frame)
       }
     }
     // Vitrum (bare): no flat walls or roof; where they'd stand, panes of glass close the hexagon's sides and top instead
@@ -3111,7 +3115,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     beamMat.opacity = 0; needle.t0 = -9; needleHead.visible = false; trails.forEach(t => { t.visible = false; }); gasBirth.fill(-99); gasGeo.attributes.birth.needsUpdate = true;
     ballsArr.forEach(b => { scene.remove(b.mesh); if (b.cs) scene.remove(b.cs.g.mesh); }); ballsArr = [];
     shards.forEach(dropShard); shards = [];
-    decor.clear(); bayBase.clear(); bayForce.clear(); decorW.length = 0;
+    decor.clear(); bayBase.clear(); bayForce.clear(); bayCut.clear(); decorW.length = 0;
   }
 
   // ---------- procedural spawning: what appears ahead depends on where the cart is between heaven and hell ----------

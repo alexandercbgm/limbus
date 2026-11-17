@@ -5153,7 +5153,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const arm = new THREE.Mesh(swArmGeo, frameMat); arm.position.set(-x * ARM / 2, 0, 0); pv.add(arm);
       const g = new THREE.Group(); g.position.set(-x * (ARM + 0.66), 0, 0); pv.add(g);
       g.add(new THREE.Mesh(swPlateGeo, frameMat));
-      const disc = new THREE.Mesh(swDiscGeo, targetOff); disc.position.z = 0.07; g.add(disc);
+      const disc = new THREE.Mesh(swDiscGeo, new THREE.MeshBasicMaterial({ color: targetOff.color })); disc.position.z = 0.07; g.add(disc); // (its own, to glow and fade in the garland)
       const ar = new THREE.Mesh(swDiscGeo, swArrowMat); ar.position.z = 0.08; ar.scale.setScalar(0.9); ar.rotation.z = -Math.atan2(x, y || 0.0001); g.add(ar);
       if (!y) ar.rotation.z = x < 0 ? Math.PI / 2 : -Math.PI / 2;
       return { x, y, g, pv, disc, wp: new THREE.Vector3() };
@@ -5162,7 +5162,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     switches.push(sw); paintSwitch(sw); return sw;
   }
   const swChosen = (sw, t) => t.x === sw.m.dir && (!t.y || t.y === sw.m.pdir);
-  function paintSwitch(sw) { for (const t of sw.targets) t.disc.material = swChosen(sw, t) ? targetOn : targetOff; }
+  function paintSwitch(sw) { for (const t of sw.targets) t.disc.material.color.copy(swChosen(sw, t) ? targetOn.color : targetOff.color); }
+  // till the way is chosen the targets light in turn, a garland: each glowing up and fading in its moment, two turn about once a
+  // second, four go round clockwise every half second; chosen, the chosen one stays lit
+  const SW_RING4 = [0, 1, 3, 2]; // (the four laid out top left, top right, bottom left, bottom right: clockwise from top left)
+  function garland(sw) {
+    const n = sw.targets.length, step = n === 4 ? 0.5 : 1, ph = time / step;
+    (n === 4 ? SW_RING4 : [0, 1]).forEach((idx, j) => { const k = ((ph - j) % n + n) % n, b = k < 1 ? Math.sin(Math.PI * k) ** 2 : 0;
+      sw.targets[idx].disc.material.color.copy(targetOff.color).lerp(targetOn.color, b); });
+  }
   function hitSwitch(sw, t) {
     if (sw.locked) return false; // the way is chosen once: a hit on any target, the lit one too, settles it and folds them all away
     const m = sw.m; if (!swChosen(sw, t)) { m.dirFrom = m.dirNow; m.pdirFrom = m.pdirNow; m.mt = 0; m.dir = t.x; if (t.y) m.pdir = t.y; } // (the swing over starts from where the track is now)
@@ -5182,6 +5190,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       setObj(sw.root, sw.s, 0, 0); sw.root.updateMatrixWorld(true);
       for (const t of sw.targets) t.g.getWorldPosition(t.wp);
       if (!sw.locked && sC > sw.m.tw0 - 30) { sw.locked = true; paintSwitch(sw); }
+      if (!sw.locked) garland(sw);
       if (sw.locked && sw.fold < 1) { sw.fold = Math.min(1, sw.fold + dt / 0.5); for (const t of sw.targets) t.pv.rotation.y = -t.x * Math.PI / 2 * smooth5(sw.fold); } // all swing open on their pins like doors, away from the cart
     }
     switches = switches.filter(sw => sw.s > sC - 20 || (scene.remove(sw.root), false));

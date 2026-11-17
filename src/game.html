@@ -1400,8 +1400,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           vec3 sdn = normalize(vec3(0.42, 0.36, -0.83)); float cd = dot(n, sdn), sg = acos(clamp(cd, -1.0, 1.0)), sp = max(cd, 0.0);
           vec3 ax = normalize(cross(sdn, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sdn); float a = atan(dot(n, ay), dot(n, ax));
           float ray = (0.5 + 0.5 * sin(a * 11.0 + 2.0 * sin(a * 3.0) + t * 0.04)) * (0.55 + 0.45 * sin(a * 27.0 - t * 0.03 + 1.7));
-          ray = pow(ray, 2.5) * exp(-sg * 1.6) * smoothstep(0.02, 0.1, sg) * smoothstep(-0.05, 0.1, h);
-          c += vec3(1.0, 0.98, 0.93) * (pow(sp, 3000.0) * 8.0 + pow(sp, 300.0) * 1.2 + pow(sp, 12.0) * 0.28 + ray * 0.5) * amt * smoothstep(0.2, 0.55, lum); // (a day sky's sun: none in the Dark)
+          ray = pow(ray, 2.5) * exp(-sg * 1.6) * smoothstep(0.06, 0.16, sg) * smoothstep(-0.05, 0.1, h); // (from clear of its disc)
+          float day = amt * smoothstep(0.2, 0.55, lum); // (a day sky's sun: none in the Dark)
+          c += vec3(1.0, 0.98, 0.93) * (exp(-max(sg - 0.05, 0.0) * 40.0) * 0.25 + pow(sp, 12.0) * 0.18 + ray * 0.45) * day;
+          c = mix(c, vec3(1.0, 0.99, 0.95) * 1.15, smoothstep(0.052, 0.046, sg) * day); // its disc, sharp-edged: a soft glare had hidden it
         } else if (m == 7.0) { // ink wash: drifting bands of mist and a slowly turning yin-yang in place of the sun
           float mist = smoothstep(0.45, 0.8, fbm(vec3(n.x * 2.0, n.y * 7.0, n.z * 2.0) + vec3(t * 0.012, 0.0, t * 0.008))) * smoothstep(-0.1, 0.25, h) * (1.0 - smoothstep(0.35, 0.8, h));
           vec3 ink = mix(vec3(0.05), vec3(0.95, 0.93, 0.88), lum);
@@ -2439,8 +2441,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // past the fog they'd only cost; over the abyss and in Vitrum's open sky they still show, against the stars. Near the
       // far end they grow out of nothing, so they don't pop up whole
       const lim = STYLE.bridge || STYLE.bare ? sC + AHEAD - 4 : sC + cur.fogF + 6, grow = clamp((lim - s) / 24, 0, 1);
-      if (dec.towers) { frameAt(s); tmpV.set(_R.x, 0, _R.z).normalize(); tmpV2.set(0, 1, 0); _X.crossVectors(tmpV, tmpV2); // upright whatever the track does
-        for (const b of dec.towers) { M.makeBasis(tmpV, tmpV2, _X).setPosition(_P.x + tmpV.x * b.u, _P.y + b.top - b.sy / 2, _P.z + tmpV.z * b.u);
+      if (dec.towers) { // upright and still whatever the track does: from the line it winds round (on the drill the rails circle it, and the towers had swung with them, through the deck), across the track's heading
+        frameAt(s); const r = twistR(s), y = yawAt(s); tmpV.set(Math.cos(y), 0, -Math.sin(y)); tmpV2.set(0, 1, 0); _X.crossVectors(tmpV, tmpV2);
+        const bx = _P.x + _U.x * r, by = _P.y + _U.y * r - r, bz = _P.z + _U.z * r;
+        for (const b of dec.towers) { M.makeBasis(tmpV, tmpV2, _X).setPosition(bx + tmpV.x * b.u, by + b.top - b.sy / 2, bz + tmpV.z * b.u);
           I.tower.setColorAt(n.tower, TOWER_TINT.setRGB(lerp(0.66, 1, b.tint), lerp(0.76, 1, b.tint), 1));
           I.tower.setMatrixAt(n.tower++, M.multiply(M2.makeRotationY(b.ry)).scale(SV.set(b.sx, b.sy, b.sz))); } }
       if (grow > 0) for (const b of dec.blocks) {

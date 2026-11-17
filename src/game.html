@@ -2411,8 +2411,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (deckStrip.visible) fillStrip(deckStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, -0.52, 0, s => spanAt(s) ? SW + 0.2 : 0);
     const floorW = STYLE.bridge ? (LUXH.length ? s => luxHallAt(s) ? SW : BRIDGE_W : BRIDGE_W) : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // Vitrum: as wide as the hexagon's bottom edge; Lux's halls as wide as their walls
     const onDeck = s => !!(spanAt(s) || spanAt(s - 1) || spanAt(s + 1));
-    fillStrip(floorStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length ? s => (spanAt(s) && spanAt(s - 1) && spanAt(s + 1) ? 0 : floorW) : floorW); // over a bridge, its deck instead
-    if (SPANS.length) fillDeckTop(Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, s => onDeck(s) ? SW : 0); else deckTop.visible = false;
+    // where a manoeuvre turns a wide floor over (Initium's drill), the fine deck top too: the strip's metre quads bulged over the sleepers
+    const fw = s => typeof floorW === "function" ? floorW(s) : floorW, twM = s => !STYLE.bridge && LTW.some(m => m.r && s > m.tw0 - 2 && s < m.tw1 + 2);
+    const fine = s => onDeck(s) || twM(s), fineAll = s => (spanAt(s) && spanAt(s - 1) && spanAt(s + 1)) || (twM(s) && twM(s - 1) && twM(s + 1));
+    fillStrip(floorStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length || LTW.length ? s => (fineAll(s) ? 0 : fw(s)) : floorW); // over a bridge, its deck instead
+    if (SPANS.length || LTW.some(m => m.r && !STYLE.bridge)) fillDeckTop(Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, s => onDeck(s) ? SW : twM(s) ? fw(s) : 0); else deckTop.visible = false;
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, 0, STYLE.glassWalls ? W + 0.12 : W); else vaultStrip.visible = false; // (Speculum: the vault out to its glass)
     { // where a walled and roofed corridor (Labyrinthus, Carcer) stops being drawn, far ahead, the sky showed through its open
       // end as a window: a cap closes it there, past the fog's far edge, so it's all fog's colour

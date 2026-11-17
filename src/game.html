@@ -1400,10 +1400,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           vec3 sdn = normalize(vec3(0.42, 0.36, -0.83)); float cd = dot(n, sdn), sg = acos(clamp(cd, -1.0, 1.0)), sp = max(cd, 0.0);
           vec3 ax = normalize(cross(sdn, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sdn); float a = atan(dot(n, ay), dot(n, ax));
           float ray = (0.5 + 0.5 * sin(a * 11.0 + 2.0 * sin(a * 3.0) + t * 0.04)) * (0.55 + 0.45 * sin(a * 27.0 - t * 0.03 + 1.7));
-          ray = pow(ray, 2.5) * exp(-sg * 1.6) * smoothstep(0.06, 0.16, sg) * smoothstep(-0.05, 0.1, h); // (from clear of its disc)
+          ray = pow(ray, 2.5) * exp(-sg * 1.6) * smoothstep(0.05, 0.09, sg) * smoothstep(-0.05, 0.1, h); // (from its disc's edge out)
           float day = amt * smoothstep(0.2, 0.55, lum); // (a day sky's sun: none in the Dark)
-          c += vec3(1.0, 0.98, 0.93) * (exp(-max(sg - 0.05, 0.0) * 40.0) * 0.25 + pow(sp, 12.0) * 0.18 + ray * 0.45) * day;
-          c = mix(c, vec3(1.0, 0.99, 0.95) * 1.15, smoothstep(0.052, 0.046, sg) * day); // its disc, sharp-edged: a soft glare had hidden it
+          c += vec3(1.0, 0.98, 0.93) * (exp(-max(sg - 0.07, 0.0) * 30.0) * 0.4 + pow(sp, 12.0) * 0.2 + ray * 0.55) * day;
+          c = mix(c, vec3(1.0, 0.99, 0.95) * 1.15, smoothstep(0.075, 0.068, sg) * day); // (its disc half as wide again) // its disc, sharp-edged: a soft glare had hidden it
         } else if (m == 7.0) { // ink wash: drifting bands of mist and a slowly turning yin-yang in place of the sun
           float mist = smoothstep(0.45, 0.8, fbm(vec3(n.x * 2.0, n.y * 7.0, n.z * 2.0) + vec3(t * 0.012, 0.0, t * 0.008))) * smoothstep(-0.1, 0.25, h) * (1.0 - smoothstep(0.35, 0.8, h));
           vec3 ink = mix(vec3(0.05), vec3(0.95, 0.93, 0.88), lum);

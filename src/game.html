@@ -883,7 +883,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       m.dirNow = m.dirFrom = m.dir; m.pdirNow = m.pdirFrom = m.pdir; m.mt = 99; LTW.push(m);
     };
     if (LEVEL.id === "vitrum" || LEVEL.id === "initium") add(LEVEL.id === "vitrum" ? "spiral" : "drill", L * 0.5);
-    if (LEVEL.id === "vitrum") { const m = LTW[0]; m.dir = m.dirNow = m.dirFrom = -1; } // Vitrum's gantry: left or right only, left lit to begin with (Initium's drill has none: its way is fixed)
+    if (LEVEL.id === "vitrum") { const m = LTW[0]; m.dir = m.dirNow = m.dirFrom = -1; m.late = true; m.dirNow = m.pdirNow = 0; m.ft = -1; } // and its spiral a straight level road till the cart reaches its gantry: formed then, before its eyes, the way chosen or left lit // Vitrum's gantry: left or right only, left lit to begin with (Initium's drill has none: its way is fixed)
     if (LEVEL.id === "vitrum") for (let m = 0, on = Math.random() < 0.4; m * 8 < L + SUPER_LEN + 60; on = !on) { // runs of bays (8 m each): glazed 2 to 6, open 3 to 10
       const n = on ? 2 + Math.floor(Math.random() * 5) : 3 + Math.floor(Math.random() * 8);
       for (let i = 0; i < n; i++, m++) VIT_GLAZE[m] = on && !LTW.some(t => m * 8 + 8 > t.sw - 40 && m * 8 < t.tw1 + 40); }
@@ -5175,7 +5175,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function hitSwitch(sw, t) {
     if (sw.locked) return false; // the way is chosen once: a hit on any target, the lit one too, settles it and folds them all away
-    const m = sw.m; if (!swChosen(sw, t)) { m.dirFrom = m.dirNow; m.pdirFrom = m.pdirNow; m.mt = 0; m.dir = t.x; if (t.y) m.pdir = t.y; } // (the swing over starts from where the track is now)
+    const m = sw.m; if (m.late) { if (m.ft < 0) { m.dir = t.x; if (t.y) m.pdir = t.y; m.ft = 0; } } else if (!swChosen(sw, t)) { m.dirFrom = m.dirNow; m.pdirFrom = m.pdirNow; m.mt = 0; m.dir = t.x; if (t.y) m.pdir = t.y; } // (the swing over starts from where the track is now)
     sw.locked = true; paintSwitch(sw);
     Sound.tone(520, 0.18, 0.1, "triangle", 0, 900); Sound.tone(260, 0.5, 0.08, "sine", 0, 60); addScore(10);
     return true;
@@ -5185,13 +5185,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // unwinds (the spiral lying flat as it does) to a straight line level on the deck and winds up the new way, passing the straight at
     // full speed; the spiral's turns and slope scaled alike, a turn's rise stays the same, so its turns never come together (flattened
     // while still coiled they had lain through each other)
-    for (const m of LTW) { m.mt += dt; const t = Math.min(1, m.mt / 1.6), k = t * t * (3 - 2 * t), a = 1 - 2 * k;
+    // one formed late (Vitrum's) is straight till its gantry is shot or passed, then grows from the straight to its full shape
+    for (const m of LTW) if (m.late) { if (m.ft < 0 && sC > m.sw) m.ft = 0; // passed with nothing chosen: the way left lit
+      const k = m.ft < 0 ? 0 : smooth5(Math.min(1, (m.ft += dt) / 1.2)); m.dirNow = m.dir * k; m.pdirNow = m.pdir * k; }
+    for (const m of LTW) { if (m.late) continue; m.mt += dt; const t = Math.min(1, m.mt / 1.6), k = t * t * (3 - 2 * t), a = 1 - 2 * k;
       if (a > 0) { m.dirNow = m.dirFrom * a; m.pdirNow = m.pdirFrom * a; } else { m.dirNow = -m.dir * a; m.pdirNow = -m.pdir * a; }
       if (m.kind !== "spiral") m.pdirNow = m.pdir; }
     for (const sw of switches) {
       setObj(sw.root, sw.s, 0, 0); sw.root.updateMatrixWorld(true);
       for (const t of sw.targets) t.g.getWorldPosition(t.wp);
-      if (!sw.locked && sC > sw.m.tw0 - 30) { sw.locked = true; paintSwitch(sw); }
+      if (!sw.locked && sC > (sw.m.late ? sw.m.sw : sw.m.tw0 - 30)) { sw.locked = true; paintSwitch(sw); } // (one formed late shuts as the cart passes its gantry)
       if (!sw.locked) garland(sw);
       if (sw.locked && sw.fold < 1) { sw.fold = Math.min(1, sw.fold + dt / 0.5); for (const t of sw.targets) t.pv.rotation.y = -t.x * Math.PI / 2 * smooth5(sw.fold); } // all swing open on their pins like doors, away from the cart
     }

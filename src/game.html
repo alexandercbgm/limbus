@@ -870,12 +870,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let LUXH = [], LTW = [];
   const luxHallAt = s => { for (const h of LUXH) if (s > h.a && s < h.b) return h; return null; };
   const openAt = s => STYLE.bridge && !luxHallAt(s); // over the void (a bridge), not in one of Lux's halls
+  const iniOpen = s => LEVEL.id === "initium" && !getDecor(Math.floor(s / SL)).wl; // Initium: out of its corridors the track a narrow bridge high over the city
   const luxWild = s => LTW.some(m => s > m.tw0 - 14 && s < m.tw1 + 14); // on a manoeuvre, or just about to be
   // Vitrum and Initium have one manoeuvre each, midway (Vitrum the spiral, Initium the drill, on an open stretch); Vitrum's
   // glazing comes in runs, whole (walls and roof) or none (its frames bare), more of them open, none over its spiral
   let VIT_GLAZE = [];
   function planLux() {
-    LUXH = []; LTW = []; TURNS = []; VIT_GLAZE = []; // (Lux's bends had stayed on into the next level ridden)
+    LUXH = []; LTW = []; VIT_GLAZE = []; if (LEVEL.id === "lux") TURNS = []; // (Lux makes its own bends; every other level keeps its own)
     const L = MAIN_LEN, add = (kind, c) => {
       const len = kind === "drill" ? 230 : kind === "screw" ? 190 : 280, tw0 = Math.round(c - len / 2);
       const m = { kind, tw0, tw1: tw0 + len, len, sw: tw0 - 32, dir: Math.random() < 0.5 ? -1 : 1, pdir: Math.random() < 0.5 ? -1 : 1 };
@@ -884,6 +885,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     };
     if (LEVEL.id === "vitrum" || LEVEL.id === "initium") add(LEVEL.id === "vitrum" ? "spiral" : "drill", L * 0.5);
     if (LEVEL.id === "vitrum") LTW[0].dir = -1; // Vitrum's gantry: left or right only, left the way it takes if none is chosen // Vitrum's gantry: left or right only, left lit to begin with (Initium's drill has none: its way is fixed)
+    if (LEVEL.id === "initium") for (let m = 0, on = Math.random() < 0.5; m * 8 < L + SUPER_LEN + 60; on = !on) { // runs of bays: walled corridors 2 to 5, open 4 to 11
+      const n = on ? 2 + Math.floor(Math.random() * 4) : 4 + Math.floor(Math.random() * 8);
+      for (let i = 0; i < n; i++, m++) VIT_GLAZE[m] = on && !LTW.some(t => m * 8 + 8 > t.sw - 60 && m * 8 < t.tw1 + 60); }
     if (LEVEL.id === "vitrum") for (let m = 0, on = Math.random() < 0.4; m * 8 < L + SUPER_LEN + 60; on = !on) { // runs of bays (8 m each): glazed 2 to 6, open 3 to 10
       const n = on ? 2 + Math.floor(Math.random() * 5) : 3 + Math.floor(Math.random() * 8);
       for (let i = 0; i < n; i++, m++) VIT_GLAZE[m] = on && !LTW.some(t => m * 8 + 8 > t.sw - 40 && m * 8 < t.tw1 + 40); }
@@ -891,6 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // every manoeuvre a straight level road till the cart reaches its gantry (or where one would stand): formed then, before its
     // eyes, the way chosen, or else its own
     for (const m of LTW) { m.late = true; m.dirNow = m.pdirNow = 0; m.ft = -1; }
+    if (LEVEL.id !== "lux") TURNS = TURNS.filter(tn => !LTW.some(m => tn.s0 + tn.len > m.sw - 40 && tn.s0 < m.tw1 + 25)); // no bend of a level's own on its manoeuvre or at its gantry
     if (LEVEL.id !== "lux") return;
     // its own bends, none on a manoeuvre, at its gantry or in a hall's mouth
     TURNS = []; let t = 70, sg = Math.random() < 0.5 ? 1 : -1;
@@ -943,14 +948,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     { sky: "#3b3d41", hor: "#1f2023", gnd: "#121214", surf: "#3c3d41", wall: "#2f3034", line: "#9aa0a8", lineI: 0.22, frame: "#1b1c1f", frameE: "#000000", frameEI: 0,
       rail: "#5d6168", sleeper: "#28292c", glass: "#b9c6ce", glassO: 0.42, edge: "#e2e8ec", fogN: 9, fogF: 74, hemiS: "#c4c8cc", hemiG: "#1d1d21", hemiI: 0.75, sunI: 0.5,
       dust: "#a8acb0", block: "#2a2b2e", cart: "#2b2d31", accent: "#c8ccd0" },
-    { sky: "#b3b7ba", hor: "#9ea2a5", gnd: "#7e8285", surf: "#c8cacc", wall: "#b9bcbe", line: "#ffffff", lineI: 0.0, frame: "#4e5257", frameE: "#000000", frameEI: 0,
-      rail: "#8c9197", sleeper: "#6e7175", glass: "#d2e5eb", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 88, hemiS: "#ffffff", hemiG: "#898d91", hemiI: 0.95, sunI: 0.7,
+    { sky: "#5d84ad", hor: "#bccbd8", gnd: "#a7b6c2", surf: "#c8cacc", wall: "#b9bcbe", line: "#ffffff", lineI: 0.0, frame: "#4e5257", frameE: "#000000", frameEI: 0,
+      rail: "#8c9197", sleeper: "#6e7175", glass: "#d2e5eb", glassO: 0.42, edge: "#ffffff", fogN: 20, fogF: 130, hemiS: "#ffffff", hemiG: "#8796a4", hemiI: 0.95, sunI: 0.7,
       dust: "#ffffff", block: "#a6aaae", cart: "#454a50", accent: "#ffffff" },
-    { sky: "#f5f7f8", hor: "#e8ebec", gnd: "#c8ced1", surf: "#fbfcfc", wall: "#eef1f2", line: "#ffffff", lineI: 0.0, frame: "#8b98a0", frameE: "#000000", frameEI: 0,
-      rail: "#a9b3b9", sleeper: "#c5cbcf", glass: "#c6eff9", glassO: 0.42, edge: "#ffffff", fogN: 16, fogF: 100, hemiS: "#ffffff", hemiG: "#c8d2d7", hemiI: 1.0, sunI: 0.75,
+    { sky: "#3f88d6", hor: "#dcebf7", gnd: "#8cafd0", surf: "#fbfcfc", wall: "#eef1f2", line: "#ffffff", lineI: 0.0, frame: "#8b98a0", frameE: "#000000", frameEI: 0,
+      rail: "#a9b3b9", sleeper: "#c5cbcf", glass: "#c6eff9", glassO: 0.42, edge: "#ffffff", fogN: 60, fogF: 220, hemiS: "#ffffff", hemiG: "#86a8c8", hemiI: 1.0, sunI: 0.75,
       dust: "#ffffff", block: "#e1e6e9", cart: "#5d6a72", accent: "#9fdcff" },
-    { sky: "#a9dbff", hor: "#e4f4ff", gnd: "#d2ebfa", surf: "#ffffff", wall: "#e9f5ff", line: "#7cc8ff", lineI: 0.35, frame: "#a4d2f0", frameE: "#bfe6ff", frameEI: 0.45,
-      rail: "#d4eaf8", sleeper: "#e6f3fc", glass: "#9fe1ff", glassO: 0.4, edge: "#ffffff", fogN: 18, fogF: 112, hemiS: "#ffffff", hemiG: "#bcdff5", hemiI: 1.1, sunI: 0.8,
+    { sky: "#2c7ad0", hor: "#d6e9f8", gnd: "#7fa7d0", surf: "#ffffff", wall: "#e9f5ff", line: "#7cc8ff", lineI: 0.35, frame: "#a4d2f0", frameE: "#bfe6ff", frameEI: 0.45,
+      rail: "#d4eaf8", sleeper: "#e6f3fc", glass: "#9fe1ff", glassO: 0.4, edge: "#ffffff", fogN: 70, fogF: 240, hemiS: "#ffffff", hemiG: "#7ea7cf", hemiI: 1.1, sunI: 0.8,
       dust: "#8fd2ff", block: "#eef7ff", cart: "#6f8796", accent: "#6cc6ff" },
   ];
   // Tao: ink and rice paper. White paper with a red seal in the light, grey wash in between, black ink with a jade glow in the dark
@@ -1337,7 +1342,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       const vec3 SUN_AZ = vec3(0.819, 0.0, -0.574); // 55 degrees right of the track's start (-z)
       void main(){ vec3 n = normalize(vP); float h = n.y;
-        if (mode > 8.5) { gl_FragColor = vec4(blackHole(n), 1.0); return; }
+        if (mode > 8.5 && mode < 9.5) { gl_FragColor = vec4(blackHole(n), 1.0); return; }
         if (mode > 5.5 && mode < 6.5) { gl_FragColor = vec4(rubySky(n), 1.0); return; } // Rubinus: its own sky alone // Speculum: its own sky alone, none of the rest worked out under it
         vec3 c = h > 0.0 ? mix(hor, top, pow(h, 0.55)) : mix(hor, bot, pow(-h, 0.5));
         float lum = dot(top, vec3(0.3, 0.55, 0.15)), m = floor(mode + 0.5), night = 1.0 - smoothstep(0.08, 0.45, lum);
@@ -1389,6 +1394,21 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             c += vec3(1.0, 0.55, 0.25) * (exp(-ang * 14.0) * 0.55 + exp(-ang * 4.0) * 0.18 + exp(-max(q - 1.0, 0.0) * 6.0) * 0.35) * dim * step(-0.02, h);
             c = mix(c, vec3(1.0, 0.86, 0.55) * 1.3, smoothstep(1.0, 0.97, q) * step(0.0, h)); // one even, glowing disc
           }
+        } else if (m == 10.0) { // Initium: a clear day, stars faint in the blue, the sun white-hot and its rays running out across the sky
+          { // and the city far off: towers along the horizon, and below it roofs and gaps running off into the blue haze
+            float az = atan(n.x, -n.z), cA = floor(az * 70.0), ht = 0.004 + 0.05 * pow(h3(vec3(cA, 3.0, 1.0)), 4.0);
+            vec3 low = mix(hor, bot, smoothstep(0.0, 0.12, -h)), tow = mix(hor, bot, 0.25 + 0.3 * h3(vec3(cA, 7.0, 2.0)));
+            if (h < ht && h > -0.004) c = mix(c, tow, amt);
+            if (h <= 0.0) { float dd = 0.1 + (-h) * 2.0; vec2 g = vec2(az * 40.0 / dd, log(-h + 0.006) * 7.0), gi = floor(g), gf = fract(g);
+              float roof = step(0.4, h3(vec3(gi, 5.0))) * smoothstep(0.0, 0.12, min(min(gf.x, 1.0 - gf.x), min(gf.y, 1.0 - gf.y))) * (0.7 + 0.3 * h3(vec3(gi, 9.0)));
+              c = mix(c, mix(low, mix(low, hor * 1.05, 0.75), roof * smoothstep(0.006, 0.06, -h)), amt); } // (blocks and the streets between, fading into the haze toward the horizon)
+          }
+          c += vec3(0.92, 0.96, 1.0) * (starAt(n, 90.0, 0.985) * 0.45 + starAt(n, 210.0, 0.992) * 0.3) * amt * smoothstep(0.02, 0.35, h);
+          vec3 sdn = normalize(vec3(0.42, 0.36, -0.83)); float cd = dot(n, sdn), sg = acos(clamp(cd, -1.0, 1.0)), sp = max(cd, 0.0);
+          vec3 ax = normalize(cross(sdn, vec3(0.0, 1.0, 0.0))), ay = cross(ax, sdn); float a = atan(dot(n, ay), dot(n, ax));
+          float ray = (0.5 + 0.5 * sin(a * 11.0 + 2.0 * sin(a * 3.0) + t * 0.04)) * (0.55 + 0.45 * sin(a * 27.0 - t * 0.03 + 1.7));
+          ray = pow(ray, 2.5) * exp(-sg * 1.6) * smoothstep(0.02, 0.1, sg) * smoothstep(-0.05, 0.1, h);
+          c += vec3(1.0, 0.98, 0.93) * (pow(sp, 3000.0) * 8.0 + pow(sp, 300.0) * 1.2 + pow(sp, 12.0) * 0.28 + ray * 0.5) * amt * smoothstep(0.2, 0.55, lum); // (a day sky's sun: none in the Dark)
         } else if (m == 7.0) { // ink wash: drifting bands of mist and a slowly turning yin-yang in place of the sun
           float mist = smoothstep(0.45, 0.8, fbm(vec3(n.x * 2.0, n.y * 7.0, n.z * 2.0) + vec3(t * 0.012, 0.0, t * 0.008))) * smoothstep(-0.1, 0.25, h) * (1.0 - smoothstep(0.35, 0.8, h));
           vec3 ink = mix(vec3(0.05), vec3(0.95, 0.93, 0.88), lum);
@@ -1789,6 +1809,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     surfMat.color.copy(cur.surf); surfMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     wallMat.color.copy(cur.wall); wallMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     blockMat.color.copy(cur.block); blockMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.8);
+    towerMat.color.copy(cur.block).lerp(WHITE, 0.15); // (Initium's city: white in the Light, as dark as its blocks in the Dark)
     noxBlockMat.color.copy(cur.block); noxLine.value.copy(cur.line).multiplyScalar(cur.lineI * 1.6);
     dropMat.color.copy(cur.block).lerp(WHITE, 0.5); dropMat.emissive.copy(cur.hor).multiplyScalar(0.7);
     bushMat.color.copy(cur.block); bushMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.35);
@@ -1900,6 +1921,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       PT[k] = _D.x; PT[k + 1] = _D.y; PT[k + 2] = _D.z; PU[k] = _E.x; PU[k + 1] = _E.y; PU[k + 2] = _E.z; PR[k] = _X.x; PR[k + 1] = _X.y; PR[k + 2] = _X.z;
     }
   }
+  const towerMat = new THREE.MeshLambertMaterial({ color: 0xeef3f7 }), TOWER_TINT = new THREE.Color();
   const _P = new THREE.Vector3(), _R = new THREE.Vector3(), _U = new THREE.Vector3(), _T = new THREE.Vector3(), _nT = new THREE.Vector3(), _C = new THREE.Vector3();
   function frameAt(s) {
     let f = (s - sBase) / DS;
@@ -1997,6 +2019,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus and Hortus, squeezed to fit (RING_SX, RING_SY)
     coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),
     block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 900),
+    tower: (() => { const m = inst(new THREE.BoxGeometry(1, 1, 1), towerMat, 1600); m.setColorAt(0, new THREE.Color(1, 1, 1)); return m; })(), // Initium's city: the tops of towers beside the track, the blocks of houses far below
     drop: inst(new THREE.SphereGeometry(1, 20, 12), dropMat, 120), // Speculum's mercury drops
     rebar: inst(new THREE.CylinderGeometry(0.03, 0.03, 1, 6), rebarMat, 500), // Carcer: rebar out of broken concrete
     lamp: inst(new THREE.BoxGeometry(0.5, 0.22, 0.9), lampMat, 60),
@@ -2018,6 +2041,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     scap: inst(new THREE.BoxGeometry(1, 1, 1), concreteMat, 20), // pier caps and platforms,
 
     girder: inst(new THREE.BoxGeometry(2 * BRIDGE_W, 0.5, 0.4), frameMat, 30),
+    islab: inst(new THREE.BoxGeometry(1, 0.6, SL + 0.03), frameMat, 340), // Initium's deck: a slab under the floor
     bush: inst(new THREE.IcosahedronGeometry(0.75, 0), bushMat, 260), // clumps of foliage floating in Hortus
   };
   // Floor, and the vault of a closed maze, are one continuous strip that follows the rails sample by sample.
@@ -2089,7 +2113,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const bayState = m => { m = bayStart(m);
     let b = bayBase.get(m); if (!b) { const z = curD(), wallP = lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z);
       b = { wl: hash(m * 3 + 1) < wallP, wr: hash(m * 3 + 2) < wallP, ceil: hash(m * 7 + 5) < ceilP };
-      if (LEVEL.id === "vitrum") { const g = !!VIT_GLAZE[m]; b = { wl: g, wr: g, ceil: g }; } // a run glazed whole or open
+      if (LEVEL.id === "vitrum" || LEVEL.id === "initium") { const g = !!VIT_GLAZE[m]; b = { wl: g, wr: g, ceil: g }; } // a run glazed (walled) whole, or open
       if (LEVEL.id === "initium" && LTW.some(t => m * 8 + 8 > t.sw - 60 && m * 8 < t.tw1 + 60)) b = { wl: false, wr: false, ceil: false }; // open round the drill
       bayBase.set(m, b); } return b; };
   function getDecor(k) {
@@ -2225,7 +2249,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       decor.set(k, d); return d;
     }
     const twM = LTW.find(m => s > m.sw - 30 && s < m.tw1 + 30); // Lux's manoeuvres: none over the spiral (reshaping, its track sweeps wide)
-    const nb = STYLE.mirror || (twM && (twM.kind === "spiral" || !STYLE.bridge)) ? 0 : // (off the bridges, none over a manoeuvre at all: there they are not kept clear of each other)
+    if (LEVEL.id === "initium") { // the track runs high over a white city: towers' tops beside it, some higher than the cart; far below, the houses
+      d.towers = []; const hh = i => hash(k * 97 + i * 13 + 5), yr = [-40, -20, 0, 20, 40].map(o => yawRateAt(s + o));
+      // (about one tower in 12 m along the track, one side or the other; a house block in 5; their sizes and heights mixed)
+      if (hh(1) < 0.17) { const side = hh(2) < 0.5 ? -1 : 1, w = 6 + hh(3) * 8, dp = 6 + hh(4) * 8;
+        if (!yr.some(r => r * side < -0.002)) d.towers.push({ u: side * (20 + w / 2 + hh(5) * 22), top: hh(6) < 0.2 ? 4 + hh(7) * 26 : -22 + hh(7) * 20, sx: w, sz: dp, sy: 200, ry: (hh(8) - 0.5) * 0.5 }); } // (none on a bend's inner side, where it would stand over the track further round)
+      for (const j of [0, 1]) if (hh(9 + j) < 0.42) { const w = 7 + hh(12 + j) * 10, side = hh(27 + j) < 0.5 ? -1 : 1; d.towers.push({ u: side * (6 + w / 2 + hh(15 + j) * 80), top: -48 + hh(18 + j) * 30, sx: w, sz: 7 + hh(21 + j) * 10, sy: 150, ry: (hh(24 + j) - 0.5) * 0.5 }); }
+      for (const t of d.towers) t.tint = hash(t.u * 7.1 + t.top * 3.3 + k); // each its own shade, white to pale blue: all one white, their roofs had run together into a plain
+    }
+    const nb = LEVEL.id === "initium" || STYLE.mirror || (twM && (twM.kind === "spiral" || !STYLE.bridge)) ? 0 : // (off the bridges, none over a manoeuvre at all: there they are not kept clear of each other)
       (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
     for (let i = 0; i < nb; i++) {
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
@@ -2370,7 +2402,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           put("safety", s, sd * (W + 0.35), 0.02);
         }
       }
-      if (dec.arch && !open && !dec.hw && !dec.span && (!STYLE.bridge || dec.hall)) {
+      if (LEVEL.id === "initium") { // its bridge: kerbs and a deck slab, out of the corridors narrow, with pylons down into the city every 8 m
+        const nar = iniOpen(s), hw = nar ? BRIDGE_W : SW;
+        if (twistAt(s - SL) || twistAt(s + SL)) { for (let q = 0; q < 4; q++) for (const u of [-hw, hw]) I.kerb.setMatrixAt(n.kerb++, placeM(M, s - SL / 2 + (q + 0.5) * SL / 4, u, 0.1).scale(SV.set(1, 1, (SL / 4 + 0.03) / (SL + 0.03)))); }
+        else if (nar) { put("kerb", s, -hw, 0.1); put("kerb", s, hw, 0.1); }
+        I.islab.setMatrixAt(n.islab++, placeM(M, s, 0, -0.32).scale(SV.set(2 * hw + 0.3, 1, 1)));
+        if (k % 4 === 0 && !luxWild(s)) { put("pylon", s, -hw + 0.3, -PYLON_H / 2 - 0.6); put("pylon", s, hw - 0.3, -PYLON_H / 2 - 0.6); }
+      }
+      if (dec.arch && !open && !dec.hw && !dec.span && (!STYLE.bridge || dec.hall) && (LEVEL.id !== "initium" || dec.wl || dec.wl0 || dec.wr || dec.wr0)) { // (Initium: frames only where a corridor's walls meet them)
         if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
         else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY).scale(SV.set(RING_SX, RING_SY, RING_SX))); // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
         else if (STYLE.arch === "tri") { const tr = triAt(s); for (let e = 0; e < 3; e++) { const A = tr[e], B = tr[(e + 1) % 3], L = Math.hypot(B[0] - A[0], B[1] - A[1]);
@@ -2404,6 +2443,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // past the fog they'd only cost; over the abyss and in Vitrum's open sky they still show, against the stars. Near the
       // far end they grow out of nothing, so they don't pop up whole
       const lim = STYLE.bridge || STYLE.bare ? sC + AHEAD - 4 : sC + cur.fogF + 6, grow = clamp((lim - s) / 24, 0, 1);
+      if (dec.towers) { frameAt(s); tmpV.set(_R.x, 0, _R.z).normalize(); tmpV2.set(0, 1, 0); _X.crossVectors(tmpV, tmpV2); // upright whatever the track does
+        for (const b of dec.towers) { M.makeBasis(tmpV, tmpV2, _X).setPosition(_P.x + tmpV.x * b.u, _P.y + b.top - b.sy / 2, _P.z + tmpV.z * b.u);
+          I.tower.setColorAt(n.tower, TOWER_TINT.setRGB(lerp(0.66, 1, b.tint), lerp(0.76, 1, b.tint), 1));
+          I.tower.setMatrixAt(n.tower++, M.multiply(M2.makeRotationY(b.ry)).scale(SV.set(b.sx, b.sy, b.sz))); } }
       if (grow > 0) for (const b of dec.blocks) {
         placeM(M, s + (b.ds || 0), b.u, b.v);
         if (b.q) M.multiply(M2.makeRotationFromQuaternion(b.q)).multiply(M2.makeRotationY(b.sway !== undefined ? Math.sin(time * 0.35 + b.sway) * 0.2 : time * b.spin)); // a crystal turns about its own length; a ruby only sways
@@ -2417,7 +2460,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // the deck's underside (it shows when the deck hangs overhead), drawn as a strip so it twists smoothly with the rails
     deckStrip.visible = SPANS.length > 0;
     if (deckStrip.visible) fillStrip(deckStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, -0.52, 0, s => spanAt(s) ? SW + 0.2 : 0);
-    const floorW = STYLE.bridge ? (LUXH.length ? s => luxHallAt(s) ? SW : BRIDGE_W : BRIDGE_W) : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // Vitrum: as wide as the hexagon's bottom edge; Lux's halls as wide as their walls
+    const floorW = LEVEL.id === "initium" ? s => (iniOpen(s) ? BRIDGE_W : SW) : STYLE.bridge ? (LUXH.length ? s => luxHallAt(s) ? SW : BRIDGE_W : BRIDGE_W) : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // Vitrum: as wide as the hexagon's bottom edge; Lux's halls as wide as their walls
     const onDeck = s => !!(spanAt(s) || spanAt(s - 1) || spanAt(s + 1));
     // where a manoeuvre turns a wide floor over (Initium's drill), the fine deck top too: the strip's metre quads bulged over the sleepers
     const fw = s => typeof floorW === "function" ? floorW(s) : floorW, twM = s => !STYLE.bridge && LTW.some(m => m.r && s > m.tw0 - 2 && s < m.tw1 + 2);
@@ -2491,7 +2534,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // one that ran short is swapped for one twice as large, full again from the next frame
     for (const key in I) {
       if (n[key] > I[key].instanceMatrix.count) growInst(key, n[key]);
-      I[key].count = Math.min(n[key], I[key].instanceMatrix.count); I[key].instanceMatrix.needsUpdate = true;
+      I[key].count = Math.min(n[key], I[key].instanceMatrix.count); I[key].instanceMatrix.needsUpdate = true; if (I[key].instanceColor) I[key].instanceColor.needsUpdate = true;
     }
     SHEETS.forEach(sheetDone);
     for (const k of decor.keys()) if (k < k0 - 2) decor.delete(k);
@@ -6400,7 +6443,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let LEVEL = LEVELS[0], STYLE = LEVEL.style;
   // the look of each level on top of its style: the sky's effect, the surfaces' texture, and decor changes
   const LEVEL_LOOK = {
-    initium: { sky: { mode: 3, a: 0.85, c: "#ffffff" } },
+    initium: { sky: { mode: 10, a: 1, c: "#ffffff" } }, // a clear blue day over a white city
     thesaurus: { sky: { mode: 5, a: 0.9, c: "#ffe8b0" } },
     vitrum: { sky: { mode: 8, a: 0.95, c: "#ffffff" }, shell: [5.3, 8.75] }, // walls and ceiling clear of the hexagonal frames; the sky just after sunset
     tao: { sky: { mode: 7, a: 0.9, c: "#ffffff" } },
@@ -7482,7 +7525,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (dead || b.life > 3) { scene.remove(b.mesh); if (b.cs) scene.remove(b.cs.g.mesh); ballsArr.splice(i, 1); }
     }
 
-    const floorHW = fs => openAt(fs) ? BRIDGE_W : spanAt(fs) ? SW : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // the floor's half width, as drawn
+    const floorHW = fs => openAt(fs) || iniOpen(fs) ? BRIDGE_W : spanAt(fs) ? SW : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // the floor's half width, as drawn
     for (let i = shards.length - 1; i >= 0; i--) {
       const s = shards[i], pos = s.mesh.position;
       // a piece takes some of the ball's push, but never more than a few m/s on along the track: it had flown on down the

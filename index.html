@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.355</div>
+      <div class="credit version">v1.0.356</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -906,7 +906,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.355`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.356`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5219,6 +5219,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.fillStyle = "#fff"; g.beginPath(); g.moveTo(64, 14); g.lineTo(108, 62); g.lineTo(80, 62); g.lineTo(80, 112); g.lineTo(48, 112); g.lineTo(48, 62); g.lineTo(20, 62); g.closePath(); g.fill();
     const t = new THREE.CanvasTexture(c); return t; })(); // an arrow pointing up; each turned to its way
   const swArrowMat = new THREE.MeshBasicMaterial({ map: swArrow, transparent: true, depthWrite: false, color: 0x10161c });
+  // a glow round a target's rim: clear inside (over its arrow), brightest at the plate's edge, fading out beyond it
+  const rimGlowTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(0.3, "rgba(255,255,255,0)"); gr.addColorStop(0.4, "rgba(255,255,255,1)"); gr.addColorStop(0.55, "rgba(255,255,255,0.45)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
   function addSwitch(m) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
     // its posts past the deck's edges, down to a crossbar under the deck that holds them, as the frames for blocks on chains
@@ -5240,6 +5244,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const g = new THREE.Group(); g.position.set(-x * (ARM + 0.66), 0, 0); pv.add(g);
       g.add(new THREE.Mesh(swPlateGeo, frameMat));
       const disc = new THREE.Mesh(swDiscGeo, new THREE.MeshBasicMaterial({ color: targetOff.color })); disc.position.z = 0.07; g.add(disc); // (its own, to glow and fade in the garland)
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: rimGlowTex, color: targetOn.color, transparent: true, opacity: 0, depthWrite: false }));
+      halo.scale.setScalar(3.4); halo.position.z = 0.1; g.add(halo); disc.userData.halo = halo; // a glow round it as it lights: on Vitrum's bright glass a bare disc was lost
       const ar = new THREE.Mesh(swDiscGeo, swArrowMat); ar.position.z = 0.08; ar.scale.setScalar(0.9); ar.rotation.z = -Math.atan2(x, y || 0.0001); g.add(ar);
       if (!y) ar.rotation.z = x < 0 ? Math.PI / 2 : -Math.PI / 2;
       return { x, y, g, pv, disc, wp: new THREE.Vector3() };
@@ -5248,14 +5254,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     switches.push(sw); paintSwitch(sw); return sw;
   }
   const swChosen = (sw, t) => t.x === sw.m.dir && (!t.y || t.y === sw.m.pdir);
-  function paintSwitch(sw) { for (const t of sw.targets) t.disc.material.color.copy(swChosen(sw, t) ? targetOn.color : targetOff.color); }
+  const lightDisc = (disc, b) => { disc.material.color.copy(targetOff.color).lerp(targetOn.color, b); disc.userData.halo.material.opacity = b; };
+  function paintSwitch(sw) { for (const t of sw.targets) lightDisc(t.disc, swChosen(sw, t) ? 1 : 0); }
   // till the way is chosen the targets light in turn, a garland: each glowing up and fading in its moment, two turn about once a
-  // second, four go round clockwise every half second; chosen, the chosen one stays lit
+  // second (Vitrum's every 0.75 s), four go round clockwise every half second; chosen, the chosen one stays lit
   const SW_RING4 = [0, 1, 3, 2]; // (the four laid out top left, top right, bottom left, bottom right: clockwise from top left)
   function garland(sw) {
-    const n = sw.targets.length, step = n === 4 ? 0.5 : 1, ph = time / step;
+    const n = sw.targets.length, step = n === 4 ? 0.5 : LEVEL.id === "vitrum" ? 0.75 : 1, ph = time / step; // (Vitrum's two quicker)
     (n === 4 ? SW_RING4 : [0, 1]).forEach((idx, j) => { const k = ((ph - j) % n + n) % n, b = k < 1 ? Math.sin(Math.PI * k) ** 2 : 0;
-      sw.targets[idx].disc.material.color.copy(targetOff.color).lerp(targetOn.color, b); });
+      lightDisc(sw.targets[idx].disc, b); });
   }
   function hitSwitch(sw, t) {
     if (sw.locked) return false; // the way is chosen once: a hit on any target, the lit one too, settles it and folds them all away

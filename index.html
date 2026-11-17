@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.350</div>
+      <div class="credit version">v1.0.351</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -906,7 +906,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.350`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.351`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5992,9 +5992,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // cost: balls per shot. A crystal (or a finale target) pays its value once for every ball of the shot that hits it.
   const WEAPONS = {
     ballista: { name: "Gauss", ru: "Гаусс", cost: 1, price: 0, desc: "Один шар за выстрел. Попадание в кристалл даёт его обычную цену." },
-    gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: null, from: "initium", desc: "Вторая пушка на вагонетке: дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
+    gemini: { name: "Gemini", ru: "Близнецы", cost: 2, price: null, from: "initium", desc: "Дуплет из двух шаров. Попали оба — кристалл платит вдвое." },
     triplex: { name: "Triplex", ru: "Тройник", cost: 3, price: null, from: "labyrinthus", desc: "Три шара треугольником за выстрел. Кристалл платит за каждый попавший в него шар: от одной до трёх цен." },
-    hexa: { name: "Hexa", ru: "Гекса", cost: 6, price: null, from: "abyssus", desc: "Два Тройника на каркасе: шесть шаров за выстрел, по три из каждого ствола. Кристалл платит за каждый попавший в него шар." },
+    hexa: { name: "Hexa", ru: "Гекса", cost: 6, price: null, from: "abyssus", desc: "Шесть шаров за выстрел, по три из каждого ствола. Кристалл платит за каждый попавший в него шар." },
     radius: { name: "Lumen", ru: "Луч", cost: 1, price: null, from: "rubinus", desc: "Лазер бьёт мгновенно, без упреждения, и прошивает стёкла по всей линии, а армированное прожигает вдвое быстрее. Выстрел стоит 1 шар, луч один, поэтому кристалл платит свою цену один раз." },
     ferrum: { name: "Ferrum", ru: "Железо", cost: 2, price: null, from: "carcer", desc: "Мортира из Темницы. За 2 шара — книппель: два железных ядра на цепи, вращаются в полёте. Ядра и цепь пробивают стекло насквозь и летят дальше. Твёрдое останавливает снаряд целиком. На складе не продаётся." },
   };
@@ -6334,9 +6334,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     },
     weapons: {
       ballista: { ru: "Gauss", desc: "One ball a shot. A crystal you hit pays its usual value." },
-      hexa: { ru: "Hexa", desc: "Two Triplex guns on a frame: six balls a shot, three from each gun. A crystal pays for every ball that hits it." },
+      hexa: { ru: "Hexa", desc: "Six balls a shot, three from each gun. A crystal pays for every ball that hits it." },
       triplex: { ru: "Triple", desc: "Three balls in a triangle a shot. A crystal pays for every ball that hits it: one to three times its value." },
-      gemini: { ru: "Twins", desc: "A second cannon on the cart: a pair of balls a shot. If both hit, the crystal pays double." },
+      gemini: { ru: "Twins", desc: "A pair of balls a shot. If both hit, the crystal pays double." },
       ferrum: { ru: "Iron", desc: "The Dungeon's mortar. For 2 balls, chain shot: two iron balls on a chain, spinning as they fly. Balls and chain break glass through and fly on. Anything solid stops the whole shot. Not sold at the depot." },
       radius: { ru: "Beam", desc: "A laser hits at once, with no lead, and pierces every pane along its line, burning through armoured glass twice as fast. A shot costs 1 ball. There is one beam, so a crystal pays its value once." },
     },

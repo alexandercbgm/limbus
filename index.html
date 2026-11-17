@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.371</div>
+      <div class="credit version">v1.0.372</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -906,7 +906,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.371`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.372`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2765,18 +2765,29 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const band = new THREE.Mesh(new THREE.TorusGeometry(0.142, 0.006, 6, 40), accentMat); band.position.z = 0.1; band.name = "band"; barrel.add(band);
     const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.05, 32).rotateX(Math.PI / 2), darkMat); collar.position.z = -0.21; collar.name = "collar"; barrel.add(collar);
     const cyl = (r, len, mat, segs) => new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, segs || 16).rotateX(Math.PI / 2), mat);
-    // Gauss (its id still ballista, as saved): a long barrel out of a dark collar, six coils threaded on it, each a dark drum with a lit band,
-    // a little smaller toward the muzzle; as it fires they flare one after another from the body out to the muzzle
+    // Gauss (its id still ballista, as saved): a coil accelerator. An open rail on a white bed that rises toward the muzzle (so every coil
+    // sinks into it alike); six dark coils threaded on it, smaller toward the muzzle, their windings lit on their inner faces, flaring
+    // one after another as a shot runs out; at the breech a glass capsule with the ball waiting in it; at the back, the face the player
+    // sees from the seat, a capacitor drum: a ring of twelve charge cells round a port where the core glows, the cells spent on a shot
+    // and filling round again in a second, the core white on the shot and back to the karma's colour as they fill
     const mB = new THREE.Group(); mB.name = "m_ballista"; barrel.add(mB);
-    const gCol = new THREE.Mesh(lathe([[0.074, 0], [0.1, 0], [0.13, 0.02], [0.13, 0.07], [0.115, 0.09], [0.074, 0.09]], 32).rotateX(-Math.PI / 2), darkMat); gCol.position.z = -0.22; mB.add(gCol);
-    const gBar = new THREE.Mesh(lathe([[0.076, 0], [0.07, 0.87], [0, 0.87]], 28).rotateX(-Math.PI / 2), shellMat); gBar.position.z = -0.28; mB.add(gBar);
+    const gBed = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.045, 1.2), shellMat); gBed.position.set(0, -0.112, -0.56); gBed.rotation.x = Math.atan(0.028); mB.add(gBed);
+    for (const sx of [-1, 1]) { const rl = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.018, 1.22), darkMat); rl.position.set(sx * 0.04, -0.05, -0.56); mB.add(rl); }
     for (let i = 0; i < 6; i++) {
-      const z = -0.36 - i * 0.13, r = 0.112 - i * 0.006;
-      const coil = new THREE.Mesh(lathe([[r * 0.55, -0.035], [r, -0.03], [r, 0.03], [r * 0.55, 0.035]], 28).rotateX(-Math.PI / 2), darkMat); coil.position.z = z; mB.add(coil);
-      const band = new THREE.Mesh(new THREE.TorusGeometry(r + 0.002, 0.01, 6, 32), new THREE.MeshBasicMaterial({ color: 0xffffff })); band.name = "gcoil" + i; band.position.z = z; mB.add(band);
+      const z = -0.2 - i * 0.17, r = 0.13 - i * 0.007;
+      const coil = new THREE.Mesh(new THREE.TorusGeometry(r, 0.026, 12, 40), darkMat); coil.position.z = z; mB.add(coil);
+      const band = new THREE.Mesh(new THREE.TorusGeometry(r - 0.02, 0.009, 6, 40), new THREE.MeshBasicMaterial({ color: 0xffffff })); band.name = "gcoil" + i; band.position.z = z; mB.add(band);
     }
-    const gTip = cyl(0.074, 0.033, accentMat, 28); gTip.position.z = -1.1835; mB.add(gTip); // its end lit, as Triplex's are
-    const gBore = cyl(0.046, 0.004, darkMat, 24); gBore.position.z = -1.2015; mB.add(gBore); // the bore, dark in its lit end
+    const gTip = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.012, 8, 32), accentMat); gTip.position.z = -1.19; mB.add(gTip); // its muzzle a lit ring
+    const gCap = new THREE.Mesh(lathe([[0.07, -0.09], [0.082, -0.07], [0.082, 0.07], [0.07, 0.09]], 32).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xcfe6ff, transparent: true, opacity: 0.3, roughness: 0.05, metalness: 0.1, depthWrite: false })); gCap.position.z = -0.02; mB.add(gCap);
+    const gBall = new THREE.Mesh(new THREE.SphereGeometry(0.045, 20, 14), new THREE.MeshStandardMaterial({ color: 0xdfe6ec, roughness: 0.15, metalness: 0.9 })); gBall.name = "gball"; gBall.position.z = -0.02; mB.add(gBall);
+    const gDrum = cyl(0.15, 0.13, darkMat, 40); gDrum.position.z = 0.135; mB.add(gDrum);
+    const gFace = new THREE.Mesh(new THREE.CircleGeometry(0.133, 40), shellMat); gFace.position.z = 0.201; mB.add(gFace);
+    for (let i = 0; i < 12; i++) { const a = Math.PI / 2 - i * Math.PI / 6, c = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.015, 0.006), new THREE.MeshBasicMaterial({ color: 0xffffff })); c.name = "gcell" + i; c.position.set(Math.cos(a) * 0.1, Math.sin(a) * 0.1, 0.205); c.rotation.z = a; mB.add(c); }
+    for (let i = 0; i < 4; i++) { const a = Math.PI / 4 + i * Math.PI / 2, v = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.008, 0.006), darkMat); v.position.set(Math.cos(a) * 0.058, Math.sin(a) * 0.058, 0.205); v.rotation.z = a; mB.add(v); }
+    const gRim = new THREE.Mesh(new THREE.TorusGeometry(0.036, 0.008, 8, 28), darkMat); gRim.position.z = 0.205; mB.add(gRim);
+    const gPort = new THREE.Mesh(new THREE.CircleGeometry(0.03, 28), new THREE.MeshBasicMaterial({ color: 0xffffff })); gPort.name = "gport"; gPort.position.z = 0.206; mB.add(gPort);
+    for (const sx of [-1, 1]) { const cl = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.13, 0.08), darkMat); cl.position.set(sx * 0.158, 0, 0.135); mB.add(cl); } // two clamps holding the drum
     // Triplex, its barrels a quarter bigger than they were: a drum of a body, a cylinder with its square edges rounded off; out of its front a
     // rotary cluster of three barrels held by two discs
     const mTB = new THREE.Group(); mTB.name = "m_triplex_body"; barrel.add(mTB);
@@ -3008,6 +3019,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const aimLocal = new THREE.Vector3(0, 0, -1);
   const DIM_SILVER = new THREE.Color(0xd2d9e0), HALO_SILVER = new THREE.Color(0x9aa3ac); // Lumen's rod at the bottom of its pulse (no grey: it stays lit), its halo
   let recoil = 0, triSpin = 1, lastShotT = -9; // Triplex's barrels' spin, the time of the last shot
+  const GCELL_OFF = new THREE.Color(0x2a3038); // a spent charge cell
   const gemKick = { t: 0, side: 1 }; // Gemini's last shot: how fresh (1 → 0), and which way the turret jerked
   yawG.name = "yaw"; pitchG.name = "pitch"; barrel.name = "barrel";
   const cannonB = cannon.clone(); cart.add(cannonB);
@@ -3021,7 +3033,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     GUNS[0].c.position.x = 0; GUNS[1].c.position.x = 0; GUNS[1].c.visible = false;
     const lift = twin ? [0.2, 0.145] : id === "ferrum" ? [FER_UP, FER_BACK] : [0, 0];
     GUNS.forEach(g => g.c.position.set(0, -0.74 - lift[0] * 0.82, -1.28 + lift[1] * 0.82)); // Gemini's pivot is lower and further back: its gun stays where it was
-    GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin && id !== "triplex" && id !== "radius" && id !== "ferrum" && id !== "hexa" && !(n === "band" && id === "ballista"); g.models.triplex_body.visible = id === "triplex"; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin && id !== "ferrum" && id !== "hexa"; if (o.name === "forkhub") o.visible = id === "radius"; }); }); // Gemini's breeches would show the gimbal's fork through them
+    GUNS.forEach(g => { g.c.scale.setScalar(0.82); for (const n of ["capsule", "band", "collar"]) g.barrel.getObjectByName(n).visible = !twin && id !== "triplex" && id !== "radius" && id !== "ferrum" && id !== "hexa" && id !== "ballista"; g.models.triplex_body.visible = id === "triplex"; g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = !twin && id !== "ferrum" && id !== "hexa"; if (o.name === "forkhub") o.visible = id === "radius"; }); }); // Gemini's breeches would show the gimbal's fork through them
     GUNS.forEach(g => { for (const k in g.models) g.models[k].visible = k === id || k.startsWith(id + "_"); g.c.children.concat(g.yaw.children).forEach(o => { if (o.name === "dish" || o.name === "pedestal") o.visible = false; }); if (id === "triplex") g.yaw.children.forEach(o => { if (o.name === "fork") o.visible = false; }); }); // Triplex stands on its own black mount // (every cannon now stands on a black mount of its own: no dish, no pedestal)
     const fz = { ballista: [0, 0, -1.22], triplex: [0, 0, -1.1], radius: [0, 0, -1.19], gemini: [0, 0.2, -1.87], ferrum: [0, FER_UP, -FER_BACK - 0.95] }[id] || [0, 0, -0.9];
     GUNS.forEach(g => g.barrel.children.forEach(o => { if (o.isSprite && o.material === flashSprite.material) { o.position.set(...fz); o.visible = id !== "hexa"; } })); // (Hexa has a flash at each gun)
@@ -7703,7 +7715,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (progress.weapon === "ballista") { // the coils flare one after another, body to muzzle, as a shot runs out through them
       const k = time - lastShotT;
       GUNS[0].models.ballista.children.forEach(o => { if (o.name && o.name.startsWith("gcoil")) { const i = +o.name.slice(5), e = Math.max(0, 1 - Math.abs(k - i * 0.035) / 0.06);
-        o.material.color.copy(accentMat.color).lerp(WHITE, e); o.scale.setScalar(1 + e * 0.3); } });
+        o.material.color.copy(accentMat.color).lerp(WHITE, e); o.scale.setScalar(1 + e * 0.15); }
+        else if (o.name && o.name.startsWith("gcell")) { const i = +o.name.slice(5), fl = Math.max(0, 1 - k / 0.15), on = Math.max(fl, clamp(Math.min(1, k) * 12 - i, 0.12, 1)); o.material.color.copy(GCELL_OFF).lerp(accentMat.color, on).lerp(WHITE, fl * 0.85); }
+        else if (o.name === "gport") o.material.color.copy(accentMat.color).lerp(WHITE, Math.max(1 - clamp(k, 0, 1), 0.1 + 0.08 * Math.sin(time * 3.3)));
+        else if (o.name === "gball") o.visible = k > 0.35; }); // (the ball in the breech gone with the shot, the next one in after)
     }
     ringMat.opacity = 0.65 + 0.25 * Math.sin(time * 6) + recoil * 0.3;
     if (recoil === 0) { const k = 1 - Math.exp(-dt * 0.8); GUNS.forEach(g => { g.yaw.rotation.y -= g.yaw.rotation.y * k; g.pitch.rotation.x -= (g.pitch.rotation.x - 0.08) * k; }); }

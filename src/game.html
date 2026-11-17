@@ -871,16 +871,24 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const luxHallAt = s => { for (const h of LUXH) if (s > h.a && s < h.b) return h; return null; };
   const openAt = s => STYLE.bridge && !luxHallAt(s); // over the void (a bridge), not in one of Lux's halls
   const luxWild = s => LTW.some(m => s > m.tw0 - 14 && s < m.tw1 + 14); // on a manoeuvre, or just about to be
+  // Vitrum and Initium have one manoeuvre each, midway (Vitrum the spiral, Initium the drill, on an open stretch); Vitrum's
+  // glazing comes in runs, whole (walls and roof) or none (its frames bare), more of them open, none over its spiral
+  let VIT_GLAZE = [];
   function planLux() {
-    LUXH = []; LTW = [];
-    if (LEVEL.id !== "lux") return;
-    const kinds = ["drill", "screw", "spiral"].sort(() => Math.random() - 0.5), L = MAIN_LEN;
-    kinds.forEach((kind, i) => {
-      const len = kind === "drill" ? 230 : kind === "screw" ? 190 : 280, c = L * (0.26 + i * 0.27) + rand(-50, 50), tw0 = Math.round(c - len / 2);
+    LUXH = []; LTW = []; TURNS = []; VIT_GLAZE = []; // (Lux's bends had stayed on into the next level ridden)
+    const L = MAIN_LEN, add = (kind, c) => {
+      const len = kind === "drill" ? 230 : kind === "screw" ? 190 : 280, tw0 = Math.round(c - len / 2);
       const m = { kind, tw0, tw1: tw0 + len, len, sw: tw0 - 32, dir: Math.random() < 0.5 ? -1 : 1, pdir: Math.random() < 0.5 ? -1 : 1 };
       if (kind === "drill") Object.assign(m, { turns: 4, r: 8.5 }); else if (kind === "screw") Object.assign(m, { turns: 2, r: 11 }); else Object.assign(m, { turns: 2, pitch: 0.13 });
       m.dirNow = m.dirFrom = m.dir; m.pdirNow = m.pdirFrom = m.pdir; m.mt = 99; LTW.push(m);
-    });
+    };
+    if (LEVEL.id === "vitrum" || LEVEL.id === "initium") add(LEVEL.id === "vitrum" ? "spiral" : "drill", L * 0.5);
+    if (LEVEL.id === "vitrum") { const m = LTW[0]; m.dir = m.dirNow = m.dirFrom = -1; } // Vitrum's gantry: left or right only, left lit to begin with (Initium's drill has none: its way is fixed)
+    if (LEVEL.id === "vitrum") for (let m = 0, on = Math.random() < 0.4; m * 8 < L + SUPER_LEN + 60; on = !on) { // runs of bays (8 m each): glazed 2 to 6, open 3 to 10
+      const n = on ? 2 + Math.floor(Math.random() * 5) : 3 + Math.floor(Math.random() * 8);
+      for (let i = 0; i < n; i++, m++) VIT_GLAZE[m] = on && !LTW.some(t => m * 8 + 8 > t.sw - 40 && m * 8 < t.tw1 + 40); }
+    if (LEVEL.id !== "lux") return;
+    ["drill", "screw", "spiral"].sort(() => Math.random() - 0.5).forEach((kind, i) => add(kind, L * (0.26 + i * 0.27) + rand(-50, 50)));
     // its own bends, none on a manoeuvre, at its gantry or in a hall's mouth
     TURNS = []; let t = 70, sg = Math.random() < 0.5 ? 1 : -1;
     while (t < L - 60) { const len = rand(45, 75), deg = sg * rand(35, 75);
@@ -2076,7 +2084,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const bayBase = new Map(), bayForce = new Set();
   const bayState = m => { for (let i = 0; i < 8 && !getDecor(m * 4).arch; i++) m--;
     let b = bayBase.get(m); if (!b) { const z = curD(), wallP = lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z);
-      b = { wl: hash(m * 3 + 1) < wallP, wr: hash(m * 3 + 2) < wallP, ceil: hash(m * 7 + 5) < ceilP }; bayBase.set(m, b); } return b; };
+      b = { wl: hash(m * 3 + 1) < wallP, wr: hash(m * 3 + 2) < wallP, ceil: hash(m * 7 + 5) < ceilP };
+      if (LEVEL.id === "vitrum") { const g = !!VIT_GLAZE[m]; b = { wl: g, wr: g, ceil: g }; } // a run glazed whole or open
+      if (LEVEL.id === "initium" && LTW.some(t => m * 8 + 8 > t.sw - 60 && m * 8 < t.tw1 + 60)) b = { wl: false, wr: false, ceil: false }; // open round the drill
+      bayBase.set(m, b); } return b; };
   function getDecor(k) {
     let d = decor.get(k);
     if (d) return d;
@@ -2091,6 +2102,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const spn = !station && spanAt(s);
     if (spn) { d.wl = d.wr = d.ceil = false; d.span = spn; } // Speculum's bridges
     if (SPANS.some(x => Math.abs(s - x.a) < 5 || Math.abs(s - x.b) < 5)) d.arch = false; // no frame through a bridge's gate
+    if (LTW.some(t => Math.abs(s - t.sw) < 5)) d.arch = false; // nor through a manoeuvre's gantry
     if (bays) { // a bay that starts where its frame was taken away (by a gate, a target, glass that turns) carries on as the one before it,
       // to the next frame there is; a wall or roof cleared away here for something (set false) stays away
       const m = Math.floor(k / 4), cut = { wl: false, wr: false, ceil: false }, st0 = s - SL / 2 > SUPER_END - 6;
@@ -2206,7 +2218,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       decor.set(k, d); return d;
     }
     const twM = LTW.find(m => s > m.sw - 30 && s < m.tw1 + 30); // Lux's manoeuvres: none over the spiral (reshaping, its track sweeps wide)
-    const nb = STYLE.mirror || (twM && twM.kind === "spiral") ? 0 :
+    const nb = STYLE.mirror || (twM && (twM.kind === "spiral" || !STYLE.bridge)) ? 0 : // (off the bridges, none over a manoeuvre at all: there they are not kept clear of each other)
       (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
     for (let i = 0; i < nb; i++) {
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
@@ -3178,7 +3190,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (s < spn.a + 16 || s > spn.b - 8) return;
       const opts = ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
     }
-    if (!spawnGroupKind && LTW.length) { // Lux: its big obstacles evenly spread, never two within 55 m (they had heaped up: two pairs of gears and a
+    if (!spawnGroupKind && LEVEL.id === "lux") { // Lux: its big obstacles evenly spread, never two within 55 m (they had heaped up: two pairs of gears and a
       // catapult, none to be shot down in time, and then hundreds of metres with none); past 150 m without one, the next group is one
       const BIG = ["gears", "abspin", "abbar", "lblock", "pendulum", "gate", "doors", "catapult", "fblocks"];
       const bigAt = [...gears.map(x => x.s), ...pgears.map(x => x.s), ...catas.flatMap(c => [c.cs, c.s]), ...gates.map(g => g.s), ...hangers.map(h => h.s), ...spinners.map(x => x.s), ...lbars.map(x => x.s), ...lblocks.map(x => x.s)];
@@ -3189,7 +3201,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!spawnGroupKind && pat === "catapult" && LTW.some(m => s > m.sw - 200 && s < m.tw1 + 20)) pat = "center"; // (its glass flies far: none toward a gantry)
     const onM = !spawnGroupKind && LTW.find(m => s > m.sw && s < m.tw1 + 14); // (from the gantry on: nothing big just past it, hiding its targets)
     if (onM) { // on every manoeuvre the same: glass on the deck or turning over it, blocks on chains in their frames, laser bars, laser mills
-      const opts = ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "abbar", "lblock", "abspin"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
+      const opts = LEVEL.id === "lux" ? ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "abbar", "lblock", "abspin"] : ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
     }
     if (!spawnGroupKind && LUXH.some(h => s > h.b - 4 && s < h.b + 22)) pat = "center"; // and nothing big just out of a hall: its end hid it
     // just past a gate (once the empty run is behind) only plain glass for a while: nothing that takes aim or time to bring down
@@ -5123,7 +5135,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const u of [-1, 1]) { box(0.34, 7.7 - foot, 0.34, u * GX, (7.7 + foot) / 2); box(0.5, 0.12, 0.42, u * (BRIDGE_W + 0.1), -0.58); }
     box(2 * GX + 0.34, 0.3, 0.42, 0, foot + 0.15);
     const beam = new THREE.Mesh(swBeamGeo, frameMat); beam.scale.x = (2 * GX + 0.34) / 6.3; beam.position.y = 7.5; root.add(beam);
-    const ways = m.kind === "spiral" ? [[-1, 1], [1, 1], [-1, -1], [1, -1]] : [[-1, 0], [1, 0]]; // [left/right, up/down]
+    const ways = m.kind === "spiral" && LEVEL.id === "lux" ? [[-1, 1], [1, 1], [-1, -1], [1, -1]] : [[-1, 0], [1, 0]]; // [left/right, up/down]
     // the targets hang on rods from the gantry's crossbeams into the way through it, each on a hinge at the beam: four (the spiral) in
     // two rows, the lower row from a second beam between them; two halfway between where those rows would be
     const MID = 5.15;
@@ -6393,9 +6405,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     MAIN_LEN = lv.len; SUPER_LEN = lv.superLen || 260; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
-    planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
+    planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.filter(() => LEVEL.id !== "initium").map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
     pgPlan = SPANS.length ? [SPANS[0].a - 120, ...SPANS.map(sp => sp.b + 75)] : []; // Speculum's prism gears: in the first halls, before the first bridge, and past each corkscrew
-    if (LTW.length) pgPlan = [0.1, ...LTW.map(m => (m.tw1 + 110) / MAIN_LEN)].map(f => Math.round(f * MAIN_LEN + rand(-10, 15))).filter(x => x < MAIN_LEN - 60 && !LTW.some(m => x > m.sw - 70 && x < m.tw1 + 95)); // Lux: prism gears out on the bridge, between its manoeuvres
+    if (LEVEL.id === "lux") pgPlan = [0.1, ...LTW.map(m => (m.tw1 + 110) / MAIN_LEN)].map(f => Math.round(f * MAIN_LEN + rand(-10, 15))).filter(x => x < MAIN_LEN - 60 && !LTW.some(m => x > m.sw - 70 && x < m.tw1 + 95)); // Lux: prism gears out on the bridge, between its manoeuvres
     if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind: "tall" }, { s: sp.b, kind: "tall" }]); }
     buildStation();
   }

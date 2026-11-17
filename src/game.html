@@ -884,7 +884,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       m.dirNow = m.dirFrom = m.dir; m.pdirNow = m.pdirFrom = m.pdir; m.mt = 99; LTW.push(m);
     };
     if (LEVEL.id === "vitrum" || LEVEL.id === "initium") add(LEVEL.id === "vitrum" ? "spiral" : "drill", L * 0.5);
-    if (LEVEL.id === "vitrum") LTW[0].dir = -1; // Vitrum's gantry: left or right only, left the way it takes if none is chosen // Vitrum's gantry: left or right only, left lit to begin with (Initium's drill has none: its way is fixed)
+    if (LEVEL.id === "vitrum") { LTW[0].dir = -1; LTW[0].pdir = 1; } // Vitrum's gantry: left or right only, left the way it takes if none is chosen; left always climbs, right always dives // Vitrum's gantry: left or right only, left lit to begin with (Initium's drill has none: its way is fixed)
     if (LEVEL.id === "initium") for (let m = 0, on = Math.random() < 0.5; m * 8 < L + SUPER_LEN + 60; on = !on) { // runs of bays: walled corridors 2 to 5, open 4 to 11
       const n = on ? 2 + Math.floor(Math.random() * 4) : 4 + Math.floor(Math.random() * 8);
       for (let i = 0; i < n; i++, m++) VIT_GLAZE[m] = on && !LTW.some(t => m * 8 + 8 > t.sw - 60 && m * 8 < t.tw1 + 60); }
@@ -2252,10 +2252,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       d.towers = []; const hh = i => hash(k * 97 + i * 13 + 5), yr = [-40, -20, 0, 20, 40].map(o => yawRateAt(s + o));
       // (about one tower in 12 m along the track, one side or the other; a house block in 5; their sizes and heights mixed)
       if (hh(1) < 0.17) { const side = hh(2) < 0.5 ? -1 : 1, w = 6 + hh(3) * 8, dp = 6 + hh(4) * 8;
-        if (!yr.some(r => r * side < -0.002)) d.towers.push({ u: side * (20 + w / 2 + hh(5) * 22), top: hh(6) < 0.2 ? 4 + hh(7) * 26 : -22 + hh(7) * 20, sx: w, sz: dp, sy: 200, ry: (hh(8) - 0.5) * 0.5 }); } // (none on a bend's inner side, where it would stand over the track further round)
+        if (!yr.some(r => r * side < -0.002)) d.towers.push({ u: side * (20 + w * 0.65 + hh(5) * 22), top: hh(6) < 0.2 ? 4 + hh(7) * 26 : -22 + hh(7) * 20, sx: w, sz: dp, sy: 200, ry: (hh(8) - 0.5) * 0.5 }); } // (none on a bend's inner side, where it would stand over the track further round)
       // the house blocks: close in, thick; further out fewer and bigger, out to 170 m either side
-      for (const j of [0, 1, 2, 3]) { const f = hh(15 + j), u0 = 6 + f * f * 165; if (hh(9 + j) > 0.55 - u0 / 400) continue;
-        const w = (7 + hh(12 + j) * 9) * (1 + u0 / 90), side = hh(27 + j) < 0.5 ? -1 : 1; d.towers.push({ u: side * (u0 + w / 2), top: -50 + hh(18 + j) * 30, sx: w, sz: w * (0.7 + hh(21 + j) * 0.6), sy: 150, ry: (hh(24 + j) - 0.5) * 0.5 }); }
+      for (const j of [0, 1, 2, 3]) { const f = hh(15 + j), u0 = 13 + f * f * 160; // (all clear of the track's line by 13 m and more: the track rises and falls with the karma, the city stays put) if (hh(9 + j) > 0.55 - u0 / 400) continue;
+        const w = (7 + hh(12 + j) * 9) * (1 + u0 / 90), side = hh(27 + j) < 0.5 ? -1 : 1; d.towers.push({ u: side * (u0 + w * 0.65), top: -50 + hh(18 + j) * 30, sx: w, sz: w * (0.7 + hh(21 + j) * 0.6), sy: 150, ry: (hh(24 + j) - 0.5) * 0.5 }); }
       for (const t of d.towers) t.tint = hash(t.u * 7.1 + t.top * 3.3 + k); // each its own shade, white to pale blue: all one white, their roofs had run together into a plain
     }
     const nb = LEVEL.id === "initium" || STYLE.mirror || (twM && (twM.kind === "spiral" || !STYLE.bridge)) ? 0 : // (off the bridges, none over a manoeuvre at all: there they are not kept clear of each other)
@@ -2448,9 +2448,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (dec.towers) { // upright and still whatever the track does: from the line it winds round (on the drill the rails circle it, and the towers had swung with them, through the deck), across the track's heading
         frameAt(s); const r = twistR(s), y = yawAt(s); tmpV.set(Math.cos(y), 0, -Math.sin(y)); tmpV2.set(0, 1, 0); _X.crossVectors(tmpV, tmpV2);
         const bx = _P.x + _U.x * r, by = _P.y + _U.y * r - r, bz = _P.z + _U.z * r;
-        for (const b of dec.towers) { M.makeBasis(tmpV, tmpV2, _X).setPosition(bx + tmpV.x * b.u, by + b.top - b.sy / 2, bz + tmpV.z * b.u);
+        for (const b of dec.towers) { if (b.W) { I.tower.setColorAt(n.tower, TOWER_TINT.setRGB(lerp(0.66, 1, b.tint), lerp(0.76, 1, b.tint), 1)); I.tower.setMatrixAt(n.tower++, b.W); continue; } // set once, where first seen, and still after: tied to the track, they had leapt with it as the karma swung
+          M.makeBasis(tmpV, tmpV2, _X).setPosition(bx + tmpV.x * b.u, by + b.top - b.sy / 2, bz + tmpV.z * b.u);
           I.tower.setColorAt(n.tower, TOWER_TINT.setRGB(lerp(0.66, 1, b.tint), lerp(0.76, 1, b.tint), 1));
-          I.tower.setMatrixAt(n.tower++, M.multiply(M2.makeRotationY(b.ry)).scale(SV.set(b.sx, b.sy, b.sz))); } }
+          M.multiply(M2.makeRotationY(b.ry)).scale(SV.set(b.sx, b.sy, b.sz)); b.W = M.clone(); I.tower.setMatrixAt(n.tower++, M); } }
       if (grow > 0) for (const b of dec.blocks) {
         placeM(M, s + (b.ds || 0), b.u, b.v);
         if (b.q) M.multiply(M2.makeRotationFromQuaternion(b.q)).multiply(M2.makeRotationY(b.sway !== undefined ? Math.sin(time * 0.35 + b.sway) * 0.2 : time * b.spin)); // a crystal turns about its own length; a ruby only sways
@@ -5231,7 +5232,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function hitSwitch(sw, t) {
     if (sw.locked) return false; // the way is chosen once: a hit on any target, the lit one too, settles it and folds them all away
-    const m = sw.m; if (m.late) { if (m.ft < 0) { m.dir = t.x; if (t.y) m.pdir = t.y; m.ft = 0; } } else if (!swChosen(sw, t)) { m.dirFrom = m.dirNow; m.pdirFrom = m.pdirNow; m.mt = 0; m.dir = t.x; if (t.y) m.pdir = t.y; } // (the swing over starts from where the track is now)
+    const m = sw.m; if (m.late) { if (m.ft < 0) { m.dir = t.x; if (t.y) m.pdir = t.y; else if (LEVEL.id === "vitrum") m.pdir = -t.x; m.ft = 0; } } else if (!swChosen(sw, t)) { m.dirFrom = m.dirNow; m.pdirFrom = m.pdirNow; m.mt = 0; m.dir = t.x; if (t.y) m.pdir = t.y; } // (the swing over starts from where the track is now)
     sw.locked = true; paintSwitch(sw);
     Sound.tone(520, 0.18, 0.1, "triangle", 0, 900); Sound.tone(260, 0.5, 0.08, "sine", 0, 60); addScore(10);
     return true;

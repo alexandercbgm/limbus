@@ -713,7 +713,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.342</div>
+      <div class="credit version">v1.0.343</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -895,7 +895,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.342`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.343`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2619,14 +2619,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   const cart = new THREE.Group(); camera.add(cart);
   { // the cart: a railway flat car in the cannons' style: a dark deck, square at the front, over a hull in the level's colour on
-    // two bogies; low grab bars along its sides and across its front (a tube bent down at each end to a round foot); a lit
-    // line round the deck's edge; and fixed to its front a locomotive's pilot, its top a level grating in a V out ahead
-    // (the part seen from the seat), slats from that running steeply down and forward to the rails
+    // two bogies; a lit line round the deck's edge; no rails, no pilot
     const DY = -1.2, X = 0.825, ZB = 0.55, ZF = -2.6; // the deck's top, half width, back, front
     const plateMat = darkMat;
     const V = (x, y, z) => new THREE.Vector3(x, y, z);
     const bar = (a, b, r, mat) => { const d = b.clone().sub(a), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 10), mat); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); cart.add(m); return m; };
-    const slat = (a, b, w, t, mat) => { const d = b.clone().sub(a), m = new THREE.Mesh(new THREE.BoxGeometry(w, d.length(), t), mat); m.position.copy(a).add(b).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); cart.add(m); return m; };
     const plan = k => { const s = new THREE.Shape(); s.moveTo(-X * k, -ZB); s.lineTo(X * k, -ZB); s.lineTo(X * k, -(ZF + 0.08 * (1 - k))); s.lineTo(-X * k, -(ZF + 0.08 * (1 - k))); s.closePath(); return s; }; // (shape y is -z)
     const deck = new THREE.Mesh(new THREE.ExtrudeGeometry(plan(1), { depth: 0.07, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2 }).rotateX(-Math.PI / 2), plateMat);
     deck.position.y = DY - 0.07; cart.add(deck);
@@ -2651,23 +2648,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const fr = new THREE.Mesh(new THREE.ExtrudeGeometry(rrect(0.72, 0.09, 0.035), { depth: 0.04, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2 }).rotateY(Math.PI / 2), shellMat); fr.position.set(x + sd * 0.06 - 0.02, DY - 0.4, zc); cart.add(fr);
       const fl = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.5), accentMat); fl.position.set(x + sd * 0.09, DY - 0.4, zc); cart.add(fl); // a lit line along it
     }
-    // the grab bars: a tube up from a round foot, bent over, along, bent down to a foot; low, so they do not stand in the view
-    const GH = 0.2, GR = 0.07, GT = 0.027;
-    const grab = (p1, p2) => { const d = p2.clone().sub(p1).normalize(), up = V(0, 1, 0), path = new THREE.CurvePath();
-      const a0 = p1.clone(), a1 = p1.clone().addScaledVector(up, GH - GR), a2 = p1.clone().addScaledVector(up, GH), a3 = a2.clone().addScaledVector(d, GR);
-      const b3 = p2.clone().addScaledVector(up, GH).addScaledVector(d, -GR), b2 = p2.clone().addScaledVector(up, GH), b1 = p2.clone().addScaledVector(up, GH - GR), b0 = p2.clone();
-      path.add(new THREE.LineCurve3(a0, a1)); path.add(new THREE.QuadraticBezierCurve3(a1, a2, a3)); path.add(new THREE.LineCurve3(a3, b3)); path.add(new THREE.QuadraticBezierCurve3(b3, b2, b1)); path.add(new THREE.LineCurve3(b1, b0));
-      cart.add(new THREE.Mesh(new THREE.TubeGeometry(path, 64, GT, 10, false), shellMat));
-      for (const q of [p1, p2]) { const ft = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.06, 0.016, 20), shellMat); ft.position.copy(q).setY(DY + 0.007); cart.add(ft); } };
-    const GI = 0.13; // in from the edge
-    for (const sd of [-1, 1]) grab(V(sd * (X - GI), DY, ZB - 0.3), V(sd * (X - GI), DY, ZF + 0.24));
-    grab(V(-(X - 0.24), DY, ZF + GI), V(X - 0.24, DY, ZF + GI)); // (its ends near the side bars' front ends)
-    // the pilot, fixed to the front: a level grating in a V out ahead, its front edge lit, slats down from it to the rails
-    const PT = DY - 0.03, PB = -1.7, PX = X - 0.04, GO = 0.62;
-    const tv = x => V(x, PT, ZF - 0.04 - GO * (1 - Math.abs(x) / PX)), bv = x => V(x, PB, ZF - 0.04 - GO * (1 - Math.abs(x) / PX) - 0.5);
-    for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(V(x, PT, ZF + 0.03), tv(x), 0.035, 0.03, plateMat); // its top a grating: bars from under the deck's front out to its edge
-    for (let x = -PX + 0.06; x <= PX - 0.05; x += 0.12) slat(tv(x), bv(x), 0.04, 0.06, shellMat); // the slats
-    for (const sd of [-1, 1]) { bar(tv(sd * PX), tv(0), GT, shellMat); bar(bv(sd * PX), bv(0), GT, shellMat); bar(tv(sd * PX), bv(sd * PX), GT, shellMat); } // (as thick as the grab bars) // its frame all in the slats' colour, no dark ridge
+    // the deck's edge lit all round, on its top at the very edge, in the cannon's rings' colour, changing as they do: thicker along the
+    // sides, seen glancing, than across the front, seen square on
+    { const y = DY + 0.026, e = X - 0.012, f = ZF + 0.012, b = ZB - 0.012;
+      litLine([V(-e, y, b), V(-e, y, f), V(e, y, f), V(e, y, b)], 0.02); litLine([V(-e, y, b), V(e, y, b)], 0.012);
+      for (const x of [-e, e]) { const j = new THREE.Mesh(new THREE.SphereGeometry(0.02, 12, 8), accentMat); j.position.set(x, y, b); cart.add(j); } }
   }
   const howitzerMat = new THREE.MeshStandardMaterial({ color: 0x2e2824, roughness: 0.5, metalness: 0.85, side: THREE.DoubleSide });
   const FER_UP = 0.245, FER_BACK = 0.065; // Ferrum's gun stands this far above and ahead of its pivot

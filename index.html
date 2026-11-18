@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.410</div>
+      <div class="credit version">v1.0.411</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -918,7 +918,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.410`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.411`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6456,7 +6456,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       turns: [[90, 50, 40], [200, 60, -60], [320, 50, 50], [430, 70, -80], [560, 50, 45], [660, 50, -45], [760, 50, 30]],
       desc: "Тупиковая ветка от Initium. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
       feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
-      req: { after: "initium", fare: 15 }, map: { x: 275, y: 440, label: "t" } }, // the first branch: Initium opens it
+      req: { after: "initium", fare: 15 }, map: { x: 180, y: 440, label: "t" } }, // the first branch: Initium opens it
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "glass_halls_in_blue", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "quartz", glassWalls: true, bare: true, floor: "plain", floorW: 2.6 }, crystalMul: 1.1, spaceMul: 0.93, // (groups a little closer: its gantry and its catapults take room, and it had as many before its manoeuvres)
       // no heaps of glass (a wall, pairs, threes, the side panes, the scatter of small ones, the shutters): their room goes to
@@ -6476,7 +6476,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
       desc: "Тупиковый склад за Сокровищницей (Thesaurus). Здесь за кристаллы покупают улучшения для вагонетки. Пушки здесь не продаются: их дарят станции.",
       feats: ["Улучшения: запас шаров, второе дыхание, щедрость кристаллов", "У каждого три уровня; купленное остаётся навсегда", "Пушки дарят станции: Initium, Labyrinthus, Nox, Rubinus и Carcer"],
-      req: { after: "thesaurus", toll: 15 }, map: { x: 475, y: 440, label: "t" } },
+      req: { after: "thesaurus", toll: 15 }, map: { x: 385, y: 440, label: "t" } },
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.2,
       forks: [330, 720, 1110],
@@ -6637,8 +6637,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     { kind: "line", to: "rubinus", pts: [[270, 320], [500, 320], [730, 320]] }, // a second line: Vitrum, Rubinus, Speculum
     { kind: "tao", to: "abyssus", pts: [[590, 190], [770, 190], [910, 320]] }, // Linea Tao: Tao, Nox, Lux
     // a dead-end branch: a short drop, a gentle slope, a short level run into its station (a long drop leaves room for the dead end's name over it; the slope is the same on every branch)
-    { kind: "branch", to: "thesaurus", pts: [[90, 320], [90, 418], [116, 440], [275, 440]] }, // a long level run: room for its long name
-    { kind: "branch", to: "armamentarium", pts: [[275, 440], [475, 440]] }, // the depot lies on from the Treasury
+    { kind: "branch", to: "thesaurus", pts: [[90, 320], [90, 418], [116, 440], [180, 440]] }, // midway under Initium and Vitrum
+    { kind: "branch", to: "armamentarium", pts: [[180, 440], [385, 440]] }, // the depot lies on from the Treasury, midway under Vitrum and Rubinus
     { kind: "branch", to: "carcer", pts: [[730, 320], [730, 418], [756, 440], [825, 440]] },
     { kind: "gift", to: "emptio", pts: [[90, 320], [230, 190]] }, // Emptio: a gold branch up from Initium, as long as the arc and parallel to it
   ];
@@ -8210,7 +8210,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const ARC = ["vitrum", "labyrinthus", "tao"], ARC_HUBS = ["vitrum", "tao"];
   const LINE_TAO = "#d0642a"; // Linea Tao, Tao through Nox to Lux
   const LINE_GOLD = "#c9a02e"; // Emptio, the crystal shop
-  const HUB_RING = { vitrum: "#2f9a72", tao: LINE_TAO, initium: "#a68bd6", rubinus: "#a68bd6", speculum: "#a68bd6" }; // where a dead-end branch leaves, the ring is the branches' lilac
+  const HUB_RING = { vitrum: "#2f9a72", tao: LINE_TAO, initium: "#a68bd6", speculum: "#a68bd6" }; // where a dead-end branch leaves, the ring is the branches' lilac
   const LINE_MAIN = "#1d6f8f", LINE_ARC = "#2f9a72", LINE_TR = "#b8892b", LINE_BR = "#a68bd6", INK = "#10242e", MUTED = "#8a9ba3";
   // one glyph per station, drawn in a 16-unit box around the station center
   const GLYPHS = {

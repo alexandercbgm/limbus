@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.412</div>
+      <div class="credit version">v1.0.413</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -918,7 +918,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.412`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.413`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -990,23 +990,25 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const loopEnd = l => l.s0 + l.len + (l.dl || 0);
   const loopAt = s => { for (const l of LOOPS) if (s > l.s0 - 1 && s < loopEnd(l) + 1) return l; return null; };
   const loopPitch = s => { let p = 0; for (const l of LOOPS) { const x = (s - l.s0) / l.len;
-    if (l.kind === "h") { const a = l.s0 + (l.c0 || 0), L = l.len * (l.cf || 1), x = (s - a) / L; if (x > 0 && x < 1) p += Math.asin(clamp(l.dh / L * 2 * Math.sin(Math.PI * x) ** 2, -0.9, 0.9)); continue; } // (its climb eased in and out: its slope grows from nothing and dies away to nothing, so no bump and no kink where it meets the loop)
+    if (l.kind === "s") { if (s > l.s0 && s < l.s0 + l.len) p += Math.asin(clamp(snakeSlope(l, s), -0.95, 0.95)); continue; }
+    if (l.kind === "h" || l.kind === "r") { const a = l.s0 + (l.c0 || 0), L = l.len * (l.cf || 1), x = (s - a) / L; if (x > 0 && x < 1) p += Math.asin(clamp(l.dh / L * 2 * Math.sin(Math.PI * x) ** 2, -0.9, 0.9)); continue; } // (its climb eased in and out: its slope grows from nothing and dies away to nothing, so no bump and no kink where it meets the loop)
     if (x <= 0) continue;
     else p += TAU * (l.r ? plat(x, l.r) : smooth5(Math.min(1, x))); } return p; };
-  const loopShift = s => { let d = 0; for (const l of LOOPS) { const x = (s - l.s0) / l.len; if (x > 0 && l.kind !== "h") d += l.side * l.w * smooth5(Math.min(1, x)); } return d; };
+  const loopShift = s => { let d = 0; for (const l of LOOPS) { const x = (s - l.s0) / l.len; if (x > 0 && l.kind === "v") d += l.side * l.w * smooth5(Math.min(1, x)); } return d; };
   const LO0 = { x: 0, z: 0 };
   function loopOff(s, o) { // a loop's sideways edging so far, in the world: across the heading the loop itself has
     o.x = 0; o.z = 0;
-    for (const l of LOOPS) { if (l.kind === "h" || s <= l.s0) continue; const d = l.side * l.w * smooth5(Math.min(1, (s - l.s0) / l.len)), y = yawAt(Math.min(s, l.s0 + l.len)); o.x += Math.cos(y) * d; o.z -= Math.sin(y) * d; }
+    for (const l of LOOPS) { if (l.kind !== "v" || s <= l.s0) continue; const d = l.side * l.w * smooth5(Math.min(1, (s - l.s0) / l.len)), y = yawAt(Math.min(s, l.s0 + l.len)); o.x += Math.cos(y) * d; o.z -= Math.sin(y) * d; }
     return o;
   }
   const loopYaw = s => { let y = 0; for (const l of LOOPS) if (l.kind === "h" && s > l.s0) y += l.side * (l.th || TAU) * plat((s - l.s0) / l.len, l.r); return y; };
   function planLux() {
     LUXH = []; LTW = []; VIT_GLAZE = []; if (LEVEL.id === "lux") TURNS = []; // (Lux makes its own bends; every other level keeps its own)
-    const L = MAIN_LEN, add = (kind, c) => {
-      const len = kind === "drill" ? 230 : kind === "screw" ? 190 : 280, tw0 = Math.round(c - len / 2);
+    const L = MAIN_LEN, add = (kind, c, o = {}) => {
+      const len = o.len || (kind === "drill" ? 230 : kind === "screw" ? 190 : 280), tw0 = Math.round(c - len / 2);
       const m = { kind, tw0, tw1: tw0 + len, len, sw: tw0 - 32, dir: Math.random() < 0.5 ? -1 : 1, pdir: Math.random() < 0.5 ? -1 : 1 };
       if (kind === "drill") Object.assign(m, { turns: 4, r: 8.5 }); else if (kind === "screw") Object.assign(m, { turns: 2, r: 11 }); else Object.assign(m, { turns: 2, pitch: 0.13 });
+      Object.assign(m, o.p);
       m.dirNow = m.dirFrom = m.dir; m.pdirNow = m.pdirFrom = m.pdir; m.mt = 99; LTW.push(m);
     };
     if (LEVEL.id === "vitrum") add("spiral", L / 3);
@@ -1030,6 +1032,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const n = on ? 2 + Math.floor(Math.random() * 5) : 3 + Math.floor(Math.random() * 8);
       for (let i = 0; i < n; i++, m++) VIT_GLAZE[m] = on && !LTW.some(t => m * 8 + 8 > t.sw - 40 && m * 8 < t.tw1 + 40) && !LOOPS.some(l => m * 8 + 8 > l.s0 - 40 && m * 8 < loopEnd(l) + 40); }
     if (LEVEL.id === "lux") ["drill", "screw", "spiral"].sort(() => Math.random() - 0.5).forEach((kind, i) => add(kind, L * (0.26 + i * 0.27) + rand(-50, 50)));
+    if (LEVEL.coaster) { planCoaster(add); return; } // Thesaurus: a roller coaster all along, its shape set from the start
     // every manoeuvre a straight level road till the cart reaches its gantry (or where one would stand): formed then, before its
     // eyes, the way chosen, or else its own
     for (const m of LTW) { m.late = true; m.dirNow = m.pdirNow = 0; m.ft = -1; }
@@ -1041,6 +1044,54 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (!LTW.some(m => t + len > m.sw - 30 && t < m.tw1 + 25) && !LUXH.some(h => t + len > h.a - 25 && t < h.a + 10)) { TURNS.push({ s0: t, len, a: deg * Math.PI / 180 }); sg = -sg; }
       t += len + rand(40, 90); }
   }
+  // Thesaurus: the whole run a roller coaster, every ride its own: the spiral, the corkscrew and the drill (each turning either way),
+  // the snake (a plunge from the height, then three waves, each lower, down to the level road) and a pair of loops, in a new
+  // order each ride. The pair is one of: hung on each other as Vitrum's (the loop, then the ring climbing through it) or the same
+  // pair the other way about (the ring coming down through the loop, then the loop); two loops on the way up, on the way down, up
+  // into the first and down out of the second, or down into the first and up out of the second, the two of a size or not. Nothing
+  // reshapes: no gantries, no arrows. Its own bends none: the manoeuvres take the whole run
+  const COASTER_W = 16;
+  // drawn out longer than Lux's, the drill also a little wider, so the track bends no tighter than a 21 m radius on them: from the
+  // cart, a phone held upright, 30 m and more of the way ahead in sight all through them (Lux's showed 21 and 24)
+  const COASTER_TW = { drill: { len: 330, p: { r: 9 } }, screw: { len: 190 }, spiral: { len: 350 } }; // a loop edges this far sideways as it goes round: its way out clear of its way in, arches and all
+  function planCoaster(add) {
+    TURNS = []; const L = MAIN_LEN, LEAD = 70, TAIL = 60, seq = [];
+    const loopPair = () => {
+      const v = ["chain", "chainR", "up", "down", "updown", "downup"][Math.floor(Math.random() * 6)], m = Math.random() < 0.5 ? -1 : 1, out = [];
+      if (v === "chain") out.push({ kind: "v", s0: 0, side: m, len: 179.67, w: 29.625, r: 0.06 }, { kind: "h", s0: 189.93, side: m, th: TAU, len: 192, r: 0.082, dh: 25.2, c0: -7.86, cf: 0.91, bank: Math.PI / 2 });
+      else if (v === "chainR") out.push({ kind: "h", s0: 0, side: -m, th: TAU, len: 192, r: 0.082, dh: -25.2, c0: 25.14, cf: 0.91, bank: Math.PI / 2 }, { kind: "v", s0: 202.26, side: m, len: 179.67, w: 29.625, r: 0.06 }); // (Vitrum's pair run backwards: the same shape)
+      else { // two loops 160 or 185 m round (51 and 59 m across), each edging to either side; on ramps eased in and out, so no bump where they meet
+        const same = Math.random() < 0.5, LA = Math.random() < 0.5 ? 160 : 185, LB = same ? LA : 345 - LA, sa = Math.random() < 0.5 ? -1 : 1, sb = Math.random() < 0.5 ? sa : -sa;
+        let at = 0; const ramp = (dh, len) => { out.push({ kind: "r", s0: at, len, dh }); at += len + 2; }, loop = (len, side) => { out.push({ kind: "v", s0: at, side, len, w: COASTER_W, r: 0.06 }); at += len + 2; };
+        // (between two loops at least 80 m: each loop's circle reaches half its width back over the way in, and forward past where it began)
+        if (v === "up" || v === "down") { const k = v === "up" ? 1 : -1; ramp(12 * k, 70); loop(LA, sa); ramp(16 * k, 84); loop(LB, sb); }
+        else { const k = v === "updown" ? 1 : -1; ramp(14 * k, 72); loop(LA, sa); at += 82; loop(LB, sb); ramp(-14 * k, 72); }
+      }
+      return { kind: "loops", parts: out, len: Math.max(...out.map(l => l.s0 + l.len + Math.max(0, (l.c0 || 0) + l.len * (l.cf || 1) - l.len))) };
+    };
+    const SNAKE = [["c", 0, 85, -48], ["b", 93, 100, 26], ["b", 199, 80, 14], ["b", 285, 60, 6]]; // [shape, from, length, height]: a plunge, then three humps
+    for (const kind of ["spiral", "screw", "drill", "snake", "loops"].sort(() => Math.random() - 0.5))
+      seq.push(kind === "loops" ? loopPair() : kind === "snake" ? { kind, len: 345 } : { kind, ...COASTER_TW[kind] });
+    const gap = (L - LEAD - TAIL - seq.reduce((a, q) => a + q.len, 0)) / (seq.length - 1);
+    let at = LEAD;
+    for (const q of seq) {
+      if (q.kind === "loops") for (const l of q.parts) LOOPS.push(Object.assign(l, { s0: at + l.s0 }));
+      else if (q.kind === "snake") LOOPS.push({ kind: "s", s0: at, len: q.len, parts: SNAKE });
+      else add(q.kind, at + q.len / 2, q);
+      at += q.len + gap;
+    }
+    for (const m of LTW) { m.mt = 99; m.dirNow = m.dir; m.pdirNow = m.pdir; } // whole from the start
+  }
+  // the snake's slope at s: its height's rate along the track (sin of its pitch), and its height so far
+  function snakeSlope(l, s) { let d = 0; for (const [k, a, n, h] of l.parts) { const x = (s - l.s0 - a) / n; if (x > 0 && x < 1) d += k === "c" ? h * Math.PI / (2 * n) * Math.sin(Math.PI * x) : h * Math.PI / n * Math.sin(TAU * x); } return d; }
+  function snakeH(l, s) { let y = 0; for (const [k, a, n, h] of l.parts) { const x = clamp((s - l.s0 - a) / n, 0, 1); y += k === "c" ? h * (1 - Math.cos(Math.PI * x)) / 2 : h * Math.sin(Math.PI * x) ** 2; } return y; }
+  // the cart's speed over the snake, as a coaster's: what height it has lost turned to speed (gravity tamed), less what it loses to
+  // the rails from the foot of the plunge on, all of it by the end, so it leaves at the speed it came; up the humps it slows
+  const SNAKE_G = 3.65;
+  function snakeMul(s, v0) { for (const l of LOOPS) if (l.kind === "s" && s > l.s0 && s < l.s0 + l.len) {
+    const p = l.parts[0], drop = -p[3], foot = l.s0 + p[1] + p[2], loss = 2 * SNAKE_G * drop * clamp((s - foot) / (l.s0 + l.len - foot), 0, 1);
+    return Math.sqrt(Math.max(0.3, 1 + (-2 * SNAKE_G * snakeH(l, s) - loss) / (v0 * v0))); }
+    return 0; }
   // the spiral: how far round it has turned at s, and how steep it is there
   const spiralYaw = s => { let y = 0; for (const m of LTW) if (m.kind === "spiral" && s > m.tw0) y -= m.dirNow * /* (the track's yaw is positive to the left; dir +1 is the gantry's right) */ m.turns * TAU * spanPhase(Math.min(1, (s - m.tw0) / m.len)); return y; };
   const spiralPitch = s => { let p = 0; for (const m of LTW) if (m.kind === "spiral" && s > m.tw0 && s < m.tw1) { const x = (s - m.tw0) / m.len; p += m.pdirNow * m.pitch * smooth5(x / 0.15) * smooth5((1 - x) / 0.15); } return p; };
@@ -1639,7 +1690,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const div = skyUni.mode.value === 6 ? (PHONE ? Math.max(1.5, renderer.getPixelRatio()) : 1.5) : PHONE ? Math.max(2, renderer.getPixelRatio() * 1.5) : 2;
     const w = Math.max(2, Math.round(bufSize.x / div)), h = Math.max(2, Math.round(bufSize.y / div));
     if (skyRT.width !== w || skyRT.height !== h) skyRT.setSize(w, h);
-    FADE.res.value.copy(bufSize); const fadeOn = !STYLE.closed && !LEVEL.halls; FADE.a.value = fadeOn ? 108 : 1e6; FADE.fogSky.value = STYLE.bridge || STYLE.bare ? 1 : 0; FADE.b.value = fadeOn ? 146 : 1e6 + 1;
+    FADE.res.value.copy(bufSize); const fadeOn = !STYLE.closed && !LEVEL.halls; FADE.a.value = fadeOn ? 108 : 1e6; FADE.fogSky.value = STYLE.bridge || STYLE.bare || STYLE.air ? 1 : 0; FADE.b.value = fadeOn ? 146 : 1e6 + 1;
     skyUni.px.value = camera.fov * Math.PI / 180 / h; // the angle one of its pixels spans
     renderer.setRenderTarget(skyRT); renderer.render(skyScene, camera); renderer.setRenderTarget(null);
   }
@@ -1932,7 +1983,39 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   edgeLines(noxBlockMat, "noxBlock", "totalEmissiveRadiance = noxLine * line;");
   const sigilMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8 });
   const stationMat = new THREE.MeshStandardMaterial({ map: floorTex.map, roughness: 0.6, metalness: 0.1 });
-  const coinMat = new THREE.MeshStandardMaterial({ roughness: 0.35, metalness: 0.3 });
+  // Thesaurus's coins: polished gold, mirroring a warm sky of its own (a small painted one, blurred for the gold's sheen: there is no
+  // world round them to mirror), its colour going from gold in the light to red copper in the dark
+  const coinMat = new THREE.MeshStandardMaterial({ roughness: 0.24, metalness: 0.85, envMapIntensity: 1.2 });
+  { const c = document.createElement("canvas"); c.width = 256; c.height = 128; const g = c.getContext("2d"), gr = g.createLinearGradient(0, 0, 0, 128);
+    [[0, "#fff6e0"], [0.35, "#ffe3a0"], [0.5, "#c88a3a"], [0.62, "#5a3410"], [1, "#1c0e04"]].forEach(([o, col]) => gr.addColorStop(o, col)); g.fillStyle = gr; g.fillRect(0, 0, 256, 128);
+    for (const [x, y, r, a] of [[60, 30, 26, 0.9], [170, 22, 14, 0.7], [210, 48, 30, 0.5], [110, 55, 18, 0.4]]) { const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, `rgba(255,255,255,${a})`); rg.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = rg; g.fillRect(0, 0, 256, 128); }
+    const t = new THREE.CanvasTexture(c); t.mapping = THREE.EquirectangularReflectionMapping; t.encoding = THREE.sRGBEncoding;
+    const pm = new THREE.PMREMGenerator(renderer); coinMat.envMap = pm.fromEquirectangular(t).texture; pm.dispose(); t.dispose(); }
+  // and its hoops over the rails, of the same gold
+  const goldHoopMat = new THREE.MeshStandardMaterial({ roughness: 0.22, metalness: 0.9, envMap: coinMat.envMap, envMapIntensity: 1.3 });
+  // a coin, 1 m across its face (scaled as it is set down): a raised rim round a flat field, a reeded edge, and on both faces the
+  // game's crystal standing out in relief, its two long facets either side of a ridge, as on the logo; it turns about its upright
+  // (its faces to ±z). near: 48 ribs round the edge; far (lo): no ribs, fewer sides
+  function coinGeo(lo) {
+    const seg = lo ? 28 : 96, F = 0.055, prof = [[0, 0.044], [0.45, 0.047], [0.8, F], [0.83, 0.06], [0.86, 0.092], [0.89, 0.1], [0.93, 0.1], [0.965, 0.09], [0.99, 0.075], [1, 0.06]];
+    const pts = [...prof.map(([r, y]) => [r, -y]), ...prof.slice().reverse().map(([r, y]) => [r, y])].map(([r, y]) => new THREE.Vector2(r, y));
+    const lathe = new THREE.LatheGeometry(pts, seg), pos = lathe.attributes.position;
+    if (!lo) for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), r = Math.hypot(x, z), col = Math.floor(i / pts.length);
+      if (r > 0.995 && Math.abs(y) < 0.061 && col % 2) { pos.setX(i, x * 0.972); pos.setZ(i, z * 0.972); } } // every other column of the edge in: the reeding
+    lathe.computeVertexNormals(); const nr = lathe.attributes.normal; // (where the sweep closes, one normal for both copies of each point: no seam)
+    for (let i = 0; i < pts.length; i++) { const a = i, b = seg * pts.length + i, x = nr.getX(a) + nr.getX(b), y = nr.getY(a) + nr.getY(b), z = nr.getZ(a) + nr.getZ(b), l = Math.hypot(x, y, z) || 1; nr.setXYZ(a, x / l, y / l, z / l); nr.setXYZ(b, x / l, y / l, z / l); }
+    lathe.rotateX(Math.PI / 2); // faces to ±z
+    const out = lathe.toNonIndexed(), P = [...out.attributes.position.array], N = [...out.attributes.normal.array];
+    // the crystal: tips and shoulders at the field's level, the ridge (a little right of the middle) standing 0.05 proud of it
+    const H = 0.65, X = 0.221, ST = 0.346, SB = -0.379, RX = 0.028, Z0 = 0.05, ZR = 0.1;
+    const T = [0, H, Z0], B = [0, -H, Z0], LT = [-X, ST, Z0], RT_ = [X, ST, Z0], LB = [-X, SB, Z0], RB_ = [X, SB, Z0], KT = [RX, ST, ZR], KB = [RX, SB, ZR];
+    const faces = [[LT, LB, KB], [LT, KB, KT], [KT, KB, RB_], [KT, RB_, RT_], [T, LT, KT], [T, KT, RT_], [B, KB, LB], [B, RB_, KB]];
+    const tri = (a, b, c, back) => { const v = back ? [a, c, b].map(q => [q[0], q[1], -q[2]]) : [a, b, c];
+      const e1 = new THREE.Vector3(v[1][0] - v[0][0], v[1][1] - v[0][1], v[1][2] - v[0][2]), e2 = new THREE.Vector3(v[2][0] - v[0][0], v[2][1] - v[0][1], v[2][2] - v[0][2]), n = e1.cross(e2).normalize();
+      for (const q of v) { P.push(...q); N.push(n.x, n.y, n.z); } };
+    for (const [a, b, c] of faces) { tri(a, b, c, false); tri(a, b, c, true); }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(N, 3)); return g;
+  }
   const monoMat = new THREE.MeshStandardMaterial({ map: glassMat.map, roughness: 0.06, metalness: 0.15, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false });
   const chainMat = new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.8 });
   const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false });
@@ -1997,7 +2080,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     luxGold.value = lerp(1, 2.6, luxU); luxTime.value = performance.now() / 1000; // the edges lit from within, brighter as they turn blue
     sigilMat.color.copy(cur.accent).lerp(WHITE, 0.55);
     stationMat.color.copy(cur.surf).lerp(cur.frame, 0.12);
-    coinMat.color.copy(cur.accent).lerp(WHITE, 0.15); coinMat.emissive.copy(cur.accent).multiplyScalar(0.22 + cur.frameEI * 0.2);
+    { const dk = clamp((1 - alt) / 2, 0, 1); coinMat.color.setRGB(lerp(1, 0.95, dk), lerp(0.78, 0.5, dk), lerp(0.36, 0.26, dk)); coinMat.emissive.copy(cur.accent).multiplyScalar(0.05 + dk * 0.22);
+      goldHoopMat.color.copy(coinMat.color); goldHoopMat.emissive.copy(cur.accent).multiplyScalar(0.08 + dk * 0.5); } // (in the dark the hoops glow, a line of embers along the way)
     monoMat.color.copy(cur.glass); monoMat.emissive.copy(cur.glass).multiplyScalar(0.25); monoMat.opacity = Math.min(0.72, cur.glassO + 0.18);
     chainMat.color.copy(cur.rail).lerp(WHITE, 0.15); chainMat.emissive.copy(cur.frameE).multiplyScalar(cur.frameEI * 0.3);
     beamMat.color.setHex(0xeef2f6); // Lumen's needle: mercury white
@@ -2166,8 +2250,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     quartz: inst(new THREE.LatheGeometry([[0, -1], [0.32, -0.62], [0.32, 0.62], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 220),
     // and a cluster's: one point, the flat foot at the origin (2 long before it's scaled)
     quartz1: inst(new THREE.LatheGeometry([[0, 0], [0.32, 0], [0.32, 1.42], [0, 2]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 410),
-    ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus, squeezed to fit (RING_SX, RING_SY)
-    coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),
+    ring: inst(new THREE.TorusGeometry(4.75, 0.17, 12, 72), frameMat, 30), // round arches of Thesaurus, squeezed to fit (RING_SX, RING_SY)
+    coin: inst(coinGeo(false), coinMat, 80), coinLo: inst(coinGeo(true), coinMat, 220), // near ones reeded, far ones plain
     block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 1200),
     tower: (() => { const m = inst(new THREE.BoxGeometry(1, 1, 1), towerMat, 4300); m.setColorAt(0, new THREE.Color(1, 1, 1)); return m; })(), // Initium's city: the tops of towers beside the track, the blocks of houses far below
     drop: inst(new THREE.SphereGeometry(1, 20, 12), dropMat, 120), // Speculum's mercury drops
@@ -2277,11 +2361,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const wallP = STYLE.closed || STYLE.skylight ? 2 : lerp(STYLE.glassWalls ? 0.5 : 0.3, 0.95, z), ceilP = STYLE.closed ? 2 : STYLE.skylight ? -1 : lerp(0.05, STYLE.glassWalls ? 0.5 : 0.75, z); // skylight: walls all along, open above
     d = { wl: !station && hash(seg * 3 + 1) < wallP, wr: !station && hash(seg * 3 + 2) < wallP, ceil: !station && hash(seg * 7 + 5) < ceilP,
       arch: !station && k % 4 === 0, pyr: null, blocks: [] };
+    if (STYLE.air) d.wl = d.wr = d.ceil = false; // Thesaurus: out in the open, only its hoops over the rails
     if (STYLE.bridge) { const hl = !station && !!luxHallAt(s); d.wl = d.wr = d.ceil = hl; if (hl) d.hall = true; } // Abyssus: a bare bridge over the void (Lux's halls glazed and roofed)
     const spn = !station && spanAt(s);
     if (spn) { d.wl = d.wr = d.ceil = false; d.span = spn; } // Speculum's bridges
     if (SPANS.some(x => Math.abs(s - x.a) < 5 || Math.abs(s - x.b) < 5)) d.arch = false; // no frame through a bridge's gate
-    if (LTW.some(t => Math.abs(s - t.sw) < 5)) d.arch = false; // nor through a manoeuvre's gantry
+    if (!LEVEL.coaster && LTW.some(t => Math.abs(s - t.sw) < 5)) d.arch = false; // nor through a manoeuvre's gantry
     if (bays) { // a bay that starts where its frame was taken away (by a gate, a target, glass that turns) carries on as the one before it,
       // to the next frame there is; a wall or roof cleared away here for something (set false) stays away
       // a wall or roof cleared away for something goes for its whole bay, frame to frame (cleared only beside the thing, the glass
@@ -2413,7 +2498,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const w = (7 + hh(12 + j) * 9) * (1 + u0 / 90), side = hh(27 + j) < 0.5 ? -1 : 1; d.towers.push({ u: side * (u0 + w * 0.65), top: -50 + hh(18 + j) * 30, sx: w, sz: w * (0.7 + hh(21 + j) * 0.6), sy: 150, ry: (hh(24 + j) - 0.5) * 0.5 }); }
       for (const t of d.towers) t.tint = hash(t.u * 7.1 + t.top * 3.3 + k); // each its own shade, white to pale blue: all one white, their roofs had run together into a plain
     }
-    const nb = LEVEL.id === "initium" || STYLE.mirror ? 0 : // (over manoeuvres and loops as anywhere: one in the way of another turn of the track, or of a block off another stretch, fades out there)
+    const nb = LEVEL.id === "initium" || STYLE.mirror ? 0 : STYLE.blocks === "coin" ? (hash(k * 5 + 3) < 0.36 ? 1 : 0) : // (coins fewer: each worth a look) // (over manoeuvres and loops as anywhere: one in the way of another turn of the track, or of a block off another stretch, fades out there)
       (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
     for (let i = 0; i < nb; i++) {
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
@@ -2423,6 +2508,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         sx: 0.8 + h2 * 4, sy: tall ? 18 + h1 * 14 : 0.8 + h3 * 4, sz: 0.8 + h1 * 4,
         rx: h1 * TAU, ry: h2 * TAU, spin: tall ? 0 : (h3 - 0.5) * 0.4,
       };
+      if (STYLE.blocks === "coin") { bl.sx = 1.1 + h2 * 2.9; // a coin 1.2 to 4.4 m across; it turns about its upright, leant 12 to 40 degrees any way, once round in 5 to 9 s either way
+        const la = hash(k * 43 + i * 13) * TAU, lt = 0.21 + hash(k * 47 + i * 3) * 0.49; bl.sy = bl.sz = bl.sx;
+        bl.q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(la), 0, Math.sin(la)), lt); bl.spin = (h3 < 0.5 ? -1 : 1) * (0.7 + hash(k * 53 + i) * 0.55); }
       // over the drill and the corkscrew, which turn the track round a line over it: only where the track never comes, well outside its
       // circle round that line or well inside it, whichever way it turns
       if (twM && twM.r) { const d = Math.hypot(bl.u, bl.v - twM.r), rr = 0.5 * Math.hypot(bl.sx, Math.min(bl.sy, 6), bl.sz) + 3; if (Math.abs(d - twM.r) < rr || bl.sy > 6) continue; }
@@ -2656,7 +2744,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       // past the fog they'd only cost; over the abyss and in Vitrum's open sky they still show, against the stars. Near the
       // far end they grow out of nothing, so they don't pop up whole
-      const lim = STYLE.bridge || STYLE.bare ? sC + AHEAD - 4 : sC + cur.fogF + 6, grow = clamp((lim - s) / 24, 0, 1);
+      const lim = STYLE.bridge || STYLE.bare || STYLE.air ? sC + AHEAD - 4 : sC + cur.fogF + 6, grow = clamp((lim - s) / 24, 0, 1);
       if (dec.towers) { // upright and still whatever the track does: from the line it winds round (on the drill the rails circle it, and the towers had swung with them, through the deck), across the track's heading
         if (dec.loopY !== undefined) frameAt(dec.loopY); const gy = _P.y; // (on a loop's ends, the level of the track where the loop begins)
         frameAt(s); const r = twistR(s), y = yawAt(s); tmpV.set(Math.cos(y), 0, -Math.sin(y)); tmpV2.set(0, 1, 0); _X.crossVectors(tmpV, tmpV2);
@@ -2685,8 +2773,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (b.q) M.multiply(M2.makeRotationFromQuaternion(b.q)).multiply(M2.makeRotationY(b.sway !== undefined ? Math.sin(time * 0.35 + b.sway) * 0.2 : time * b.spin)); // a crystal turns about its own length; a ruby only sways
         else { EU.set(b.rx + time * b.spin, b.ry + time * b.spin * 0.7, 0); M.multiply(M2.makeRotationFromEuler(EU)); }
         const wob = b.wob !== undefined ? 1 + 0.07 * Math.sin(time * 2.2 + b.wob) : 1; // a drop of mercury trembles
-        M.scale(blockKey === "coin" ? SV.set(b.sx * 0.6, b.sx * 0.6, 1) : SV.set(b.sx * wob, b.sy / wob, b.sz * wob)).scale(SV.setScalar(grow * (b.sc !== undefined ? b.sc : smooth5(b.vis))));
-        const key = b.key || blockKey; I[key].setMatrixAt(n[key]++, M);
+        M.scale(blockKey === "coin" ? SV.setScalar(b.sx * 0.55) : SV.set(b.sx * wob, b.sy / wob, b.sz * wob)).scale(SV.setScalar(grow * (b.sc !== undefined ? b.sc : smooth5(b.vis))));
+        const key = b.key || (blockKey === "coin" && s - sC > 40 ? "coinLo" : blockKey); I[key].setMatrixAt(n[key]++, M); // (coins past 40 m: the plainer ones)
       }
     }
     if (SPANS.length) spanPiers();
@@ -3328,6 +3416,20 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (room - inner >= 0.8) { o.w = room - inner; o.u = Math.sign(o.u) * (inner + o.w / 2); }
     else o.u = Math.sign(o.u || 1) * Math.max(0, room - o.w / 2);
   }
+  // Thesaurus's glass: on a pane neither big nor tall the game's crystal engraved in its middle, frosted: its outline and the ridge
+  // and shoulders in lines, its left facets frosted lighter than its right, as the logo's are lit. Made once, 1 m high, scaled
+  const ENGRAVE = (() => {
+    const H = 0.5, X = 0.17, ST = 0.266, SB = -0.291, RX = 0.021, T = [0, H], B = [0, -H], LT = [-X, ST], RT = [X, ST], LB = [-X, SB], RB = [X, SB], KT = [RX, ST], KB = [RX, SB];
+    const v3 = q => new THREE.Vector3(q[0], q[1], 0), seg = [T, LT, LT, LB, LB, B, B, RB, RB, RT, RT, T, T, KT, KT, KB, KB, B, LT, RT, LB, RB];
+    const tris = list => new THREE.BufferGeometry().setFromPoints(list.flat().map(v3));
+    const mat = o => new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: o, depthWrite: false, side: THREE.DoubleSide });
+    return { lines: new THREE.BufferGeometry().setFromPoints(seg.map(v3)), light: tris([[T, LT, KT], [LT, LB, KB], [LT, KB, KT], [B, KB, LB]]), dark: tris([[T, KT, RT], [KT, KB, RB], [KT, RB, RT], [B, RB, KB]]),
+      lightMat: mat(0.24), darkMat: mat(0.1) };
+  })();
+  function engrave(g, o) {
+    const ch = Math.min(o.h * 0.62, o.w * 1.05), e = new THREE.Group(); e.scale.setScalar(ch); e.position.z = 0.004;
+    e.add(new THREE.LineSegments(ENGRAVE.lines, edgeMat), new THREE.Mesh(ENGRAVE.light, ENGRAVE.lightMat), new THREE.Mesh(ENGRAVE.dark, ENGRAVE.darkMat)); g.add(e);
+  }
   function addPane(o) {
     // no glass that stands clear of the floor (a hovering block, a pane gliding up and down) ever comes down into the rails: its lowest
     // edge, at the bottom of its glide, kept 0.6 m over them (only a full-height pane or one in a wall stands on the floor)
@@ -3354,6 +3456,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.add(new THREE.Mesh(geo, reinf ? reinfMat : glassMat));
     g.add(new THREE.LineSegments(eg, reinf ? reinfEdgeMat : edgeMat));
     if (reinf) { const inner = new THREE.LineSegments(eg, reinfEdgeMat); inner.scale.set(0.86, 0.86, 1); g.add(inner); }
+    if (LEVEL.id === "thesaurus" && !reinf && !o.thick && !o.cross && o.rot === undefined && o.w < 3.4 && o.h < 3.2 && o.h < o.w * 1.6) engrave(g, o); // (none on big, tall or full-height glass)
     scene.add(g);
     const pn = Object.assign({ bu: o.u, bv: o.v, hp: 1, group: g, geo, eg, alive: true, C: new THREE.Vector3(), R: new THREE.Vector3(), U: new THREE.Vector3(), T: new THREE.Vector3(), q: new THREE.Quaternion(), cracks: [] }, o, { maxhp: o.hp || 1, mat: reinf ? reinfMat : glassMat }); panes.push(pn);
     mirrorReg(g, () => pn.s); // Speculum: reflected in the mirrors
@@ -6421,22 +6524,22 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   ];
 
   // Thesaurus: warm gold in the light, bronze and ember in the dark
-  const PAL_AURUM = [
-    { sky: "#2a1404", hor: "#120802", gnd: "#7a3a06", surf: "#1c0e06", wall: "#1a0c04", line: "#ff8a1a", lineI: 0.9, frame: "#160a04", frameE: "#ff7a10", frameEI: 0.9,
-      rail: "#4a2a10", sleeper: "#201006", glass: "#ff9a3a", glassO: 0.5, edge: "#ffd0a0", fogN: 5, fogF: 58, hemiS: "#ffa050", hemiG: "#3a1a02", hemiI: 0.6, sunI: 0.35,
-      dust: "#ffa030", block: "#2a1606", cart: "#2a160a", accent: "#ff9a2a" },
-    { sky: "#3e3428", hor: "#221c14", gnd: "#16120c", surf: "#3e3628", wall: "#322a1e", line: "#c8a878", lineI: 0.22, frame: "#1e1810", frameE: "#000000", frameEI: 0,
-      rail: "#6a5c44", sleeper: "#2c2418", glass: "#d8c4a0", glassO: 0.42, edge: "#f0e2c8", fogN: 9, fogF: 74, hemiS: "#d8ccb8", hemiG: "#201a12", hemiI: 0.75, sunI: 0.5,
-      dust: "#c8b088", block: "#3a3020", cart: "#2e2a22", accent: "#e0c890" },
-    { sky: "#c2b8a4", hor: "#ada28c", gnd: "#8c826c", surf: "#d4ccbc", wall: "#c6bca8", line: "#ffffff", lineI: 0.0, frame: "#6a5c44", frameE: "#000000", frameEI: 0,
-      rail: "#9a8e78", sleeper: "#7a6e58", glass: "#ece0c4", glassO: 0.42, edge: "#ffffff", fogN: 13, fogF: 88, hemiS: "#ffffff", hemiG: "#968c78", hemiI: 0.95, sunI: 0.7,
-      dust: "#fff4dc", block: "#b8ac94", cart: "#5a5040", accent: "#fff0c8" },
-    { sky: "#fbf6ec", hor: "#f2eadc", gnd: "#dccfb6", surf: "#fffcf6", wall: "#f6efe2", line: "#e8c878", lineI: 0.15, frame: "#b89c64", frameE: "#000000", frameEI: 0,
-      rail: "#c4b08a", sleeper: "#dccfb4", glass: "#fbe8b8", glassO: 0.4, edge: "#ffffff", fogN: 16, fogF: 100, hemiS: "#ffffff", hemiG: "#e0d4bc", hemiI: 1.0, sunI: 0.75,
-      dust: "#ffe8b0", block: "#f0e4c8", cart: "#7a6a4a", accent: "#f0c050" },
-    { sky: "#ffe9b0", hor: "#fff8e8", gnd: "#fff0cc", surf: "#ffffff", wall: "#fff8ea", line: "#ffc84a", lineI: 0.4, frame: "#e0c070", frameE: "#ffe6a0", frameEI: 0.5,
-      rail: "#f0dcb0", sleeper: "#fbf0d8", glass: "#ffe8a8", glassO: 0.38, edge: "#ffffff", fogN: 18, fogF: 112, hemiS: "#ffffff", hemiG: "#f4e0b8", hemiI: 1.1, sunI: 0.8,
-      dust: "#ffd870", block: "#fff6e0", cart: "#8a7448", accent: "#ffc23a" },
+  const PAL_AURUM = [ // a sunset that runs with the karma: a night of embers under the stars and a gold galaxy, dusk, the golden hour, a warm afternoon, a radiant gold noon
+    { sky: "#0a0402", hor: "#1e0a04", gnd: "#030100", surf: "#1a0c06", wall: "#1a0c06", line: "#ffa040", lineI: 0.85, frame: "#120804", frameE: "#ff8a20", frameEI: 0.8,
+      rail: "#4a2a12", sleeper: "#1c0e06", glass: "#ffb060", glassO: 0.45, edge: "#ffe0b8", fogN: 6, fogF: 90, hemiS: "#ffb070", hemiG: "#1a0802", hemiI: 0.55, sunI: 0.3,
+      dust: "#ffb040", block: "#2a1406", cart: "#2a160a", accent: "#ffa030", stars: 1.0, band: "#b8641a" },
+    { sky: "#24100a", hor: "#6a2810", gnd: "#0c0402", surf: "#4a2814", wall: "#3a2010", line: "#ffb070", lineI: 0.35, frame: "#2a1408", frameE: "#c86018", frameEI: 0.35,
+      rail: "#7a4a24", sleeper: "#2a160a", glass: "#ffc890", glassO: 0.42, edge: "#ffe8cc", fogN: 8, fogF: 96, hemiS: "#ffc090", hemiG: "#200c04", hemiI: 0.75, sunI: 0.5,
+      dust: "#ffc888", block: "#5a3014", cart: "#3a2214", accent: "#ffb060", stars: 0.9, band: "#d0803a" },
+    { sky: "#6a3418", hor: "#d8782a", gnd: "#3a1606", surf: "#c89058", wall: "#a87040", line: "#ffe0b0", lineI: 0.2, frame: "#5a3010", frameE: "#000000", frameEI: 0,
+      rail: "#b08050", sleeper: "#6a4020", glass: "#ffdcaa", glassO: 0.42, edge: "#ffffff", fogN: 12, fogF: 104, hemiS: "#ffe4c0", hemiG: "#5a2a0c", hemiI: 0.95, sunI: 0.7,
+      dust: "#fff0d0", block: "#a86a30", cart: "#6a4628", accent: "#ffd8a0", stars: 0.55, band: "#f0a860" },
+    { sky: "#c0702a", hor: "#ffc070", gnd: "#a0601c", surf: "#f6dcb0", wall: "#e8c490", line: "#fff4e0", lineI: 0.2, frame: "#a87030", frameE: "#000000", frameEI: 0,
+      rail: "#d8b080", sleeper: "#a87850", glass: "#ffe8c0", glassO: 0.4, edge: "#ffffff", fogN: 15, fogF: 110, hemiS: "#ffffff", hemiG: "#b07a3a", hemiI: 1.05, sunI: 0.8,
+      dust: "#ffffff", block: "#e0a860", cart: "#8a6a40", accent: "#ffe4b0", stars: 0.25, band: "#ffd8a0" },
+    { sky: "#e8a440", hor: "#fff0c8", gnd: "#f0c070", surf: "#fffaf0", wall: "#fff2dc", line: "#ffc84a", lineI: 0.4, frame: "#e0b060", frameE: "#ffe6a0", frameEI: 0.5,
+      rail: "#f0d8a8", sleeper: "#f6e6c4", glass: "#ffe8a8", glassO: 0.38, edge: "#ffffff", fogN: 18, fogF: 116, hemiS: "#ffffff", hemiG: "#f0c890", hemiI: 1.15, sunI: 0.85,
+      dust: "#ffe080", block: "#fff0d0", cart: "#8a7448", accent: "#ffc23a", stars: 0.1, band: "#fff0c8" },
   ];
 
   // ---------- levels and progress ----------
@@ -6450,13 +6553,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       desc: "Знакомство с рельсами. Белые залы с квадратными арками, первые стёкла и первый спуск во Тьму.",
       feats: ["Квадратные арки, сплошные стены и парящие кубы", "Стекло, голубые кристаллы, во Тьме шипы и чёрно-красные кристаллы бесы", "Финал Iudicium: печати и множитель"],
       req: {}, map: { x: 90, y: 320, label: "t", dx: -14 } }, // nudged left, clear of the gift branch
-    { id: "thesaurus", num: "I·a", latin: "Thesaurus", ru: "Сокровищница", line: "branch", playable: true, music: "glass_horizon", len: 900, pal: PAL_AURUM, finale: "pluvia",
-      style: { arch: "ring", blocks: "coin", glassWalls: false }, crystalMul: 2.2, bankMul: 2, // bankMul: each crystal banks double, so the fare pays back
-      pats: { wall: [0.4, 0.4, 0.4], double: [0, 0.3, 0.6], reinf: [0, 0.3, 1.2], shutter: [0, 0.5, 1], bonus: [4, 1, 0], sides: [4, 1.5, 0.5] },
-      turns: [[90, 50, 40], [200, 60, -60], [320, 50, 50], [430, 70, -80], [560, 50, 45], [660, 50, -45], [760, 50, 30]],
-      desc: "Тупиковая ветка от Initium. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
-      feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
-      req: { after: "initium", fare: 15 }, map: { x: 185, y: 440, label: "t" } }, // the first branch: Initium opens it
+    { id: "thesaurus", num: "I·a", latin: "Thesaurus", ru: "Сокровищница", line: "branch", playable: true, music: "glass_horizon", len: 2150, superLen: 450, pal: PAL_AURUM, finale: "pluvia",
+      // a roller coaster in the open, golden hoops over the rails (planCoaster); only thin glass in the way, plain or engraved
+      style: { arch: "ring", blocks: "coin", glassWalls: false, air: true, floor: "plain", floorW: 1.75 }, coaster: true, crystalMul: 2.2,
+      pats: { center: [3, 3, 2], wall: [1, 1, 1], triple: [1, 2, 1.5], sides: [2, 1, 0.6], bonus: [3, 1, 0.3], slider: [1, 2, 2], lift: [0.6, 1.5, 1.5], double: [0, 1, 1.5],
+        shutter: [0, 0.6, 1.2], reinf: [0, 0, 0], imps: [0, 0, 0] },
+      turns: [],
+      desc: "Тупиковая ветка от Initium. Американские горки под открытым золотым небом: спираль, штопор, бур, змейка и пара мёртвых петель, каждый заезд в новом порядке. Над рельсами золотые обручи, вокруг вращаются монеты. На пути только тонкое стекло, и кристаллов вдвое больше обычного.",
+      feats: ["Пять виражей в случайном порядке, петли каждый раз другие", "Кристаллов в 2,2 раза больше", "Финал Pluvia: дождь кристаллов"],
+      req: { after: "initium" }, map: { x: 185, y: 440, label: "t" } }, // the first branch: Initium opens it
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "glass_halls_in_blue", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "quartz", glassWalls: true, bare: true, floor: "plain", floorW: 2.6 }, crystalMul: 1.1, spaceMul: 0.93, // (groups a little closer: its gantry and its catapults take room, and it had as many before its manoeuvres)
       // no heaps of glass (a wall, pairs, threes, the side panes, the scatter of small ones, the shutters): their room goes to
@@ -6560,8 +6665,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     levels: {
       initium: { ru: "Beginning", desc: "Getting to know the rails. White halls with square arches, the first panes of glass and the first descent into the Dark.",
         feats: ["Square arches, solid walls and floating cubes", "Glass, blue crystals; in the Dark spikes and black-red crystal imps", "Finale Iudicium: seals and a multiplier"] },
-      thesaurus: { ru: "Treasury", desc: "A dead-end branch off Initium. Golden halls with round arches and floating coins. Twice the usual crystals: the ride costs a fare, but you can come back with a profit.",
-        feats: ["2.2 times the crystals", "A short ride, about a minute", "Finale Pluvia: a rain of crystals"] },
+      thesaurus: { ru: "Treasury", desc: "A dead-end branch off Initium. A roller coaster under an open golden sky: a spiral, a corkscrew, a drill, a snake and a pair of loops, in a new order every ride. Golden hoops over the rails, coins spinning all around. Only thin glass in the way, and twice the usual crystals.",
+        feats: ["Five manoeuvres in a random order, the loops different every time", "2.2 times the crystals", "Finale Pluvia: a rain of crystals"] },
       vitrum: { ru: "Glass", desc: "Prismatic arches over the abyss in a clear evening sky: the sun setting behind, the stars coming out ahead. Hexagonal vaults and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, and thick glass that fills the way breaks only to a catapult: hit its target.",
         feats: ["Glass catapults: hit the target and the shot breaks the thick glass", "Monoliths on chains, turning glass bars and crosses", "Finale Ruina: falling boulders"] },
       armamentarium: { ru: "Armoury", desc: "A dead-end depot beyond the Treasury (Thesaurus). Here crystals buy upgrades for the cart. Cannons are not sold here: stations give them.",
@@ -6720,13 +6825,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     [SW, SH] = (LEVEL_LOOK[lv.id] || {}).shell || [W, H]; HANG_TOP = SH - 0.06;
     mirStrips.forEach(m => { m.o = m.k * 2 * (SW + 0.12); });
     I.ceil.material = lv.id === "vitrum" ? glassWallMat : surfMat;
+    I.ring.material = lv.id === "thesaurus" ? goldHoopMat : frameMat; // Thesaurus's hoops gold; Tao's frames its own
     I.block.material = lv.id === "lux" ? luxBlockMat : lv.id === "abyssus" ? noxBlockMat : blockMat; // Vitrum's roof, where there is one, of clear glass
     I.gwall.material = lv.id === "lux" ? plainGlassWallMat : glassWallMat; // Lux: its roof and its glass walls whole, no lit seams (they read as gaps between the panels)
     paintTex(wallTex, STYLE.tex || "panel"); paintTex(floorTex, STYLE.floor || { concrete: "asphalt", panels: "asphalt", stone: "flags", chrome: "chrome", mirror: "chrome", bars: "grate" }[STYLE.tex] || "floor"); PAL = buildPal(lv.pal); TURNS = toTurns(lv.turns);
     MAIN_LEN = lv.len; SUPER_LEN = lv.superLen || 260; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
-    planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.filter(() => LEVEL.id !== "initium").map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
+    planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.filter(() => LEVEL.id !== "initium" && !LEVEL.coaster).map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
     pgPlan = SPANS.length ? [SPANS[0].a - 120, ...SPANS.map(sp => sp.b + 75)] : []; // Speculum's prism gears: in the first halls, before the first bridge, and past each corkscrew
     if (LEVEL.id === "lux") pgPlan = [0.1, ...LTW.map(m => (m.tw1 + 110) / MAIN_LEN)].map(f => Math.round(f * MAIN_LEN + rand(-10, 15))).filter(x => x < MAIN_LEN - 60 && !LTW.some(m => x > m.sw - 70 && x < m.tw1 + 95)); // Lux: prism gears out on the bridge, between its manoeuvres
     if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind: "tall" }, { s: sp.b, kind: "tall" }]); }
@@ -7540,7 +7646,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     pitchTs += (rawPitch - pitchTs) * (1 - Math.exp(-dt * 2.5));
 
     // motion: uphill is slower, downhill faster
-    let sp = BASE_SPEED * (LEVEL.speedMul || 1) * (1 - 0.55 * Math.sin(pitchC)) * Math.min(1, 0.4 + runTime * 0.6);
+    const v0 = BASE_SPEED * (LEVEL.speedMul || 1), snk = LOOPS.length ? snakeMul(sC, v0) : 0;
+    let sp = v0 * (snk || 1 - 0.55 * Math.sin(pitchC)) * Math.min(1, 0.4 + runTime * 0.6); // (on the snake its own speed: see snakeMul)
     if (superOn) sp *= 1.2;
     sp /= twistStretch(sC); // over a bridge's turns the rails run longer than the line they wind round: as fast along the rails
     const toStop = END_S - 0.3 - sC; // the cart brakes into the station and comes to rest there
@@ -7629,7 +7736,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     AHEAD = LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150; // (the spiral's far side, and what is past it, set down while still far off)
     // behind the cart: the deck and all on it drawn as far back as can still be seen ahead (in a loop, its first half overhead; on
     // Vitrum's ring, the loop it threads, all of it, 430 m back); elsewhere only a little
-    BEHIND = LOOPS.some(l => sC > l.s0 && sC < loopEnd(l) + 40) ? BACK : LTW.some(m => m.kind === "spiral" && sC > m.tw0 && sC < m.tw1 + 150) ? 150 : 10;
+    BEHIND = LOOPS.some(l => (l.kind === "v" || l.kind === "h") && sC > l.s0 && sC < loopEnd(l) + 40) ? BACK : LTW.some(m => m.kind === "spiral" && sC > m.tw0 && sC < m.tw1 + 150) ? 150 : 10;
     computePath();
     if (AHEAD < AHEAD_MAX && !STYLE.closed && !LEVEL.halls) { // the track drawn, and things set down, out to where it is past the melting by a straight line, not by its own length: round a bend its end, nearer, was cut off still showing
       const x0 = PP[BACK * 3], y0 = PP[BACK * 3 + 1], z0 = PP[BACK * 3 + 2]; let j = BACK + 146;

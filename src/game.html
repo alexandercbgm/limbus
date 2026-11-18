@@ -7711,25 +7711,51 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // shadow), hung far off in the sky up and to the left of the sun, whole and sharp (in the half-size sky it had come out blurred);
   // pale in the day sky, bright in the Dark; things in front of it hide it
   const MOON_DIR = new THREE.Vector3(Math.sin(-42 * Math.PI / 180) * Math.cos(24 * Math.PI / 180), Math.sin(24 * Math.PI / 180), -Math.cos(42 * Math.PI / 180) * Math.cos(24 * Math.PI / 180)); // (up and left of the sun, high, over the corner's counters by the start's view)
-  const moonTex = (() => { const N = 256, c = document.createElement("canvas"); c.width = c.height = N; const g = c.getContext("2d"), R = N / 2 - 3;
+  const moonTex = (() => { const N = 512, c = document.createElement("canvas"); c.width = c.height = N; const g = c.getContext("2d"), R = N / 2 - 4;
     // a light added to the sky, as the moon shows by day: white where its highlands are, the sky's own blue through its seas, its edge
-    // soft, no rim; the side away from the sun fading out
+    // soft, no rim; its near face as it is: the seas where they lie, craters with a lit rim toward the sun and a shadow inside, the bright
+    // young craters' rays (Tycho's, Copernicus's, Kepler's); the side away from the sun fading out
     let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const X = u => N / 2 + u * R, Y = v => N / 2 + v * R; // the face in -1..1, up negative
     g.save(); g.beginPath(); g.arc(N / 2, N / 2, R, 0, Math.PI * 2); g.clip();
-    g.fillStyle = "rgb(205,215,230)"; g.fillRect(0, 0, N, N);
-    g.filter = "blur(5px)";
-    for (const [x, y, rx, ry, a] of [[0.36, 0.34, 0.2, 0.15, 0.5], [0.58, 0.28, 0.14, 0.12, 0.45], [0.63, 0.5, 0.18, 0.14, 0.5], [0.43, 0.6, 0.12, 0.09, 0.4], [0.28, 0.5, 0.1, 0.14, 0.35], [0.7, 0.7, 0.1, 0.07, 0.3], [0.5, 0.42, 0.08, 0.06, 0.3]]) {
-      g.fillStyle = `rgba(40,55,80,${a})`; g.beginPath(); g.ellipse(x * N, y * N, rx * N, ry * N, rnd() * 3, 0, Math.PI * 2); g.fill(); }
-    g.filter = "blur(0.8px)";
-    for (let i = 0; i < 40; i++) { const x = N / 2 + (rnd() - 0.5) * 1.75 * R, y = N / 2 + (rnd() - 0.5) * 1.75 * R, r = 1.5 + rnd() * 6;
-      g.fillStyle = `rgba(255,255,255,${0.12 + rnd() * 0.18})`; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
-      g.fillStyle = `rgba(40,55,80,${0.15 + rnd() * 0.15})`; g.beginPath(); g.arc(x + r * 0.2, y + r * 0.2, r * 0.6, 0, Math.PI * 2); g.fill(); }
-    g.filter = "none";
-    for (let i = 0; i < 3500; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? "30,40,60" : "255,255,255"},0.07)`; g.fillRect(rnd() * N, rnd() * N, 2, 2); }
+    g.fillStyle = "rgb(178,188,204)"; g.fillRect(0, 0, N, N);
+    // the seas, each a cluster of soft blobs so its edge is ragged: [u, v, size, darkness]
+    const MARIA = [[-0.35, -0.42, 0.3, 0.5], [-0.62, -0.05, 0.32, 0.45], [-0.55, 0.3, 0.24, 0.42], [0.05, -0.35, 0.2, 0.5], [0.28, -0.05, 0.24, 0.48],
+      [0.62, -0.28, 0.12, 0.55], [0.45, 0.28, 0.15, 0.42], [0.2, 0.32, 0.11, 0.4], [-0.25, 0.42, 0.16, 0.4], [-0.48, 0.52, 0.09, 0.42], [-0.05, 0.05, 0.12, 0.35], [-0.78, -0.42, 0.12, 0.38]];
+    // their outline ragged, from a noise over a falloff round each; drawn a pixel at a time
+    const vh = (x, y) => { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return h - Math.floor(h); };
+    const vn = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), w = yf * yf * (3 - 2 * yf);
+      return (vh(xi, yi) * (1 - u) + vh(xi + 1, yi) * u) * (1 - w) + (vh(xi, yi + 1) * (1 - u) + vh(xi + 1, yi + 1) * u) * w; };
+    const fbm2 = (x, y) => vn(x, y) * 0.5 + vn(x * 2.1, y * 2.1) * 0.27 + vn(x * 4.3, y * 4.3) * 0.15 + vn(x * 8.7, y * 8.7) * 0.08;
+    const sea = document.createElement("canvas"); sea.width = sea.height = N; const sg = sea.getContext("2d"), img = sg.createImageData(N, N), seaPx = new Float32Array(N * N);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const u = (x - N / 2) / R, v = (y - N / 2) / R; let f = 0, dk = 0;
+      for (const [mu, mv, r, a] of MARIA) { const q = 1 - Math.hypot(u - mu, v - mv) / (r * 1.25); if (q > f) { f = q; dk = a; } }
+      const m = Math.min(1, Math.max(0, (f + (fbm2(u * 5 + 3, v * 5 + 7) - 0.5) * 0.9 - 0.18) / 0.12)); seaPx[y * N + x] = m;
+      const k = (y * N + x) * 4, tone = 0.75 + 0.5 * fbm2(u * 14, v * 14); img.data[k] = 22; img.data[k + 1] = 32; img.data[k + 2] = 55; img.data[k + 3] = 255 * m * dk * 0.95 * tone; }
+    sg.putImageData(img, 0, 0); g.filter = "blur(0.7px)"; g.drawImage(sea, 0, 0); g.filter = "none";
+    const inSea = (x, y) => seaPx[(y | 0) * N + (x | 0)] || 0; // how far a point lies in a sea
+    // rays of the young craters: thin bright streaks out from each, fading
+    for (const [u, v, n, len, al] of [[-0.12, 0.72, 26, 1.2, 0.22], [-0.38, -0.08, 14, 0.42, 0.16], [-0.6, -0.02, 9, 0.28, 0.14]]) { g.save(); g.filter = "blur(2px)";
+      for (let k = 0; k < n; k++) { const a = rnd() * Math.PI * 2, l = len * (0.45 + rnd() * 0.55) * R, r0 = 0.04 * R, x0 = X(u) + Math.cos(a) * r0, y0 = Y(v) + Math.sin(a) * r0, x1 = X(u) + Math.cos(a) * l, y1 = Y(v) + Math.sin(a) * l;
+        const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, `rgba(255,255,255,${al})`); gr.addColorStop(1, "rgba(255,255,255,0)"); g.strokeStyle = gr; g.lineWidth = 1.5 + rnd() * 3; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); }
+      g.restore(); } // (long, faint and soft, from the crater's edge out: drawn from its middle they had made a star)
+    // craters, many small and few big: a darker floor, a shadow along the inner wall away from the sun (it is up and to the right), a lit
+    // rim toward it, the big ones a little central peak; fewer and fainter on the seas
+    const crater = (x, y, r, k) => {
+      const fl = g.createRadialGradient(x, y, 0, x, y, r); fl.addColorStop(0, `rgba(30,40,62,${0.1 * k})`); fl.addColorStop(0.8, `rgba(30,40,62,${0.16 * k})`); fl.addColorStop(1, "rgba(30,40,62,0)");
+      g.fillStyle = fl; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); // a soft darker floor
+      g.strokeStyle = `rgba(20,28,45,${0.22 * k})`; g.lineWidth = Math.max(0.6, r * 0.12); g.beginPath(); g.arc(x, y, r * 0.88, Math.PI * 0.75 - 0.9, Math.PI * 0.75 + 0.9); g.stroke(); // a thin shadow inside the wall away from the sun
+      g.strokeStyle = `rgba(255,255,255,${0.18 * k})`; g.lineWidth = Math.max(0.5, r * 0.1); g.beginPath(); g.arc(x, y, r, -Math.PI * 0.25 - 0.9, -Math.PI * 0.25 + 0.9); g.stroke(); // a thin lit rim toward it
+      if (r > 8) { g.fillStyle = `rgba(255,255,255,${0.25 * k})`; g.beginPath(); g.arc(x, y, r * 0.12, 0, Math.PI * 2); g.fill(); } }; // a central peak
+    for (let i = 0; i < 520; i++) { const t = rnd(), r = 1 + Math.pow(t, 6) * 14, a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * (R - r - 2), x = N / 2 + Math.cos(a) * d, y = N / 2 + Math.sin(a) * d;
+      const sea = inSea(x, y); if (sea > 0.25 && rnd() < 0.7) continue; crater(x, y, r * (1 - Math.pow(d / R, 3) * 0.35), 1 - sea * 0.6); } // (squeezed a little toward the edge, as seen aslant)
+    for (const [u, v, r] of [[-0.12, 0.72, 9], [-0.38, -0.08, 10], [-0.6, -0.02, 6], [0.52, 0.5, 11], [0.1, 0.58, 9], [0.35, 0.68, 8], [-0.2, 0.86, 7]]) { crater(X(u), Y(v), r, 1.1); g.fillStyle = "rgba(255,255,255,0.35)"; g.beginPath(); g.arc(X(u), Y(v), r * 1.15, 0, Math.PI * 2); g.fill(); } // the named big ones, a bright halo of fresh ground round each // the named big ones, crisp
+    for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? "30,40,60" : "255,255,255"},0.05)`; g.fillRect(rnd() * N, rnd() * N, 1.5, 1.5); } // its grain
+    const limb = g.createRadialGradient(N / 2, N / 2, R * 0.7, N / 2, N / 2, R); limb.addColorStop(0, "rgba(0,0,0,0)"); limb.addColorStop(1, "rgba(0,0,0,0.12)"); g.fillStyle = limb; g.fillRect(0, 0, N, N);
     const sh = g.createLinearGradient(N * 0.95, N * 0.2, N * 0.05, N * 0.8); sh.addColorStop(0, "rgba(0,0,0,0)"); sh.addColorStop(0.7, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,0.8)"); g.fillStyle = sh; g.fillRect(0, 0, N, N);
     g.restore();
-    const out = document.createElement("canvas"); out.width = out.height = N; const o = out.getContext("2d"); o.filter = "blur(1.2px)"; o.drawImage(c, 0, 0); // its edge soft
-    const t = new THREE.CanvasTexture(out); t.anisotropy = 4; return t; })();
+    const out = document.createElement("canvas"); out.width = out.height = N; const o = out.getContext("2d"); o.filter = "blur(1px)"; o.drawImage(c, 0, 0); // its edge soft
+    const t = new THREE.CanvasTexture(out); t.anisotropy = 8; return t; })();
   const moonMat = new THREE.SpriteMaterial({ map: moonTex, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending });
   moonMat.onBeforeCompile = () => {}; // (its own: the far melting into the sky would have hidden it, so far off)
   const moon = new THREE.Sprite(moonMat); moon.scale.setScalar(50.6); moon.renderOrder = -1; moon.frustumCulled = false; scene.add(moon);

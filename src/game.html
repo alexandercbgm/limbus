@@ -2423,16 +2423,19 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const out = new Set(), fin = new Set();
     for (const f of [0.2, 0.4, 0.6, 0.8, 1]) {
       m.dirNow = m.dir * f; m.pdirNow = m.pdir * f; computePath(); const R = tubeFill();
-      for (const [b, s] of bl) { placeM(M, s + (b.ds || 0), b.u, b.v); const e = M.elements; if (inTube(e[12], e[13], e[14], blockRad(b), s, R + 1)) { out.add(b); if (f === 1) fin.add(b); } }
+      if (f === 1) nKept = 0; // (in the final shape, also none through another, as they will be tried then)
+      for (const [b, s] of bl) { placeM(M, s + (b.ds || 0), b.u, b.v); const e = M.elements, r = blockRad(b);
+        if (inTube(e[12], e[13], e[14], r, s, R + 1)) { out.add(b); if (f === 1) fin.add(b); }
+        else if (f === 1) { if (blockClash(e[12], e[13], e[14], r, s)) { out.add(b); fin.add(b); } else blockKeep(e[12], e[13], e[14], r, s); } }
     }
+    nKept = 0;
     m.dirNow = dn; m.pdirNow = pn; computePath();
     for (const [b] of bl) { b.fm = m; b.fo = out.has(b); b.fc = !fin.has(b); b.f0 = b.vis === undefined ? 1 : b.vis; }
   }
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0; nKept = 0;
     for (const m of LTW) if (m.late && m.ft >= 0 && m.ft < FORM_T && !m.fplan) planFade(m);
-    const forming = LTW.some(m => m.late && m.ft >= 0 && m.ft < FORM_T + 0.1); // (what was not planned for, set down meanwhile: kept further off)
-    const tubeR = LTW.length || LOOPS.length || SPANS.length ? tubeFill() + (forming ? 4 : 0) : 0, dtv = clamp(time - decorT, 0, 0.1); decorT = time;
+    const tubeR = LTW.length || LOOPS.length || SPANS.length ? tubeFill() : 0, dtv = clamp(time - decorT, 0, 0.1); decorT = time;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
     // a wall block as long as its outer face's stretch, and a little over: on a bend the blocks had parted on the outside
     const wallLen = (sa, sb, u) => { frameAt(sa); const x = _P.x + _R.x * u, y = _P.y + _R.y * u, z = _P.z + _R.z * u; frameAt(sb); return Math.max(sb - sa, Math.hypot(_P.x + _R.x * u - x, _P.y + _R.y * u - y, _P.z + _R.z * u - z)) + 0.03; };
@@ -2561,19 +2564,21 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (grow > 0) for (const b of dec.blocks) {
         placeM(M, s + (b.ds || 0), b.u, b.v);
         if (b.fm && b.fm.ft >= 0 && b.fm.ft < FORM_T) { // a manoeuvre taking its shape: as planned when it began (see planFade)
-          const t = b.fm.ft / FORM_T, o = t < 1 / 3 ? 1 - smooth5(t * 3) : 0, i = t > 2 / 3 ? smooth5((t - 2 / 3) * 3) : 0;
-          b.vis = b.fo ? (b.fc ? Math.max(o, i) : o) : b.f0 > 0 ? b.f0 : b.fc ? i : 0;
+          // (from the hit on the arrow, when the way is known, to the shape's end: one in the way draws into its middle over the first
+          // third, quickly at once and slowing, one that will be clear grows out of its middle over the last; its size, not a fading)
+          const t = b.fm.ft / FORM_T, o = t < 1 / 3 ? (1 - t * 3) ** 2 : 0, i = t > 2 / 3 ? 1 - (1 - (t - 2 / 3) * 3) ** 2 : 0;
+          b.vis = b.sc = b.fo ? (b.fc ? Math.max(o * b.f0, i) : o * b.f0) : b.f0 > 0 ? b.f0 : b.fc ? i : 0; // (one already out stays out till it may grow)
           if (b.vis > 0) { const e = M.elements; blockKeep(e[12], e[13], e[14], blockRad(b), s); } }
-        else if (tubeR) { const e = M.elements, rad = blockRad(b);
+        else if (tubeR) { const e = M.elements, rad = blockRad(b); b.sc = undefined;
           const out = inTube(e[12], e[13], e[14], rad, s, tubeR) || blockClash(e[12], e[13], e[14], rad, s); // (and none through another set off another stretch)
           b.vis = clamp((b.vis === undefined ? 1 : b.vis) + (out ? -1e9 : 3 * dtv), 0, 1); // (out at once, back slowly)
           if (b.vis > 0) blockKeep(e[12], e[13], e[14], rad, s); }
-        else b.vis = 1;
+        else { b.vis = 1; b.sc = undefined; }
         if (b.vis <= 0) continue;
         if (b.q) M.multiply(M2.makeRotationFromQuaternion(b.q)).multiply(M2.makeRotationY(b.sway !== undefined ? Math.sin(time * 0.35 + b.sway) * 0.2 : time * b.spin)); // a crystal turns about its own length; a ruby only sways
         else { EU.set(b.rx + time * b.spin, b.ry + time * b.spin * 0.7, 0); M.multiply(M2.makeRotationFromEuler(EU)); }
         const wob = b.wob !== undefined ? 1 + 0.07 * Math.sin(time * 2.2 + b.wob) : 1; // a drop of mercury trembles
-        M.scale(blockKey === "coin" ? SV.set(b.sx * 0.6, b.sx * 0.6, 1) : SV.set(b.sx * wob, b.sy / wob, b.sz * wob)).scale(SV.setScalar(grow * smooth5(b.vis)));
+        M.scale(blockKey === "coin" ? SV.set(b.sx * 0.6, b.sx * 0.6, 1) : SV.set(b.sx * wob, b.sy / wob, b.sz * wob)).scale(SV.setScalar(grow * (b.sc !== undefined ? b.sc : smooth5(b.vis))));
         const key = b.key || blockKey; I[key].setMatrixAt(n[key]++, M);
       }
     }

@@ -3429,14 +3429,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "slider": { const w = 2.6; addPane({ s, u: 0, v: CAM_V + 0.2, w, h: 2.9, move: { axis: "u", amp: SW - w / 2 - 0.2, freq: rand(1, 1.6) * (1 + 0.3 * d), phase: rand(0, TAU) } }); break; }
       case "bars":
         if (s - lastHangerS > 70) { addHanger(s, "gate", false, true); lastHangerS = s; }
-        else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 + (LEVEL.armor || 0) });
+        else addPane({ s, u: 0, v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 + (LEVEL.armor || 0) }); // (reinforced glass: always over the middle of the rails)
         break;
       case "rams": addRams(s, d > 0.3 && Math.random() < 0.4 + d * 0.5); break;
       // Carcer's halls: grates of either look on one or two chains, floating laser bars and grids, the headsman's mills
       case "grate1": case "grate2": case "grate3": {
         const look = "modern";
         if (s - lastHangerS > 70) { addHanger(s, pat === "grate1" ? "pendulum" : "gate", false, true, { look, wide: pat === "grate3" }); lastHangerS = s; }
-        else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 + (LEVEL.armor || 0) });
+        else addPane({ s, u: 0, v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 + (LEVEL.armor || 0) }); // (reinforced glass: always over the middle of the rails)
         break;
       }
       case "lrow": addLaserBars(s, Math.random() < 0.5 ? "h" : "v", 0, s > MAIN_LEN * 0.5); break; // bars first, loose nozzles deeper in
@@ -3519,7 +3519,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         addPane({ s, u: rand(-0.5, 0.5), v: glassV, w: 2.6, h: 2.6 });
         addPane({ s: s - 7, u: rand(-0.5, 0.5), v: glassV, w: 2.6, h: 2.6 });
         break;
-      case "reinf": addPane({ s, u: rand(-0.3, 0.3), v: glassV, w: 2.8, h: 2.8, hp: (d > 0.7 ? 3 : 2) + (LEVEL.armor || 0) }); break; // the late levels' armour takes a hit more
+      case "reinf": addPane({ s, u: 0, v: glassV, w: 2.8, h: 2.8, /* over the middle of the rails */ hp: (d > 0.7 ? 3 : 2) + (LEVEL.armor || 0) }); break; // the late levels' armour takes a hit more
       case "shutter": {
         const freq = rand(0.9, 1.4), phase = rand(0, TAU);
         [-1, 1].forEach(k => addPane({ s, u: k * SW / 2, v: SH / 2, w: SW * 0.55, h: SH - 0.3, move: { axis: "shutter", sign: k, freq, phase } }));

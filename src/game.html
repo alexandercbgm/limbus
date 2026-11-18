@@ -799,7 +799,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const DS = 1, BACK = 160, AHEAD_MAX = 480, NS = BACK + AHEAD_MAX + 1, SL = 2;
   let AHEAD = 150, BEHIND = 10; // and how far behind: on Lux's spiral the turns below and above the cart, passed, stay drawn // how far ahead the track is drawn: twice as far round Lux's spiral, whose coils show from across it
   const spawnAhead = () => AHEAD - 4; // objects come into being at the drawn track's far end, where they melt in out of the sky
-  let spiralHold = 0; // on Lux's spiral the track ahead does not tilt with the karma (its coils had bobbed like a spring); 0 → 1 over 40 m
+  // where the track does not tilt with the karma: on every manoeuvre, from where its gantry stands (or would) to where one would stand
+  // past its end (32 m), and on loops alike, eased in and out over 40 m either side (its coils had bobbed like a spring, its height
+  // gone up and down with the light and the dark)
+  function levelAt(s) {
+    let h = 0;
+    for (const m of LTW) h = Math.max(h, smooth5((s - m.sw + 40) / 40) * smooth5((m.tw1 + 32 + 40 - s) / 40));
+    for (const l of LOOPS) h = Math.max(h, smooth5((s - l.s0 + 32 + 40) / 40) * smooth5((loopEnd(l) + 32 + 40 - s) / 40));
+    return h;
+  }
   const START_BALLS = 30, R_BALL = 0.18, G = 11, MAX_SHARDS = 520;
   const SPAWN_AHEAD = 118, LAMBDA = 14, BASE_SPEED = 12.5;
   // along s a level is: the main run, then the Iudicium finale, then the arrival station; the cart stops at END_S
@@ -895,9 +903,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   const loopEnd = l => l.s0 + l.len + (l.dl || 0);
   const loopAt = s => { for (const l of LOOPS) if (s > l.s0 - 1 && s < loopEnd(l) + 1) return l; return null; };
-  const loopRise = (s, s0, L, h) => { const x = (s - s0) / L; return x > 0 && x < 1 ? h / L * Math.PI / 2 * Math.sin(Math.PI * x) : 0; }; // the slope of a climb of h over L
   const loopPitch = s => { let p = 0; for (const l of LOOPS) { const x = (s - l.s0) / l.len;
-    if (l.kind === "h") { if (s > l.s0 - (l.pre || 0)) p += Math.asin(clamp(loopRise(s, l.s0, l.len, l.dh) + (l.dl ? loopRise(s, l.s0 + l.len, l.dl, -l.dh) : 0) + (l.cl ? loopRise(s, l.s0 - l.pre, l.cl, l.hc) : 0), -0.9, 0.9)); continue; } // (a little climb just before it, from the loop's foot)
+    if (l.kind === "h") { const a = l.s0 + (l.c0 || 0), L = l.len * (l.cf || 1), x = (s - a) / L; if (x > 0 && x < 1) p += Math.asin(clamp(l.dh / L * 2 * Math.sin(Math.PI * x) ** 2, -0.9, 0.9)); continue; } // (its climb eased in and out: its slope grows from nothing and dies away to nothing, so no bump and no kink where it meets the loop)
     if (x <= 0) continue;
     else p += TAU * (l.r ? plat(x, l.r) : smooth5(Math.min(1, x))); } return p; };
   const loopShift = s => { let d = 0; for (const l of LOOPS) { const x = (s - l.s0) / l.len; if (x > 0 && l.kind !== "h") d += l.side * l.w * smooth5(Math.min(1, x)); } return d; };
@@ -922,13 +929,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const first = LTW[0].dir < 0 ? 1 : -1, a = Math.round(L * 2 / 3) - LOOP_LEN - 5;
       LOOPS.push({ kind: "v", s0: a, side: first, len: LOOP_LEN, w: LOOP_SIDE }, { kind: "v", s0: a + LOOP_LEN + 10, side: -first, len: LOOP_LEN, w: LOOP_SIDE }); }
     if (LEVEL.id === "vitrum") { LTW[0].dir = -1; LTW[0].pdir = 1; } // Vitrum's gantry: left or right only, left the way it takes if none is chosen; left always climbs, right always dives
-    // Vitrum, two thirds of the way: a loop-the-loop and, just after it, a ring lying flat, the two hung on each other, each through
-    // the other's middle: the loop edges 29 m to the right as it goes round, so it comes out where the ring begins; the ring (its
-    // middle on the loop's front) turns three quarters round to the left, climbing to the loop's middle height, and ends there, at
-    // the loop's middle, heading right; the track runs on from there, at that height. Seen from the cart (a narrow phone on its
-    // side) 38 m ahead on the loop, 22 m on the ring; every part of it 21 m and more from every other, frames and all
-    if (LEVEL.id === "vitrum") { const a = Math.round(L * 2 / 3) - 165;
-      LOOPS.push({ kind: "v", s0: a, side: 1, len: 175.5, w: 28.9, r: 0.04 }, { kind: "h", s0: a + 175.5 + 9.65, side: 1, th: TAU * 0.75, len: 144.3, r: 0.14, dh: 22.3, dl: 0, pre: 9.65, hc: 1.54, cl: 11.65 }); }
+    // Vitrum, two thirds of the way: a loop-the-loop and, just after it, a ring, the two hung on each other, each through the
+    // other's middle: the loop edges 30 m to the right as it goes round, so it comes out where the ring begins; the ring (its
+    // middle on the loop's front) goes once round to the left, banked into its turn up to upright at its middle, climbing all the
+    // way (passing through the loop's middle three quarters round) and comes out over where it went in, 25 m up, the track running
+    // on at that height. From the loop's foot to the ring's end it only climbs: no bump. Seen from the cart (a narrow phone on its
+    // side) 38 m ahead on the loop, 23 m on the ring; every part of it 20 m and more from every other, frames and all
+    if (LEVEL.id === "vitrum") { const a = Math.round(L * 2 / 3) - 185;
+      LOOPS.push({ kind: "v", s0: a, side: 1, len: 179.67, w: 29.625, r: 0.06 }, { kind: "h", s0: a + 179.67 + 10.26, side: 1, th: TAU, len: 192, r: 0.082, dh: 25.2, c0: -7.86, cf: 0.91, bank: Math.PI / 2 }); }
     if (LEVEL.id === "initium") for (let m = 0, on = Math.random() < 0.5; m * 8 < L + SUPER_LEN + 60; on = !on) { // runs of bays: walled corridors 2 to 5, open 4 to 11
       const n = on ? 2 + Math.floor(Math.random() * 4) : 4 + Math.floor(Math.random() * 8);
       for (let i = 0; i < n; i++, m++) VIT_GLAZE[m] = on && !LTW.some(t => m * 8 + 8 > t.sw - 60 && m * 8 < t.tw1 + 60) && !LOOPS.some(l => m * 8 + 8 > l.s0 - 40 && m * 8 < loopEnd(l) + 40); }
@@ -951,7 +959,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const spiralYaw = s => { let y = 0; for (const m of LTW) if (m.kind === "spiral" && s > m.tw0) y -= m.dirNow * /* (the track's yaw is positive to the left; dir +1 is the gantry's right) */ m.turns * TAU * spanPhase(Math.min(1, (s - m.tw0) / m.len)); return y; };
   const spiralPitch = s => { let p = 0; for (const m of LTW) if (m.kind === "spiral" && s > m.tw0 && s < m.tw1) { const x = (s - m.tw0) / m.len; p += m.pdirNow * m.pitch * smooth5(x / 0.15) * smooth5((1 - x) / 0.15); } return p; };
   function twistAt(s) { for (const sp of SPANS) if (s > sp.tw0 && s < sp.tw1) return sp.dir * sp.k * sp.turns * TAU * spanPhase((s - sp.tw0) / (sp.tw1 - sp.tw0));
-    for (const m of LTW) if (m.r && s > m.tw0 && s < m.tw1) return m.dirNow * m.turns * TAU * spanPhase((s - m.tw0) / m.len); return 0; }
+    for (const m of LTW) if (m.r && s > m.tw0 && s < m.tw1) return m.dirNow * m.turns * TAU * spanPhase((s - m.tw0) / m.len);
+    for (const l of LOOPS) if (l.bank && s > l.s0 && s < l.s0 + l.len) return l.side * l.bank * (1 - Math.cos(TAU * (s - l.s0) / l.len)) / 2; // a ring banked into its turn: 0, 45, 90 at its middle, 45, 0
+    return 0; }
   // the line's own heading (the track as it would be, untwisted): what the cart's place along it is carried by
   const _T0 = new THREE.Vector3();
   function tangent0(s) { const p = pitchAt(s), y = yawAt(s); return _T0.set(-Math.sin(y) * Math.cos(p), Math.sin(p), -Math.cos(y) * Math.cos(p)); }
@@ -1914,7 +1924,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const PP = new Float64Array(NS * 3), PR = new Float64Array(NS * 3), PU = new Float64Array(NS * 3), PT = new Float64Array(NS * 3);
   let sBase = 0;
   const cartPos = new THREE.Vector3();
-  function pitchAt(s) { return (LOOPS.length ? loopPitch(s) : 0) + (s <= sC ? pitchC : pitchC + ((1 - spiralHold) * pitchTs - pitchC) * (1 - Math.exp(-(s - sC) / LAMBDA))) + (LTW.length ? spiralPitch(s) : 0); }
+  function pitchAt(s) { return (LOOPS.length ? loopPitch(s) : 0) + (s <= sC ? pitchC : pitchC + (pitchTs - pitchC) * (1 - Math.exp(-(s - sC) / LAMBDA))) * (LTW.length || LOOPS.length ? 1 - levelAt(s) : 1) + (LTW.length ? spiralPitch(s) : 0); }
   // banking (roll) follows the level's own turns only: at a fork both branches stay level, so the other
   // branch's floor never rises over the main track's rails
   // and around a fork the track is not banked at all: a tilted main floor would rise over the other branch's
@@ -1922,7 +1932,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function bankRateAt(s) {
     let r = 0; for (const t of TURNS) { const x = (s - t.s0) / t.len; if (x > 0 && x < 1) r += t.a * 30 * x * x * (1 - x) * (1 - x) / t.len; }
     if (LTW.length) r += spiralYaw(s + 0.5) - spiralYaw(s - 0.5); // (a spiral banks as a bend does)
-    if (LOOPS.length) r += loopYaw(s + 0.5) - loopYaw(s - 0.5); // (and a flat ring)
+    if (LOOPS.length) r += LOOPS.some(l => l.bank && s > l.s0 - 30 && s < l.s0 + l.len + 30) ? 0 : loopYaw(s + 0.5) - loopYaw(s - 0.5); // (and a flat ring; one banked by its own measure, not by its turn)
     for (const f of forks) { const d = s - f.s; if (d > -30 && d < GHOST_N + 10) r *= d < -15 ? smooth5((-15 - d) / 15) : d > GHOST_N - 5 ? smooth5((d - GHOST_N + 5) / 15) : 0; }
     return r;
   }
@@ -7462,7 +7472,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     frameAt(sC + ds / 2); // uses last frame's path; close enough for one step
     cartPos.addScaledVector(SPANS.length || LTW.length ? tangent0(sC + ds / 2) : _T, ds); // the line the track winds round, not the rails' own heading
     if (LOOPS.length) { loopOff(sC + ds, LO0); const x1 = LO0.x, z1 = LO0.z; loopOff(sC, LO0); cartPos.x += x1 - LO0.x; cartPos.z += z1 - LO0.z; } // (and on a loop its sideways edging)
-    pitchC += ((1 - spiralHold) * pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA)); // (on Lux's spiral to level: a slope of the karma's had cancelled its own climb, its coils lying flat in a stack)
+    pitchC += (pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA)); // (on a manoeuvre it counts for nothing: see levelAt)
     sC += ds;
     throwCD = Math.max(0, throwCD - dt);
 
@@ -7538,8 +7548,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function updateWorld(dt) {
     if (LTW.length) updateSwitches(dt);
     for (const sp of SPANS) { if (sp.ft < 0 && sC > sp.tw0 - 32) sp.ft = 0; if (sp.ft >= 0) sp.ft += dt; sp.k = sp.ft < 0 ? 0 : smooth5(Math.min(1, sp.ft / 1.2)); } // Speculum's corkscrews: straight till the cart is near, then formed before its eyes
-    spiralHold = 0; for (const m of LTW) if (m.kind === "spiral") spiralHold = Math.max(spiralHold, smooth5((sC - m.sw + 110) / 40) * smooth5((m.tw1 + 50 - sC) / 40));
-    for (const l of LOOPS) spiralHold = Math.max(spiralHold, smooth5((sC - l.s0 + 150) / 40) * smooth5((loopEnd(l) + 50 - sC) / 40)); // and on loops and rings: they keep their own shape
     AHEAD = LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150; // (the spiral's far side, and what is past it, set down while still far off)
     BEHIND = LTW.some(m => m.kind === "spiral" && sC > m.tw0 && sC < m.tw1 + 150) || LOOPS.some(l => sC > l.s0 && sC < loopEnd(l) + 150) ? 150 : 10; // (and in and past a loop: its deck overhead)
     computePath();

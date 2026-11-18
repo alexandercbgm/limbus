@@ -7435,7 +7435,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const hb = b.cs ? b.cs.g : b, mark = () => { if (!hb.hit) { hb.hit = true; stats.hits++; } }; // (a chain shot counts one hit)
       const pathDist = c => segDist(c, b.p0, pos); // closest approach along this frame's path, so fast balls cannot skip a target
       // glass is tested as far as a ball can fly; the iron shot, drawn bigger, takes glass by its full size
-      const paneM = b.iron ? (b.cs && b.cs.link ? R_BALL * 0.5 : R_BALL * 1.3) : R_BALL * 0.5;
+      const paneM = b.iron ? (b.cs && b.cs.link ? R_BALL * 0.5 : R_BALL * 1.3) : R_BALL * Math.max(0.5, Math.min(1, b.mesh.scale.x)); // a ball takes glass it touches: by half its width only, one seen to cross a small pane's edge had flown on through it
       for (const p of panes) {
         if (!p.alive || p.s < sC - 2 || p.s > sC + 220) continue;
         const a = toLocal(p, b.p0), az = a.z, ax = a.x, ay = a.y;

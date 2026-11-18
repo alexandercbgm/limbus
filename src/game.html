@@ -4167,10 +4167,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function buildForks() {
     forks.forEach(f => { f.targets.forEach(t => scene.remove(t.root)); f.signs.forEach(o => scene.remove(o.mesh)); f.plates.forEach(o => scene.remove(o.mesh)); });
     forks = (LEVEL.forks || []).map(fs => {
-      // under each side's board a target on a rod hangs from a hinge, as on Vitrum's catapults: the board of the way the cart will
-      // take is lit and its target folded up; the other board is dim and its target hangs down. Shoot the hanging one: its board
-      // lights, its target folds up, and the other board's target drops. Each target is an arrow on a disc, as on Vitrum's gantry,
-      // pointing to its way; the two light in turn till the switch is passed, then the way taken stays lit
+      // under each side's board a target on a rod hangs from a hinge: an arrow on a disc, as on Vitrum's gantry, pointing to its
+      // way. Both hang down, lighting in turn; the way is chosen once, by a hit on either, and its arrow stays lit; passed with
+      // none chosen, the cart takes the rich way (its board lit from the first)
       const targets = [1, -1].map(side => {
         const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
         const hinge = new THREE.Group(); hinge.position.y = FORK_HINGE_V; root.add(hinge);
@@ -4185,7 +4184,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const signs = [1, -1].map(side => { const m = new THREE.Mesh(signGeo, new THREE.MeshBasicMaterial({ map: signTex(kinds[side]) })); /* front side only: never read mirrored */ m.matrixAutoUpdate = false; scene.add(m); return { side, mesh: m }; });
       const plates = [1, -1].map(side => { const m = new THREE.Mesh(sidePlateGeo, new THREE.MeshBasicMaterial({ map: sideTex(kinds[side], side), transparent: true })); m.matrixAutoUpdate = false; scene.add(m); return { side, mesh: m }; });
       targets.forEach(t => { t.k = t.side === rich ? 1 : 0; }); // at first the rich way is lit, its target up
-      return { s: fs, sign: rich, kinds, locked: false, targets, signs, plates, cd: 0 };
+      return { s: fs, sign: rich, kinds, locked: false, chosen: false, targets, signs, plates, cd: 0 };
     });
   }
   function layoutForks(dt) {
@@ -4194,9 +4193,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const swS = f.s - 30, vis = swS > sC - 4 && swS - sC < AHEAD - 6;
       for (const t of f.targets) { // under its board, the target folds up (k 1) or hangs down (k 0)
         const ps = swS - 14; t.root.visible = ps > sC - 4 && ps - sC < AHEAD - 6;
-        t.k += ((t.side === f.sign ? 1 : 0) - t.k) * Math.min(1, dt * 9);
+        t.k += (0 - t.k) * Math.min(1, dt * 9); // (both hang down)
         t.hinge.rotation.x = 1.5 * smooth5(t.k); // up and back, away from the cart's way ahead
-        if (f.locked) lightDisc(t.disc, t.side === f.sign ? 1 : 0); // passed: the way taken lit
+        if (f.locked || f.chosen) lightDisc(t.disc, t.side === f.sign ? 1 : 0); // chosen or passed: the way taken lit
         else { const k = ((time - (t.side > 0 ? 0 : 1)) % 2 + 2) % 2; lightDisc(t.disc, k < 1 ? Math.sin(Math.PI * k) ** 2 : 0); } // in turn, once a second
         if (t.root.visible) { setObj(t.root, ps, -t.side * (2.3 - 0.29), 0); t.root.updateMatrixWorld(true); t.wp.setFromMatrixPosition(t.plate.matrixWorld); } // under the middle of what the board shows (its icon and word sit a little in from its middle, its chevrons out by the wall)
       }
@@ -4213,11 +4212,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
     }
   }
-  const FORK_HINGE_V = 3.82, FORK_ROD = 0.5, FORK_TR = 0.55, FORK_PR = 0.66; // (a target's plate as on Vitrum's gantry, its lit disc FORK_TR)
-  const forkTarget = f => f.targets.find(t => t.side !== f.sign && t.root.visible && t.k < 0.2); // the one hanging down, to be shot
-  function flipFork(f) {
-    if (f.locked || f.cd > 0) return;
-    f.sign = -f.sign; f.cd = 0.4;
+  const FORK_HINGE_V = 3.82, FORK_ROD = 0.5, FORK_TR = 0.7, FORK_PR = 0.835; // (a target's plate as on Vitrum's gantry, SW_PR, its lit disc FORK_TR = SW_TR)
+  const forkTargets = f => f.locked || f.chosen ? [] : f.targets.filter(t => t.root.visible); // both hang there to be shot, till one is
+  function chooseFork(f, t) {
+    if (f.locked || f.chosen) return;
+    f.sign = t.side; f.chosen = true;
     Sound.clink(); Sound.tone(420, 0.12, 0.1, "square", 0, 620);
     pop(f.kinds[f.sign] === "rich" ? T("← богатая ветка →", "← rich branch →") : T("← тихая ветка →", "← quiet branch →"), "info");
   }
@@ -5286,8 +5285,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // spiral's: left or right, up or down) with arrows; the lit one is the way the track will go. Shoot another and the track
   // ahead swings over to it, in sight; 30 m short of the manoeuvre it is set
   let switches = [];
-  const swHingeGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.24, 12), swArmGeo = new THREE.BoxGeometry(0.25 + 0.1, 0.09, 0.07); // a gantry target's hinge and arm
-  const SW_TR = 0.55, swPostGeo = new THREE.BoxGeometry(0.34, 7.6, 0.34), swBeamGeo = new THREE.BoxGeometry(6.3, 0.4, 0.4), swDiscGeo = new THREE.CircleGeometry(SW_TR, 32), swPlateGeo = new THREE.CylinderGeometry(0.66, 0.66, 0.12, 32).rotateX(Math.PI / 2);
+  const swHingeGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.24, 12), swArmGeo = new THREE.BoxGeometry(0.12 + 0.1, 0.09, 0.07); // a gantry target's hinge and arm (SW_ARM long, into the plate)
+  // a gantry target: its plate SW_PR, its lit disc SW_TR. As big as the opening lets them be with even room: the two of a row
+  // centred on ±1.015 m (the posts' inner faces at ±2.03), so the room at either side is half that between them; a short arm
+  const SW_PR = 0.835, SW_TR = 0.7, SW_ARM = 0.12, SW_MID4 = 5.217, SW_ROW = 1.042, swPostGeo = new THREE.BoxGeometry(0.34, 7.6, 0.34), swBeamGeo = new THREE.BoxGeometry(6.3, 0.4, 0.4), swDiscGeo = new THREE.CircleGeometry(SW_TR, 32), swPlateGeo = new THREE.CylinderGeometry(SW_PR, SW_PR, 0.12, 32).rotateX(Math.PI / 2);
   const swArrow = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
     g.fillStyle = "#fff"; g.beginPath(); g.moveTo(64, 14); g.lineTo(108, 62); g.lineTo(80, 62); g.lineTo(80, 112); g.lineTo(48, 112); g.lineTo(48, 62); g.lineTo(20, 62); g.closePath(); g.fill();
     const t = new THREE.CanvasTexture(c); return t; })(); // an arrow pointing up; each turned to its way
@@ -5306,11 +5307,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const targets = ways.map(([x, y]) => {
       // each hung like a door from the post beside it: a small hinge on the post's inner face, a short arm out from it, the disc on the
       // arm, whole, inside the opening
-      const hx = GX - 0.17 - 0.06, ARM = 0.25, ty = y ? MID + y * 1.15 : MID;
+      const hx = GX - 0.17 - 0.06, ARM = SW_ARM, ty = y ? SW_MID4 + y * SW_ROW : MID; // (four: the rows' room to the beam above half that between them)
       const knuckle = new THREE.Mesh(swHingeGeo, frameMat); knuckle.position.set(x * hx, ty, 0); root.add(knuckle);
       const pv = new THREE.Group(); pv.position.set(x * hx, ty, 0); root.add(pv);
       const arm = new THREE.Mesh(swArmGeo, frameMat); arm.position.set(-x * ARM / 2, 0, 0); pv.add(arm);
-      const g = new THREE.Group(); g.position.set(-x * (ARM + 0.66), 0, 0); pv.add(g);
+      const g = new THREE.Group(); g.position.set(-x * (ARM + SW_PR), 0, 0); pv.add(g);
       g.add(new THREE.Mesh(swPlateGeo, frameMat));
       const disc = new THREE.Mesh(swDiscGeo, new THREE.MeshBasicMaterial({ color: targetOff.color, fog: false })); disc.position.z = 0.07; g.add(disc); // (its own, to light and fade in the garland; no haze dimming it)
       const ar = new THREE.Mesh(swDiscGeo, swArrowMat); ar.position.z = 0.08; ar.scale.setScalar(0.9); ar.rotation.z = -Math.atan2(x, y || 0.0001); g.add(ar);
@@ -6328,8 +6329,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       forks: [330, 720, 1110],
       pats: { rotor: [1.1, 1.5, 1.7], rotor2: [0.6, 1, 1.3], grams: [1, 1.4, 1.6], shutter: [0, 1.5, 2.5], slider: [1, 2, 2], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], sides: [1, 0.6, 0], bonus: [1, 0.3, 0], triple: [0.6, 1, 0.8] },
       turns: [[120, 50, 40], [220, 50, -40], [480, 60, 60], [600, 50, -50], [880, 60, -60], [980, 50, 50], [1250, 60, 45], [1360, 50, -45]],
-      desc: "Замкнутые изумрудные коридоры. Перед каждой развилкой два табло, под каждым откидная мишень: горит табло ветки, куда идут рельсы. Попади в опущенную мишень — она откинется, её табло загорится, и рельсы уйдут в её ветку. Богатая ветка с бирюзовыми кристаллами даёт вдвое больше кристаллов, но в ней кресты и блоки. Тихая ветка с белым солнцем — только со стёклами, и она тянет к Свету. В коридорах вращаются массивные стеклянные кресты. В открытых залах на цепях качаются стеклянные блоки.",
-      feats: ["Три развилки: ветку выбирают выстрелом в мишень под табло", "Вращающиеся стеклянные крестовины", "Финал Portae: стеклянные врата с ключами"],
+      desc: "Замкнутые изумрудные коридоры. Перед каждой развилкой два табло, под каждым стрелка. Попади в стрелку — рельсы уйдут в её ветку; выбрать можно один раз. Не выбрал — поедешь по богатой ветке. Богатая ветка с бирюзовыми кристаллами даёт вдвое больше кристаллов, но в ней кресты и блоки. Тихая ветка с белым солнцем — только со стёклами, и она тянет к Свету. В коридорах вращаются массивные стеклянные кресты. В открытых залах на цепях качаются стеклянные блоки.",
+      feats: ["Три развилки: ветку выбирают выстрелом в стрелку под табло", "Вращающиеся стеклянные крестовины", "Финал Portae: стеклянные врата с ключами"],
       req: { after: "vitrum" }, map: { x: 410, y: 190, label: "t" } },
     { id: "hortus", num: "III·a", latin: "Hortus", ru: "Сад", line: "branch", playable: true, music: "glass_horizon", len: 900, pal: PAL_HORTI, finale: "vindemia",
       style: { arch: "ring", blocks: "bush", glassWalls: false }, crystalMul: 1.4,
@@ -6419,8 +6420,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["Glass catapults: hit the target and the shot breaks the thick glass", "Monoliths on chains, turning glass bars and crosses", "Finale Ruina: falling boulders"] },
       armamentarium: { ru: "Armoury", desc: "A dead-end depot beyond the Garden (Hortus). Here crystals buy upgrades for the cart. Cannons are not sold here: stations give them.",
         feats: ["Upgrades: a bigger reserve, a second wind, more bounty from crystals", "Three levels each; what you buy stays yours", "Cannons are stations' gifts: Initium, Labyrinthus, Nox, Rubinus and Carcer"] },
-      labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hang two boards, a flip target under each; the lit board is the branch the rails take. Hit the hanging target: it flips up, its board lights, and the rails turn into its branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains.",
-        feats: ["Three forks: pick the branch by shooting the target under its board", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
+      labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hang two boards, an arrow under each. Hit an arrow and the rails turn into its branch; you choose once. Choose none and you take the rich branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains.",
+        feats: ["Three forks: pick the branch by shooting the arrow under its board", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       hortus: { ru: "Garden", desc: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it.",
         feats: ["Lashing boughs with crystals", "After a ride Gemini costs half at the depot", "Finale Vindemia: the harvest"] },
       rubinus: { ru: "Ruby", desc: "The lower way from Vitrum to Speculum through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by anchors on chains: hit the orange target over the hawse, the chain hauls in and its door swings open. Solid glass crosses turn across the way and glass blocks swing on chains.",
@@ -6980,8 +6981,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     };
     sphere(crystals, 0.62, "crystal"); sphere(imps, 0.9, "imp"); sphere(thorns, 0.6, "thorn", t => t.headOn);
     sphere(sigils, 0.75, "sigil"); sphere(drops, 0.95, "drop");
-    for (const f of forks) { const ft = !f.locked && forkTarget(f); if (!ft) continue; tmpV.copy(ft.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.8) hits.push({ d, kind: "switch", x: f }); }
-    for (const sw of switches) if (!sw.locked) for (const t of sw.targets) { tmpV.copy(t.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.5) hits.push({ d, kind: "luxsw", x: [sw, t] }); }
+    for (const f of forks) for (const ft of forkTargets(f)) { tmpV.copy(ft.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < FORK_TR * FORK_TR + 0.3) hits.push({ d, kind: "switch", x: [f, ft] }); }
+    for (const sw of switches) if (!sw.locked) for (const t of sw.targets) { tmpV.copy(t.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < SW_PR * SW_PR) hits.push({ d, kind: "luxsw", x: [sw, t] }); }
     for (const r of rams) for (const c of r.chains) if (c.alive) { const rs = raySeg(o, dir, c.A, c.B); if (rs.dist < CHAIN_HIT + 0.05 && rs.d > 0 && rs.d < LASER_LEN) hits.push({ d: rs.d, kind: "ramchain", x: r, c }); }
     for (const dr of doors) { // the beam is tested along its length a step at a time
       if (Math.abs(dr.s - sC) > 130) continue;
@@ -7045,7 +7046,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       else if (h.kind === "thorn" && h.x.headOn) breakThorn(h.x, fake);
       else if (h.kind === "sigil" && h.x.alive) hitSigil(h.x, fake);
       else if (h.kind === "drop" && h.x.alive) hitDrop(h.x, fake);
-      else if (h.kind === "switch") { flipFork(h.x); end = h.d; break; }
+      else if (h.kind === "switch") { chooseFork(h.x[0], h.x[1]); end = h.d; break; }
       else if (h.kind === "luxsw") { hitSwitch(...h.x); end = h.d; break; }
       else if (h.kind === "button" && !h.x.pressed) pressButton(h.x);
       else if (h.kind === "cata") fireCatapult(h.x);
@@ -7420,9 +7421,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (state === "play" && branchAt(sC) === "calm") pending += 0.012 * dt; // the quiet branch draws the cart up toward the Light
     let spawnsNow = 0; // a few groups a frame: when the far view opens (Lux's and Vitrum's spirals, 480 m) a dozen had come at once
     while (nextSpawn < sC + spawnAhead() && (spawnsNow++ < 3 || nextSpawn < sC + 150)) {
-      // nothing spawns around a fork until its branch is chosen; the bend itself stays clear
-      if (forks.some(f => !f.locked && nextSpawn > f.s - 36 && nextSpawn < f.s + 46)) break;
-      const fl = forks.find(f => nextSpawn > f.s - 36 && nextSpawn < f.s + 46);
+      // a fork's switch (its arrows and boards, 44 m before the bend) stands clear: nothing from 35 m before it to 16 m past it, not to
+      // hide it nor to take the eye just after; then the tunnel on to the bend has its groups as anywhere. Nothing spawns about the
+      // bend until its branch is fixed, and the bend itself stays clear
+      const fz = forks.find(f => nextSpawn > f.s - 44 - 35 && nextSpawn < f.s - 44 + 16);
+      if (fz) { nextSpawn = fz.s - 44 + 16; continue; }
+      if (forks.some(f => !f.locked && nextSpawn > f.s - 6 && nextSpawn < f.s + 46)) break;
+      const fl = forks.find(f => nextSpawn > f.s - 6 && nextSpawn < f.s + 46);
       if (fl) { nextSpawn = fl.s + 46; continue; }
       const br = branchAt(nextSpawn);
       // where the track comes back near itself (a spiral comes out over where it went in, a ring turns back by the cart), a group whose
@@ -7830,8 +7835,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (const t of thorns) if (t.alive && t.headOn && pathDist(t.wp) < 0.5 + R_BALL) { mark(); breakThorn(t, b); }
         for (const g of sigils) if (g.alive && pathDist(g.wp) < 0.62 + R_BALL) { mark(); hitSigil(g, b); }
         for (const d of drops) if (d.alive && pathDist(d.wp) < (d.kind === "block" ? 0.85 : 0.57) + R_BALL) { mark(); hitDrop(d, b); }
-        for (const f of forks) { const ft = !f.locked && f.cd === 0 && forkTarget(f); if (ft && pathDist(ft.wp) < FORK_TR + R_BALL) { mark(); flipFork(f); chips(ft.wp, targetOn, 5, b.v); dead = true; } }
-        if (!dead) for (const sw of switches) for (const t of sw.targets) if (!dead && pathDist(t.wp) < 0.66 + R_BALL) { mark(); if (!hitSwitch(sw, t)) Sound.knock(); chips(t.wp, t.disc.material, 5, b.v); dead = true; } // every one of them a plate the ball strikes
+        for (const f of forks) for (const ft of forkTargets(f)) if (!dead && pathDist(ft.wp) < FORK_TR + R_BALL) { mark(); chooseFork(f, ft); chips(ft.wp, ft.disc.material, 5, b.v); dead = true; }
+        if (!dead) for (const sw of switches) for (const t of sw.targets) if (!dead && pathDist(t.wp) < SW_PR + R_BALL) { mark(); if (!hitSwitch(sw, t)) Sound.knock(); chips(t.wp, t.disc.material, 5, b.v); dead = true; } // every one of them a plate the ball strikes
         if (!dead) for (const bo of boughs) {
           if (bo.broken || Math.abs(bo.s - sC) > 130) continue;
           const steps = Math.max(1, Math.ceil(b.p0.distanceTo(pos) / 0.12));

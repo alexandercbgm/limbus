@@ -784,9 +784,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   // ---------- constants ----------
   const TAU = Math.PI * 2, W = 4.2, H = 6.6, CAM_V = 1.8;
-  // the front of the cart's platform, ahead of the eye: what stands in the way does its harm as it reaches it (CART_AT: where
-  // the cart is tested against what swings or turns across the way, the stretch it was tested over moved up to the front)
-  const CART_NOSE = 2.6, CART_AT = CART_NOSE - 0.6;
+  // the cart's platform runs from CART_TAIL behind the eye to CART_NOSE ahead of it: what stands in the way does its harm as
+  // the front reaches it, and what swings, turns, slides or burns across the way is tested all along the cart, front to back
+  const CART_NOSE = 2.6, CART_TAIL = 0.6;
+  const onCart = (s, ext) => s <= sC + CART_NOSE + ext && s >= sC - CART_TAIL - ext; // is s by the cart's body (ext: the thing's own reach along the track)?
   const DOOR_FOOT = 0.42; // doors and gates whose leaves stand side by side stop short of the rails (their tops are at 0.26)
   // W and H are the room the game is played in; the shell of walls, floor and ceiling may stand further out (SW, SH),
   // where a level's frames are bigger than the tunnel (Vitrum, Speculum, Rubinus). Set for each level in setLevel.
@@ -4226,7 +4227,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       b.B.copy(_P).addScaledVector(_R, tu).addScaledVector(_U, tv);
       for (const c of b.fruit) if (c.alive) { c.u = b.pu - b.side * BOUGH_L * c.bf * sn; c.v = b.pv - BOUGH_L * c.bf * cs - 0.4; }
       // the cart's body is about (u 0, v 1): a bough sweeping within reach of it as the cart passes lashes it
-      if (!b.broken && !b.hitCart && state === "play" && Math.abs(b.s - sC - CART_AT) < 0.9) {
+      if (!b.broken && !b.hitCart && state === "play" && onCart(b.s, 0.3)) {
         const du = tu - b.pu, dv = tv - b.pv, k = clamp(((0 - b.pu) * du + (1 - b.pv) * dv) / (du * du + dv * dv), 0, 1);
         if (Math.hypot(b.pu + du * k, b.pv + dv * k - 1) < 0.95) lashCart(b);
       }
@@ -4453,8 +4454,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           // with its twin standing: the first draws the beams into the twin's nozzles, the second none; else on out of sight
           e.len = b.twin && b.twin.alive ? (b.second ? 0 : 2 * Math.abs(b.u) - 2 * BAR_EM) : beamReach(e.au, e.av, bdu, bdv, 60, set.s); setBeamLen(e.beam, e.len);
         }
-        if (state === "play" && !set.passed && set.s <= sC + CART_NOSE)
-          for (const e of b.ems) if (beamHitsCart(e.au, e.av, e.au + bdu * e.len, e.av + bdv * e.len)) { const c = set.cost ? 1 : LASER_COST; if (set.cost + c <= 6) { set.cost += c; laserHit(c); } }
+        if (state === "play" && onCart(set.s, 0)) // each beam burns once, wherever along the cart it meets it: a gliding bar may sweep in behind the front
+          for (const e of b.ems) if (!e.burnt && beamHitsCart(e.au, e.av, e.au + bdu * e.len, e.av + bdv * e.len)) { e.burnt = true; const c = set.cost ? 1 : LASER_COST; if (set.cost + c <= 6) { set.cost += c; laserHit(c); } }
       }
       if (state === "play" && set.s <= sC + CART_NOSE) set.passed = true;
       if (set.s < sC - 6) { set.dead = true; set.bars.forEach(b => { scene.remove(b.root); }); }
@@ -4655,9 +4656,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         pr.flares.forEach((fl, i) => { const sg = segs[i]; fl.visible = !!sg && i < segs.length - 1; if (fl.visible) fl.position.set(sg[2], sg[3], 0); }); // a star at each bounce
         pr.segs = segs;
       }
-      if (state === "play" && !set.passed && set.s <= sC + CART_NOSE) {
-        set.passed = true;
-        for (const pr of set.prisms) for (const [a, b, c, d] of pr.segs || []) if (beamHitsCart(a, b, c, d)) { const k = set.cost ? 1 : LASER_COST; if (set.cost + k <= 6) { set.cost += k; laserHit(k); } }
+      if (state === "play" && !set.passed && onCart(set.s, 0)) { // a prism's light burns once, wherever along the cart it meets it
+        if (set.s < sC - CART_TAIL + 0.1) set.passed = true;
+        for (const pr of set.prisms) for (const [a, b, c, d] of pr.segs || []) if (pr.alive && !pr.burnt && beamHitsCart(a, b, c, d)) { pr.burnt = true; const k = set.cost ? 1 : LASER_COST; if (set.cost + k <= 6) { set.cost += k; laserHit(k); } }
       }
       if (set.s < sC - 6) { set.dead = true; scene.remove(set.root); }
     }
@@ -4676,7 +4677,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         c.wp.set(du * (CONE_IN + CONE_OUT) / 2, dv * (CONE_IN + CONE_OUT) / 2, 0).applyMatrix4(sp.root.matrix);
         // a cone that would reach into the wall is still drawn; its beam just has no length
       }
-      if (state === "play" && !sp.hit && Math.abs(sp.s - sC - CART_AT) < 0.6) {
+      if (state === "play" && !sp.hit && onCart(sp.s, 0)) {
         for (const c of sp.cones) if (c.alive && !sp.hit) {
           const ax = sp.hu + c.du * CONE_OUT, ay = sp.hv + c.dv * CONE_OUT;
           if (beamHitsCart(ax, ay, ax + c.du * c.len, ay + c.dv * c.len)) { sp.hit = true; laserHit(); }
@@ -4698,11 +4699,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       lb.len = beamReach(lb.u, v, lb.du, lb.dv, 60, lb.s);
       setObj(lb.root, lb.s, lb.u, v); lb.wp.setFromMatrixPosition(lb.root.matrix);
       setBeamLen(lb.beam, Math.max(0, lb.len - 0.16));
-      if (state === "play" && !lb.passed && lb.s <= sC + CART_NOSE) {
-        lb.passed = true;
+      if (state === "play" && !lb.passed && onCart(lb.s, 0)) { // its beam burns once, wherever along the cart it meets it
         if (beamHitsCart(lb.u, lb.v + lb.vv, lb.u + lb.du * lb.len, lb.v + lb.vv + lb.dv * lb.len)) {
           if (!lb.row) laserHit();
           else { const c = lb.row.cost ? 1 : LASER_COST; if (lb.row.cost + c <= 6) { lb.row.cost += c; laserHit(c); } }
+          lb.passed = true;
         }
       }
       if (lb.s < sC - 6) { lb.alive = false; scene.remove(lb.root); }
@@ -4868,7 +4869,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       r.root.updateMatrixWorld(true);
       for (const c of r.chains) { c.A.set(c.x, 0, 0); r.root.localToWorld(c.A); c.B.set(c.x + du * (1 - RAM_R / r.L), dv * (1 - RAM_R / r.L), 0); r.root.localToWorld(c.B); }
       const inner = r.side * RAM_U + du - r.side * RAM_LEN / 2, rv = H - 0.1 + dv; // the end nearest the rails
-      if (state === "play" && !r.hit && Math.abs(r.s - sC - CART_AT) < RAM_R + 0.7 && r.side * inner < 1.2 && rv - RAM_R < 2.4) { r.hit = true; crushed(T("таран", "ram")); }
+      if (state === "play" && !r.hit && onCart(r.s, RAM_R + 0.1) && r.side * inner < 1.2 && rv - RAM_R < 2.4) { r.hit = true; crushed(T("таран", "ram")); }
       if (r.s < sC - 8) { r.dead = true; scene.remove(r.root); }
     }
     rams = rams.filter(r => !r.dead);
@@ -4878,7 +4879,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const arm of m.arms) {
         // the handle stops short of the head
         arm.A.set(0, 0.3, 0); arm.grp.localToWorld(arm.A); arm.B.set(0, m.len - 0.8, 0); arm.grp.localToWorld(arm.B); arm.H.set(0, m.len, 0); arm.grp.localToWorld(arm.H);
-        if (arm.alive && state === "play" && !m.hit && Math.abs(m.s - sC - CART_AT) < 0.8) {
+        if (arm.alive && state === "play" && !m.hit && onCart(m.s, 0.2)) {
           const a = m.a + arm.ang + Math.PI / 2, hu = m.hu + Math.cos(a) * m.len, hv = m.hv + Math.sin(a) * m.len;
           if (CART_PTS.some(([u, v]) => Math.hypot(u - hu, v - hv) < 0.95)) { m.hit = true; crushed(T("молот", "hammer")); }
         }
@@ -5209,7 +5210,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (gr.pin) { setObj(gr.pin.root, gr.pin.s, gr.cu, gr.cv); gr.pin.rot.rotation.z = gr.a + (gr.pinOff || 0); gr.pin.wp = (gr.pin.wp || new THREE.Vector3()).setFromMatrixPosition(gr.pin.root.matrix); }
         setObj(gr.root, gr.s, gr.cu, gr.cv); gr.root.updateMatrixWorld(true); gr.wp.setFromMatrixPosition(gr.root.matrixWorld); gr.n.setFromMatrixColumn(gr.root.matrixWorld, 2).normalize(); // its axis
         for (const t of gr.teeth) { t.A.set(0, GEAR_ROOT, 0); t.g.localToWorld(t.A); t.B.set(0, GEAR_ROOT + GEAR_TOOTH - 0.1, 0); t.g.localToWorld(t.B); }
-        if (state === "play" && !set.hit && Math.abs(gr.s - sC - CART_AT) < GEAR_D / 2 + 0.6) for (const t of gr.teeth) if (t.alive && !set.hit) {
+        if (state === "play" && !set.hit && onCart(gr.s, GEAR_D / 2)) for (const t of gr.teeth) if (t.alive && !set.hit) {
           const an = gr.a + t.i * TAU / gr.N + Math.PI / 2, c = Math.cos(an), sn = Math.sin(an); // the tooth's line, out from the hub
           const ax = gr.cu + c * GEAR_ROOT, ay = gr.cv + sn * GEAR_ROOT, bx = gr.cu + c * (GEAR_ROOT + GEAR_TOOTH), by = gr.cv + sn * (GEAR_ROOT + GEAR_TOOTH);
           if (CART_PTS.some(([u, v]) => segDist2(u, v, ax, ay, bx, by) < gr.K.w0 / 2)) { set.hit = true; crushed(T("шестерня", "gear")); }
@@ -5345,7 +5346,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         t.len = t.alive ? beamReach(t.du * r0, PG_V + t.dv * r0, t.du, t.dv, MILL_L, pg.s) : 0; setBeamLen(t.beam, t.len);
         t.wp.set(0, PG_R + PG_L * 0.45, 0); t.g.localToWorld(t.wp);
       }
-      if (state === "play" && !pg.hit && Math.abs(pg.s - sC - CART_AT) < 0.6) for (const t of pg.teeth) if (t.alive && !pg.hit) {
+      if (state === "play" && !pg.hit && onCart(pg.s, 0)) for (const t of pg.teeth) if (t.alive && !pg.hit) {
         const ax = t.du * r0, ay = PG_V + t.dv * r0;
         if (beamHitsCart(ax, ay, ax + t.du * t.len, ay + t.dv * t.len)) { pg.hit = true; laserHit(); }
       }
@@ -7461,8 +7462,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         p.R.set(e[0], e[1], e[2]).normalize(); p.U.set(e[4], e[5], e[6]).normalize(); p.T.set(-e[8], -e[9], -e[10]).normalize();
       }
       p.q.setFromRotationMatrix(p.group.matrix);
-      if (state === "play" && !p.passed && p.s <= sC + CART_NOSE) {
-        p.passed = true;
+      if (state === "play" && !p.passed && onCart(p.s, 0)) { // tested all along the cart: a pane sliding, turning or rising may meet it behind its front
         let blocks;
         if (p.rot !== undefined || p.thick) { // the cart's body swept along the track through the pane, turned and tumbled as it is now
           blocks = CART_ENV.some(([cu, cv]) => {
@@ -7471,7 +7471,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           });
         } else blocks = p.u - p.w / 2 < 0.55 && p.u + p.w / 2 > -0.55 && p.v - p.h / 2 < CAM_V + 0.1 && p.v + p.h / 2 > 0.7;
         if (blocks && p.seq) { if (p.seq.hit) blocks = false; else p.seq.hit = true; } // a sequence of bars crashes the cart once
-        if (blocks) { if (p.link) p.link.passed = true; crash(p); } // one crash per rotor
+        if (blocks) { p.passed = true; if (p.link) p.link.passed = true; crash(p); } // one crash per rotor
       }
       if (p.alive && p.s < sC - 6) removePane(p);
     }
@@ -7500,9 +7500,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       setObj(t.group, t.s, t.u, t.v);
       t.group.updateMatrixWorld(true);
       t.head.getWorldPosition(t.wp);
-      if (state === "play" && t.headOn && !t.passed && t.s <= sC + CART_NOSE) {
-        t.passed = true;
+      if (state === "play" && t.headOn && !t.passed && onCart(t.s, 0)) { // a spike still running out meets the cart's side behind its front too
         if (t.ext > 0.85) {
+          t.passed = true;
           balls = Math.max(0, balls - 6); updateCount(); karmaLoss(0.2);
           pop("−6", "loss"); Sound.crash(); flash();
           shatterThorn(t, tmpV2.set(0, 0, 0));
@@ -7572,13 +7572,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (const em of hg.emitters) {
           const ax = bu + em.x * c + hg.h / 2 * sn2, ay = bv + em.x * sn2 - hg.h / 2 * c;
           em.len = beamReach(ax, ay, sn2, -c, 12, hg.s); setBeamLen(em.beam, em.alive ? em.len : 0);
-          if (em.alive && state === "play" && !hg.lasHit && Math.abs(hg.s - sC - CART_AT) < 0.6 && beamHitsCart(ax, ay, ax + em.len * sn2, ay - em.len * c)) { hg.lasHit = true; laserHit(); }
+          if (em.alive && state === "play" && !hg.lasHit && onCart(hg.s, 0) && beamHitsCart(ax, ay, ax + em.len * sn2, ay - em.len * c)) { hg.lasHit = true; laserHit(); }
         }
       }
-      if (state === "play" && !hg.passed && hg.s - hg.body.position.z <= sC + CART_NOSE) { // a slab swinging along the track meets the cart where it is
-        hg.passed = true;
+      if (state === "play" && !hg.passed && onCart(hg.s - hg.body.position.z, 0)) { // a slab swinging along the track or across it meets the cart where it is, all along it
         const bu = hg.u0 + hg.body.position.x, bv = hg.top + hg.body.position.y, low = hg.fore ? hg.h / 2 * cs + hg.d / 2 * Math.abs(sn) : hg.one ? -hg.lowY : hg.h / 2;
-        if (!hg.laser && Math.abs(bu) < hg.w / 2 + 0.55 && bv - low < CAM_V + 0.1) hangerCrash(hg);
+        if (!hg.laser && Math.abs(bu) < hg.w / 2 + 0.55 && bv - low < CAM_V + 0.1) { hg.passed = true; hangerCrash(hg); }
       }
       if (hg.alive && hg.s < sC - 6) { hg.alive = false; scene.remove(hg.root); }
     }
@@ -7598,9 +7597,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       setObj(d.group, d.s, d.u, d.v);
       d.wp.setFromMatrixPosition(d.group.matrix);
       d.mesh.rotation.y += d.spin * dt; if (!d.landed) d.mesh.rotation.x += d.spin * 0.6 * dt;
-      if (state === "play" && !d.passed && d.s <= sC + CART_NOSE) {
-        d.passed = true;
-        if (d.kind === "block") { if ((d.landed || d.v < CAM_V + 0.9) && Math.abs(d.u) < 1.45) blockCrash(d); else { streak = 0; updateCombo(); } }
+      if (state === "play" && !d.passed && d.s <= sC + CART_NOSE) { // a block still falling may come down on the cart behind its front
+        const on = d.kind === "block" && (d.landed || d.v < CAM_V + 0.9) && Math.abs(d.u) < 1.45;
+        if (on) { d.passed = true; blockCrash(d); }
+        else if (d.s < sC - CART_TAIL) { d.passed = true; if (d.kind === "block") { streak = 0; updateCombo(); } }
       }
       if (d.alive && d.s < sC - 4) { d.alive = false; scene.remove(d.group); }
     }

@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.402</div>
+      <div class="credit version">v1.0.403</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -910,7 +910,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.402`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.403`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -4254,8 +4254,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     forks.forEach(f => { f.targets.forEach(t => scene.remove(t.root)); f.signs.forEach(o => scene.remove(o.mesh)); f.plates.forEach(o => scene.remove(o.mesh)); });
     forks = (LEVEL.forks || []).map(fs => {
       // under each side's board a target on a rod hangs from a hinge: an arrow on a disc, as on Vitrum's gantry, pointing to its
-      // way. Both hang down, lighting in turn; the way is chosen once, by a hit on either, and its arrow stays lit; passed with
-      // none chosen, the cart takes the rich way (its board lit from the first)
+      // way. Both hang down, lighting in turn; the way is chosen once, by a hit on either, and its arrow stays lit as both fold up;
+      // passed with none chosen, the cart takes the rich way (its board lit from the first)
       const targets = [1, -1].map(side => {
         const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
         const hinge = new THREE.Group(); hinge.position.y = FORK_HINGE_V; root.add(hinge);
@@ -4279,7 +4279,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const swS = f.s - 30, vis = swS > sC - 4 && swS - sC < AHEAD - 6;
       for (const t of f.targets) { // under its board, the target folds up (k 1) or hangs down (k 0)
         const ps = swS - 14; t.root.visible = ps > sC - 4 && ps - sC < AHEAD - 6;
-        t.k += (0 - t.k) * Math.min(1, dt * 9); // (both hang down)
+        t.k += ((f.chosen ? 1 : 0) - t.k) * Math.min(1, dt * 9); // both hang down till the way is chosen (the lit one hit as well), then both fold up out of the way
         t.hinge.rotation.x = 1.5 * smooth5(t.k); // up and back, away from the cart's way ahead
         if (f.locked || f.chosen) lightDisc(t.disc, t.side === f.sign ? 1 : 0); // chosen or passed: the way taken lit
         else { const k = ((time - (t.side > 0 ? 0 : 1)) % 2 + 2) % 2; lightDisc(t.disc, k < 1 ? Math.sin(Math.PI * k) ** 2 : 0); } // in turn, once a second
@@ -7507,11 +7507,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (state === "play" && branchAt(sC) === "calm") pending += 0.012 * dt; // the quiet branch draws the cart up toward the Light
     let spawnsNow = 0; // a few groups a frame: when the far view opens (Lux's and Vitrum's spirals, 480 m) a dozen had come at once
     while (nextSpawn < sC + spawnAhead() && (spawnsNow++ < 3 || nextSpawn < sC + 150)) {
-      // a fork's switch (its arrows and boards, 44 m before the bend) stands clear: nothing from 35 m before it to 16 m past it, not to
+      // a fork's switch (its arrows and boards, 44 m before the bend) stands clear: nothing from 35 m before it to 22 m past it, not to
       // hide it nor to take the eye just after; then the tunnel on to the bend has its groups as anywhere. Nothing spawns about the
       // bend until its branch is fixed, and the bend itself stays clear
-      const fz = forks.find(f => nextSpawn > f.s - 44 - 35 && nextSpawn < f.s - 44 + 16);
-      if (fz) { nextSpawn = fz.s - 44 + 16; continue; }
+      const fz = forks.find(f => nextSpawn > f.s - 44 - 35 && nextSpawn < f.s - 44 + 22);
+      if (fz) { nextSpawn = fz.s - 44 + 22; continue; }
       if (forks.some(f => !f.locked && nextSpawn > f.s - 6 && nextSpawn < f.s + 46)) break;
       const fl = forks.find(f => nextSpawn > f.s - 6 && nextSpawn < f.s + 46);
       if (fl) { nextSpawn = fl.s + 46; continue; }

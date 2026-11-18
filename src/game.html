@@ -7099,6 +7099,230 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
   }
 
+  // ---------- imps that see what is in their way ----------
+  // An imp no longer flies through things: it looks some 14 m down its way and steers round whatever stands there (glass, a
+  // hanger, its chains, a gear, a mill, a gate), over a pane that fills the way; with nothing clear it slows and hangs back
+  // till the way opens or the cart has passed the thing. It turns only so fast, so a moving thing it saw too late, or a beam
+  // (a laser, a prism's or a gear's light) it could not get round, kills it. And it keeps where it can be seen and shot:
+  // nearing the cart it closes in on the middle of the view. Every so often, when none has died by itself for a while, one
+  // goes careless and does not mind what moves or shines in its way
+  const IMP_FWD = 7, IMP_ACC = 9, IMP_VMAX = 4.5, IMP_LOOK = 14, IMP_STEP = 2, IMP_CORE = 0.42;
+  const impObs = [], impBeams = [], impPool = [], impBeamPool = [];
+  let impLuck = 0, impLuckAt = rand(40, 75);
+  const IO_A = new THREE.Vector3(), IO_B = new THREE.Vector3(), IO_C = new THREE.Vector3(), IO_D = new THREE.Vector3(), IO_P = [];
+  for (let k = 0; k <= IMP_LOOK / IMP_STEP; k++) IO_P.push(new THREE.Vector3());
+  // everything an imp minds, near the stretch [s0, s1]: each mesh with its box, and each beam as a segment
+  function impGather(s0, s1, dt) {
+    impObs.length = 0; impBeams.length = 0;
+    const take = (o, ss) => {
+      if (!o || !o.isObject3D || !o.parent) return;
+      o.traverseVisible(c => {
+        if (!c.isMesh || c.isInstancedMesh) return;
+        if (c.geometry === beamGeo) { // a beam's core: a segment from its foot along its length
+          if (c.scale.y < 0.05) return;
+          const b = impBeamPool[impBeams.length] || (impBeamPool[impBeams.length] = { A: new THREE.Vector3(), B: new THREE.Vector3() });
+          const e = c.matrixWorld.elements; b.A.setFromMatrixPosition(c.matrixWorld); b.B.set(b.A.x + e[4], b.A.y + e[5], b.A.z + e[6]); b.s = ss;
+          const L = Math.min(1, 6 / Math.max(1e-3, b.A.distanceTo(b.B))); b.mv = impSpeed(c, IO_A.copy(b.A).lerp(b.B, L), dt); impBeams.push(b);
+          return;
+        }
+        if (c.geometry === beamHaloGeo || c.geometry === beamGlowGeo || c.material.blending === THREE.AdditiveBlending) return; // glows are no body
+        const g = c.geometry; if (!g.boundingBox) g.computeBoundingBox();
+        const r = impPool[impObs.length] || (impPool[impObs.length] = { inv: new THREE.Matrix4(), c: new THREE.Vector3(), h: new THREE.Vector3(), k: new THREE.Vector3() });
+        const e = c.matrixWorld.elements;
+        r.k.set(Math.hypot(e[0], e[1], e[2]) || 1, Math.hypot(e[4], e[5], e[6]) || 1, Math.hypot(e[8], e[9], e[10]) || 1); // its scale on each axis
+        g.boundingBox.getCenter(r.c); g.boundingBox.getSize(r.h).multiplyScalar(0.5);
+        r.inv.copy(c.matrixWorld).invert();
+        const w = IO_A.copy(r.c).applyMatrix4(c.matrixWorld); // its middle in the world, and how fast it goes
+        r.rad = Math.hypot(r.h.x * r.k.x, r.h.y * r.k.y, r.h.z * r.k.z); r.wx = w.x; r.wy = w.y; r.wz = w.z;
+        r.mv = impSpeed(c, IO_B.copy(r.c).add(r.h).applyMatrix4(c.matrixWorld), dt); // (a corner: what turns about its middle moves too)
+        r.s = ss; r.m = c; impObs.push(r);
+      });
+    };
+    const lists = [panes, hangers, mounts, spinners, lblocks, lbars, prismSets, rams, hmills, doors, gears, pgears, switches, gates, catas, boughs, thorns];
+    for (const L of lists) for (const x of L) {
+      if (x.s === undefined || x.s < s0 || x.s > s1 || x.alive === false || x.falling || x.broken || x.dead) continue;
+      take(x.root, x.s); take(x.group, x.s); take(x.slab, x.s); take(x.beam, x.s); take(x.g, x.s);
+      if (Array.isArray(x.bars)) for (const b of x.bars) take(b && b.root, x.s);
+      if (Array.isArray(x.gears)) for (const b of x.gears) take(b && b.root, x.s);
+    }
+  }
+  // how fast a point of a thing goes (smoothed: a moving thing, not the track's slow drift), as the room it is given for where it is going
+  function impSpeed(c, w, dt) {
+    const ud = c.userData, p = ud.impP;
+    let sp = 0;
+    if (p && dt > 0) sp = Math.min(30, p.distanceTo(w) / dt);
+    if (!p) ud.impP = new THREE.Vector3(); ud.impP.copy(w);
+    ud.impV = (ud.impV || 0) + (sp - (ud.impV || 0)) * Math.min(1, dt * 6);
+    return ud.impV > 0.6 ? Math.min(1.2, ud.impV * 0.35) : 0;
+  }
+  // does the segment A→B, fattened by r, touch a box (in its own frame, scaled)?
+  function impSegBox(o, A, B, r) {
+    const a = IO_C.copy(A).applyMatrix4(o.inv), b = IO_D.copy(B).applyMatrix4(o.inv);
+    let t0 = 0, t1 = 1;
+    for (const ax of ["x", "y", "z"]) {
+      const lo = o.c[ax] - o.h[ax] - r / o.k[ax], hi = o.c[ax] + o.h[ax] + r / o.k[ax], d = b[ax] - a[ax];
+      if (Math.abs(d) < 1e-9) { if (a[ax] < lo || a[ax] > hi) return false; continue; }
+      let u = (lo - a[ax]) / d, v = (hi - a[ax]) / d; if (u > v) { const t = u; u = v; v = t; }
+      t0 = Math.max(t0, u); t1 = Math.min(t1, v); if (t0 > t1) return false;
+    }
+    return true;
+  }
+  // the least distance between two segments
+  function impSegSeg(P0, P1, Q0, Q1) {
+    let best = Infinity;
+    for (let i = 0; i <= 8; i++) { const p = IO_C.copy(P0).lerp(P1, i / 8); best = Math.min(best, segDist(p, Q0, Q1)); }
+    return best;
+  }
+  // nothing in the way of A→B? (careless: what moves and what shines is not minded)
+  function impClear(A, B, r, careless) {
+    const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, mz = (A.z + B.z) / 2, hl = A.distanceTo(B) / 2;
+    for (const o of impObs) {
+      if (careless && o.mv) continue;
+      const rr = r + o.mv, q = o.rad + rr + hl;
+      if ((o.wx - mx) ** 2 + (o.wy - my) ** 2 + (o.wz - mz) ** 2 > q * q) continue;
+      if (impSegBox(o, A, B, rr)) return false;
+    }
+    if (!careless) for (const b of impBeams) {
+      const q = r + 0.25 + b.mv; IO_D.set(mx, my, mz); if (segDist(IO_D, b.A, b.B) > q + hl) continue; // far off: no closer look
+      if (impSegSeg(A, B, b.A, b.B) < q) return false;
+    }
+    return true;
+  }
+  // where an imp may be, seen from the cart d metres off: inside the walls, under the vault, and on the screen
+  const impWin = { u0: 0, u1: 0, v0: 0, v1: 0 };
+  function impWindow(s, d) {
+    const open = openAt(s) || iniOpen(s), hall = LEVEL.halls && inHall(s);
+    const hw = open ? BRIDGE_W + 1.6 : (hall ? HALL_W : SW) - 0.8, top = open ? 7.5 : (hall ? HALL_H : SH) - 0.8;
+    impWin.u0 = -hw; impWin.u1 = hw; impWin.v0 = 0.9; impWin.v1 = Math.max(1.6, top);
+    if (d < 40) {
+      const tv = Math.tan(camera.fov * Math.PI / 360), th = tv * camera.aspect, dd = Math.max(0, d);
+      const au = Math.max(0.25, dd * th * 0.78 - 0.55), av = Math.max(0.25, dd * tv * 0.78 - 0.55);
+      impWin.u0 = Math.max(impWin.u0, -au); impWin.u1 = Math.min(impWin.u1, au);
+      impWin.v0 = Math.max(impWin.v0, CAM_V - av); impWin.v1 = Math.min(impWin.v1, CAM_V + av);
+      if (impWin.u0 > impWin.u1) impWin.u0 = impWin.u1 = 0;
+      if (impWin.v0 > impWin.v1) impWin.v0 = impWin.v1 = CAM_V;
+    }
+    return impWin;
+  }
+  // the imp's way to (tu, tv) over the next 2 s: it eases over to it and keeps on there, on along the track as fast as it
+  // goes (hanging back, only across), sampled every quarter second
+  function impPath(m, tu, tv) {
+    const du = tu - m.cu, dv = tv - m.cv, T = Math.max(0.5, Math.hypot(du, dv) / (IMP_VMAX * 0.6)), vf = m.act ? Math.max(2, m.fs) : 0;
+    for (let k = 0; k < IO_P.length; k++) {
+      const t = k * 0.25, e = smooth5(Math.min(1, t / T));
+      frameAt(m.s - vf * t); IO_P[k].copy(_P).addScaledVector(_R, m.cu + du * e).addScaledVector(_U, m.cv + dv * e);
+    }
+  }
+  // the first step of that way that meets something (-1: none)
+  function impPathHit(m, tu, tv, r, n) {
+    impPath(m, tu, tv);
+    for (let k = 1; k < (n || IO_P.length); k++) if (!impClear(IO_P[k - 1], IO_P[k], r, m.dumb)) return k;
+    return -1;
+  }
+  const impPathClear = (m, tu, tv, r, n) => impPathHit(m, tu, tv, r, n) < 0;
+  function impPlan(m) {
+    const ahead = Math.max(0, m.s - sC - (speedNow + (m.act ? IMP_FWD : 0)) * 0.8), w = impWindow(m.s, ahead);
+    const r = IMP_CORE + 0.35 + 0.45 * m.wob; // room to spare: it turns smoothly and so cuts a corner a little
+    const home = [clamp(m.bu, w.u0, w.u1), clamp(m.bv, w.v0, w.v1)];
+    const cands = [home, [clamp(m.tu, w.u0, w.u1), clamp(m.tv, w.v0, w.v1)]];
+    for (let u = w.u0; u <= w.u1 + 1e-6; u += Math.max(0.7, (w.u1 - w.u0) / 6)) for (let v = w.v0; v <= w.v1 + 1e-6; v += Math.max(0.7, (w.v1 - w.v0) / 4)) cands.push([u, v]);
+    // the nearest way round first: little off its own line, little from where it is headed now, rather over than under
+    const cost = c => Math.hypot(c[0] - home[0], c[1] - home[1]) * 0.5 + Math.hypot(c[0] - m.tu, c[1] - m.tv) + Math.hypot(c[0] - m.cu, c[1] - m.cv) * 0.5 - c[1] * 0.08;
+    cands.sort((a, b) => cost(a) - cost(b));
+    for (const c of cands) if (impPathClear(m, c[0], c[1], r)) { m.tu = c[0]; m.tv = c[1]; m.blocked = false; m.back = false; return; }
+    // no way through: it hangs back, somewhere out of the way of what sweeps or drifts by (a beam, a gliding bar, a rising pane)
+    m.blocked = true;
+    for (const c of cands) if (impPathClear(m, c[0], c[1], r, 3)) { m.tu = c[0]; m.tv = c[1]; m.back = false; return; }
+    m.back = true; // nowhere safe here: it backs off, away from the cart
+  }
+  // an imp that met a beam or a thing: it bursts, and the player has nothing for it
+  function impCrash(m) {
+    m.alive = false; scene.remove(m.group); Sound.imp();
+    frameAt(m.s); chips(m.wp, impMat, 12, IO_A.copy(_T).multiplyScalar(-IMP_FWD));
+    if (m.wave) m.wave.n--; // a wave is the smaller by it, not lost
+    impLuck = 0; impLuckAt = rand(40, 75);
+  }
+  // is any face of a mesh within r of p? Rays out every way, both ways round
+  const IMP_RC = new THREE.Raycaster(), IMP_HITS = [], IMP_DIRS = [];
+  for (const x of [-1, 0, 1]) for (const y of [-1, 0, 1]) for (const z of [-1, 0, 1]) if (x || y || z) IMP_DIRS.push(new THREE.Vector3(x, y, z).normalize());
+  function impNear(mesh, p, r) {
+    IMP_RC.far = r;
+    for (const d of IMP_DIRS) { IMP_RC.set(p, d); IMP_HITS.length = 0; mesh.raycast(IMP_RC, IMP_HITS); if (IMP_HITS.length) return true; }
+    return false;
+  }
+  function impTouch(m, at, pad, rough) {
+    const p = at || m.wp, rr = IMP_CORE * 0.75 + (pad || 0);
+    for (const o of impObs) {
+      const q = o.rad + IMP_CORE;
+      if ((o.wx - p.x) ** 2 + (o.wy - p.y) ** 2 + (o.wz - p.z) ** 2 > q * q) continue;
+      if (impSegBox(o, p, p, rr) && (o.rad < 1.6 || rough || impNear(o.m, p, IMP_CORE))) return true; // a big thing by its own faces: a ring, a wheel, a frame is open
+    }
+    for (const b of impBeams) if (segDist(p, b.A, b.B) < IMP_CORE + 0.05 + (pad || 0)) return true;
+    return false;
+  }
+  function updateImps(dt) {
+    if (!imps.length) return;
+    let s0 = Infinity, s1 = -Infinity;
+    for (const m of imps) if (m.alive) { s0 = Math.min(s0, m.s - IMP_LOOK - 4); s1 = Math.max(s1, m.s + 24); } // (a margin, so a thing is seen moving before it is near)
+    impGather(s0, s1, dt);
+    if (state === "play" && imps.some(m => m.act)) impLuck += dt;
+    for (const m of imps) {
+      if (!m.alive) continue;
+      if (m.cu === undefined) { // born inside something (a beam across the way, a pane): it hangs a little aside instead
+        const at = (u, v) => { frameAt(m.s); return IO_B.copy(_P).addScaledVector(_R, u).addScaledVector(_U, v); };
+        if (impTouch(m, at(m.bu, m.bv), 0.5, true)) {
+          const w = impWindow(m.s, m.s - sC); let best = null, bd = Infinity;
+          for (let u = w.u0; u <= w.u1 + 1e-6; u += 0.8) for (let v = w.v0; v <= w.v1 + 1e-6; v += 0.8) {
+            const dd = Math.hypot(u - m.bu, v - m.bv); if (dd < bd && !impTouch(m, at(u, v), 0.5, true)) { bd = dd; best = [u, v]; }
+          }
+          if (best) { m.bu = best[0]; m.bv = best[1]; }
+        }
+        m.cu = m.bu; m.cv = m.bv; m.tu = m.bu; m.tv = m.bv; m.vu = 0; m.vv = 0; m.fs = 0; m.wob = 1; m.pt = Math.random() * 0.12;
+      }
+      const d = m.s - sC;
+      m.act = state === "play" && d < 75;
+      m.pt -= dt;
+      if (m.pt <= 0) {
+        m.pt = 0.12;
+        if (m.act && !m.dumb && impLuck > impLuckAt) { // careless now and then: on its own line, it does not mind what moves or shines there
+          const hu = m.bu, hv = m.bv, full = impPathClear(m, hu, hv, IMP_CORE + 0.2); m.dumb = true;
+          m.dumb = !full && impPathClear(m, hu, hv, IMP_CORE + 0.2);
+        }
+        impPlan(m);
+        let near = false;
+        for (const o of impObs) if (Math.abs(o.s - m.s + 3) < 5) { near = true; break; }
+        m.near = near;
+      }
+      m.wob += ((m.near ? 0.2 : 1) - m.wob) * Math.min(1, dt * 2);
+      // on along the track, slowing to a hover while its way is shut
+      const fw = m.act ? (m.blocked ? (m.back ? -3 : 0) : IMP_FWD) : (m.back ? -3 : 0);
+      m.fs += clamp(fw - m.fs, -12 * dt, 12 * dt); m.s -= m.fs * dt;
+      // across it, turning only so fast
+      for (const [p, v, t] of [["cu", "vu", "tu"], ["cv", "vv", "tv"]]) {
+        const a = clamp(5 * (m[t] - m[p]) - 4.5 * m[v], -IMP_ACC, IMP_ACC);
+        m[v] = clamp(m[v] + a * dt, -IMP_VMAX, IMP_VMAX); m[p] += m[v] * dt;
+      }
+      const w = impWindow(m.s, d); // never off the screen nor out of the way
+      m.cu = clamp(m.cu, w.u0, w.u1); m.cv = clamp(m.cv, w.v0, w.v1);
+      m.u = m.cu + Math.sin(time * 2.3 + m.phase) * 0.45 * m.wob;
+      m.v = m.cv + Math.sin(time * 3.1 + m.phase * 2) * 0.25 * m.wob;
+      if (m.rise) { const k = smooth5((80 - d) / 30); m.v = lerp(-10, m.v, k); m.u = lerp(Math.sign(m.bu) * 7, m.u, k); } // a shade climbing out of the void
+      setObj(m.group, m.s, m.u, m.v);
+      m.wp.setFromMatrixPosition(m.group.matrix);
+      m.cage.rotation.x += dt * 2.5; m.cage.rotation.y += dt * 1.7;
+      m.core.scale.setScalar(1 + 0.12 * Math.sin(time * 9 + m.phase));
+      // it bursts on what it meets, once it is on its way and has been clear of everything (not where it was born or waited)
+      if (m.act && d > 5 && !(m.rise && d > 50)) { if (impTouch(m)) { if (m.free) { impCrash(m); continue; } } else m.free = true; }
+      if (state === "play" && m.s <= sC + 1) {
+        m.alive = false; scene.remove(m.group); if (m.wave) m.wave.lost = true;
+        balls = Math.max(0, balls - 3); updateCount(); karmaLoss(0.1);
+        pop("−3", "loss"); Sound.steal(); flash();
+        if (!reduceMotion) shakeT = 0.3;
+      }
+    }
+    imps = imps.filter(m => m.alive);
+  }
+
   // ---------- simulation ----------
   function updatePlay(dt) {
     runTime += dt;
@@ -7262,24 +7486,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     crystals = crystals.filter(c => c.alive);
 
-    for (const m of imps) {
-      if (!m.alive) continue;
-      if (state === "play" && m.s - sC < 75) m.s -= 7 * dt;
-      m.u = m.bu + Math.sin(time * 2.3 + m.phase) * 1.2;
-      m.v = m.bv + Math.sin(time * 3.1 + m.phase * 2) * 0.6;
-      if (m.rise) { const k = smooth5((80 - (m.s - sC)) / 30); m.v = lerp(-10, m.v, k); m.u = lerp(Math.sign(m.bu) * 7, m.u, k); } // a shade climbing out of the void
-      setObj(m.group, m.s, m.u, m.v);
-      m.wp.setFromMatrixPosition(m.group.matrix);
-      m.cage.rotation.x += dt * 2.5; m.cage.rotation.y += dt * 1.7;
-      m.core.scale.setScalar(1 + 0.12 * Math.sin(time * 9 + m.phase));
-      if (state === "play" && m.s <= sC + 1) {
-        m.alive = false; scene.remove(m.group); if (m.wave) m.wave.lost = true;
-        balls = Math.max(0, balls - 3); updateCount(); karmaLoss(0.1);
-        pop("−3", "loss"); Sound.steal(); flash();
-        if (!reduceMotion) shakeT = 0.3;
-      }
-    }
-    imps = imps.filter(m => m.alive);
+    updateImps(dt);
 
     thornMat.emissiveIntensity = 0.45 + 0.2 * Math.sin(time * 7);
     for (const t of thorns) {

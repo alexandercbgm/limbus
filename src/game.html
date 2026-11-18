@@ -7644,7 +7644,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     if (progress.weapon === "ballista") { // the coils flare one after another, body to muzzle, as a shot runs out through them
       const k = time - lastShotT;
-      GUNS[0].models.ballista.children.forEach(o => { if (o.name && o.name.startsWith("gcoil")) { const i = +o.name.slice(5), x = clamp((k - i * 0.07) / 0.3, 0, 1), e = Math.min(1, Math.sin(Math.PI * x) * 3); // (out and in quickly, dark between) // each fading out and back in over 0.3 s, one after another from the breech to the muzzle, each 0.07 s after the last (0.03 s apart they had seemed to blink all at once)
+      GUNS[0].models.ballista.children.forEach(o => { if (o.name && o.name.startsWith("gcoil")) { const i = +o.name.slice(5), x = clamp((k - i * 0.035) / 0.15, 0, 1), e = Math.min(1, Math.sin(Math.PI * x) * 3); // (the whole wave a third of a second) // (out and in quickly, dark between) // each fading out and back in over 0.3 s, one after another from the breech to the muzzle, each 0.07 s after the last (0.03 s apart they had seemed to blink all at once)
         o.material.color.copy(accentMat.color).lerp(GCELL_OFF, e); }
         else if (o.name && o.name.startsWith("gcell")) { const i = +o.name.slice(5), fl = Math.max(0, 1 - k / 0.15), on = Math.max(fl, clamp(Math.min(1, k) * 12 - i, 0.12, 1)); o.material.color.copy(GCELL_OFF).lerp(GCELL_ON, on).lerp(WHITE, fl * 0.85); } // (the drum always its own gold, on every level, whatever the karma)
         else if (o.name === "gport") o.material.color.copy(GCELL_ON).lerp(WHITE, Math.max(1 - clamp(k, 0, 1), 0.1 + 0.08 * Math.sin(time * 3.3)));

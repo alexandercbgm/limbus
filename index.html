@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.403</div>
+      <div class="credit version">v1.0.404</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -910,7 +910,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.403`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.404`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -968,8 +968,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // Initium's loops: the track pitching up and over a whole turn and down again, edging sideways as it goes (side +1 to the right) so
   // it comes out beside where it went in, not through itself
   // loops: "v" a loop-the-loop, edging sideways by side·w as it goes round so it comes out beside where it went in (Initium's
-  // two, Vitrum's first); "h" a ring flat on the ground, round to the side and climbing dh as it goes, so it comes out over where
-  // it went in, then down again over dl (Vitrum's second: its ring threads the loop before it, the two hung on each other)
+  // two, Vitrum's first); "h" a ring lying flat, turning th (a whole turn unless said) to the side and climbing dh as it goes,
+  // then down again over dl if it has one; it may climb hc over cl from pre before it starts (Vitrum's second, hung on the loop)
   let LOOPS = []; const LOOP_LEN = 120, LOOP_SIDE = 9;
   // a turn eased in and out over r of its length and even between: the share of it made by x (0..1), from a table per r
   const PLAT = new Map();
@@ -982,11 +982,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const loopEnd = l => l.s0 + l.len + (l.dl || 0);
   const loopAt = s => { for (const l of LOOPS) if (s > l.s0 - 1 && s < loopEnd(l) + 1) return l; return null; };
   const loopRise = (s, s0, L, h) => { const x = (s - s0) / L; return x > 0 && x < 1 ? h / L * Math.PI / 2 * Math.sin(Math.PI * x) : 0; }; // the slope of a climb of h over L
-  const loopPitch = s => { let p = 0; for (const l of LOOPS) { const x = (s - l.s0) / l.len; if (x <= 0) continue;
-    if (l.kind === "h") p += Math.asin(clamp(loopRise(s, l.s0, l.len, l.dh) + loopRise(s, l.s0 + l.len, l.dl, -l.dh), -0.9, 0.9));
+  const loopPitch = s => { let p = 0; for (const l of LOOPS) { const x = (s - l.s0) / l.len;
+    if (l.kind === "h") { if (s > l.s0 - (l.pre || 0)) p += Math.asin(clamp(loopRise(s, l.s0, l.len, l.dh) + (l.dl ? loopRise(s, l.s0 + l.len, l.dl, -l.dh) : 0) + (l.cl ? loopRise(s, l.s0 - l.pre, l.cl, l.hc) : 0), -0.9, 0.9)); continue; } // (a little climb just before it, from the loop's foot)
+    if (x <= 0) continue;
     else p += TAU * (l.r ? plat(x, l.r) : smooth5(Math.min(1, x))); } return p; };
   const loopShift = s => { let d = 0; for (const l of LOOPS) { const x = (s - l.s0) / l.len; if (x > 0 && l.kind !== "h") d += l.side * l.w * smooth5(Math.min(1, x)); } return d; };
-  const loopYaw = s => { let y = 0; for (const l of LOOPS) if (l.kind === "h" && s > l.s0) y += l.side * TAU * plat((s - l.s0) / l.len, l.r); return y; };
+  const LO0 = { x: 0, z: 0 };
+  function loopOff(s, o) { // a loop's sideways edging so far, in the world: across the heading the loop itself has
+    o.x = 0; o.z = 0;
+    for (const l of LOOPS) { if (l.kind === "h" || s <= l.s0) continue; const d = l.side * l.w * smooth5(Math.min(1, (s - l.s0) / l.len)), y = yawAt(Math.min(s, l.s0 + l.len)); o.x += Math.cos(y) * d; o.z -= Math.sin(y) * d; }
+    return o;
+  }
+  const loopYaw = s => { let y = 0; for (const l of LOOPS) if (l.kind === "h" && s > l.s0) y += l.side * (l.th || TAU) * plat((s - l.s0) / l.len, l.r); return y; };
   function planLux() {
     LUXH = []; LTW = []; VIT_GLAZE = []; if (LEVEL.id === "lux") TURNS = []; // (Lux makes its own bends; every other level keeps its own)
     const L = MAIN_LEN, add = (kind, c) => {
@@ -1001,12 +1008,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const first = LTW[0].dir < 0 ? 1 : -1, a = Math.round(L * 2 / 3) - LOOP_LEN - 5;
       LOOPS.push({ kind: "v", s0: a, side: first, len: LOOP_LEN, w: LOOP_SIDE }, { kind: "v", s0: a + LOOP_LEN + 10, side: -first, len: LOOP_LEN, w: LOOP_SIDE }); }
     if (LEVEL.id === "vitrum") { LTW[0].dir = -1; LTW[0].pdir = 1; } // Vitrum's gantry: left or right only, left the way it takes if none is chosen; left always climbs, right always dives
-    // Vitrum, two thirds of the way: a loop-the-loop and, straight after it, a ring flat on the ground, round to the loop's side and
-    // climbing, that passes back through the loop: the two hung on each other like two links of a chain. Both wide enough to see
-    // well ahead round them (a narrow phone on its side: 54 m on the loop, 34 m on the ring), every part of the track 21 m and more
-    // from every other, frames and all; the loop edges sideways 24 m, the ring climbs 25 m and comes down over 160 m
-    if (LEVEL.id === "vitrum") { const side = Math.random() < 0.5 ? 1 : -1, a = Math.round(L * 2 / 3) - 270;
-      LOOPS.push({ kind: "v", s0: a, side, len: 240, w: 24, r: 0.1 }, { kind: "h", s0: a + 237, side, len: 300, r: 0.13, dh: 25, dl: 160 }); }
+    // Vitrum, two thirds of the way: a loop-the-loop and, just after it, a ring lying flat, the two hung on each other, each through
+    // the other's middle: the loop edges 29 m to the right as it goes round, so it comes out where the ring begins; the ring (its
+    // middle on the loop's front) turns three quarters round to the left, climbing to the loop's middle height, and ends there, at
+    // the loop's middle, heading right; the track runs on from there, at that height. Seen from the cart (a narrow phone on its
+    // side) 38 m ahead on the loop, 22 m on the ring; every part of it 21 m and more from every other, frames and all
+    if (LEVEL.id === "vitrum") { const a = Math.round(L * 2 / 3) - 165;
+      LOOPS.push({ kind: "v", s0: a, side: 1, len: 175.5, w: 28.9, r: 0.04 }, { kind: "h", s0: a + 175.5 + 9.65, side: 1, th: TAU * 0.75, len: 144.3, r: 0.14, dh: 22.3, dl: 0, pre: 9.65, hc: 1.54, cl: 11.65 }); }
     if (LEVEL.id === "initium") for (let m = 0, on = Math.random() < 0.5; m * 8 < L + SUPER_LEN + 60; on = !on) { // runs of bays: walled corridors 2 to 5, open 4 to 11
       const n = on ? 2 + Math.floor(Math.random() * 4) : 4 + Math.floor(Math.random() * 8);
       for (let i = 0; i < n; i++, m++) VIT_GLAZE[m] = on && !LTW.some(t => m * 8 + 8 > t.sw - 60 && m * 8 < t.tw1 + 60) && !LOOPS.some(l => m * 8 + 8 > l.s0 - 40 && m * 8 < loopEnd(l) + 40); }
@@ -2039,7 +2047,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (let q = 0; q < 3; q++) PP[k + q] += r * (PU[k + q] * c + PR[k + q] * sn - PU[k + q]);
     }
     // through Initium's loops the rails edge sideways (level, across the heading), so they come out beside where they went in
-    if (LOOPS.length) { const d0 = loopShift(sC); for (let j = 0; j < NS; j++) { const s = sBase + j * DS, d = loopShift(s) - d0, k = j * 3; if (!d) continue; const y = yawAt(s); PP[k] += Math.cos(y) * d; PP[k + 2] -= Math.sin(y) * d; } }
+    // (across the loop's own heading, so that past it the edging stays where it was made: across the heading there, it had swung round
+    // with a ring's turn after it, the ring drawn wider and somewhere else till the cart was through the loop)
+    if (LOOPS.length) { loopOff(sC, LO0); const x0 = LO0.x, z0 = LO0.z; for (let j = 0; j < NS; j++) { const s = sBase + j * DS, k = j * 3; loopOff(s, LO0); const dx = LO0.x - x0, dz = LO0.z - z0; if (!dx && !dz) continue; PP[k] += dx; PP[k + 2] += dz; } }
     // and there the rails' heading is where they now run (they had pointed along the line, the cart going on at a slant):
     // T from the points either side, U square to it, R across
     if (SPANS.length || LTW.length || LOOPS.length) for (let j = 0; j < NS; j++) {
@@ -2232,6 +2242,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     deckTop.visible = seg > 0;
   }
   const floorStrip = makeStrip(STRIP_N, surfMat, false), vaultStrip = makeStrip(STRIP_N, surfMat, true);
+  const underStrip = makeStrip(STRIP_N, surfMat, true); // the floor seen from below, where the track runs overhead (a manoeuvre's turns, a loop)
   const gFloorStrip = makeStrip(GHOST_N, surfMat, false), gVaultStrip = makeStrip(GHOST_N, surfMat, true);
   // a mirror wall reflects the corridor to an offset of 2 × (SW + 0.12) on its side (set with the level)
   const mirStrips = [-1, 1].map(k => ({ o: k * 2 * (W + 0.12), k, floor: makeStrip(STRIP_N, surfMat, false), vault: makeStrip(STRIP_N, surfMat, true) }));
@@ -2332,9 +2343,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     if (STYLE.blocks === "quartz") { // Vitrum: crystals of quartz out on either side, as many and as big as Abyssus's blocks. Every 4 m
       // (every second segment) a place, holding nothing (15 in 100), a lone crystal (45) or a cluster (40). Everything grows
-      // upward: its axis in the upper half of the sphere. None about a loop or a ring: out to 25 m from the track, they'd hang in
-      // the air round it and might stand in the way of its other turn
-      if (k % 2 === 0 && !LOOPS.some(l => s > l.s0 - 100 && s < loopEnd(l) + 20)) {
+      // upward: its axis in the upper half of the sphere (about manoeuvres and loops as anywhere: one in the way of another turn
+      // of the track fades out there, see inTube)
+      if (k % 2 === 0) {
         const r0 = hash(k * 11 + 1);
         const h1 = hash(k * 31), h2 = hash(k * 17), h3 = hash(k * 23), side = h1 < 0.5 ? -1 : 1;
         const cu = side * (SW + 5 + h3 * 20), cv = -8 + h2 * 20, Y = new THREE.Vector3(0, 1, 0), O = new THREE.Vector3();
@@ -2392,7 +2403,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const w = (7 + hh(12 + j) * 9) * (1 + u0 / 90), side = hh(27 + j) < 0.5 ? -1 : 1; d.towers.push({ u: side * (u0 + w * 0.65), top: -50 + hh(18 + j) * 30, sx: w, sz: w * (0.7 + hh(21 + j) * 0.6), sy: 150, ry: (hh(24 + j) - 0.5) * 0.5 }); }
       for (const t of d.towers) t.tint = hash(t.u * 7.1 + t.top * 3.3 + k); // each its own shade, white to pale blue: all one white, their roofs had run together into a plain
     }
-    const nb = LEVEL.id === "initium" || STYLE.mirror || (twM && (twM.kind === "spiral" || !STYLE.bridge)) || LOOPS.some(l => s > l.s0 - 40 && s < loopEnd(l) + 40) ? 0 : // (off the bridges, none over a manoeuvre at all: there they are not kept clear of each other)
+    const nb = LEVEL.id === "initium" || STYLE.mirror ? 0 : // (over manoeuvres and loops as anywhere: one in the way of another turn of the track, or of a block off another stretch, fades out there)
       (hash(k * 5 + 3) < 0.55 ? 1 : 0) + (z < 0.35 && hash(k * 5 + 4) < 0.5 ? 1 : 0);
     for (let i = 0; i < nb; i++) {
       const h1 = hash(k * 31 + i * 7), h2 = hash(k * 17 + i * 11), h3 = hash(k * 23 + i * 5);
@@ -2479,9 +2490,34 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     return false;
   }
+  // the blocks kept this frame, nearest first: one set off a stretch further on that would pass through one of them is left out
+  const KEPT = new Float32Array(4096 * 5); let nKept = 0;
+  const blockKeep = (x, y, z, r, s) => { if (nKept < 4096) { const k = nKept++ * 5; KEPT[k] = x; KEPT[k + 1] = y; KEPT[k + 2] = z; KEPT[k + 3] = r; KEPT[k + 4] = s; } };
+  function blockClash(x, y, z, r, s) {
+    for (let i = 0; i < nKept; i++) { const k = i * 5; if (Math.abs(KEPT[k + 4] - s) < 14) continue; // (its own neighbours are kept apart where they are made)
+      const dx = KEPT[k] - x, dy = KEPT[k + 1] - y, dz = KEPT[k + 2] - z, q = KEPT[k + 3] + r + 0.4; if (dx * dx + dy * dy + dz * dz < q * q) return true; }
+    return false;
+  }
+  const blockRad = b => b.key === "quartz1" ? 2 * b.sy + b.sx * 0.5 : b.q ? Math.hypot(b.sx * 0.5, b.sy, b.sz * 0.5) : 0.5 * Math.hypot(b.sx, b.sy, b.sz); // (a side crystal stands up from its foot)
+  const FORM_T = 1.2; // a late manoeuvre takes its shape over this (s)
+  // as a manoeuvre begins to take its shape, the blocks about it are tried against it at five stages of the way there: one in the
+  // way of it at any of them fades out over the first third of the time, and, if clear of its final shape, back in over the last
+  // third, as does one in the way now that will be clear of it then; the rest stay as they are (they had blinked out and in)
+  function planFade(m) {
+    m.fplan = true; const dn = m.dirNow, pn = m.pdirNow, bl = [];
+    for (let k = Math.floor((sC - BEHIND) / SL); k < Math.floor((sC + AHEAD) / SL); k++) { const d = decor.get(k); if (d && d.blocks) for (const b of d.blocks) bl.push([b, k * SL + SL / 2]); }
+    const out = new Set(), fin = new Set();
+    for (const f of [0.2, 0.4, 0.6, 0.8, 1]) {
+      m.dirNow = m.dir * f; m.pdirNow = m.pdir * f; computePath(); const R = tubeFill();
+      for (const [b, s] of bl) { placeM(M, s + (b.ds || 0), b.u, b.v); const e = M.elements; if (inTube(e[12], e[13], e[14], blockRad(b), s, R + 1)) { out.add(b); if (f === 1) fin.add(b); } }
+    }
+    m.dirNow = dn; m.pdirNow = pn; computePath();
+    for (const [b] of bl) { b.fm = m; b.fo = out.has(b); b.fc = !fin.has(b); b.f0 = b.vis === undefined ? 1 : b.vis; }
+  }
   function layoutCorridor() {
-    const n = {}; for (const key in I) n[key] = 0;
-    const forming = LTW.some(m => m.late && m.ft >= 0 && m.ft < 1.3); // (while a manoeuvre takes its shape its turns sweep fast: kept further off)
+    const n = {}; for (const key in I) n[key] = 0; nKept = 0;
+    for (const m of LTW) if (m.late && m.ft >= 0 && m.ft < FORM_T && !m.fplan) planFade(m);
+    const forming = LTW.some(m => m.late && m.ft >= 0 && m.ft < FORM_T + 0.1); // (what was not planned for, set down meanwhile: kept further off)
     const tubeR = LTW.length || LOOPS.length || SPANS.length ? tubeFill() + (forming ? 4 : 0) : 0, dtv = clamp(time - decorT, 0, 0.1); decorT = time;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
     // a wall block as long as its outer face's stretch, and a little over: on a bend the blocks had parted on the outside
@@ -2610,8 +2646,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           M.multiply(M2.makeRotationY(b.ry)).scale(SV.set(b.sx, b.sy, b.sz)); b.W = M.clone(); I.tower.setMatrixAt(n.tower++, M); } }
       if (grow > 0) for (const b of dec.blocks) {
         placeM(M, s + (b.ds || 0), b.u, b.v);
-        if (tubeR) { const e = M.elements, rad = b.key === "quartz1" ? 2 * b.sy + b.sx * 0.5 : b.q ? Math.hypot(b.sx * 0.5, b.sy, b.sz * 0.5) : 0.5 * Math.hypot(b.sx, b.sy, b.sz); // (a side crystal stands up from its foot)
-          b.vis = clamp((b.vis === undefined ? 1 : b.vis) + (inTube(e[12], e[13], e[14], rad, s, tubeR) ? -1e9 : 3 * dtv), 0, 1); } // (out at once, back slowly)
+        if (b.fm && b.fm.ft >= 0 && b.fm.ft < FORM_T) { // a manoeuvre taking its shape: as planned when it began (see planFade)
+          const t = b.fm.ft / FORM_T, o = t < 1 / 3 ? 1 - smooth5(t * 3) : 0, i = t > 2 / 3 ? smooth5((t - 2 / 3) * 3) : 0;
+          b.vis = b.fo ? (b.fc ? Math.max(o, i) : o) : b.f0 > 0 ? b.f0 : b.fc ? i : 0;
+          if (b.vis > 0) { const e = M.elements; blockKeep(e[12], e[13], e[14], blockRad(b), s); } }
+        else if (tubeR) { const e = M.elements, rad = blockRad(b);
+          const out = inTube(e[12], e[13], e[14], rad, s, tubeR) || blockClash(e[12], e[13], e[14], rad, s); // (and none through another set off another stretch)
+          b.vis = clamp((b.vis === undefined ? 1 : b.vis) + (out ? -1e9 : 3 * dtv), 0, 1); // (out at once, back slowly)
+          if (b.vis > 0) blockKeep(e[12], e[13], e[14], rad, s); }
         else b.vis = 1;
         if (b.vis <= 0) continue;
         if (b.q) M.multiply(M2.makeRotationFromQuaternion(b.q)).multiply(M2.makeRotationY(b.sway !== undefined ? Math.sin(time * 0.35 + b.sway) * 0.2 : time * b.spin)); // a crystal turns about its own length; a ruby only sways
@@ -2631,6 +2673,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const fw = s => typeof floorW === "function" ? floorW(s) : floorW, twM = s => !STYLE.bridge && LTW.some(m => m.r && s > m.tw0 - 2 && s < m.tw1 + 2);
     const fine = s => onDeck(s) || twM(s), fineAll = s => (spanAt(s) && spanAt(s - 1) && spanAt(s + 1)) || (twM(s) && twM(s - 1) && twM(s + 1));
     fillStrip(floorStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length || LTW.length ? s => (fineAll(s) ? 0 : fw(s)) : floorW); // over a bridge, its deck instead
+    const under = !STYLE.bridge && LEVEL.id !== "initium" && (LOOPS.length > 0 || LTW.length > 0); underStrip.visible = under; // (Initium's loops have their slab)
+    if (under) fillStrip(underStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, -0.06, 0, s => loopAt(s) || LTW.some(m => s > m.tw0 - 4 && s < m.tw1 + 4) ? fw(s) : 0);
     if (SPANS.length || LTW.some(m => m.r && !STYLE.bridge)) fillDeckTop(Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, s => onDeck(s) ? SW : twM(s) ? fw(s) : 0); else deckTop.visible = false;
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, 0, STYLE.glassWalls ? W + 0.12 : W); else vaultStrip.visible = false; // (Speculum: the vault out to its glass)
     { // where a walled and roofed corridor (Labyrinthus, Carcer) stops being drawn, far ahead, the sky showed through its open
@@ -3425,7 +3469,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!spawnGroupKind && LEVEL.id === "labyrinthus" && openHallAround(s) && Math.random() < 0.8) pat = "grams";
     const brS = LEVEL.id === "labyrinthus" && !spawnGroupKind && branchAt(s); // the branches: crosses and blocks on the rich one, plain glass on the quiet
     if (brS) { const opts = brS === "rich" ? ["rotor", "rotor2", "grams", "grams"] : ["center", "center", "sides", "triple"]; pat = opts[Math.floor(Math.random() * opts.length)]; }
-    if (!spawnGroupKind && !brS && !hall && LEVEL.every) for (const k in LEVEL.every) if (s - (lastPat[k] ?? 0) > LEVEL.every[k] && !(k === "catapult" && LTW.some(m => s > m.sw - 200 && s < m.tw1 + 20))) { pat = k; break; } // (no catapult near a Lux gantry or on its manoeuvre: there, overdue, it had made every group plain glass)
+    if (!spawnGroupKind && !brS && !hall && LEVEL.every) for (const k in LEVEL.every) if (s - (lastPat[k] ?? 0) > LEVEL.every[k] && !(k === "catapult" && LTW.some(m => LEVEL.id === "lux" ? s > m.sw - 200 && s < m.tw1 + 20 : s > m.sw - 60 && s < m.sw + 30))) { pat = k; break; } // (no catapult near a Lux gantry or on its manoeuvre: there, overdue, it had made every group plain glass)
     // just inside a hall, nothing fixed to its walls or vault: from the narrower, lower corridor the hall's end wall hides them
     // till the cart is all but on them, with no time to shoot (Carcer's laser bars and grids, wall axes, grates on chains)
     if (hall && !spawnGroupKind && s - hallStart(s) < HALL_ENTRY + (pat === "axes" ? 9 : 0) && ["lrow", "lgrid", "axes", "grate1", "grate2", "grate3"].includes(pat)) pat = Math.random() < 0.6 ? "center" : "triple";
@@ -3442,9 +3486,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (BIG.includes(pat) && near) pat = Math.random() < 0.6 ? "center" : "slider";
       else if (!BIG.includes(pat) && !near && s - last > 150) pat = BIG[Math.floor(Math.random() * BIG.length)];
     }
-    if (!spawnGroupKind && pat === "catapult" && LTW.some(m => s > m.sw - 200 && s < m.tw1 + 20)) pat = "center"; // (its glass flies far: none toward a gantry)
+    if (!spawnGroupKind && pat === "catapult" && LTW.some(m => LEVEL.id === "lux" ? s > m.sw - 200 && s < m.tw1 + 20 : s > m.sw - 60 && s < m.sw + 30)) pat = "center"; // (its glass flies far: none toward a gantry; elsewhere none just before one)
     const onM = !spawnGroupKind && (LTW.find(m => s > m.sw && s < m.tw1 + 14) || LOOPS.find(l => s > l.s0 - 10 && s < l.s0 + l.len + 10)); // (from the gantry on: nothing big just past it, hiding its targets; on Initium's loops glass only)
-    if (onM) { // on every manoeuvre the same: glass on the deck or turning over it, blocks on chains in their frames, laser bars, laser mills
+    if (onM && LEVEL.id === "vitrum") { // Vitrum: its own mix on its manoeuvres as anywhere (they have room: all had been made plain glass, the level gone
+      // poor), but nothing on chains where it would not hang (on the loop once it has begun to climb, on the ring), nor a gate up the loop
+      const lpA = LOOPS.find(l => l.kind === "v" && s > l.s0 - 10 && s < l.s0 + l.len + 10), onRing = LOOPS.some(l => l.kind === "h" && s > l.s0 - 10 && s < l.s0 + l.len + 10);
+      if ((pat === "pendulum" || pat === "gate") && ((lpA && s > lpA.s0 + 12) || onRing)) pat = pat === "pendulum" ? "catapult" : "reinf";
+    } else if (onM) { // on every other manoeuvre the same: glass on the deck or turning over it, blocks on chains in their frames, laser bars, laser mills
       const opts = LEVEL.id === "lux" ? ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "abbar", "lblock", "abspin"] : ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
     }
     if (!spawnGroupKind && LUXH.some(h => s > h.b - 4 && s < h.b + 22)) pat = "center"; // and nothing big just out of a hall: its end hid it
@@ -6391,7 +6439,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       feats: ["Кристаллов в 2,2 раза больше", "Короткий заезд, около минуты", "Финал Pluvia: дождь кристаллов"],
       req: { after: "rubinus", fare: 20 }, map: { x: 615, y: 440, label: "t" } },
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "glass_halls_in_blue", len: 1560, pal: PAL_VITRUM, finale: "ruina",
-      style: { arch: "hex", blocks: "quartz", glassWalls: true, bare: true, floor: "plain", floorW: 2.6 }, crystalMul: 1.1,
+      style: { arch: "hex", blocks: "quartz", glassWalls: true, bare: true, floor: "plain", floorW: 2.6 }, crystalMul: 1.1, spaceMul: 0.93, // (groups a little closer: its gantry and its catapults take room, and it had as many before its manoeuvres)
       // no heaps of glass (a wall, pairs, threes, the side panes, the scatter of small ones, the shutters): their room goes to
       // the catapults, one group in eight or so, and a little more to the plain single pane
       pats: { center: [2, 2, 1.2], wall: [0, 0, 0], triple: [0, 0, 0], double: [0, 0, 0], sides: [0, 0, 0], bonus: [0, 0, 0], shutter: [0, 0, 0], catapult: [1.1, 1.3, 1.3],
@@ -7494,7 +7542,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     speedNow = dt > 0 ? ds / dt : 0;
     frameAt(sC + ds / 2); // uses last frame's path; close enough for one step
     cartPos.addScaledVector(SPANS.length || LTW.length ? tangent0(sC + ds / 2) : _T, ds); // the line the track winds round, not the rails' own heading
-    if (LOOPS.length) { const dd = loopShift(sC + ds) - loopShift(sC), y = yawAt(sC + ds / 2); cartPos.x += Math.cos(y) * dd; cartPos.z -= Math.sin(y) * dd; } // (and on a loop its sideways edging)
+    if (LOOPS.length) { loopOff(sC + ds, LO0); const x1 = LO0.x, z1 = LO0.z; loopOff(sC, LO0); cartPos.x += x1 - LO0.x; cartPos.z += z1 - LO0.z; } // (and on a loop its sideways edging)
     pitchC += ((1 - spiralHold) * pitchTs - pitchC) * (1 - Math.exp(-ds / LAMBDA)); // (on Lux's spiral to level: a slope of the karma's had cancelled its own climb, its coils lying flat in a stack)
     sC += ds;
     throwCD = Math.max(0, throwCD - dt);
@@ -7517,9 +7565,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (fl) { nextSpawn = fl.s + 46; continue; }
       const br = branchAt(nextSpawn);
       // where the track comes back near itself (a spiral comes out over where it went in, a ring turns back by the cart), a group whose
-      // place is already near and in sight would spring up there; such a one is left out. Near but out of sight (the far side of
-      // a ring, off to the side or behind), it is set down as anywhere: all of a ring's far half had been left bare
-      if ((LTW.length || LOOPS.length) && nextSpawn - sC > 60) { frameAt(nextSpawn); if (_P.distanceTo(camera.position) < 140) { SPV.copy(_P).addScaledVector(_U, 2).project(camera); if (SPV.z < 1 && Math.abs(SPV.x) < 1.3 && Math.abs(SPV.y) < 1.3) { nextSpawn += spacing(curD()); continue; } } }
+      // place is already near and in sight would spring up there; it waits till its place is out of sight (or 70 m off at the most,
+      // before it is passed), then is set down as anywhere: left out, Vitrum's ring had gone short of groups
+      if ((LTW.length || LOOPS.length) && nextSpawn - sC > 70) { frameAt(nextSpawn); if (_P.distanceTo(camera.position) < 140) { SPV.copy(_P).addScaledVector(_U, 2).project(camera); if (SPV.z < 1 && Math.abs(SPV.x) < 1.3 && Math.abs(SPV.y) < 1.3) break; } }
       if (nextSpawn < MAIN_LEN - 105) { spawnGroup(nextSpawn); nextSpawn += spacing(curD()) * rand(0.85, 1.15) * (br === "rich" ? 0.8 : br === "calm" ? 1.7 : 1); }
       else if (nextSpawn < MAIN_LEN + 14) nextSpawn = MAIN_LEN + 14;
       else if (nextSpawn < SUPER_END - 12) nextSpawn += spawnFinale(nextSpawn);
@@ -7574,7 +7622,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     spiralHold = 0; for (const m of LTW) if (m.kind === "spiral") spiralHold = Math.max(spiralHold, smooth5((sC - m.sw + 110) / 40) * smooth5((m.tw1 + 50 - sC) / 40));
     for (const l of LOOPS) spiralHold = Math.max(spiralHold, smooth5((sC - l.s0 + 150) / 40) * smooth5((loopEnd(l) + 50 - sC) / 40)); // and on loops and rings: they keep their own shape
     AHEAD = LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150; // (the spiral's far side, and what is past it, set down while still far off)
-    BEHIND = LTW.some(m => m.kind === "spiral" && sC > m.tw0 && sC < m.tw1 + 150) ? 150 : 10;
+    BEHIND = LTW.some(m => m.kind === "spiral" && sC > m.tw0 && sC < m.tw1 + 150) || LOOPS.some(l => sC > l.s0 && sC < loopEnd(l) + 150) ? 150 : 10; // (and in and past a loop: its deck overhead)
     computePath();
     if (AHEAD < AHEAD_MAX && !STYLE.closed && !LEVEL.halls) { // the track drawn, and things set down, out to where it is past the melting by a straight line, not by its own length: round a bend its end, nearer, was cut off still showing
       const x0 = PP[BACK * 3], y0 = PP[BACK * 3 + 1], z0 = PP[BACK * 3 + 2]; let j = BACK + 146;

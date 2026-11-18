@@ -131,8 +131,8 @@ const LEVEL_INFO = {
     descRu: "Знакомство с рельсами. Белые залы с квадратными арками, первые стёкла и первый спуск во Тьму.",
     descEn: "Getting to know the rails. White halls with square arches, the first panes of glass and the first descent into the Dark." },
   thesaurus: { latin: "Thesaurus", ru: "Сокровищница", en: "Treasury",
-    descRu: "Тупиковая ветка от Rubinus. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
-    descEn: "A dead-end branch off Rubinus. Golden halls with round arches and floating coins. Twice the usual crystals: the ride costs a fare, but you can come back with a profit." },
+    descRu: "Тупиковая ветка от Initium. Золотые залы с круглыми арками и парящими монетами. Кристаллов здесь вдвое больше обычного: проезд платный, но можно вернуться с прибылью.",
+    descEn: "A dead-end branch off Initium. Golden halls with round arches and floating coins. Twice the usual crystals: the ride costs a fare, but you can come back with a profit." },
   vitrum: { latin: "Vitrum", ru: "Стекло", en: "Glass",
     descRu: "Призматические галереи над пустотой. Шестигранные своды, стеклянные стены и монолиты на цепях: собьёте цепи — монолит улетит в пропасть. Поперёк пути вращаются стеклянные планки и кресты, поодиночке и вереницами.",
     descEn: "Prismatic galleries over the void. Hexagonal vaults, glass walls and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, alone and in sequences." },
@@ -142,9 +142,6 @@ const LEVEL_INFO = {
   labyrinthus: { latin: "Labyrinthus", ru: "Лабиринт", en: "Labyrinth",
     descRu: "Замкнутые изумрудные коридоры. Перед каждой развилкой висит стрелка: выстрел переводит её, и рельсы уходят в другую ветку. Богатая ветка с бирюзовыми кристаллами даёт вдвое больше кристаллов, но в ней кресты и блоки. Тихая ветка с белым солнцем — только со стёклами, и она тянет к Свету. В коридорах вращаются массивные стеклянные кресты. В открытых залах на цепях качаются стеклянные блоки.",
     descEn: "Closed emerald corridors. Before each fork hangs a switch arrow — a shot flips it, and the rails turn into the other branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains." },
-  hortus: { latin: "Hortus", ru: "Сад", en: "Garden",
-    descRu: "Тупиковая ветка от Initium с висячими садами. Со стен свисают ветви, и на них растут кристаллы. Ветви хлещут поперёк пути: заденет вагонетку — минус три шара. Попадание в ветку ломает её, но несобранные кристаллы падают вместе с ней.",
-    descEn: "A dead-end branch off Initium with hanging gardens. Boughs hang from the walls with crystals growing on them. They lash across the track: one that catches the cart costs three balls. A hit breaks a bough, but its unpicked crystals fall with it." },
   speculum: { latin: "Speculum", ru: "Зеркало", en: "Mirror",
     descRu: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар. Поперёк пути призмы собирают свет в лучи, а парящие зеркала отражают их в сетку: разбейте призму или зеркало, чтобы проехать. Высокие ворота в клубах пара открываются попаданием в бегущие по створкам мишени; висят и монолиты на цепях.",
     descEn: "Mirror halls. Behind the glass walls the corridor repeats, and beside each real crystal its reflection may hang. A reflection gives no balls, and a shot at it costs a ball. Across the way prisms gather light into beams that hovering mirrors bounce into a web: break a prism or a mirror to get through. Tall gates in drifting steam open to hits on the targets running up and down their leaves; monoliths hang on chains." },
@@ -231,9 +228,9 @@ async function sendTrailer(env, chat, from, ost) {
 // the scheme. The game's build puts each beside the game as ost/<name>.mp3, its own tag naming it <Name> by Limbus (build.py),
 // so the name holds whatever Telegram reads it from; a changed track wants a new OST_VERSION here. Fetched by Telegram from
 // their addresses the first time, then sent again by the file_ids it gave back, kept in KV. A Telegram album holds 10 at
-// most: the twelve go as two albums of six
-const OST_VERSION = 3;
-const OST = ["Menu", "Initium", "Vitrum", "Labyrinthus", "Tao", "Nox", "Lux", "Rubinus", "Speculum", "Hortus", "Thesaurus", "Carcer"];
+// most: the eleven go as two albums, of six and five
+const OST_VERSION = 4;
+const OST = ["Menu", "Initium", "Vitrum", "Labyrinthus", "Tao", "Nox", "Lux", "Rubinus", "Speculum", "Thesaurus", "Carcer"];
 async function sendOst(env, chat, from) {
   const key = `ost:${OST_VERSION}`, known = JSON.parse(await env.USERS.get(key) || "null"), ids = [];
   const groups = [OST.slice(0, 6), OST.slice(6)];
@@ -390,11 +387,11 @@ async function checkInitData(initData, token) {
 
 // ---------- broadcast ----------
 // a level as the owner may name it in /broadcast: by its station's name (Nox) or by its id in the game (abyssus)
-const LEVEL_IDS = { initium: "initium", thesaurus: "thesaurus", vitrum: "vitrum", rubinus: "rubinus", labyrinthus: "labyrinthus", hortus: "hortus",
+const LEVEL_IDS = { initium: "initium", thesaurus: "thesaurus", vitrum: "vitrum", rubinus: "rubinus", labyrinthus: "labyrinthus",
   speculum: "speculum", tao: "tao", nox: "abyssus", abyssus: "abyssus", carcer: "carcer", lux: "lux" };
 async function startBroadcast(env, chat, arg) {
   const m = /^(\S+)\s+([\s\S]+)$/.exec(arg.trim()), level = m && LEVEL_IDS[m[1].toLowerCase()];
-  if (!level) return tg(env, "sendMessage", { chat_id: chat, text: `${m ? `Нет уровня «${m[1]}». ` : ""}Формат: /broadcast <уровень> <текст>\nНапример: /broadcast vitrum Новый уровень уже на линии!\nУровни: initium thesaurus vitrum rubinus labyrinthus hortus speculum tao nox carcer lux` });
+  if (!level) return tg(env, "sendMessage", { chat_id: chat, text: `${m ? `Нет уровня «${m[1]}». ` : ""}Формат: /broadcast <уровень> <текст>\nНапример: /broadcast vitrum Новый уровень уже на линии!\nУровни: initium thesaurus vitrum rubinus labyrinthus speculum tao nox carcer lux` });
   if (await env.USERS.get("job")) return tg(env, "sendMessage", { chat_id: chat, text: "Уже идёт рассылка. /stats — сколько отправлено, /cancel — остановить." });
   await env.USERS.put("job", JSON.stringify({ level, text: m[2], cursor: null, keys: [], sent: 0, failed: 0, by: chat }));
   await tg(env, "sendMessage", { chat_id: chat, text: `Рассылка началась: по ${PER_RUN} сообщений в минуту. /stats — ход, /cancel — остановить.` });

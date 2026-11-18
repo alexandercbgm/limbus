@@ -2445,7 +2445,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     nKept = 0;
     m.dirNow = dn; m.pdirNow = pn; computePath();
-    for (const [b] of bl) { b.fm = m; b.fo = out.has(b); b.fc = !fin.has(b); b.f0 = b.vis === undefined ? 1 : b.vis; }
+    // just past the gantry (or where one would stand), none comes into being as it forms nor after: that close, a crystal growing out of
+    // nothing caught the eye (Vitrum's spiral to the right and down); one in the way there goes, and those not there stay away
+    for (const [b, s] of bl) { b.fm = m; b.fo = out.has(b); b.fc = !fin.has(b); b.f0 = b.vis === undefined ? 1 : b.vis;
+      if (s > m.sw - 10 && s < m.sw + 150 && (b.fo || !(b.f0 > 0))) { b.fc = false; b.hold = true; } }
   }
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0; nKept = 0;
@@ -2585,11 +2588,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           b.vis = b.sc = b.fo ? (b.fc ? Math.max(o * b.f0, i) : o * b.f0) : b.f0 > 0 ? b.f0 : b.fc ? i : 0; // (one already out stays out till it may grow)
           // the track far past it sweeps round wide as it forms and may pass by one the plan kept, or one growing back before the
           // shape is quite done: out at once then (it grows back once clear, after)
-          if (b.vis > 0 && tubeR) { const e = M.elements; if (inTube(e[12], e[13], e[14], blockRad(b) * b.vis, s, tubeR)) { b.fo = true; b.f0 = 0; b.fc = false; b.vis = b.sc = 0; } }
+          if (b.vis > 0 && tubeR) { const e = M.elements; if (inTube(e[12], e[13], e[14], blockRad(b) * b.vis, s, tubeR)) { b.fo = true; b.f0 = 0; b.fc = false; b.vis = b.sc = 0; if (s > b.fm.sw - 10 && s < b.fm.sw + 150) b.hold = true; } }
           if (b.vis > 0) { const e = M.elements; blockKeep(e[12], e[13], e[14], blockRad(b), s); } }
         else if (tubeR) { const e = M.elements, rad = blockRad(b); b.sc = undefined;
           const out = inTube(e[12], e[13], e[14], rad, s, tubeR) || blockClash(e[12], e[13], e[14], rad, s); // (and none through another set off another stretch)
-          b.vis = clamp((b.vis === undefined ? 1 : b.vis) + (out ? -1e9 : 3 * dtv), 0, 1); // (out at once, back slowly)
+          b.vis = b.hold ? 0 : clamp((b.vis === undefined ? 1 : b.vis) + (out ? -1e9 : 3 * dtv), 0, 1); // (out at once, back slowly; one held back past a gantry stays out)
           if (b.vis > 0) blockKeep(e[12], e[13], e[14], rad, s); }
         else { b.vis = 1; b.sc = undefined; }
         if (b.vis <= 0) continue;
@@ -3313,6 +3316,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     glow.scale.setScalar(2.2); g.add(core); g.add(cage); g.add(glow); scene.add(g);
     imps.push({ s, bu: u, bv: v, u, v, phase: Math.random() * TAU, group: g, core, cage, alive: true, wp: new THREE.Vector3() });
   }
+  const SHARD_SHRINK = 0.4;
+  function capShards() { // too many: the excess draw into points, those the cart has passed first, then the oldest (a hard limit well past it)
+    let excess = shards.length - MAX_SHARDS; if (excess <= 0) return;
+    for (const s of shards) if (s.dying) excess--;
+    for (const s of shards) if (excess > 0 && !s.dying && s.fs !== undefined && s.fs < sC - 1) { s.dying = true; s.life = Math.min(s.life, SHARD_SHRINK); excess--; }
+    for (const s of shards) if (excess > 0 && !s.dying) { s.dying = true; s.life = Math.min(s.life, SHARD_SHRINK); excess--; }
+    while (shards.length > MAX_SHARDS + 300) dropShard(shards.shift());
+  }
   function dropShard(s) { scene.remove(s.mesh); if (!s.shared) { s.mesh.geometry.dispose(); s.mesh.children.forEach(c => c.geometry && c.geometry.dispose()); } }
   function clearDynamic() {
     bigRun = 0;
@@ -3694,7 +3705,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const v = new THREE.Vector3().addScaledVector(p.R, dx * spd + impL.x * 0.05).addScaledVector(p.U, dy * spd + impL.y * 0.05 + 1).addScaledVector(p.T, impL.z * rand(0.1, 0.25));
       shards.push({ mesh: m, life: rand(2.6, 3.4), v, fs: p.s, fo: p.thick / 2, w: new THREE.Vector3(rand(-4, 4), rand(-4, 4), rand(-3, 3)) });
     }
-    if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
+    capShards();
     Sound.shatter(1.4); Sound.crash();
   }
   function shatter(p, lx, ly, impL) {
@@ -3784,7 +3795,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         shards.push({ mesh: m, life: rand(2.2, 3.0), v, w: new THREE.Vector3(rand(-3, 3), rand(-3, 3), rand(-3, 3)), fs: s, fo: depth / 2 });
       }
     }
-    if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
+    capShards();
   }
   // armoured glass: bursts as a solid slab, from where it was struck
   function crumblePane(p, lx, ly) {
@@ -3818,7 +3829,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       mesh: m, life: 2.4 + Math.random() * 1.2, v, fs: p.s, fo: SHARD_T / 2, fwd: SHARD_FWD_THIN,
       w: new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6).multiplyScalar(1 / (1 + size * 1.2)), // a big piece turns slowly, heavy
     });
-    if (shards.length > MAX_SHARDS) dropShard(shards.shift());
+    capShards();
   }
   function chips(pos, mat, n, vel) {
     // the floor under them as under any piece (where along the track they are: two steps of the nearest point): they had none,
@@ -4003,7 +4014,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     chips(at, chipMat, 8, tmpV2.set(0, 3, 0));
     c.mesh.visible = false;
-    if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
+    capShards();
   }
   // the slab is thick tempered glass: it crumbles into many small chunks that rain down and bounce
   function burstSlab(hg, at) {
@@ -4023,7 +4034,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const v = m.position.clone().sub(c).multiplyScalar(rand(0.6, 1.6)); v.y += rand(-0.5, 1);
       shards.push({ mesh: m, shared: true, life: rand(1.4, 2.4), v, w: new THREE.Vector3(rand(-9, 9), rand(-9, 9), rand(-9, 9)), fs: hg.s, fo: 0 });
     }
-    if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
+    capShards();
     scene.remove(hg.body);
     Sound.thickGlass();
   }
@@ -5866,7 +5877,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         shards.push({ mesh: m, life: rand(2.2, 3.0), v, w: new THREE.Vector3(rand(-3, 3), rand(-3, 3), rand(-3, 3)), fs: c.s, fo: 0.3 });
       }
     }
-    if (shards.length > MAX_SHARDS) shards.splice(0, shards.length - MAX_SHARDS).forEach(dropShard);
+    capShards();
     scene.remove(c.slab); Sound.thickGlass(); Sound.shatter(1.4);
     if (byCart) {
       balls = Math.max(0, balls - CATA_COST); updateCount(); karmaLoss(0.15);
@@ -7962,7 +7973,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         } else if (s.rest && h > 0) pos.addScaledVector(_U, -h); // and stays on the floor as the track under it shifts
         if (s.fs !== undefined) { frameAt(s.fs); s.ph = tmpV.copy(pos).sub(_P).dot(_U) - s.fo - 0.03; } // where it was against the floor, for the next frame
       }
+      // a piece lying on the deck ahead stays till the cart has passed it; then, or when its time is up, or when there are too many,
+      // it draws into a point over SHARD_SHRINK (they had blinked out, lying in full view)
+      if (s.rest && !s.dying && s.fs !== undefined) { if (s.fs > sC - 1) s.life = Math.max(s.life, SHARD_SHRINK + 0.05); else s.life = Math.min(s.life, SHARD_SHRINK); }
       s.life -= dt;
+      if (s.life < SHARD_SHRINK) { if (!s.sc0) s.sc0 = s.mesh.scale.clone(); s.mesh.scale.copy(s.sc0).multiplyScalar(Math.max(0.001, smooth5(s.life / SHARD_SHRINK))); }
+      else if (s.sc0) s.mesh.scale.copy(s.sc0);
       if (s.life <= 0) { dropShard(s); shards.splice(i, 1); }
     }
 

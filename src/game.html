@@ -796,7 +796,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const HALL_W = 8.5, HALL_H = 10;
   let HALLS = []; // [start, end] of each hall along the track, planned afresh for every ride
   const BRIDGE_W = 1.75, PYLON_H = 40; // Abyssus: half the bridge's width, and how far its pylons reach down
-  const DS = 1, BACK = 160, AHEAD_MAX = 480, NS = BACK + AHEAD_MAX + 1, SL = 2;
+  const DS = 1, BACK = 430, AHEAD_MAX = 480, NS = BACK + AHEAD_MAX + 1, SL = 2;
   let AHEAD = 150, BEHIND = 10; // and how far behind: on Lux's spiral the turns below and above the cart, passed, stay drawn // how far ahead the track is drawn: twice as far round Lux's spiral, whose coils show from across it
   const spawnAhead = () => AHEAD - 4; // objects come into being at the drawn track's far end, where they melt in out of the sky
   // where the track does not tilt with the karma: on every manoeuvre, from where its gantry stands (or would) to where one would stand
@@ -2056,44 +2056,44 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const concreteMat = new THREE.MeshStandardMaterial({ color: 0x7c8591, roughness: 0.92, metalness: 0 }); // Speculum's bridges
   const _D = new THREE.Vector3(), _E = new THREE.Vector3(), _X = new THREE.Vector3();
   const I = {
-    ceil: inst(ceilGeo, surfMat, 320), // room for the mirrored pieces too (Speculum); Vitrum's of clear glass (setLevel)
-    sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 560),
-    rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 560),
-    wall: inst(new THREE.BoxGeometry(0.24, H, SL + 0.03), wallMat, 420),
-    post: inst(new THREE.BoxGeometry(0.36, H, 0.36), frameMat, 180),
-    beam: inst(new THREE.BoxGeometry(2 * W + 0.16, 0.36, 0.36), frameMat, 90), // flush with the posts' outer faces (W - 0.1 + 0.18): longer, its ends stood out past them in a step
+    ceil: inst(ceilGeo, surfMat, 430), // room for the mirrored pieces too (Speculum); Vitrum's of clear glass (setLevel)
+    sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 1000),
+    rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 1100),
+    wall: inst(new THREE.BoxGeometry(0.24, H, SL + 0.03), wallMat, 570),
+    post: inst(new THREE.BoxGeometry(0.36, H, 0.36), frameMat, 245),
+    beam: inst(new THREE.BoxGeometry(2 * W + 0.16, 0.36, 0.36), frameMat, 125), // flush with the posts' outer faces (W - 0.1 + 0.18): longer, its ends stood out past them in a step
     cap: inst(new THREE.BoxGeometry(2 * W + 0.6, H, 0.3), wallMat, 2), // the dead end of the branch not taken
     nose: inst(new THREE.BoxGeometry(1.4, H, 1.4), frameMat, 2), // the pillar where the two tunnels' inner walls meet
-    sill: inst(new THREE.BoxGeometry(2 * W, 0.05, 0.36), frameMat, 90),
+    sill: inst(new THREE.BoxGeometry(2 * W, 0.05, 0.36), frameMat, 125),
     pyrL: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(-Math.PI / 2), spikeMat, 90), // pyramid out of the left wall, pointing +u
     pyrR: inst(new THREE.ConeGeometry(0.36, 0.5, 4).rotateZ(Math.PI / 2), spikeMat, 90),
     // a pane of glass for a wall: one sheet, not a thin box, whose ends stacked into dozens of see-through layers far off
     gwall: inst(new THREE.PlaneGeometry(SL + 0.03, H).rotateY(Math.PI / 2), glassWallMat, 440), // Speculum: its walls and their reflections' far walls (about 320)
     pgwall: inst(new THREE.PlaneGeometry(SL + 0.03, H).rotateY(Math.PI / 2), plainGlassMat, 240), // Speculum's last stretch: clear glass, no mirror
-    hexpane: inst(new THREE.PlaneGeometry(HEXPANE_R, SL + 0.02).rotateX(Math.PI / 2), glassWallMat, 420), // Vitrum: a face of the hexagon glazed, 2 m of it
-    hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 90), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
+    hexpane: inst(new THREE.PlaneGeometry(HEXPANE_R, SL + 0.02).rotateX(Math.PI / 2), glassWallMat, 570), // Vitrum: a face of the hexagon glazed, 2 m of it
+    hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 125), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
     prism: inst((() => { const g = new THREE.OctahedronGeometry(0.75, 0), n = g.attributes.position.count, b = new Float32Array(n * 3); for (let i = 0; i < n; i++) b[i * 3 + i % 3] = 1; g.setAttribute("bary", new THREE.BufferAttribute(b, 3)); return g; })(), prismMat, 260), // (bary: for Lux's gold edges)
     gDia: inst(GEM_CUTS.gDia, rubyMat, 40), gEmer: inst(GEM_CUTS.gEmer, rubyMat, 40), // Rubinus: rubies over the abyss
     gOval: inst(GEM_CUTS.gOval, rubyMat, 40), gPear: inst(GEM_CUTS.gPear, rubyMat, 40),
     // Vitrum, out over the abyss: crystals of quartz, six-sided, pointed at both ends, 2 high and 0.64 across before they're scaled
-    quartz: inst(new THREE.LatheGeometry([[0, -1], [0.32, -0.62], [0.32, 0.62], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 160),
+    quartz: inst(new THREE.LatheGeometry([[0, -1], [0.32, -0.62], [0.32, 0.62], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 220),
     // and a cluster's: one point, the flat foot at the origin (2 long before it's scaled)
-    quartz1: inst(new THREE.LatheGeometry([[0, 0], [0.32, 0], [0.32, 1.42], [0, 2]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 300),
+    quartz1: inst(new THREE.LatheGeometry([[0, 0], [0.32, 0], [0.32, 1.42], [0, 2]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 410),
     ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 56), frameMat, 30), // round arches of Thesaurus and Hortus, squeezed to fit (RING_SX, RING_SY)
     coin: inst(new THREE.CylinderGeometry(1, 1, 0.16, 28).rotateX(Math.PI / 2), coinMat, 260),
-    block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 900),
-    tower: (() => { const m = inst(new THREE.BoxGeometry(1, 1, 1), towerMat, 3200); m.setColorAt(0, new THREE.Color(1, 1, 1)); return m; })(), // Initium's city: the tops of towers beside the track, the blocks of houses far below
+    block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 1200),
+    tower: (() => { const m = inst(new THREE.BoxGeometry(1, 1, 1), towerMat, 4300); m.setColorAt(0, new THREE.Color(1, 1, 1)); return m; })(), // Initium's city: the tops of towers beside the track, the blocks of houses far below
     drop: inst(new THREE.SphereGeometry(1, 20, 12), dropMat, 120), // Speculum's mercury drops
     rebar: inst(new THREE.CylinderGeometry(0.03, 0.03, 1, 6), rebarMat, 500), // Carcer: rebar out of broken concrete
     lamp: inst(new THREE.BoxGeometry(0.5, 0.22, 0.9), lampMat, 60),
     lampCage: inst(new THREE.BoxGeometry(0.6, 0.3, 1.0), cageMat, 60),
-    kerb: inst(new THREE.BoxGeometry(0.14, 0.2, SL + 0.03), frameMat, 200), // Abyssus: the bridge's edge
+    kerb: inst(new THREE.BoxGeometry(0.14, 0.2, SL + 0.03), frameMat, 270), // Abyssus: the bridge's edge
     // Carcer's halls: the end wall with the corridor's doorway in it, cell bars along the sides, a glowing safety line
     portal: inst((() => { const sh = new THREE.Shape([new THREE.Vector2(-HALL_W - 0.24, 0), new THREE.Vector2(HALL_W + 0.24, 0), new THREE.Vector2(HALL_W + 0.24, HALL_H), new THREE.Vector2(-HALL_W - 0.24, HALL_H)]);
       sh.holes.push(new THREE.Path([new THREE.Vector2(-W, 0), new THREE.Vector2(-W, H), new THREE.Vector2(W, H), new THREE.Vector2(W, 0)])); return new THREE.ShapeGeometry(sh); })(), wallMat, 16), // room to spare: a hall's two ends, both faces, two or three halls in sight
     wire: inst(new THREE.TorusGeometry(0.42, 0.016, 4, 18), wireMat, 900), // coils of barbed wire along a hall's sides
-    safety: inst(new THREE.BoxGeometry(0.07, 0.03, SL + 0.03), safetyMat, 200),
+    safety: inst(new THREE.BoxGeometry(0.07, 0.03, SL + 0.03), safetyMat, 270),
     pylon: inst(new THREE.BoxGeometry(0.45, PYLON_H, 0.45), frameMat, 60),
     spier: inst(new THREE.BoxGeometry(1, PYLON_H, 1), concreteMat, 40), // Speculum's bridges: piers,
     // its sleepers near black and faintly lit of themselves: the halls' pale ones were lost on the pale deck (the halls' light is
@@ -2105,7 +2105,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     scap: inst(new THREE.BoxGeometry(1, 1, 1), concreteMat, 20), // pier caps and platforms,
 
     girder: inst(new THREE.BoxGeometry(2 * BRIDGE_W, 0.5, 0.4), frameMat, 30),
-    islab: inst(new THREE.BoxGeometry(1, 0.6, SL + 0.03), frameMat, 700), // Initium's deck: a slab under the floor
+    islab: inst(new THREE.BoxGeometry(1, 0.6, SL + 0.03), frameMat, 950), // Initium's deck: a slab under the floor
     bush: inst(new THREE.IcosahedronGeometry(0.75, 0), bushMat, 260), // clumps of foliage floating in Hortus
   };
   // Floor, and the vault of a closed maze, are one continuous strip that follows the rails sample by sample.
@@ -2138,7 +2138,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.attributes.position.needsUpdate = g.attributes.normal.needsUpdate = g.attributes.uv.needsUpdate = true;
     strip.visible = seg > 0;
   }
-  const STRIP_N = AHEAD_MAX + 180;
+  const STRIP_N = AHEAD_MAX + BACK + 20;
   const endCap = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide })); // fogged through, so the fog's colour
   endCap.matrixAutoUpdate = false; endCap.frustumCulled = false; endCap.visible = false; scene.add(endCap);
   const deckStrip = makeStrip(STRIP_N, concreteMat, true);
@@ -2401,17 +2401,22 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // Vitrum's spiral its crystals had stood up through the deck of the turn below and into the frames, one lain over the deck at its
   // mouth; it is the same everywhere
   const TUBE = new Float32Array(NS * 3); let decorT = 0;
+  // (all of the track held, not only the 150 m either way: Vitrum's ring passes through its loop 150 to 330 m back along the track,
+  // and its crystals had stood through the loop's deck; found through a grid of 12 m cells, the track's points binned every 2 m)
+  const TCELL = 12, TGRID = new Map();
+  const tKey = (ix, iy, iz) => (ix * 73856093) ^ (iy * 19349663) ^ (iz * 83492791);
   function tubeFill() {
     const vc = STYLE.arch === "hex" ? 4.2 : STYLE.bridge ? 1.6 : SH / 2;
-    for (let j = 0; j < NS; j++) { const k = j * 3; TUBE[k] = PP[k] + PU[k] * vc; TUBE[k + 1] = PP[k + 1] + PU[k + 1] * vc; TUBE[k + 2] = PP[k + 2] + PU[k + 2] * vc; }
+    TGRID.clear();
+    for (let j = 0; j < NS; j++) { const k = j * 3; TUBE[k] = PP[k] + PU[k] * vc; TUBE[k + 1] = PP[k + 1] + PU[k + 1] * vc; TUBE[k + 2] = PP[k + 2] + PU[k + 2] * vc;
+      if (j % 2) continue; const key = tKey(Math.floor(TUBE[k] / TCELL), Math.floor(TUBE[k + 1] / TCELL), Math.floor(TUBE[k + 2] / TCELL)); let a = TGRID.get(key); if (!a) TGRID.set(key, a = []); a.push(j); }
     return STYLE.arch === "hex" ? 5.3 : STYLE.bridge ? 3.2 : Math.hypot(SW, SH / 2) + 0.2;
   }
   function inTube(x, y, z, rad, s, R) {
-    const js = Math.round((s - sBase) / DS), q = R + rad, q2 = q * q;
-    for (let j = Math.max(0, js - 150); j < Math.min(NS, js + 151); j += 2) {
-      if (Math.abs(j - js) < 10) continue; // (its own stretch: it was set clear of that)
-      const k = j * 3, dx = TUBE[k] - x, dy = TUBE[k + 1] - y, dz = TUBE[k + 2] - z; if (dx * dx + dy * dy + dz * dz < q2) return true;
-    }
+    const js = Math.round((s - sBase) / DS), q = R + rad, q2 = q * q, n = Math.ceil(q / TCELL), cx = Math.floor(x / TCELL), cy = Math.floor(y / TCELL), cz = Math.floor(z / TCELL);
+    for (let a = -n; a <= n; a++) for (let b = -n; b <= n; b++) for (let c = -n; c <= n; c++) { const L = TGRID.get(tKey(cx + a, cy + b, cz + c)); if (!L) continue;
+      for (const j of L) { if (Math.abs(j - js) < 10) continue; // (its own stretch: it was set clear of that)
+        const k = j * 3, dx = TUBE[k] - x, dy = TUBE[k + 1] - y, dz = TUBE[k + 2] - z; if (dx * dx + dy * dy + dz * dz < q2) return true; } }
     return false;
   }
   // the blocks kept this frame, nearest first: one set off a stretch further on that would pass through one of them is left out
@@ -2424,14 +2429,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   const blockRad = b => b.key === "quartz1" ? 2 * b.sy + b.sx * 0.5 : b.q ? Math.hypot(b.sx * 0.5, b.sy, b.sz * 0.5) : 0.5 * Math.hypot(b.sx, b.sy, b.sz); // (a side crystal stands up from its foot)
   const FORM_T = 1.2; // a late manoeuvre takes its shape over this (s)
-  // as a manoeuvre begins to take its shape, the blocks about it are tried against it at five stages of the way there: one in the
+  // as a manoeuvre begins to take its shape, the blocks about it are tried against it at twelve stages of the way there: one in the
   // way of it at any of them fades out over the first third of the time, and, if clear of its final shape, back in over the last
   // third, as does one in the way now that will be clear of it then; the rest stay as they are (they had blinked out and in)
   function planFade(m) {
     m.fplan = true; const dn = m.dirNow, pn = m.pdirNow, bl = [];
     for (let k = Math.floor((sC - BEHIND) / SL); k < Math.floor((sC + AHEAD) / SL); k++) { const d = decor.get(k); if (d && d.blocks) for (const b of d.blocks) bl.push([b, k * SL + SL / 2]); }
     const out = new Set(), fin = new Set();
-    for (const f of [0.2, 0.4, 0.6, 0.8, 1]) {
+    for (let fi = 1; fi <= 12; fi++) { const f = fi / 12; // (twelve stages: its turns sweep tens of metres as it forms, and at five one had passed through a crystal between two)
       m.dirNow = m.dir * f; m.pdirNow = m.pdir * f; computePath(); const R = tubeFill();
       if (f === 1) nKept = 0; // (in the final shape, also none through another, as they will be tried then)
       for (const [b, s] of bl) { placeM(M, s + (b.ds || 0), b.u, b.v); const e = M.elements, r = blockRad(b);
@@ -2578,6 +2583,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           // third, quickly at once and slowing, one that will be clear grows out of its middle over the last; its size, not a fading)
           const t = b.fm.ft / FORM_T, o = t < 1 / 3 ? (1 - t * 3) ** 2 : 0, i = t > 2 / 3 ? 1 - (1 - (t - 2 / 3) * 3) ** 2 : 0;
           b.vis = b.sc = b.fo ? (b.fc ? Math.max(o * b.f0, i) : o * b.f0) : b.f0 > 0 ? b.f0 : b.fc ? i : 0; // (one already out stays out till it may grow)
+          // the track far past it sweeps round wide as it forms and may pass by one the plan kept, or one growing back before the
+          // shape is quite done: out at once then (it grows back once clear, after)
+          if (b.vis > 0 && tubeR) { const e = M.elements; if (inTube(e[12], e[13], e[14], blockRad(b) * b.vis, s, tubeR)) { b.fo = true; b.f0 = 0; b.fc = false; b.vis = b.sc = 0; } }
           if (b.vis > 0) { const e = M.elements; blockKeep(e[12], e[13], e[14], blockRad(b), s); } }
         else if (tubeR) { const e = M.elements, rad = blockRad(b); b.sc = undefined;
           const out = inTube(e[12], e[13], e[14], rad, s, tubeR) || blockClash(e[12], e[13], e[14], rad, s); // (and none through another set off another stretch)
@@ -5763,6 +5771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   const laserSightMat = new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
   const part = (geo, mat, parent, edges) => { const m = new THREE.Mesh(geo, mat); if (edges) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), glassEdge)); parent.add(m); return m; };
+  const BOWT = new THREE.Vector3(), BOWM = new THREE.Matrix4();
   function addCatapult(s, want) {
     if (STYLE.arch && STYLE.arch !== "none") s = Math.round((s - 1) / 8) * 8 + 1; // the glass in a frame (every 8 m, at 1); the weapon 18 m before it, the frame there taken away
     lastCataS = s;
@@ -5870,6 +5879,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       setObj(c.root, c.cs, c.u, c.y0 || 0); c.root.updateMatrixWorld(true);
       if (c.beam) { // the laser sight's beam, straight on along the bow and on down the track, as Lux's lasers; its spot on the glass where the rod will strike it
         c.dot.visible = !c.broken;
+        // the bow turned to its glass, wherever the track has gone by then (a point on it halfway in from its own wall, at the hexagon's
+        // middle height, where it pointed on a straight): turned once along the track, it had shone off past the glass round a bend
+        if (!c.broken) { frameAt(c.s); const t = BOWT.copy(_P).addScaledVector(_R, c.u * 0.55).addScaledVector(_U, HEX_V); c.bow.parent.updateMatrixWorld(true);
+          t.applyMatrix4(BOWM.copy(c.bow.parent.matrixWorld).invert()).sub(c.bow.position);
+          c.bow.rotation.y = Math.atan2(-t.x, -t.z); c.bow.rotation.x = Math.atan2(t.y, Math.hypot(t.x, t.z)); c.bow.updateMatrixWorld(true); }
         { const a = tmpV.copy(c.sightAt).applyMatrix4(c.bow.matrixWorld).clone(), dir = new THREE.Vector3(0, 0, -1).transformDirection(c.bow.matrixWorld);
           frameAt(c.s); const den = dir.dot(_T), k = _P.clone().addScaledVector(_T, -0.32 * Math.sign(den)).sub(a).dot(_T) / (Math.abs(den) < 0.05 ? 0.05 * Math.sign(den || 1) : den); // to the slab's near face
           c.aim = a.clone().addScaledVector(dir, Math.abs(k));
@@ -7458,7 +7472,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     alt = clamp(alt + dA - drift * dt, -1, 1);
     altVel += ((alt - prevAlt) / dt - altVel) * (1 - Math.exp(-dt / 0.6));
     const up = altVel > 0 && alt > 0 ? 1.15 : 1; // climbs in the light half are 15% steeper, so they read
-    const rawPitch = sC > SUPER_END - 40 || LEVEL.id === "initium" ? 0 : clamp(altVel * 7 * up, -0.42, 0.3 * up); // the station sits level; Initium's bridge over its city never tilts with the karma
+    const rawPitch = sC > SUPER_END - 40 || LEVEL.id === "initium" || LEVEL.id === "vitrum" ? 0 : clamp(altVel * 7 * up, -0.42, 0.3 * up); // the station sits level; Initium's bridge over its city and Vitrum's glass never tilt with the karma
     pitchTs += (rawPitch - pitchTs) * (1 - Math.exp(-dt * 2.5));
 
     // motion: uphill is slower, downhill faster
@@ -7549,7 +7563,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (LTW.length) updateSwitches(dt);
     for (const sp of SPANS) { if (sp.ft < 0 && sC > sp.tw0 - 32) sp.ft = 0; if (sp.ft >= 0) sp.ft += dt; sp.k = sp.ft < 0 ? 0 : smooth5(Math.min(1, sp.ft / 1.2)); } // Speculum's corkscrews: straight till the cart is near, then formed before its eyes
     AHEAD = LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150; // (the spiral's far side, and what is past it, set down while still far off)
-    BEHIND = LTW.some(m => m.kind === "spiral" && sC > m.tw0 && sC < m.tw1 + 150) || LOOPS.some(l => sC > l.s0 && sC < loopEnd(l) + 150) ? 150 : 10; // (and in and past a loop: its deck overhead)
+    // behind the cart: the deck and all on it drawn as far back as can still be seen ahead (in a loop, its first half overhead; on
+    // Vitrum's ring, the loop it threads, all of it, 430 m back); elsewhere only a little
+    BEHIND = LOOPS.some(l => sC > l.s0 && sC < loopEnd(l) + 40) ? BACK : LTW.some(m => m.kind === "spiral" && sC > m.tw0 && sC < m.tw1 + 150) ? 150 : 10;
     computePath();
     if (AHEAD < AHEAD_MAX && !STYLE.closed && !LEVEL.halls) { // the track drawn, and things set down, out to where it is past the melting by a straight line, not by its own length: round a bend its end, nearer, was cut off still showing
       const x0 = PP[BACK * 3], y0 = PP[BACK * 3 + 1], z0 = PP[BACK * 3 + 2]; let j = BACK + 146;

@@ -8874,7 +8874,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     else if (isOpen(lv)) button(btns, "cta", st === "done" ? T("Пройти ещё раз", "Ride again") : T("Начать", "Ride"), () => startLevel(lv));
     else if (req.transfer && progress.done[req.transfer.from] && bank >= req.transfer.cost) button(btns, "cta", T(`Пересадка: −${req.transfer.cost} ◆`, `Change: −${req.transfer.cost} ◆`), () => { progress.bank -= req.transfer.cost; progress.open[lv.id] = true; saveProgress(); startLevel(lv); });
     else button(btns, "cta", T("Закрыта", "Closed"), null, true);
-    if (lv.depot) button(btns, "cta", T("В Thesaurus", "To Thesaurus"), () => openSheet(byId("thesaurus"), false, true)); // where the crystals are richest
+    if (lv.depot && isOpen(byId("thesaurus"))) button(btns, "cta", T("В Thesaurus", "To Thesaurus"), () => openSheet(byId("thesaurus"), false, true)); // where the crystals are richest, once it is open
     button(btns, "ghost", T("Назад к схеме", "Back to the scheme"), () => { closeSheet(); renderMap(); });
     // a station with a clip of its level (minis/<id>.mp4, embedded by build.py) plays it in place of the shot
     const clip = !lv.depot && !lv.gift && document.getElementById("clip-" + lv.id);

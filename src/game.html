@@ -6549,7 +6549,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35], [860, 50, -45], [980, 60, 50], [1090, 50, -40]],
       desc: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах стальные решётки на цепях, парящие лазерные балки и сетки и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
       feats: ["Залы с решётками на цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Effugium: побег через камеры"],
-      req: { after: "speculum" }, map: { x: 775, y: 440, label: "t" } },
+      req: { after: "speculum" }, map: { x: 590, y: 440, label: "t" } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 2880, superLen: 520, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "cube", glassWalls: true, bridge: true, floor: "plain" }, spaceMul: 1.35, crystalMul: 1.5, armor: 1, gainMul: 0.85,
       gateKinds: ["v"], // Nox's gates, as they are there
@@ -6654,7 +6654,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // a dead-end branch: a short drop, a gentle slope, a short level run into its station (a long drop leaves room for the dead end's name over it; the slope is the same on every branch)
     { kind: "branch", to: "thesaurus", pts: [[90, 320], [90, 418], [116, 440], [185, 440]] }, // its level run as long as Carcer's
     { kind: "branch", to: "armamentarium", pts: [[185, 440], [385, 440]] }, // the depot lies on from the Treasury, midway under Vitrum and Rubinus
-    { kind: "branch", to: "carcer", pts: [[680, 320], [680, 418], [706, 440], [775, 440]] }, // to the right, its level run as long as Thesaurus's
+    { kind: "branch", to: "carcer", pts: [[680, 320], [680, 418], [654, 440], [590, 440]] }, // back to the left, to midway under Rubinus and Speculum
     { kind: "gift", to: "emptio", pts: [[90, 320], [230, 190]] }, // Emptio: a gold branch up from Initium, as long as the arc and parallel to it
   ];
   const byId = id => LEVELS.find(l => l.id === id);

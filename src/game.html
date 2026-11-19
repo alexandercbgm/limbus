@@ -8447,6 +8447,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       const P = vA ? pts : pts.slice().reverse(), L = []; let tot = 0; // from the shown end: full till a quarter of the way, gone by half
       for (let i = 0; i + 1 < P.length; i++) { const l = Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]); L.push(l); tot += l; }
+      if (P.length > 2) tot = L[0]; // (a bent one, as a dead end's drop: gone by the middle of its first straight, before the bend)
       const op = d => clamp((tot * 0.5 - d) / (tot * 0.25), 0, 1);
       let d = 0;
       for (let i = 0; i + 1 < P.length && d < tot * 0.5; i++) {

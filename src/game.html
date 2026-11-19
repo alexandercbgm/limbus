@@ -6968,7 +6968,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const done = tipsDone(), mark = k => { done[k] = 1; try { localStorage.setItem("limbus-tips2", JSON.stringify(done)); } catch (e) { /* storage unavailable */ } };
       const next = [
         progress.done.initium && !done.arms && ["arms", T("Здесь выбирается пушка для вагонетки.\nНовые пушки даются при прохождении станций.", "Choose the cart's cannon here.\nNew cannons come with finishing stations."), () => document.querySelector(".arm-cur")],
-        progress.done.initium && !done.depot && ["depot", T("Здесь за кристаллы покупают\nулучшения для вагонетки.", "Crystals buy upgrades\nfor the cart here."), () => $("depotBtn")],
+        progress.done.initium && !done.depot && ["depot", T("Здесь покупают улучшения\nза кристаллы.", "Upgrades are bought here\nfor crystals."), () => $("depotBtn")],
         EMPTIO_TIP && progress.done.initium && progress.done.vitrum && !done.emptio && ["emptio", T("Emptio: покупка открывает\nпрохождение остальных уровней.", "Emptio: a purchase opens\nthe rest of the levels."), () => $("emptioBtn")],
       ].find(Boolean);
       if (!next) return;

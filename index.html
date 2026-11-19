@@ -757,7 +757,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.471</div>
+      <div class="credit version">v1.0.472</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -958,7 +958,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.471`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.472`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -7054,7 +7054,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const done = tipsDone(), mark = k => { done[k] = 1; try { localStorage.setItem("limbus-tips2", JSON.stringify(done)); } catch (e) { /* storage unavailable */ } };
       const next = [
         progress.done.initium && !done.arms && ["arms", T("Здесь выбирается пушка для вагонетки.\nНовые пушки даются при прохождении станций.", "Choose the cart's cannon here.\nNew cannons come with finishing stations."), () => document.querySelector(".arm-cur")],
-        progress.done.initium && !done.depot && ["depot", T("Здесь за кристаллы покупают\nулучшения для вагонетки.", "Crystals buy upgrades\nfor the cart here."), () => $("depotBtn")],
+        progress.done.initium && !done.depot && ["depot", T("Здесь покупают улучшения\nза кристаллы.", "Upgrades are bought here\nfor crystals."), () => $("depotBtn")],
         EMPTIO_TIP && progress.done.initium && progress.done.vitrum && !done.emptio && ["emptio", T("Emptio: покупка открывает\nпрохождение остальных уровней.", "Emptio: a purchase opens\nthe rest of the levels."), () => $("emptioBtn")],
       ].find(Boolean);
       if (!next) return;

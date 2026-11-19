@@ -3331,8 +3331,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   })();
   function engrave(g, o) {
     // as the logo's, never stretched, in three sizes: 0.9 m on glass under 3.4 m high, 1.15 m on a tall narrow pane, 1.5 m on a
-    // tall wide one; each a little bigger or smaller than the next
-    const ch = (o.h < 3.4 ? Math.min(0.9, o.h * 0.42) : o.w < 2.6 ? 1.15 : 1.5) * rand(0.93, 1.07), e = new THREE.Group();
+    // tall wide one, each of a kind just the same
+    const ch = (o.h < 3.4 ? Math.min(0.9, o.h * 0.42) : o.w < 2.6 ? 1.15 : 1.5), e = new THREE.Group();
     e.scale.setScalar(ch); e.position.z = 0.004;
     e.add(new THREE.LineSegments(ENGRAVE.lines, edgeMat), new THREE.Mesh(ENGRAVE.light, ENGRAVE.lightMat), new THREE.Mesh(ENGRAVE.dark, ENGRAVE.darkMat)); g.add(e);
   }

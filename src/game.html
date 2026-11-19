@@ -492,7 +492,7 @@ html.night, .night body { background: #03060d; }
 /* first-run tips: a comic-book callout, its pointer toward what it speaks of, never touching it */
 .tip { position: fixed; z-index: 80; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 13px 15px 12px; border-radius: 14px; background: #fffaf0; color: #10242e;
   border: 2px solid #1d6f8f; box-shadow: 0 10px 28px rgba(16, 36, 46, 0.28); font: 500 13.5px/1.45 Manrope, system-ui, sans-serif; }
-.tip p { margin: 0; padding-right: 17px; text-wrap: pretty; }
+.tip p { margin: 0; padding-right: 34px; text-wrap: pretty; } .tip .tip-cl { display: inline-block; } /* each clause a block in the line: a line breaks between clauses, after their stops and commas, where it can */
 .tip .tip-x { position: absolute; top: 3px; right: 2px; width: 36px; height: 36px; border: 0; padding: 0; border-radius: 10px; background: none; color: inherit; cursor: pointer; opacity: 0.65; }
 .tip .tip-x:hover { opacity: 1; background: rgba(16, 36, 46, 0.07); } .tip .tip-x svg { width: 16px; height: 16px; display: block; margin: auto; }
 .tip .tip-btn { display: inline-block; vertical-align: 1px; margin-left: 4px; padding: 3px 9px 2px; border-radius: 7px; background: #1287b5; color: #ffffff; font-family: var(--display); font-weight: 600; font-size: 10.5px;
@@ -6854,11 +6854,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     tipEl = document.createElement("div"); tipEl.className = "tip"; tipEl.dataset.pref = pref; tipEl.setAttribute("role", "dialog");
     tipEl.innerHTML = `<span class="tip-arr" aria-hidden="true"></span><p></p><button class="tip-x" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3L13 13M13 3L3 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>`;
     const para = tipEl.querySelector("p"); tipEl.querySelector(".tip-x").setAttribute("aria-label", T("Закрыть", "Close"));
-    if (!pic) para.textContent = text;
-    else { // the button's picture on the line with the last words, never alone on one of its own
-      const k = text.lastIndexOf(" ", text.length - 3), keep = document.createElement("span"), b = document.createElement("span");
-      para.textContent = text.slice(0, k + 1); keep.style.whiteSpace = "nowrap"; keep.textContent = text.slice(k + 1) + " ";
-      b.className = "tip-btn"; b.setAttribute("aria-hidden", "true"); b.textContent = pic; keep.append(b); para.append(keep); }
+    // its text: a new line at each \n; within a line, clauses kept whole where they fit (after a stop or a comma), and the button's
+    // picture with the last words, never on a line of its own
+    const lines = text.split("\n");
+    lines.forEach((ln, i) => { const parts = ln.split(/(?<=[,.;:])\s+/);
+      parts.forEach((pt, j) => { const cl = document.createElement("span"); cl.className = "tip-cl";
+        if (pic && i === lines.length - 1 && j === parts.length - 1) { const k = pt.lastIndexOf(" "), keep = document.createElement("span"), b = document.createElement("span");
+          cl.textContent = pt.slice(0, k + 1); keep.style.whiteSpace = "nowrap"; keep.textContent = pt.slice(k + 1) + " ";
+          b.className = "tip-btn"; b.setAttribute("aria-hidden", "true"); b.textContent = pic; keep.append(b); cl.append(keep); }
+        else cl.textContent = pt;
+        para.append(cl); if (j < parts.length - 1) para.append(" "); });
+      if (i < lines.length - 1) para.append(document.createElement("br")); });
     tipEl.querySelector(".tip-x").addEventListener("click", ok); tipEl.close = ok;
     document.body.appendChild(tipEl); tipFor = target; tipPlace(); requestAnimationFrame(tipPlace);
   }
@@ -6866,12 +6872,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (tipsSeen() || progress.rode || unlockAll) return;
     setTimeout(() => { if (state !== "menu" || $("menu").hidden || !$("sheet").hidden || tipStage) return;
       tipStage = 1; $("gearBtn").click();
-      tipShow(T("Здесь выбираются тема и язык. Чтобы закрыть меню, нажмите в любом месте вне его.", "Choose the theme and the language here. To close the menu, tap anywhere outside it."),
+      tipShow(T("Здесь выбираются тема и язык.\nЧтобы закрыть меню, нажмите в любом месте вне его.", "Choose the theme and the language here.\nTo close the menu, tap anywhere outside it."),
         "left,bottom,right,top", () => $("gearPop"), () => { tipStage = 2; if (tipEl) { tipEl.remove(); tipEl = null; } }); }, 900);
   }
   function tipsGearClosed() { // the settings menu closed: on to the second tip
     if (tipStage !== 1 && tipStage !== 2) return; tipStage = 3;
-    setTimeout(() => state !== "menu" ? tipsEnd() : tipShow(T("Чтобы начать, нажмите на станцию Initium, а в открывшейся карточке", "To set off, tap the Initium station, then on its card"),
+    setTimeout(() => state !== "menu" ? tipsEnd() : tipShow(T("Чтобы начать, нажмите на станцию Initium,\nа в открывшейся карточке", "To set off, tap the Initium station,\nthen on its card"),
       "right,bottom,top,left", () => document.querySelector('#map .station[data-id="initium"] circle.hit'), tipsEnd, T("Начать", "Ride")), 250);
   }
   addEventListener("resize", () => requestAnimationFrame(tipPlace));

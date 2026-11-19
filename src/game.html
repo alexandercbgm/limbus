@@ -233,7 +233,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 }
 @media (orientation: landscape) and (max-height: 380px) and (max-width: 720px) { .tg .bank span { display: none; } } /* only the diamond and the count */
 .arms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-/* Armamentarium, beside the cannons: a shield with two chevrons up (upgrades) and its name; dim till Thesaurus is finished, a lilac
+/* Armamentarium, beside the cannons: a shield with two chevrons up (upgrades) and its name; a lilac
    dot pulsing on it till something is bought there */
 .depot { position: relative; box-sizing: border-box; height: 38px; display: inline-flex; align-items: center; gap: 7px; padding: 0 13px 0 10px; border: 0; border-radius: 11px; cursor: pointer;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.62)); color: #10242e; font: 600 11px var(--display); letter-spacing: 0.08em; text-transform: uppercase;
@@ -6523,9 +6523,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       req: { after: "initium" }, map: { x: 270, y: 320, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
-      desc: "Тупиковый склад за Thesaurus. Здесь за кристаллы покупают улучшения для вагонетки. Пушки здесь не продаются: их дарят станции.",
+      desc: "Здесь за кристаллы покупают улучшения для вагонетки. Пушки здесь не продаются: их дарят станции.",
       feats: ["Улучшения: запас шаров, второе дыхание, щедрость кристаллов", "У каждого три уровня; купленное остаётся навсегда", "Пушки дарят станции: Initium, Labyrinthus, Nox, Rubinus и Carcer"],
-      req: { after: "thesaurus" }, map: { x: 385, y: 440, label: "t" } },
+      req: {}, map: { x: 385, y: 440, label: "t" } }, // (no station now: always open, its button on the top bar)
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.2,
       forks: [330, 720, 1110],
@@ -6613,7 +6613,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["Four manoeuvres in a random order, the loops different every time", "2.2 times the crystals", "Finale Pluvia: a rain of crystals"] },
       vitrum: { ru: "Glass", desc: "Prismatic arches over the abyss in a clear evening sky: the sun setting behind, the stars coming out ahead. Hexagonal vaults and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, and thick glass that fills the way breaks only to a catapult: hit its target.",
         feats: ["Glass catapults: hit the target and the shot breaks the thick glass", "Monoliths on chains, turning glass bars and crosses", "Finale Ruina: falling boulders"] },
-      armamentarium: { ru: "Armoury", desc: "A dead-end depot beyond Thesaurus. Here crystals buy upgrades for the cart. Cannons are not sold here: stations give them.",
+      armamentarium: { ru: "Armoury", desc: "Here crystals buy upgrades for the cart. Cannons are not sold here: stations give them.",
         feats: ["Upgrades: a bigger reserve, a second wind, more bounty from crystals", "Three levels each; what you buy stays yours", "Cannons are stations' gifts: Initium, Labyrinthus, Nox, Rubinus and Carcer"] },
       labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hang two boards, an arrow under each. Hit an arrow and the rails turn into its branch; you choose once. Choose none and you take the rich branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains.",
         feats: ["Three forks: pick the branch by shooting the arrow under its board", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
@@ -8448,7 +8448,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // each with its picture and what it does. A tap outside, Escape or the button again folds it away
   let armsOpen = false;
   function renderEmptio() { $("emptioBtn").hidden = !(unlockAll || progress.done.initium); } // (once Initium is finished, as it had been on the scheme)
-  function renderDepot() { renderEmptio(); // Armamentarium's button: dim till Thesaurus is finished; a dot on it till something is bought there
+  function renderDepot() { renderEmptio(); // Armamentarium's button: a dot on it till something is bought there
     const lv = byId("armamentarium"), b = $("depotBtn"); b.classList.toggle("locked", !isOpen(lv)); b.classList.toggle("fresh", isOpen(lv) && !progress.bought);
     b.title = T("Armamentarium: улучшения за кристаллы", "Armamentarium: upgrades for crystals"); }
   function renderArms() {
@@ -8758,7 +8758,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const scroll = keep ? $("sheet").scrollTop : 0;
     if (!keep) { shopTab = "guns"; $("sheet").scrollTop = 0; } // opened afresh: the first tab, from the top, never as it was left
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
-    $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("кристаллы для Арсенала", "crystals for Armamentarium") : st === "locked" ? T("можно открыть", "ready to open") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
+    $("shEyebrow").textContent = `${lv.depot ? T("Склад", "Depot") : lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("кристаллы для Арсенала", "crystals for Armamentarium") : st === "locked" ? T("можно открыть", "ready to open") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
     $("shName").innerHTML = `${esc(lv.latin)}<small>${esc(lv.ru)}</small>`;
     $("shDesc").textContent = lv.desc;
     $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead

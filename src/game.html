@@ -508,7 +508,7 @@ html.night, .night body { background: #03060d; }
 .night .logo span { color: #3cc9ec; }
 .night .map-card { background: linear-gradient(180deg, rgba(20, 34, 58, 0.78), rgba(8, 14, 28, 0.86));
   box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.16), 0 30px 80px -20px rgba(0, 0, 0, 0.8); }
-.night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; } .night #map stop.cas { stop-color: #08101e; } .night #map .tube-hl { stroke-opacity: 0.6; } .night #map .tube-bd { stroke-opacity: 0.14; } .night #map .tube-sh { stroke-opacity: 0.35; } /* by night the tubes' light softer, their shade deeper */
+.night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; } .night #map stop.cas { stop-color: #08101e; }
 /* Initium's first ride: the world held still, all dimmed but what a callout speaks of */
 #tutVeil { position: fixed; inset: 0; z-index: 70; } #tutVeil svg { width: 100%; height: 100%; display: block; }
 /* first-run tips: a comic-book callout, its pointer toward what it speaks of, never touching it */
@@ -8594,16 +8594,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
     }
   }
-  // a scheme line's points, from its own markup (a polyline's points, or a line's ends)
-  const tubePts = m => { const pm = m.match(/points="([^"]*)"/); if (pm) return pm[1].trim().split(/\s+/).map(q => q.split(",").map(Number));
-    const g = k => +(m.match(new RegExp(` ${k}="([^"]*)"`)) || [])[1]; return [[g("x1"), g("y1")], [g("x2"), g("y2")]]; };
-  // the same line moved across itself (never along it) by d toward where the light falls from (down and right for d > 0): at each
-  // point by the light's share across the line there, so a glint keeps to the lit side and slides over through a bend
-  const TUBE_L = [0.5, 0.866];
-  function tubeOff(pts, d) {
-    const n = pts.map((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)]; let dx = b[0] - a[0], dy = b[1] - a[1]; const l = Math.hypot(dx, dy) || 1; return [-dy / l, dx / l]; });
-    return pts.map(([x, y], i) => { const [nx, ny] = n[i], k = (nx * TUBE_L[0] + ny * TUBE_L[1]) * d; return `${(x + nx * k).toFixed(2)},${(y + ny * k).toFixed(2)}`; }).join(" ");
-  }
   function renderMap() {
     const svg = $("map");
     mapW = svg.parentElement.clientWidth;
@@ -8642,11 +8632,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           under += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="url(#${id})" stroke-width="13" stroke-linecap="${i ? "butt" : "round"}"/>`;
           if (i && o0 > 0) under += `<circle class="cas" cx="${x0}" cy="${y0}" r="6.5" fill="#ffffff" fill-opacity="${o0.toFixed(3)}"/>`; }
         // as glass as the rest (see below): its colour a little clear, a paler band down its middle and a thin bright line in that, all fading
-        for (const [c, w, a, tr] of [[color, 8, 1], ["#000000", 2, 0.2, 2.1], ["#fffffe", 3.4, 0.2, -0.7], ["#fffffe", 1.3, 0.85, -1.9]]) { const id = `fade${fn++}`;
+        for (const [c, w, a] of [[color, 8, 0.78], ["#fffffe", 3.6, 0.22], ["#fffffe", 1.1, 0.7]]) { const id = `fade${fn++}`;
           fdefs += `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}"><stop offset="0" stop-color="${c}" stop-opacity="${(o0 * a).toFixed(3)}"/><stop offset="1" stop-color="${c}" stop-opacity="${(o1 * a).toFixed(3)}"/></linearGradient>`;
-          const [q0, q1] = tr ? tubeOff([[x0, y0], [x1, y1]], tr).split(" ").map(q => q.split(",")) : [[x0, y0], [x1, y1]];
-          out += `<line${tr ? ` class="${tr > 0 ? "tube-sh" : tr < -1 ? "tube-hl" : "tube-bd"}"` : ""} x1="${q0[0]}" y1="${q0[1]}" x2="${q1[0]}" y2="${q1[1]}" stroke="url(#${id})" stroke-width="${w}" stroke-linecap="${i || tr ? "butt" : "round"}"${built ? "" : ' stroke-dasharray="1 11"'}/>`;
-          if (i && o0 > 0 && !tr) out += `<circle cx="${x0}" cy="${y0}" r="${w / 2}" fill="${c}" fill-opacity="${(o0 * a).toFixed(3)}"/>`; } // (a round joint where it bends)
+          out += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="url(#${id})" stroke-width="${w}" stroke-linecap="${i ? "butt" : "round"}"${built ? "" : ' stroke-dasharray="1 11"'}/>`;
+          if (i && o0 > 0) out += `<circle cx="${x0}" cy="${y0}" r="${w / 2}" fill="${c}" fill-opacity="${(o0 * a).toFixed(3)}"/>`; } // (a round joint where it bends)
         d += L[i] * k;
       }
     };
@@ -8717,16 +8706,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // band down its middle and a thin bright line in that, and on each ring a glint on its upper left
     out = out.replace(/<(line|polyline)\b([^>]*?)stroke="(#[0-9a-fA-F]{3,6})" stroke-width="8"([^>]*?)\/>/g, (m, tag, a, c, b) => {
       if (/stroke-dasharray/.test(m)) return m;
-      // as the rings are: the colour solid, a paler band and a bright thread down the middle, and a glint along the edge the light
-      // falls on (up and left, as on the rings), so lines and stations read as one glass
-      // a glass tube: its colour, a shade along the far side (down and right), a soft lit body and a sharp glint along the near side
-      // (up and left, where the rings catch the light too)
-      // (each drawn across the tube, never along it: through a bend the glint slides from one side to the other as the light would)
-      const pts = tubePts(m), sh = tubeOff(pts, 2.1), bd = tubeOff(pts, -0.7), hl = tubeOff(pts, -1.9), rest = b.replace(/ stroke-linecap="[^"]*"| stroke-linejoin="[^"]*"/g, "");
-      return `<${tag}${a}stroke="${c}" stroke-width="8"${b}/>` +
-        `<polyline class="tube-sh" points="${sh}" fill="none" stroke="#000000" stroke-width="2" stroke-opacity="0.2" stroke-linejoin="round"${rest}/>` +
-        `<polyline class="tube-bd" points="${bd}" fill="none" stroke="#fffffe" stroke-width="3.4" stroke-opacity="0.2" stroke-linejoin="round" stroke-linecap="round"${rest}/>` +
-        `<polyline class="tube-hl" points="${hl}" fill="none" stroke="#fffffe" stroke-width="1.3" stroke-opacity="0.85" stroke-linejoin="round"${rest}/>`; });
+      return `<${tag}${a}stroke="${c}" stroke-width="8" stroke-opacity="0.78"${b}/>` +
+        `<${tag}${a}stroke="#fffffe" stroke-width="3.6" stroke-opacity="0.22"${b}/>` +
+        `<${tag}${a}stroke="#fffffe" stroke-width="1.1" stroke-opacity="0.7"${b}/>`; });
     out = out.replace(/<(circle|path) class="(ring|hub)([^"]*)" style="transform-origin:([\d.]+)px ([\d.]+)px"([^>]*?)\/>/g, (m, tag, cls, more, x, y) => {
       const r = cls === "hub" ? 21 : /inner/.test(more) ? 17 : 20.5, w = cls === "hub" ? 4 : 5;
       // the glint: a bent ellipse along the ring, widest in its middle and drawn to a point at each end

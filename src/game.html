@@ -241,14 +241,14 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 .depot:hover { background: #ffffff; } .depot.locked { opacity: 0.5; }
 .night .depot { background: rgba(14, 26, 46, 0.78); color: #dff3ff; box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2); } .night .depot:hover { background: rgba(24, 40, 66, 0.9); }
 /* Emptio, beside the logo: the game's crystal and its name, in the gold of its old branch */
-.m-brand { display: flex; align-items: center; gap: 22px; } .emptio { color: #8a6412; box-shadow: inset 0 1px 0 #ffffff, 0 2px 8px -2px rgba(214, 160, 40, 0.35); }
-.night .emptio { color: #ffd36a; box-shadow: inset 0 1px 0 rgba(255, 220, 140, 0.18), 0 0 14px -4px rgba(255, 200, 90, 0.5); }
+.m-brand { display: flex; align-items: center; gap: 22px; } .emptio { color: #8a6412; box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.07), 0 2px 8px -2px rgba(214, 160, 40, 0.35); }
+.night .emptio { color: #ffd36a; box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 14px -4px rgba(255, 200, 90, 0.5); }
 /* and a gold glow round it, breathing (slowly: noticed, not nagging): its own shadow, so one edge, no second ring */
 .emptio { animation: emptioGlow 2.4s ease-in-out infinite; } .night .emptio { animation-name: emptioGlowN; }
-@keyframes emptioGlow { 0%, 100% { box-shadow: inset 0 1px 0 #ffffff, 0 0 6px 0 rgba(240, 180, 50, 0.25); }
-  50% { box-shadow: inset 0 1px 0 #ffffff, 0 0 16px 3px rgba(240, 180, 50, 0.55); } }
-@keyframes emptioGlowN { 0%, 100% { box-shadow: inset 0 1px 0 rgba(255, 220, 140, 0.18), 0 0 6px 0 rgba(255, 200, 90, 0.25); }
-  50% { box-shadow: inset 0 1px 0 rgba(255, 220, 140, 0.18), 0 0 18px 4px rgba(255, 200, 90, 0.55); } }
+@keyframes emptioGlow { 0%, 100% { box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.07), 0 0 6px 0 rgba(240, 180, 50, 0.25); }
+  50% { box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.07), 0 0 16px 3px rgba(240, 180, 50, 0.55); } }
+@keyframes emptioGlowN { 0%, 100% { box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 6px 0 rgba(255, 200, 90, 0.25); }
+  50% { box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 18px 4px rgba(255, 200, 90, 0.55); } }
 @media (prefers-reduced-motion: reduce) { .emptio, .night .emptio { animation: none; } }
 @media (max-width: 760px) { .depot span { display: none; } .depot { padding: 0 9px; } } /* a narrow screen: the shield alone */
 

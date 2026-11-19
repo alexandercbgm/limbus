@@ -9030,7 +9030,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   document.querySelectorAll(".snd").forEach(b => b.addEventListener("click", () => { Sound.setMuted(!Sound.muted); syncMute(); }));
   // the settings under the gear: the theme, the language, the help. A tap outside, Escape or the gear again folds them away
   const gear = $("gearBtn"), gearPopEl = $("gearPop");
-  const gearOpen = open => { gearPopEl.hidden = !open; gear.setAttribute("aria-expanded", String(open)); gear.classList.toggle("on", open); };
+  let resetDisarm = null; // (closing the menu takes back a reset asked for)
+  const gearOpen = open => { if (!open && resetDisarm) resetDisarm(); gearPopEl.hidden = !open; gear.setAttribute("aria-expanded", String(open)); gear.classList.toggle("on", open); };
   gear.addEventListener("click", () => gearOpen(gearPopEl.hidden));
   document.addEventListener("pointerdown", e => { if (!gearPopEl.hidden && !gearPopEl.contains(e.target) && !gear.contains(e.target)) gearOpen(false); }, true);
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !gearPopEl.hidden) { gearOpen(false); gear.focus(); } });
@@ -9038,9 +9039,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   gearPopEl.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => { if (b.dataset.lang !== LANG) setLang(b.dataset.lang); }));
   gearPopEl.querySelectorAll("[data-theme]").forEach(b => b.addEventListener("click", () => setTheme(b.dataset.theme)));
   // start over: everything the game remembers wiped (progress, crystals, cannons, upgrades, language, sound, theme), as at the very
-  // first opening. The first press only asks (the row turns red and says what it does); a second within a minute does it
+  // first opening. The first press only asks (the row turns red and says what it does); a second within a minute does it; closing the menu or a minute gone takes it back
   { const rb = $("resetBtn"); let armT = 0;
-    const disarm = () => { rb.classList.remove("armed"); $("resetTxt").textContent = T("Начать сначала", "Start over"); armT = 0; };
+    const disarm = () => { clearTimeout(armT); rb.classList.remove("armed"); $("resetTxt").textContent = T("Начать сначала", "Start over"); armT = 0; }; resetDisarm = disarm;
     rb.addEventListener("click", () => {
       if (!armT) { rb.classList.add("armed"); $("resetTxt").textContent = T("Сбросить и начать заново", "Reset and start over"); armT = setTimeout(disarm, 60000); return; }
       clearTimeout(armT);

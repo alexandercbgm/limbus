@@ -568,7 +568,7 @@ html.night, .night body { background: #03060d; }
 .night .logo span { color: #3cc9ec; }
 .night .map-card { background: linear-gradient(180deg, rgba(20, 34, 58, 0.78), rgba(8, 14, 28, 0.86));
   box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.16), 0 30px 80px -20px rgba(0, 0, 0, 0.8); }
-.night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; }
+.night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; } .night #map stop.cas { stop-color: #08101e; } .night #map circle.cas { fill: #08101e; }
 .night #map circle[fill="#ffffff"], .night #map circle[fill="#fffaf0"], .night #map rect[fill="#fffaf0"] { fill: #0c1628; }
 .night .map-under [stroke="#ffffff"] { stroke: #000000; } .night #map circle.case { stroke: #000000; } /* the casings black by night */
 .night #map circle[fill="#e6ecee"] { fill: #18233a; }
@@ -721,7 +721,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.443</div>
+      <div class="credit version">v1.0.444</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -922,7 +922,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.443`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.444`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -8538,6 +8538,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       let d = 0;
       for (let i = 0; i + 1 < P.length && d < tot * 0.5; i++) {
         const [x0, y0] = P[i], k = Math.min(1, (tot * 0.5 - d) / L[i]), x1 = x0 + (P[i + 1][0] - x0) * k, y1 = y0 + (P[i + 1][1] - y0) * k, o0 = op(d), o1 = op(d + L[i] * k);
+        // its casing, as the rest's (white; dark by night: see the CSS for .cas), in the layer under, fading with it
+        { const id = `fade${fn++}`;
+          fdefs += `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}"><stop class="cas" offset="0" stop-color="#ffffff" stop-opacity="${o0.toFixed(3)}"/><stop class="cas" offset="1" stop-color="#ffffff" stop-opacity="${o1.toFixed(3)}"/></linearGradient>`;
+          under += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="url(#${id})" stroke-width="13" stroke-linecap="${i ? "butt" : "round"}"/>`;
+          if (i && o0 > 0) under += `<circle class="cas" cx="${x0}" cy="${y0}" r="6.5" fill="#ffffff" fill-opacity="${o0.toFixed(3)}"/>`; }
         // as glass as the rest (see below): its colour a little clear, a paler band down its middle and a thin bright line in that, all fading
         for (const [c, w, a] of [[color, 8, 0.78], ["#fffffe", 3.6, 0.22], ["#fffffe", 1.1, 0.7]]) { const id = `fade${fn++}`;
           fdefs += `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}"><stop offset="0" stop-color="${c}" stop-opacity="${(o0 * a).toFixed(3)}"/><stop offset="1" stop-color="${c}" stop-opacity="${(o1 * a).toFixed(3)}"/></linearGradient>`;

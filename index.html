@@ -572,15 +572,15 @@ html.night, .night body { background: #03060d; }
 /* first-run tips: a comic-book callout, its pointer toward what it speaks of, never touching it */
 .tip { position: fixed; z-index: 80; max-width: min(270px, calc(100vw - 32px)); box-sizing: border-box; padding: 13px 15px 12px; border-radius: 14px; background: #fffaf0; color: #10242e;
   border: 2px solid #1d6f8f; box-shadow: 0 10px 28px rgba(16, 36, 46, 0.28); font: 500 13.5px/1.45 Manrope, system-ui, sans-serif; }
-.tip p { margin: 0 0 10px; }
-.tip .tip-ok, .tip .tip-btn { display: block; box-sizing: border-box; border: 0; border-radius: 10px; background: #1287b5; color: #ffffff; font-family: var(--display); font-weight: 600; font-size: 13px;
-  letter-spacing: 0.1em; text-transform: uppercase; text-align: center; box-shadow: 0 6px 18px -6px rgba(18, 135, 181, 0.55); }
-.tip .tip-ok { margin-left: auto; min-width: 84px; padding: 9px 18px; cursor: pointer; } .tip .tip-ok:hover { background: #1a98c8; }
-.tip .tip-btn { width: 100%; padding: 10px 14px; margin: 0 0 12px; pointer-events: none; } /* a picture of the card's button, not a button */
+.tip p { margin: 0; padding-right: 26px; }
+.tip .tip-x { position: absolute; top: 4px; right: 4px; width: 36px; height: 36px; border: 0; padding: 0; border-radius: 10px; background: none; color: inherit; cursor: pointer; opacity: 0.65; }
+.tip .tip-x:hover { opacity: 1; background: rgba(16, 36, 46, 0.07); } .tip .tip-x svg { width: 16px; height: 16px; display: block; margin: auto; }
+.tip .tip-btn { display: inline-block; vertical-align: 1px; margin-left: 4px; padding: 3px 9px 2px; border-radius: 7px; background: #1287b5; color: #ffffff; font-family: var(--display); font-weight: 600; font-size: 10.5px;
+  letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.4; white-space: nowrap; box-shadow: 0 3px 10px -4px rgba(18, 135, 181, 0.55); pointer-events: none; } /* a picture of the card's button, not a button */
 .tip .tip-arr { position: absolute; width: 14px; height: 14px; background: inherit; border: inherit; border-width: 0; transform: rotate(45deg); }
 .tip.at-left .tip-arr { right: -9px; border-right-width: 2px; border-top-width: 2px; } .tip.at-right .tip-arr { left: -9px; border-left-width: 2px; border-bottom-width: 2px; }
 .tip.at-bottom .tip-arr { top: -9px; border-left-width: 2px; border-top-width: 2px; } .tip.at-top .tip-arr { bottom: -9px; border-right-width: 2px; border-bottom-width: 2px; }
-.night .tip { background: #0f1c30; color: #e6f2fb; border-color: #3cc9ec; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); } .night .tip .tip-ok, .night .tip .tip-btn { background: #3cc9ec; color: #04121c; box-shadow: 0 0 22px rgba(60, 201, 236, 0.3); } .night .tip .tip-ok:hover { background: #5fd6f2; } .night #map circle.cas { fill: #08101e; }
+.night .tip { background: #0f1c30; color: #e6f2fb; border-color: #3cc9ec; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); } .night .tip .tip-btn { background: #3cc9ec; color: #04121c; box-shadow: 0 0 12px rgba(60, 201, 236, 0.3); } .night .tip .tip-x:hover { background: rgba(160, 220, 255, 0.1); } .night #map circle.cas { fill: #08101e; }
 .night #map circle[fill="#ffffff"], .night #map circle[fill="#fffaf0"], .night #map rect[fill="#fffaf0"] { fill: #0c1628; }
 .night .map-under [stroke="#ffffff"] { stroke: #000000; } .night #map circle.case { stroke: #000000; } /* the casings black by night */
 .night #map circle[fill="#e6ecee"] { fill: #18233a; }
@@ -733,7 +733,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.446</div>
+      <div class="credit version">v1.0.447</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -934,7 +934,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.446`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.447`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6935,10 +6935,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function tipShow(text, pref, target, ok, pic) {
     if (tipEl) tipEl.remove();
     tipEl = document.createElement("div"); tipEl.className = "tip"; tipEl.dataset.pref = pref; tipEl.setAttribute("role", "dialog");
-    tipEl.innerHTML = `<span class="tip-arr" aria-hidden="true"></span><p></p><button class="tip-ok" type="button">Ок</button>`;
-    tipEl.querySelector("p").textContent = text; tipEl.querySelector(".tip-ok").textContent = T("Ок", "OK");
-    if (pic) { const b = document.createElement("span"); b.className = "tip-btn"; b.setAttribute("aria-hidden", "true"); b.textContent = pic; tipEl.querySelector("p").after(b); }
-    tipEl.querySelector(".tip-ok").addEventListener("click", ok);
+    tipEl.innerHTML = `<span class="tip-arr" aria-hidden="true"></span><p></p><button class="tip-x" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3L13 13M13 3L3 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>`;
+    const para = tipEl.querySelector("p"); tipEl.querySelector(".tip-x").setAttribute("aria-label", T("Закрыть", "Close"));
+    if (!pic) para.textContent = text;
+    else { // the button's picture on the line with the last words, never alone on one of its own
+      const k = text.lastIndexOf(" ", text.length - 3), keep = document.createElement("span"), b = document.createElement("span");
+      para.textContent = text.slice(0, k + 1); keep.style.whiteSpace = "nowrap"; keep.textContent = text.slice(k + 1) + " ";
+      b.className = "tip-btn"; b.setAttribute("aria-hidden", "true"); b.textContent = pic; keep.append(b); para.append(keep); }
+    tipEl.querySelector(".tip-x").addEventListener("click", ok); tipEl.close = ok;
     document.body.appendChild(tipEl); tipFor = target; tipPlace(); requestAnimationFrame(tipPlace);
   }
   function tipsStart() {
@@ -6950,10 +6954,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function tipsGearClosed() { // the settings menu closed: on to the second tip
     if (tipStage !== 1 && tipStage !== 2) return; tipStage = 3;
-    setTimeout(() => state !== "menu" ? tipsEnd() : tipShow(T("Чтобы начать, нажмите на станцию Initium, а в открывшейся карточке — на кнопку", "To set off, tap the Initium station, then on its card the button"),
+    setTimeout(() => state !== "menu" ? tipsEnd() : tipShow(T("Чтобы начать, нажмите на станцию Initium, а в открывшейся карточке —", "To set off, tap the Initium station, then on its card"),
       "right,bottom,top,left", () => document.querySelector('#map .station[data-id="initium"] circle.hit'), tipsEnd, T("Начать", "Ride")), 250);
   }
   addEventListener("resize", () => requestAnimationFrame(tipPlace));
+  document.addEventListener("pointerdown", e => { if (tipEl && !tipEl.contains(e.target)) tipEl.close(); }, true); // a tap anywhere else closes a tip too (and goes on as it would)
   function showMenu() {
     state = "menu";
     Sound.want = MENU_TRACK; Sound.setKarma(0.35); if (Sound.ctx) Sound.play(Sound.want); // the menu always plays its own track

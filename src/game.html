@@ -415,6 +415,7 @@ video.mini { background: none; object-fit: contain; }
   .credit { font-size: 7.5px; right: 9px; bottom: 5px; letter-spacing: 0.1em; } .credit.version { right: auto; left: 9px; }
   /* the pause, the end of a ride and the arrival: a smaller title, the figures in one row, the buttons side by side */
   #pause .panel, #over .panel, #win .panel, #nag .panel { padding: 12px 18px; } #nag h1 { font-size: 19px; } #nag .panel p { font-size: 12px; line-height: 1.38; } #nag .btns { grid-auto-flow: column; grid-auto-columns: 1fr; margin-top: 10px; }
+  #nag .panel { width: min(640px, calc(100vw - 32px)); max-width: none; box-sizing: border-box; } #nag .btns { grid-auto-columns: auto; } #nag .btns > * { white-space: nowrap; padding-inline: 14px; } /* wide enough for the three buttons each on one line */
   #pause h1, #over h1, #win h1 { font-size: 19px; margin-bottom: 4px; }
   #pause .panel p, #over .panel p, #win .panel p { font-size: 12px; line-height: 1.35; margin: 2px 0; }
   #over .stats, #win .stats { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 4px 12px; margin: 8px 0 10px; }

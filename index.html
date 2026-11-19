@@ -495,6 +495,7 @@ video.mini { background: none; object-fit: contain; }
   .credit { font-size: 7.5px; right: 9px; bottom: 5px; letter-spacing: 0.1em; } .credit.version { right: auto; left: 9px; }
   /* the pause, the end of a ride and the arrival: a smaller title, the figures in one row, the buttons side by side */
   #pause .panel, #over .panel, #win .panel, #nag .panel { padding: 12px 18px; } #nag h1 { font-size: 19px; } #nag .panel p { font-size: 12px; line-height: 1.38; } #nag .btns { grid-auto-flow: column; grid-auto-columns: 1fr; margin-top: 10px; }
+  #nag .panel { width: min(640px, calc(100vw - 32px)); max-width: none; box-sizing: border-box; } #nag .btns { grid-auto-columns: auto; } #nag .btns > * { white-space: nowrap; padding-inline: 14px; } /* wide enough for the three buttons each on one line */
   #pause h1, #over h1, #win h1 { font-size: 19px; margin-bottom: 4px; }
   #pause .panel p, #over .panel p, #win .panel p { font-size: 12px; line-height: 1.35; margin: 2px 0; }
   #over .stats, #win .stats { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 4px 12px; margin: 8px 0 10px; }
@@ -735,7 +736,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.456</div>
+      <div class="credit version">v1.0.457</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -936,7 +937,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.456`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.457`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));

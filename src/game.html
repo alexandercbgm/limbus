@@ -8651,7 +8651,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       out += `<g class="station" tabindex="0" role="button" data-id="${lv.id}" aria-label="${esc(lv.latin)}, ${esc(lv.ru)}: ${STATUS(st)}">`;
       out += `<circle class="hit" cx="${p.x}" cy="${p.y}" r="${STATION_HIT}"/>`;
       if ((lv.depot && !progress.bought && st !== "closed") || lv.gift) for (const d of [0, 1.2]) out += ring(p, lv.gift ? LINE_GOLD : LINE_BR, 2.5, d); // rings round the depot till the first purchase
-      if (first) for (const d of [0, 1.2]) out += ring(p, "url(#firstRing)", 2.5, d); // till the first ride, as round the depot
+      if (first) for (const d of [0, 1.2]) out += ring(p, HUB_RING.initium, 2.5, d); // till the first ride: in its ring's one colour (no gold now, its gold branch gone)
       else if (st === "open" && lv.playable) mapRings.push({ x: p.x, y: p.y, r: 20, w: 2, stroke: LINE_MAIN, d: 0, kind: "breath" }); // an open station breathes
       // a thin casing all round the station, over the lines that run into it; but where a line comes in in the colour of the
       // ring it meets (the outer one at a transfer, gold above and the other below at Initium), the line runs on into it unbroken

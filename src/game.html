@@ -6685,12 +6685,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   const MAIN_LINE = ["initium", "vitrum", "labyrinthus", "tao"]; // Linea Summa ends at Tao; from there Linea Tao runs on through Nox to Lux
   // drawn lines of the scheme, as waypoints; the main line is drawn station to station
+  // a dead-end branch: straight down from its station, round a corner of radius 24 (as a rounded rectangle's), and level to its end
+  const dropTurn = (x, y, ex) => { const R = 24, Y = 440, sd = Math.sign(ex - x), out = [[x, y]];
+    for (let k = 0; k <= 8; k++) { const a = Math.PI / 2 * k / 8; out.push([+(x + sd * R * (1 - Math.cos(a))).toFixed(2), +(Y - R + R * Math.sin(a)).toFixed(2)]); }
+    out.push([ex, Y]); return out; };
   const MAP_LINES = [
     { kind: "line", to: "rubinus", pts: [[270, 320], [500, 320], [680, 320]] }, // a second line: Vitrum, Rubinus, Speculum
     { kind: "tao", to: "abyssus", pts: [[590, 190], [770, 190], [910, 320]] }, // Linea Tao: Tao, Nox, Lux
     // a dead-end branch: a short drop, a gentle slope, a short level run into its station (a long drop leaves room for the dead end's name over it; the slope is the same on every branch)
-    { kind: "branch", to: "thesaurus", pts: [[90, 320], [90, 418], [116, 440], [185, 440]] }, // its level run as long as Carcer's
-    { kind: "branch", to: "carcer", pts: [[680, 320], [680, 418], [654, 440], [590, 440]] }, // back to the left, to midway under Rubinus and Speculum
+    { kind: "branch", to: "thesaurus", pts: dropTurn(90, 320, 185) }, // its level run as long as Carcer's
+    { kind: "branch", to: "carcer", pts: dropTurn(680, 320, 590) }, // back to the left, to midway under Rubinus and Speculum
   ];
   const byId = id => LEVELS.find(l => l.id === id);
   const STORE = "limbus-progress-v1";

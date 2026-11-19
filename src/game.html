@@ -488,7 +488,16 @@ html.night, .night body { background: #03060d; }
 .night .logo span { color: #3cc9ec; }
 .night .map-card { background: linear-gradient(180deg, rgba(20, 34, 58, 0.78), rgba(8, 14, 28, 0.86));
   box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.16), 0 30px 80px -20px rgba(0, 0, 0, 0.8); }
-.night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; } .night #map stop.cas { stop-color: #08101e; } .night #map circle.cas { fill: #08101e; }
+.night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; } .night #map stop.cas { stop-color: #08101e; }
+/* first-run tips: a comic-book callout, its pointer toward what it speaks of, never touching it */
+.tip { position: fixed; z-index: 80; max-width: min(270px, calc(100vw - 32px)); box-sizing: border-box; padding: 13px 15px 12px; border-radius: 14px; background: #fffaf0; color: #10242e;
+  border: 2px solid #1d6f8f; box-shadow: 0 10px 28px rgba(16, 36, 46, 0.28); font: 500 13.5px/1.45 Manrope, system-ui, sans-serif; }
+.tip p { margin: 0 0 10px; }
+.tip .tip-ok { display: block; margin-left: auto; min-width: 72px; height: 32px; padding: 0 16px; border: 0; border-radius: 9px; background: #1d6f8f; color: #fff; font: 700 13px Manrope, system-ui, sans-serif; cursor: pointer; }
+.tip .tip-arr { position: absolute; width: 14px; height: 14px; background: inherit; border: inherit; border-width: 0; transform: rotate(45deg); }
+.tip.at-left .tip-arr { right: -9px; border-right-width: 2px; border-top-width: 2px; } .tip.at-right .tip-arr { left: -9px; border-left-width: 2px; border-bottom-width: 2px; }
+.tip.at-bottom .tip-arr { top: -9px; border-left-width: 2px; border-top-width: 2px; } .tip.at-top .tip-arr { bottom: -9px; border-right-width: 2px; border-bottom-width: 2px; }
+.night .tip { background: #0f1c30; color: #e6f2fb; border-color: #3cc9ec; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); } .night .tip .tip-ok { background: #3cc9ec; color: #08101e; } .night #map circle.cas { fill: #08101e; }
 .night #map circle[fill="#ffffff"], .night #map circle[fill="#fffaf0"], .night #map rect[fill="#fffaf0"] { fill: #0c1628; }
 .night .map-under [stroke="#ffffff"] { stroke: #000000; } .night #map circle.case { stroke: #000000; } /* the casings black by night */
 .night #map circle[fill="#e6ecee"] { fill: #18233a; }
@@ -6817,6 +6826,44 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     showTitle(lv);
     requestAnimationFrame(() => requestAnimationFrame(() => { if (state === "play") warmShaders(); })); // (under the title card, before anything is near)
   }
+  // first-run tips, shown once (remembered in limbus-tips): the settings menu opened, a callout beside it on what it holds and how it
+  // closes, with Ok; once it is closed, a callout beside Initium on how to set off. A tap on a station, or the menu closed, moves on
+  let tipEl = null, tipStage = 0, tipFor = null;
+  const tipsSeen = () => { try { return localStorage.getItem("limbus-tips") === "1"; } catch (e) { return true; } };
+  function tipsEnd() { if (tipEl) { tipEl.remove(); tipEl = null; } if (tipStage) { tipStage = 0; try { localStorage.setItem("limbus-tips", "1"); } catch (e) { /* storage unavailable */ } } }
+  function tipPlace() { // beside its target, on the first side with room, its pointer at the target's middle, 16 px clear of it
+    if (!tipEl || !tipFor) return; const t = tipFor(); if (!t) return;
+    const r = t.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight, W = innerWidth, H = innerHeight, G = 16, M = 10;
+    const fits = { left: r.left - G - w > M, right: r.right + G + w < W - M, bottom: r.bottom + G + h < H - M, top: r.top - G - h > M };
+    const side = tipEl.dataset.pref.split(",").find(k => fits[k]) || "bottom"; let x, y;
+    if (side === "left" || side === "right") { x = side === "left" ? r.left - G - w : r.right + G; y = clamp(r.top + r.height / 2 - h / 2, M, H - h - M); }
+    else { y = side === "top" ? r.top - G - h : r.bottom + G; x = clamp(r.left + r.width / 2 - w / 2, M, W - w - M); }
+    tipEl.className = "tip at-" + side; tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+    const a = tipEl.querySelector(".tip-arr");
+    if (side === "left" || side === "right") { a.style.top = clamp(r.top + r.height / 2 - y - 7, 12, h - 26) + "px"; a.style.left = a.style.right = ""; if (side === "left") a.style.left = ""; }
+    else { a.style.left = clamp(r.left + r.width / 2 - x - 7, 14, w - 28) + "px"; a.style.top = ""; }
+  }
+  function tipShow(text, pref, target, ok) {
+    if (tipEl) tipEl.remove();
+    tipEl = document.createElement("div"); tipEl.className = "tip"; tipEl.dataset.pref = pref; tipEl.setAttribute("role", "dialog");
+    tipEl.innerHTML = `<span class="tip-arr" aria-hidden="true"></span><p></p><button class="tip-ok" type="button">Ок</button>`;
+    tipEl.querySelector("p").textContent = text; tipEl.querySelector(".tip-ok").textContent = T("Ок", "OK");
+    tipEl.querySelector(".tip-ok").addEventListener("click", ok);
+    document.body.appendChild(tipEl); tipFor = target; tipPlace(); requestAnimationFrame(tipPlace);
+  }
+  function tipsStart() {
+    if (tipsSeen() || progress.rode || unlockAll) return;
+    setTimeout(() => { if (state !== "menu" || $("menu").hidden || !$("sheet").hidden || tipStage) return;
+      tipStage = 1; $("gearBtn").click();
+      tipShow(T("Здесь выбираются тема и язык. Чтобы закрыть меню, нажмите в любом месте вне его.", "Choose the theme and the language here. To close the menu, tap anywhere outside it."),
+        "left,bottom,right,top", () => $("gearPop"), () => { tipStage = 2; if (tipEl) { tipEl.remove(); tipEl = null; } }); }, 900);
+  }
+  function tipsGearClosed() { // the settings menu closed: on to the second tip
+    if (tipStage !== 1 && tipStage !== 2) return; tipStage = 3;
+    setTimeout(() => state !== "menu" ? tipsEnd() : tipShow(T("Чтобы начать, нажмите на станцию Initium, а в открывшейся карточке — «Начать».", "To set off, tap the Initium station, then Ride on its card."),
+      "right,bottom,top,left", () => document.querySelector('#map .station[data-id="initium"] circle.hit'), tipsEnd), 250);
+  }
+  addEventListener("resize", () => requestAnimationFrame(tipPlace));
   function showMenu() {
     state = "menu";
     Sound.want = MENU_TRACK; Sound.setKarma(0.35); if (Sound.ctx) Sound.play(Sound.want); // the menu always plays its own track
@@ -8558,7 +8605,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     placeRings();
     mapCrystals(cxStations);
     svg.querySelectorAll(".station").forEach(g => {
-      const open = e => openSheet(byId(g.dataset.id), false, e && e.clientX !== undefined ? e : g.getBoundingClientRect());
+      const open = e => { tipsEnd(); openSheet(byId(g.dataset.id), false, e && e.clientX !== undefined ? e : g.getBoundingClientRect()); };
       g.addEventListener("click", e => { if (mapPress === "off") { mapPress = null; return; } mapPress = null; open(e); }); // a press dragged off the station opens nothing
       g.addEventListener("pointerdown", () => { if (document.getElementById("clip-" + g.dataset.id)) primeClip(g.dataset.id); }); // its clip starts, unseen, as the finger lands, not as it lifts
       g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
@@ -9050,9 +9097,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the settings under the gear: the theme, the language, the help. A tap outside, Escape or the gear again folds them away
   const gear = $("gearBtn"), gearPopEl = $("gearPop");
   let resetDisarm = null; // (closing the menu takes back a reset asked for)
-  const gearOpen = open => { if (!open && resetDisarm) resetDisarm(); gearPopEl.hidden = !open; gear.setAttribute("aria-expanded", String(open)); gear.classList.toggle("on", open); };
+  const gearOpen = open => { if (!open && resetDisarm) resetDisarm(); if (!open) tipsGearClosed(); gearPopEl.hidden = !open; gear.setAttribute("aria-expanded", String(open)); gear.classList.toggle("on", open); };
   gear.addEventListener("click", () => gearOpen(gearPopEl.hidden));
-  document.addEventListener("pointerdown", e => { if (!gearPopEl.hidden && !gearPopEl.contains(e.target) && !gear.contains(e.target)) gearOpen(false); }, true);
+  document.addEventListener("pointerdown", e => { if (!gearPopEl.hidden && !gearPopEl.contains(e.target) && !gear.contains(e.target) && !e.target.closest(".tip")) gearOpen(false); }, true);
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !gearPopEl.hidden) { gearOpen(false); gear.focus(); } });
   new MutationObserver(() => { if ($("menu").hidden) gearOpen(false); }).observe($("menu"), { attributes: true, attributeFilter: ["hidden"] });
   gearPopEl.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => { if (b.dataset.lang !== LANG) setLang(b.dataset.lang); }));
@@ -9138,6 +9185,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   setLevel(LEVELS[0]);
   warmShaders();
   showMenu();
+  tipsStart();
   // a link to a level (the bot's Play button: ?level=vitrum; a t.me/…?startapp=vitrum link) opens that station's sheet
   const deep = (TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) || new URLSearchParams(location.search).get("level");
   // opened once the page is all there, its clips and shots too, so the sheet shows the clip and not a drawing standing in for it;

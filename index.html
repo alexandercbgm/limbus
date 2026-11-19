@@ -309,7 +309,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
   .tg .bank { white-space: nowrap; }
   .tg .logo { font-size: 24px; }
   .tg .bank { padding: 6px 9px; font-size: 11px; } .tg .arm { font-size: 11px; }
-  .tg .bank, .tg .arm { height: 30px; }
+  .tg .arm { height: 30px; }
 }
 @media (orientation: landscape) and (max-height: 380px) and (max-width: 720px) { .tg .bank span { display: none; } } /* only the diamond and the count */
 .arms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
@@ -390,7 +390,7 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
   box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.08), 0 2px 6px -2px rgba(16, 36, 46, 0.14); transition: box-shadow 0.15s; }
 .map-tools .ibtn:hover { background: #ffffff; box-shadow: 0 0 0 1px rgba(16, 36, 46, 0.12), 0 4px 12px -4px rgba(16, 36, 46, 0.22); }
 .credit { color: #9fb0b7; letter-spacing: 0.16em; }
-@media (orientation: landscape) and (max-height: 380px) { .tg .arms { height: 30px; padding: 2px; } .tg .arms .arm { height: 26px; border-radius: 7px; } .tg .bank { border-radius: 9px; } }
+@media (orientation: landscape) and (max-height: 380px) { .tg .arms { height: 30px; padding: 2px; } .tg .arms .arm { height: 26px; border-radius: 7px; } .tg .bank { border-radius: 9px; } .tg .bank, .tg .depot { height: 30px; } }
 .map-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .map-scroll #map { min-width: 920px; }
 .wpn { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; align-self: flex-end; margin-bottom: 4px; }
@@ -466,7 +466,7 @@ video.mini { background: none; object-fit: contain; }
   .logo { font-size: 30px; }
   .m-side { grid-auto-flow: column; align-items: center; }
   .bank { padding: 7px 10px; font-size: 12px; } .arm { font-size: 12px; }
-  .bank, .arm { height: 32px; }
+  .bank, .depot, .arms { height: 34px; } .arms { padding: 2px; } .arms .arm { height: 30px; } /* the crystals, the cannons and the buttons all one height */
   .arms { flex-wrap: nowrap; } .arm { padding-inline: 9px; }
   .map-card { padding: 8px 6px; }
   .map-scroll #map { min-width: 0; height: calc(100dvh - 88px - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px))); width: 100%; } /* the whole scheme on one screen */
@@ -757,7 +757,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.468</div>
+      <div class="credit version">v1.0.469</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -958,7 +958,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.468`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.469`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6585,7 +6585,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         [880, 90, -100], [1040, 60, 60], [1150, 50, -40], [1240, 60, 55], [1350, 55, -35]],
       desc: "Знакомство с рельсами. Белые залы с квадратными арками, первые стёкла и первый спуск во Тьму.",
       feats: ["Квадратные арки, сплошные стены и парящие кубы", "Стекло, голубые кристаллы, во Тьме шипы и чёрно-красные кристаллы бесы", "Финал Iudicium: печати и множитель"],
-      req: {}, map: { x: 90, y: 320, label: "t", dx: -14 } }, // nudged left, clear of the gift branch
+      req: {}, map: { x: 90, y: 320, label: "t" } },
     { id: "thesaurus", num: "I·a", latin: "Thesaurus", ru: "Сокровищница", line: "branch", playable: true, music: "glass_horizon", len: 2450, superLen: 450, pal: PAL_AURUM, finale: "pluvia",
       // a roller coaster in the open, golden hoops over the rails (planCoaster, which sets its length); only thin glass in the way, plain or engraved
       style: { arch: "ring", blocks: "coin", glassWalls: false, air: true, floor: "plain", floorW: 1.75 }, coaster: true, crystalMul: 2.2,
@@ -8555,7 +8555,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       o.type = "button"; o.className = "arm-opt"; o.setAttribute("role", "option"); o.setAttribute("aria-selected", String(progress.weapon === id));
       if (!own) o.setAttribute("aria-disabled", "true");
       const src = w.from && byId(w.from), where = own || !src ? "" : `<i>${esc(T(`пройдите ${src.latin}`, `finish ${src.latin}`))}</i>`;
-      const desc = own || !src ? w.desc : T(`Откроется, когда вы пройдёте станцию ${src.latin}. ${w.desc}`, `Opens once you finish ${src.latin}. ${w.desc}`);
+      const desc = w.desc; // (where it comes from is said by the line over it)
       o.innerHTML = `${pic(id)}<span class="ao"><span class="ao-h">${esc(w.name)} <b>−${w.cost}</b>${where}</span><span class="ao-d">${esc(desc)}</span></span>`;
       o.addEventListener("click", () => {
         if (!own) { armsOpen = false; renderArms(); if (src) openSheet(src, false, true); return; } // not yet had: the card of the station that gives it
@@ -8967,7 +8967,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     else if (isOpen(lv)) button(btns, "cta", st === "done" ? T("Пройти ещё раз", "Ride again") : T("Начать", "Ride"), () => startLevel(lv));
     else if (req.transfer && progress.done[req.transfer.from] && bank >= req.transfer.cost) button(btns, "cta", T(`Пересадка: −${req.transfer.cost} ◆`, `Change: −${req.transfer.cost} ◆`), () => { progress.bank -= req.transfer.cost; progress.open[lv.id] = true; saveProgress(); startLevel(lv); });
     else button(btns, "cta", T("Закрыта", "Closed"), null, true);
-    if (lv.depot && isOpen(byId("thesaurus"))) button(btns, "cta", T("В Thesaurus", "To Thesaurus"), () => openSheet(byId("thesaurus"), false, true)); // where the crystals are richest, once it is open
+    if (lv.depot) button(btns, "cta", T("В Thesaurus", "To Thesaurus"), () => openSheet(byId("thesaurus"), false, true)); // where the crystals are richest
     button(btns, "ghost", T("Назад к схеме", "Back to the scheme"), () => { closeSheet(); renderMap(); });
     // a station with a clip of its level (minis/<id>.mp4, embedded by build.py) plays it in place of the shot
     const clip = !lv.depot && !lv.gift && document.getElementById("clip-" + lv.id);

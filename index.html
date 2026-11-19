@@ -735,7 +735,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.454</div>
+      <div class="credit version">v1.0.455</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -809,10 +809,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 <section class="overlay" id="nag" hidden>
   <div class="panel" role="dialog" aria-modal="true" aria-labelledby="nagTitle">
     <p class="eyebrow" data-en="Three tries in a row">Три попытки подряд</p>
-    <h1 id="nagTitle" data-en="Gather crystals, visit Armamentarium">Собирайте кристаллы и загляните в Арсенал</h1>
+    <h1 id="nagTitle" data-en="Gather crystals, visit Armamentarium">Собирайте кристаллы и загляните в Armamentarium</h1>
     <p data-en="Crystals from every ride go to the bank, and Thesaurus gives the most. At Armamentarium they buy upgrades: more balls at the start, a second wind, more balls from every crystal. The way gets easier with them.">Кристаллы с каждого заезда уходят в запас, больше всего их в Thesaurus. В Armamentarium на них покупают улучшения: больше шаров на старте, второе дыхание, больше шаров с каждого кристалла. С ними путь станет легче.</p>
     <div class="btns">
-      <button class="cta" id="nagGo" type="button" data-en="To the Armoury">В Арсенал</button>
+      <button class="cta" id="nagGo" type="button" data-en="To Armamentarium">В Armamentarium</button>
       <button class="ghost" id="nagLater" type="button" data-en="Remind me later">Напомнить позже</button>
       <button class="ghost" id="nagNever" type="button" data-en="Don't remind me">Не напоминать</button>
     </div>
@@ -936,7 +936,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.454`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.455`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));

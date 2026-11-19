@@ -9042,7 +9042,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   { const rb = $("resetBtn"); let armT = 0;
     const disarm = () => { rb.classList.remove("armed"); $("resetTxt").textContent = T("Начать сначала", "Start over"); armT = 0; };
     rb.addEventListener("click", () => {
-      if (!armT) { rb.classList.add("armed"); $("resetTxt").textContent = T("Сбросить всё и начать заново", "Reset all and start over"); armT = setTimeout(disarm, 60000); return; }
+      if (!armT) { rb.classList.add("armed"); $("resetTxt").textContent = T("Сбросить и начать заново", "Reset and start over"); armT = setTimeout(disarm, 60000); return; }
       clearTimeout(armT);
       try { for (const k of Object.keys(localStorage)) if (k.startsWith("limbus-")) localStorage.removeItem(k); } catch (e) { /* storage unavailable */ }
       if (TG && TG.CloudStorage && TG.isVersionAtLeast("6.9")) try { TG.CloudStorage.removeItem(STORE); } catch (e) { /* the cloud is out of reach */ }

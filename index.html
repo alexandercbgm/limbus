@@ -721,7 +721,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.429</div>
+      <div class="credit version">v1.0.430</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -922,7 +922,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.429`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.430`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -9128,7 +9128,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   { const rb = $("resetBtn"); let armT = 0;
     const disarm = () => { rb.classList.remove("armed"); $("resetTxt").textContent = T("Начать сначала", "Start over"); armT = 0; };
     rb.addEventListener("click", () => {
-      if (!armT) { rb.classList.add("armed"); $("resetTxt").textContent = T("Сбросить всё и начать заново", "Reset all and start over"); armT = setTimeout(disarm, 60000); return; }
+      if (!armT) { rb.classList.add("armed"); $("resetTxt").textContent = T("Сбросить и начать заново", "Reset and start over"); armT = setTimeout(disarm, 60000); return; }
       clearTimeout(armT);
       try { for (const k of Object.keys(localStorage)) if (k.startsWith("limbus-")) localStorage.removeItem(k); } catch (e) { /* storage unavailable */ }
       if (TG && TG.CloudStorage && TG.isVersionAtLeast("6.9")) try { TG.CloudStorage.removeItem(STORE); } catch (e) { /* the cloud is out of reach */ }

@@ -3330,9 +3330,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       lightMat: mat(0.24), darkMat: mat(0.1) };
   })();
   function engrave(g, o) {
-    // as the logo's, never stretched: half a small pane's height, less of a bigger one's (to 1.5 m at most), each a little bigger or
+    // as the logo's, never stretched: under half a small pane's height, less of a bigger one's (to 1.5 m at most), each a little bigger or
     // smaller than the next, its width no more than a fifth of the pane's (on a narrow pane it had filled it)
-    const ch = Math.min(1.5, o.h * (0.56 - 0.035 * o.h), o.w * 0.22 / 0.34) * rand(0.92, 1.08), e = new THREE.Group();
+    const ch = Math.min(1.5, o.h * (0.48 - 0.035 * o.h), o.w * 0.22 / 0.34) * rand(0.92, 1.08), e = new THREE.Group();
     e.scale.setScalar(ch); e.position.z = 0.004;
     e.add(new THREE.LineSegments(ENGRAVE.lines, edgeMat), new THREE.Mesh(ENGRAVE.light, ENGRAVE.lightMat), new THREE.Mesh(ENGRAVE.dark, ENGRAVE.darkMat)); g.add(e);
   }

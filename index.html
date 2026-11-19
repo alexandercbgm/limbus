@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.420</div>
+      <div class="credit version">v1.0.421</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -918,7 +918,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.420`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.421`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3416,9 +3416,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       lightMat: mat(0.24), darkMat: mat(0.1) };
   })();
   function engrave(g, o) {
-    // as the logo's, never stretched: half a small pane's height, less of a bigger one's (to 1.5 m at most), each a little bigger or
+    // as the logo's, never stretched: under half a small pane's height, less of a bigger one's (to 1.5 m at most), each a little bigger or
     // smaller than the next, its width no more than a fifth of the pane's (on a narrow pane it had filled it)
-    const ch = Math.min(1.5, o.h * (0.56 - 0.035 * o.h), o.w * 0.22 / 0.34) * rand(0.92, 1.08), e = new THREE.Group();
+    const ch = Math.min(1.5, o.h * (0.48 - 0.035 * o.h), o.w * 0.22 / 0.34) * rand(0.92, 1.08), e = new THREE.Group();
     e.scale.setScalar(ch); e.position.z = 0.004;
     e.add(new THREE.LineSegments(ENGRAVE.lines, edgeMat), new THREE.Mesh(ENGRAVE.light, ENGRAVE.lightMat), new THREE.Mesh(ENGRAVE.dark, ENGRAVE.darkMat)); g.add(e);
   }

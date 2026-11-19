@@ -44,7 +44,9 @@ const PACKS = {
   t3: { stars: 110, crystals: 515, ru: "Арсенал III", en: "Armoury III" },
   guns: { stars: 90, crystals: 385, ru: "Пушки", en: "Cannons" },
   all: { stars: 200, crystals: 1345, ru: "Всё сразу", en: "Everything" },
-  apk: { stars: 200, crystals: 1345, ru: "Всё сразу — код для игры", en: "Everything: a code for the game" }, // ~$3; outside Telegram
+  // the full game (every level), ~$3: in Telegram (game), and outside it as a code to enter in the game (apk)
+  game: { stars: 200, game: true, ru: "Полная игра", en: "The full game" },
+  apk: { stars: 200, game: true, ru: "Полная игра — код для игры", en: "The full game: a code for the game" },
 };
 
 export default {
@@ -259,11 +261,12 @@ async function onUpdate(u, env) {
     const sp = msg.successful_payment, pk = PACKS[sp.invoice_payload] || {};
     if (sp.invoice_payload === "apk") { // bought outside the game: a code to enter in it
       const code = Array.from(crypto.getRandomValues(new Uint8Array(8)), b => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 32]).join("");
-      await env.USERS.put("c:" + code, String(pk.crystals), { expirationTtl: 60 * 60 * 24 * 365 });
+      await env.USERS.put("c:" + code, "game", { expirationTtl: 60 * 60 * 24 * 365 });
       await tg(env, "sendMessage", { chat_id: chat, parse_mode: "HTML", text: T(from,
-        `Спасибо! Ваш код: <code>${code}</code>\nВ игре откройте станцию Emptio и введите его — придёт ◆ ${pk.crystals}. Код одноразовый.`,
-        `Thank you! Your code: <code>${code}</code>\nIn the game open the Emptio station and enter it for ◆ ${pk.crystals}. The code works once.`) });
-    } else await tg(env, "sendMessage", { chat_id: chat, text: T(from, `Спасибо! ◆ ${pk.crystals || ""} уже в игре.`, `Thank you! ◆ ${pk.crystals || ""} are in the game.`) });
+        `Спасибо! Ваш код: <code>${code}</code>\nВ игре нажмите Emptio и введите его — откроются все уровни. Код одноразовый.`,
+        `Thank you! Your code: <code>${code}</code>\nIn the game tap Emptio and enter it: every level opens. The code works once.`) });
+    } else if (pk.game) await tg(env, "sendMessage", { chat_id: chat, text: T(from, "Спасибо! Все уровни открыты.", "Thank you! Every level is open.") });
+    else await tg(env, "sendMessage", { chat_id: chat, text: T(from, `Спасибо! ◆ ${pk.crystals || ""} уже в игре.`, `Thank you! ◆ ${pk.crystals || ""} are in the game.`) });
     return tg(env, "sendMessage", { chat_id: env.OWNER_ID, text: `⭐ ${sp.total_amount} · ${sp.invoice_payload} — ${from.first_name || ""} ${from.username ? "@" + from.username : ""} (${from.id})` });
   }
   // the owner answering a forwarded message: the reply goes back to that player
@@ -339,8 +342,9 @@ async function onUpdate(u, env) {
 
 // ---------- Stars ----------
 const invoiceBody = (from, id) => { const pk = PACKS[id]; return { title: "Limbus",
-  description: T(from, `💎 ${pk.crystals} кристаллов для Арсенала +25% бонус.`, `💎 ${pk.crystals} crystals for Armamentarium +25% bonus.`),
-  payload: id, currency: "XTR", prices: [{ label: `◆ ${pk.crystals}`, amount: pk.stars }] }; };
+  description: pk.game ? T(from, "Полная игра: все станции, от Vitrum до Lux. Один раз — навсегда.", "The full game: every station, from Vitrum to Lux. Once, for good.")
+    : T(from, `💎 ${pk.crystals} кристаллов для Арсенала +25% бонус.`, `💎 ${pk.crystals} crystals for Armamentarium +25% bonus.`),
+  payload: id, currency: "XTR", prices: [{ label: pk.game ? T(from, "Полная игра", "The full game") : `◆ ${pk.crystals}`, amount: pk.stars }] }; };
 async function invoice(req, env) {
   const { product, lang } = await req.json().catch(() => ({}));
   if (!PACKS[product] || product === "apk") return Response.json({ error: "no such pack" }, { status: 400 });
@@ -353,7 +357,7 @@ async function redeem(req, env) {
   const key = "c:" + String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12), n = await env.USERS.get(key);
   if (!n) return Response.json({ error: "no such code" }, { status: 404 });
   await env.USERS.delete(key);
-  return Response.json({ crystals: +n });
+  return Response.json(n === "game" ? { game: true } : { crystals: +n }); // (codes bought before the full game: crystals, which the game now takes as the game bought)
 }
 
 // ---------- the game says who is playing ----------

@@ -259,6 +259,14 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .map-rings .split { --tilt: rotate(-45deg); } /* gold above, lilac below: two borders each, turned an eighth */
 @keyframes ringout { from { transform: var(--tilt) scale(1); opacity: 0.8; } to { transform: var(--tilt) scale(1.818); opacity: 0; } } /* r 22 to 40 */
 @keyframes ringpulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.35); opacity: 0; } } /* r 20 to 27 and back */ /* under the pointer, on the station's circle itself (set from the script: a finger has no hover) */
+/* Play, top left of the scheme: the next level to ride, a lit glass button with a play triangle */
+.playbtn { position: absolute; top: 12px; left: 14px; z-index: 3; height: 42px; display: inline-flex; align-items: center; gap: 9px; padding: 0 20px 0 15px; border: 0; border-radius: 12px; cursor: pointer;
+  font: 600 14px var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: #ffffff; background: linear-gradient(180deg, #1aa0d2, #1287b5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px -6px rgba(18, 135, 181, 0.6); transition: transform 0.12s, box-shadow 0.2s; }
+.playbtn svg { width: 18px; height: 18px; fill: currentColor; } .playbtn:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 8px 22px -6px rgba(18, 135, 181, 0.8); } .playbtn:active { transform: scale(0.97); }
+.night .playbtn { color: #04121c; background: linear-gradient(180deg, #6ddcf5, #3cc9ec); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 0 22px rgba(60, 201, 236, 0.35); }
+.night .playbtn:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 0 30px rgba(60, 201, 236, 0.55); }
+@media (orientation: landscape) and (max-height: 560px) { .playbtn { top: 7px; left: 8px; height: 32px; padding: 0 14px 0 11px; font-size: 12px; } .playbtn svg { width: 14px; height: 14px; } }
 .map-tools { position: absolute; top: 12px; right: 14px; z-index: 3; display: flex; gap: 8px; } /* over the credit and version, so its menu covers them */
 .map-tools .ibtn { border: 1px solid rgba(16, 36, 46, 0.22); border-radius: 4px; background: rgba(255, 255, 255, 0.75); cursor: pointer; }
 .map-tools .ibtn:hover { background: #ffffff; }
@@ -721,6 +729,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       </div>
     </header>
     <div class="map-card">
+      <button class="playbtn" id="playBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z"/></svg><span data-en="Play">Играть</span></button>
       <div class="map-tools">
         <button class="ibtn snd" id="mapMute" type="button" aria-pressed="false" aria-label="Звук" data-en-aria="Sound">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/>
@@ -757,7 +766,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.483</div>
+      <div class="credit version">v1.0.484</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -958,7 +967,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.483`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.484`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6690,7 +6699,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // not a level: the crystal shop, for whoever would rather not save up: crystals for Armamentarium, in Telegram's Stars
     // (outside Telegram, one pack through the bot and a code); a gold branch off Initium, as long as the arc and parallel to it
     { id: "emptio", num: "", latin: "Emptio", ru: "Купить", line: "gift", gift: true, playable: false,
-      desc: "Кристаллы для Арсенала, чтобы сразу купить всё необходимое.",
+      desc: "Полная игра: все станции, от Vitrum до Lux.",
       feats: [], req: {}, map: { x: 230, y: 190, label: "t" } },
   ];
   // ---------- English: the level, cannon and finale texts; Russian is what the tables above hold ----------
@@ -6716,7 +6725,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
       carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang steel grates on chains, floating laser bars and grids, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
         feats: ["Halls of grates on chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Effugium: a run of barred cells"] },
-      emptio: { ru: "Buy", desc: "Crystals for Armamentarium, to buy everything you need at once.", feats: [] },
+      emptio: { ru: "Buy", desc: "The full game: every station, from Vitrum to Lux.", feats: [] },
       lux: { ru: "Light", desc: "The terminus, and the longest ride: a bridge over the abyss under a supernova. Three manoeuvres in a new order each time, the drill, the corkscrew and the spiral; targets on a gantry before each decide which way it turns, and the track reshapes before your eyes. On the bridge laser mills and bars, gates with spinners, gears, monoliths on chains under arches, catapults and crossbows, walls of glass. A beam across the cart costs 3 balls. The climb to the Light is hardest here.",
         feats: ["Three manoeuvres: the drill, the corkscrew, the spiral; targets choose the way", "A bridge over the abyss under a supernova", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
     },
@@ -6783,6 +6792,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     { kind: "branch", to: "carcer", pts: dropTurn(680, 320, 590) }, // back to the left, to midway under Rubinus and Speculum
   ];
   const byId = id => LEVELS.find(l => l.id === id);
+  const FREE_LEVELS = ["initium", "thesaurus"]; // free to play; the rest once the game is bought
   const STORE = "limbus-progress-v1";
   function parseProgress(str) {
     try {
@@ -6791,7 +6801,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const r = { done: p.done || {}, bank: p.bank || 0, best: p.best || {}, open: p.open || {}, weapons, weapon: weapons[p.weapon] ? p.weapon : "ballista", up: p.up || {}, t: p.t || 0,
         // anything bought at Armamentarium (older saves: a cannon other than the free ones, or an upgrade); the run of failed rides; the reminder turned off
         bought: p.bought || (!p.gifts && (Object.keys(weapons).some(id => id !== "ballista" && id !== "ferrum") || Object.values(p.up || {}).some(v => v > 0))), // (saves since the stations' gifts: a cannon or an upgrade had may be a gift) fails: p.fails || 0, noNag: !!p.noNag, play: p.play || [],
-        rode: p.rode || Object.keys(p.done || {}).length > 0, gifts: p.gifts || {} }; // set off at least once (older saves: any level done); the stations whose gifts are given
+        rode: p.rode || Object.keys(p.done || {}).length > 0, gifts: p.gifts || {},
+        // the game bought (every level open); older saves past the free stations, or with a purchase made, keep what they had
+        full: !!p.full || Object.keys(p.done || {}).some(id => !FREE_LEVELS.includes(id)) || (p.play || []).length > 0 }; // set off at least once (older saves: any level done); the stations whose gifts are given
       if (r.bought) r.open.armamentarium = true; // something bought there: its entry is paid (older saves bought before it had one)
       return r;
     } catch (e) { return { done: {}, bank: 0, best: {}, open: {}, weapons: { ballista: true }, weapon: "ballista", up: {}, t: 0, bought: false, fails: 0, noNag: false, play: [], rode: false, gifts: {} }; }
@@ -6813,10 +6825,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     });
   } catch (e) { /* the cloud is out of reach */ }
   // a station opens once the one before it is done; with req.or there is a second way in (Abyssus: from Crystallum)
+  // the order the Play button goes by: the first level open and not yet finished, else the last open one
+  const PLAY_ORDER = ["initium", "thesaurus", "vitrum", "labyrinthus", "rubinus", "speculum", "carcer", "tao", "abyssus", "lux"];
   const WAY = ["initium", "vitrum", "labyrinthus", "rubinus", "speculum", "tao", "abyssus", "lux"]; // the way from the Beginning to the Light, in its order
   const unlockAll = location.hash === "#all"; // for testing: open every built station
   // a station opens once the one before it on its line is finished (or the other way in, where two lines lead to it)
-  function isOpen(lv) { return unlockAll || !lv.req.after || !!progress.done[lv.req.after] || (lv.req.or && !!progress.done[lv.req.or]) || !!progress.open[lv.id]; }
+  // free to play: Initium and Thesaurus; every other level once the game is bought (Emptio)
+  const paidFor = lv => unlockAll || progress.full || FREE_LEVELS.includes(lv.id) || !lv.playable || lv.depot || lv.gift;
+  function isOpen(lv) { return reachedLv(lv) && paidFor(lv); }
+  function reachedLv(lv) { return unlockAll || !lv.req.after || !!progress.done[lv.req.after] || (lv.req.or && !!progress.done[lv.req.or]) || !!progress.open[lv.id]; }
   // the stations a finished one leads on to, along any of the lines (Vitrum: Rubinus or Labyrinthus); a dead end leads nowhere
   function nextLevels(lv) {
     if (lv.line === "branch") return [];
@@ -6825,6 +6842,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   // a ride on a branch costs its fare every time; with too few crystals the station sheet explains why
   function rideLevel(lv) {
+    if (!isOpen(lv)) { showMenu(); openSheet(byId("emptio"), false, true); return; } // (not bought: to the shop)
     const fare = lv.req.fare || 0;
     if (fare && progress.bank < fare) { showMenu(); openSheet(lv); return; }
     if (fare) { progress.bank -= fare; saveProgress(); }
@@ -7048,9 +7066,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         "left,bottom,right,top", () => $("gearPop"), () => { tipStage = 2; if (tipEl) { tipEl.remove(); tipEl = null; } }); }, 900);
   }
   // tips on the scheme as the way opens, each once (remembered in limbus-tips2): once Initium is finished, the cannons' menu, then
-  // Armamentarium; once Vitrum is finished too, Emptio (its tip waits for the new terms of sale: EMPTIO_TIP). Shown whenever the
+  // Armamentarium, then Emptio (while the game is not bought). Shown whenever the
   // player is next on the scheme, today or another day
-  const EMPTIO_TIP = false;
+  const EMPTIO_TIP = true;
   const tipsDone = () => { try { return JSON.parse(localStorage.getItem("limbus-tips2") || "{}"); } catch (e) { return {}; } };
   function menuTips() {
     setTimeout(() => {
@@ -7059,7 +7077,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const next = [
         progress.done.initium && !done.arms && ["arms", T("Здесь выбирается пушка для вагонетки.\nНовые пушки можно получить при прохождении станций.", "Choose the cart's cannon here.\nNew cannons can be won by finishing stations."), () => document.querySelector(".arm-cur")],
         progress.done.initium && !done.depot && ["depot", T("Здесь покупают улучшения\nза кристаллы.", "Upgrades are bought here\nfor crystals."), () => $("depotBtn")],
-        EMPTIO_TIP && progress.done.initium && progress.done.vitrum && !done.emptio && ["emptio", T("Emptio: покупка открывает\nпрохождение остальных уровней.", "Emptio: a purchase opens\nthe rest of the levels."), () => $("emptioBtn")],
+        EMPTIO_TIP && progress.done.initium && !progress.full && !done.emptio && ["emptio", T("Покупка игры открывает\nвсе остальные уровни.", "Buying the game opens\nevery other level."), () => $("emptioBtn")],
       ].find(Boolean);
       if (!next) return;
       const [k, text, target] = next;
@@ -8512,10 +8530,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (lv.depot) return progress.open[lv.id] ? (progress.bought ? "avail" : "opened") : isOpen(lv) ? "locked" : "closed"; // closed till Thesaurus is finished, then grey till opened, white once open, dark once something is bought
     if (progress.done[lv.id]) return "done";
     if (!lv.playable) return "build";
-    return isOpen(lv) ? "open" : "closed";
+    return isOpen(lv) ? "open" : reachedLv(lv) ? "buy" : "closed";
   }
-  const STATUS_RU = { done: "пройдена", open: "открыта", opened: "открыт", gift: "нажмите", avail: "доступен", locked: "нажмите", closed: "закрыта", build: "строится" };
-  const STATUS_EN = { done: "done", open: "open", opened: "open", gift: "tap here", avail: "available", locked: "tap here", closed: "closed", build: "being built" };
+  const STATUS_RU = { buy: "в Emptio", done: "пройдена", open: "открыта", opened: "открыт", gift: "нажмите", avail: "доступен", locked: "нажмите", closed: "закрыта", build: "строится" };
+  const STATUS_EN = { buy: "in Emptio", done: "done", open: "open", opened: "open", gift: "tap here", avail: "available", locked: "tap here", closed: "closed", build: "being built" };
   const STATUS = st => T(STATUS_RU[st], STATUS_EN[st]);
   // the cannons' pictures for the picker: each drawn once, off the screen, by the game's own renderer, then kept
   const armThumbs = {}, THUMB_DIR = { hexa: [0.6, 0.75, -1] }; // the gun alone, without its tripod, filling its picture
@@ -8561,7 +8579,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the cannon on the cart: one button with its picture, name and price a shot; it opens the list of the cannons owned,
   // each with its picture and what it does. A tap outside, Escape or the button again folds it away
   let armsOpen = false;
-  function renderEmptio() { $("emptioBtn").hidden = false; } // (there from the start)
+  function renderEmptio() { $("emptioBtn").hidden = !!progress.full; } // (there from the start till the game is bought)
   function renderDepot() { renderEmptio(); // Armamentarium's button
     const lv = byId("armamentarium"), b = $("depotBtn"); b.classList.toggle("locked", !isOpen(lv)); b.classList.remove("fresh");
     b.title = T("Armamentarium: улучшения за кристаллы", "Armamentarium: upgrades for crystals"); }
@@ -8699,7 +8717,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const casing = (shape, w) => shape.replace(/stroke="[^"]*"/, 'stroke="#ffffff"').replace(/stroke-width="([\d.]+)"/, (m, x) => `stroke-width="${+x + w}"`).replace(/ stroke-dasharray="[^"]*"| opacity="[^"]*"/g, "");
     // what the scheme shows: Initium, every station open or finished, and Emptio once Initium is finished; a line into a station not
     // yet shown runs half way and fades out there, so what lies on is not seen. Lines are drawn leg by leg, station to station
-    const shown = lv => !lv.depot && !lv.gift && (unlockAll || lv.id === "initium" || !!progress.done[lv.id] || (lv.gift ? !!progress.done.initium : isOpen(lv))); // (Armamentarium and Emptio are not on the scheme: their buttons are up top)
+    const shown = lv => !lv.depot && !lv.gift && (unlockAll || lv.id === "initium" || !!progress.done[lv.id] || (lv.gift ? !!progress.done.initium : reachedLv(lv))); // (Armamentarium and Emptio are not on the scheme: their buttons are up top)
     const stAt = (x, y) => LEVELS.find(l => l.map.x === x && l.map.y === y);
     let fdefs = "", fn = 0;
     const leg = (pts, color, built) => { // pts from one station to the next
@@ -8847,20 +8865,22 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let shopTab = "guns";
   // Google Play's billing (the Play build's Android app, PlayBilling.java): the price as Play shows it (null till it answers,
   // "" if the product can't be had), and each purchase banked once, by its token, before Play is told to consume it
+  // the code that opens the game on the page, for testing the purchase (only its hash here)
+  const codeHash = v => { let h = 2166136261; for (const ch of v) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+  const TEST_CODE = "6qmeru";
   let playPrice = null;
   if (window.LimbusPlay) {
     const shopOpen = () => !$("sheet").hidden && $("shName").textContent.startsWith("Emptio");
     window.__playPrice = p => { playPrice = p; if (shopOpen()) openSheet(byId("emptio"), true); };
     window.__playPaid = (id, token) => {
       if (!progress.play.includes(token)) {
-        const pk = PACKS.find(p => p.id === "all");
-        progress.bank += pk.crystals; progress.play.push(token); saveProgress(); renderMap(); renderArms();
-        if (shopOpen()) openSheet(byId("emptio"), true);
-        pop(T(`+${pk.crystals} ◆ — спасибо!`, `+${pk.crystals} ◆ — thank you!`), "info");
+        progress.full = true; progress.play.push(token); saveProgress(); renderMap(); renderArms(); // (the game bought: every level open)
+        if (shopOpen()) closeSheet();
+        pop(T("Все уровни открыты — спасибо!", "Every level is open: thank you!"), "info");
       }
       window.LimbusPlay.granted(token);
     };
-    window.__playError = what => pop(what === "pending" ? T("Оплата ещё обрабатывается — кристаллы придут, когда она пройдёт", "The payment is still going through: the crystals come once it does")
+    window.__playError = what => pop(what === "pending" ? T("Оплата ещё обрабатывается — уровни откроются, когда она пройдёт", "The payment is still going through: the levels open once it does")
       : what === "unavailable" ? T("Google Play сейчас недоступен", "Google Play isn't available right now") : T("Покупка не прошла", "The purchase didn't go through"), "info");
     window.LimbusPlay.ready(); // the purchases Play has for us may come now
   }
@@ -8873,7 +8893,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const scroll = keep ? $("sheet").scrollTop : 0;
     if (!keep) { shopTab = "guns"; $("sheet").scrollTop = 0; } // opened afresh: the first tab, from the top, never as it was left
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
-    $("shEyebrow").textContent = `${lv.depot ? T("Склад", "Depot") : lv.gift ? T("Магазин", "Shop") : lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("кристаллы для Арсенала", "crystals for Armamentarium") : st === "locked" ? T("можно открыть", "ready to open") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
+    $("shEyebrow").textContent = `${lv.depot ? T("Склад", "Depot") : lv.gift ? T("Магазин", "Shop") : lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("полная игра", "the full game") : st === "locked" ? T("можно открыть", "ready to open") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
     $("shName").innerHTML = `${esc(lv.latin)}<small>${esc(lv.ru)}</small>`;
     $("shDesc").textContent = lv.desc;
     $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead
@@ -8885,6 +8905,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!lv.gift && !isOpen(lv)) { // what opens it, while it is closed (once open, the line says nothing new)
       if (!req.after) reqs.push([true, T("Открыта с самого начала", "Open from the start")]);
       else reqs.push([!!progress.done[req.after] || (req.or && !!progress.done[req.or]), req.or ? T(`Чтобы открыть: пройти станцию ${byId(req.after).latin} или ${byId(req.or).latin}`, `To open: finish ${byId(req.after).latin} or ${byId(req.or).latin}`) : T(`Чтобы открыть: пройти станцию ${byId(req.after).latin}`, `To open: finish ${byId(req.after).latin}`)]);
+      if (!paidFor(lv)) reqs.push([false, T("И купить полную игру в Emptio", "And buy the full game at Emptio")]); // (the rest of the levels come with the game bought)
     }
     if (req.transfer) {
       const from = byId(req.transfer.from);
@@ -8913,59 +8934,44 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       button(row, "cta", T("Не хватает кристаллов", "Not enough crystals"), null, true);
       for (const to of tos) button(row, "cta go", `${to.latin} →`, () => openSheet(to, false, true)).setAttribute("aria-label", T(`К станции ${to.latin}`, `To ${to.latin}`));
     };
-    if (lv.gift) {
-      const inTg = TG && BOT_API && TG.isVersionAtLeast("6.1");
-      const card = (pk, buy, to = extra) => {
-        const c = document.createElement("div"); c.className = "wcard pack";
-        c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true">${pk.icon}</svg>${esc(T(pk.ru, pk.en))}<small>◆ ${pk.crystals}</small></h3><p>${esc(T(...pk.desc))}<br><span class="pk-plus">${T("+25% бонус", "+25% bonus")}</span></p>`;
-        buy(c); to.appendChild(c);
-      };
-      if (inTg) { // packs for Stars, on two tabs: the upgrades, and the cannons with everything at once
-        const tabs = document.createElement("div"); tabs.className = "tabs"; tabs.setAttribute("role", "tablist");
-        for (const [id, name, sub] of [["guns", "Arma", T("пушки · всё сразу", "cannons · everything")], ["up", "Ingenia", T("улучшения", "upgrades")]]) { // as at Armamentarium: the cannons first
-          const t = document.createElement("button"); t.type = "button"; t.className = "tab"; t.setAttribute("role", "tab"); t.setAttribute("aria-selected", String(shopTab === id));
-          t.innerHTML = `${name}<small>${esc(sub)}</small>`; t.addEventListener("click", () => { if (shopTab !== id) { shopTab = id; openSheet(lv, true); } }); tabs.appendChild(t);
-        }
-        extra.appendChild(tabs);
-        const pane = tabPanes(["guns", "up"], shopTab);
-        for (const pk of PACKS) card(pk, c => button(c, "cta", `${pk.stars}`, async ev => {
-          ev.target.disabled = true;
-          try {
-            const r = await (await fetch(BOT_API + "/invoice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ product: pk.id, lang: LANG }) })).json();
-            if (!r.link) throw new Error(r.error || "no link");
-            TG.openInvoice(r.link, status => {
-              if (status !== "paid") return;
-              progress.bank += pk.crystals; saveProgress(); renderMap(); renderArms(); openSheet(lv, true);
-              pop(T(`+${pk.crystals} ◆ — спасибо!`, `+${pk.crystals} ◆ — thank you!`), "info");
-            });
-          } catch (e) { pop(T("Не удалось связаться с ботом", "Couldn't reach the bot"), "info"); }
-          ev.target.disabled = false;
-        }), pane[pk.tab]);
-      } else if (window.LimbusPlay) { // the Google Play build: the same pack, bought through Google Play
-        const all = PACKS.find(p => p.id === "all");
-        card(Object.assign({}, all, { ru: playPrice ? `Всё сразу · ${playPrice}` : "Всё сразу", en: playPrice ? `Everything · ${playPrice}` : "Everything" }),
-          c => button(c, "cta", T("Купить в Google Play", "Buy on Google Play"), () => window.LimbusPlay.buy(), playPrice === ""));
-      } else { // the APK and the page: one pack, paid in the bot, its code entered here
-        const all = PACKS.find(p => p.id === "all");
-        card(Object.assign({}, all, { ru: "Всё сразу · $3", en: "Everything · $3" }), c => button(c, "cta", T("Купить в Telegram", "Buy in Telegram"), async () => {
+    if (lv.gift) { // the shop: the full game, one purchase, the same everywhere; how it is paid depends on where the game runs
+      const unlock = () => { progress.full = true; saveProgress(); renderMap(); renderArms(); closeSheet(); renderMap(); pop(T("Все уровни открыты — спасибо!", "Every level is open: thank you!"), "info"); };
+      const inTg = TG && BOT_API && TG.isVersionAtLeast("6.1"), c = document.createElement("div"); c.className = "wcard pack";
+      const price = window.LimbusPlay ? playPrice || "" : "$3";
+      c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true"><path d="${PK_GEM}" transform="translate(5 0)"/></svg>${esc(T("Полная игра", "The full game"))}${price ? `<small>${esc(price)}</small>` : ""}</h3><p>${esc(T("Все уровни: Vitrum, Labyrinthus, Rubinus, Speculum, Carcer, Tao, Nox и Lux. Покупка один раз — навсегда.", "Every level: Vitrum, Labyrinthus, Rubinus, Speculum, Carcer, Tao, Nox and Lux. Bought once, yours for good."))}</p>`;
+      extra.appendChild(c);
+      if (progress.full) button(c, "ghost", T("Куплено", "Bought"), null, true);
+      else if (inTg) button(c, "cta", T("Купить", "Buy"), async ev => { // for Stars, in Telegram itself
+        ev.target.disabled = true;
+        try {
+          const r = await (await fetch(BOT_API + "/invoice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ product: "game", lang: LANG }) })).json();
+          if (!r.link) throw new Error(r.error || "no link");
+          TG.openInvoice(r.link, status => { if (status === "paid") unlock(); });
+        } catch (e) { pop(T("Не удалось связаться с ботом", "Couldn't reach the bot"), "info"); }
+        ev.target.disabled = false;
+      });
+      else if (window.LimbusPlay) button(c, "cta", T("Купить в Google Play", "Buy on Google Play"), () => window.LimbusPlay.buy(), playPrice === "");
+      else { // the page and the APK: paid in the bot, its code entered here
+        button(c, "cta", T("Купить в Telegram", "Buy in Telegram"), async () => {
           if (!BOT_API) return;
           try {
             const { username } = await (await fetch(BOT_API + "/bot")).json();
             const url = `https://t.me/${username}?start=apk`;
             if (location.protocol === "file:") location.href = url; else window.open(url, "_blank"); // the APK hands a link on to Telegram
           } catch (e) { pop(T("Не удалось связаться с ботом", "Couldn't reach the bot"), "info"); }
-        }, !BOT_API));
+        }, !BOT_API);
         const code = document.createElement("div"); code.className = "redeem";
         code.innerHTML = `<p>${T("Бот пришлёт код после оплаты — введите его здесь:", "The bot sends a code once paid; enter it here:")}</p><input id="redeemCode" maxlength="12" autocomplete="off" spellcheck="false" placeholder="${T("Код", "Code")}">`;
         button(code, "cta", T("Ввести код", "Redeem"), async ev => {
-          const v = $("redeemCode").value.trim().toUpperCase(); if (!v || !BOT_API) return;
+          const v = $("redeemCode").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, ""); if (!v) return;
+          if (codeHash(v) === TEST_CODE) { unlock(); return; } // (the code for testing the purchase on the page)
+          if (!BOT_API) { pop(T("Код не подошёл", "That code didn't work"), "info"); return; }
           ev.target.disabled = true;
           try {
             const r = await fetch(BOT_API + "/redeem", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: v }) });
             const j = await r.json();
-            if (!r.ok || !j.crystals) throw new Error();
-            progress.bank += j.crystals; saveProgress(); renderMap(); renderArms(); openSheet(lv, true);
-            pop(T(`+${j.crystals} ◆ — спасибо!`, `+${j.crystals} ◆ — thank you!`), "info");
+            if (!r.ok || !(j.game || j.crystals)) throw new Error(); // (a code bought before, for crystals, opens the game too)
+            unlock();
           } catch (e) { pop(T("Код не подошёл", "That code didn't work"), "info"); }
           ev.target.disabled = false;
         });
@@ -8991,6 +8997,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     else if (isOpen(lv)) button(btns, "cta", st === "done" ? T("Пройти ещё раз", "Ride again") : T("Начать", "Ride"), () => startLevel(lv));
     else if (req.transfer && progress.done[req.transfer.from] && bank >= req.transfer.cost) button(btns, "cta", T(`Пересадка: −${req.transfer.cost} ◆`, `Change: −${req.transfer.cost} ◆`), () => { progress.bank -= req.transfer.cost; progress.open[lv.id] = true; saveProgress(); startLevel(lv); });
+    else if (reachedLv(lv)) button(btns, "cta", T("Открыть все уровни", "Open every level"), () => openSheet(byId("emptio"), false, true)); // reached, not bought
     else button(btns, "cta", T("Закрыта", "Closed"), null, true);
     if (lv.depot) button(btns, "cta", T("В Thesaurus", "To Thesaurus"), () => openSheet(byId("thesaurus"), false, true)); // where the crystals are richest
     button(btns, "ghost", T("Назад к схеме", "Back to the scheme"), () => { closeSheet(); renderMap(); });
@@ -9179,6 +9186,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   });
   $("againBtn").addEventListener("click", () => rideLevel(LEVEL));
   $("emptioBtn").addEventListener("click", () => openSheet(byId("emptio"), false, true));
+  $("playBtn").addEventListener("click", () => { // the next level: the first open and not yet finished, in PLAY_ORDER; else the last open one
+    tipsEnd(); const open = PLAY_ORDER.map(byId).filter(isOpen), lv = open.find(l => !progress.done[l.id]) || open[open.length - 1];
+    openSheet(lv, false, $("playBtn").getBoundingClientRect()); });
   $("depotBtn").addEventListener("click", () => { const lv = byId("armamentarium"); // open, it opens at once: its wares, no "Open" to press first
     if (isOpen(lv) && !progress.open[lv.id]) { progress.open[lv.id] = true; saveProgress(); } openSheet(lv, false, true); });
   ["nextBtn", "nextBtn2"].forEach(id => $(id).addEventListener("click", () => { const nx = byId($(id).dataset.id); if (nx && nx.playable) rideLevel(nx); }));

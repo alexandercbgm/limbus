@@ -766,7 +766,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.484</div>
+      <div class="credit version">v1.0.485</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -967,7 +967,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.484`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.485`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6699,7 +6699,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // not a level: the crystal shop, for whoever would rather not save up: crystals for Armamentarium, in Telegram's Stars
     // (outside Telegram, one pack through the bot and a code); a gold branch off Initium, as long as the arc and parallel to it
     { id: "emptio", num: "", latin: "Emptio", ru: "Купить", line: "gift", gift: true, playable: false,
-      desc: "Полная игра: все станции, от Vitrum до Lux.",
+      desc: "Полная игра: все станции после Vitrum, до самого Lux.",
       feats: [], req: {}, map: { x: 230, y: 190, label: "t" } },
   ];
   // ---------- English: the level, cannon and finale texts; Russian is what the tables above hold ----------
@@ -6725,7 +6725,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
       carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang steel grates on chains, floating laser bars and grids, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
         feats: ["Halls of grates on chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Effugium: a run of barred cells"] },
-      emptio: { ru: "Buy", desc: "The full game: every station, from Vitrum to Lux.", feats: [] },
+      emptio: { ru: "Buy", desc: "The full game: every station past Vitrum, all the way to Lux.", feats: [] },
       lux: { ru: "Light", desc: "The terminus, and the longest ride: a bridge over the abyss under a supernova. Three manoeuvres in a new order each time, the drill, the corkscrew and the spiral; targets on a gantry before each decide which way it turns, and the track reshapes before your eyes. On the bridge laser mills and bars, gates with spinners, gears, monoliths on chains under arches, catapults and crossbows, walls of glass. A beam across the cart costs 3 balls. The climb to the Light is hardest here.",
         feats: ["Three manoeuvres: the drill, the corkscrew, the spiral; targets choose the way", "A bridge over the abyss under a supernova", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
     },
@@ -6792,7 +6792,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     { kind: "branch", to: "carcer", pts: dropTurn(680, 320, 590) }, // back to the left, to midway under Rubinus and Speculum
   ];
   const byId = id => LEVELS.find(l => l.id === id);
-  const FREE_LEVELS = ["initium", "thesaurus"]; // free to play; the rest once the game is bought
+  const FREE_LEVELS = ["initium", "thesaurus", "vitrum"]; // free to play; the rest once the game is bought
   const STORE = "limbus-progress-v1";
   function parseProgress(str) {
     try {
@@ -6830,7 +6830,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const WAY = ["initium", "vitrum", "labyrinthus", "rubinus", "speculum", "tao", "abyssus", "lux"]; // the way from the Beginning to the Light, in its order
   const unlockAll = location.hash === "#all"; // for testing: open every built station
   // a station opens once the one before it on its line is finished (or the other way in, where two lines lead to it)
-  // free to play: Initium and Thesaurus; every other level once the game is bought (Emptio)
+  // free to play: Initium, Thesaurus and Vitrum; every other level once the game is bought (Emptio)
   const paidFor = lv => unlockAll || progress.full || FREE_LEVELS.includes(lv.id) || !lv.playable || lv.depot || lv.gift;
   function isOpen(lv) { return reachedLv(lv) && paidFor(lv); }
   function reachedLv(lv) { return unlockAll || !lv.req.after || !!progress.done[lv.req.after] || (lv.req.or && !!progress.done[lv.req.or]) || !!progress.open[lv.id]; }
@@ -8938,7 +8938,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const unlock = () => { progress.full = true; saveProgress(); renderMap(); renderArms(); closeSheet(); renderMap(); pop(T("Все уровни открыты — спасибо!", "Every level is open: thank you!"), "info"); };
       const inTg = TG && BOT_API && TG.isVersionAtLeast("6.1"), c = document.createElement("div"); c.className = "wcard pack";
       const price = window.LimbusPlay ? playPrice || "" : "$3";
-      c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true"><path d="${PK_GEM}" transform="translate(5 0)"/></svg>${esc(T("Полная игра", "The full game"))}${price ? `<small>${esc(price)}</small>` : ""}</h3><p>${esc(T("Все уровни: Vitrum, Labyrinthus, Rubinus, Speculum, Carcer, Tao, Nox и Lux. Покупка один раз — навсегда.", "Every level: Vitrum, Labyrinthus, Rubinus, Speculum, Carcer, Tao, Nox and Lux. Bought once, yours for good."))}</p>`;
+      c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true"><path d="${PK_GEM}" transform="translate(5 0)"/></svg>${esc(T("Полная игра", "The full game"))}${price ? `<small>${esc(price)}</small>` : ""}</h3><p>${esc(T("Все уровни: Labyrinthus, Rubinus, Speculum, Carcer, Tao, Nox и Lux. Покупка один раз — навсегда.", "Every level: Labyrinthus, Rubinus, Speculum, Carcer, Tao, Nox and Lux. Bought once, yours for good."))}</p>`;
       extra.appendChild(c);
       if (progress.full) button(c, "ghost", T("Куплено", "Bought"), null, true);
       else if (inTg) button(c, "cta", T("Купить", "Buy"), async ev => { // for Stars, in Telegram itself

@@ -574,7 +574,7 @@ html.night, .night body { background: #03060d; }
 /* first-run tips: a comic-book callout, its pointer toward what it speaks of, never touching it */
 .tip { position: fixed; z-index: 80; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 13px 15px 12px; border-radius: 14px; background: #fffaf0; color: #10242e;
   border: 2px solid #1d6f8f; box-shadow: 0 10px 28px rgba(16, 36, 46, 0.28); font: 500 13.5px/1.45 Manrope, system-ui, sans-serif; }
-.tip p { margin: 0; padding-right: 34px; text-wrap: pretty; } .tip .tip-cl { display: inline-block; } /* each clause a block in the line: a line breaks between clauses, after their stops and commas, where it can */
+.tip p { margin: 0; padding-right: 34px; } .tip .tip-ln { display: block; text-wrap: balance; } /* each sentence a block of its own, its lines evened out */
 .tip .tip-x { position: absolute; top: 3px; right: 2px; width: 36px; height: 36px; border: 0; padding: 0; border-radius: 10px; background: none; color: inherit; cursor: pointer; opacity: 0.65; }
 .tip .tip-x:hover { opacity: 1; background: rgba(16, 36, 46, 0.07); } .tip .tip-x svg { width: 16px; height: 16px; display: block; margin: auto; }
 .tip .tip-btn { display: inline-block; vertical-align: 1px; margin-left: 4px; padding: 3px 9px 2px; border-radius: 7px; background: #1287b5; color: #ffffff; font-family: var(--display); font-weight: 600; font-size: 10.5px;
@@ -735,7 +735,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.450</div>
+      <div class="credit version">v1.0.451</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -936,7 +936,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.450`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.451`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6922,7 +6922,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // Initium's first ride, once (remembered in limbus-tut): before anything else is set down, the things of the game one kind at a
   // time, and as the cart nears each the world stops, all dims but it, and a callout says what it is. A tap anywhere goes on.
   // Crystals, then plain glass, then red glass, then an imp and a red crystal together (a callout each, on either side)
-  const TUT_END = 300;
+  const TUT_END = 160;
   let tut = null, tutVeil = null, tutTips = [];
   const tutSeen = () => { try { return localStorage.getItem("limbus-tut") === "1"; } catch (e) { return true; } };
   function tutStart(lv) {
@@ -6930,16 +6930,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (lv.id !== "initium" || progress.done.initium || tutSeen() || unlockAll) return;
     const put = [], at = (s, fn) => put.push({ s, fn });
     const C = [], P = [], R = [], D = [];
-    at(72, () => { addCrystal(clearOfArch(72), -1.3, 2.4, CRYSTAL_VAL); C.push(crystals[crystals.length - 1]); }); at(80, () => addCrystal(clearOfArch(80), 0.9, 2.1, CRYSTAL_VAL)); at(88, () => addCrystal(clearOfArch(88), -0.3, 2.7, CRYSTAL_VAL));
-    at(145, () => { addPane({ s: 145, u: 0, v: CAM_V + 0.1, w: 2.8, h: 2.6 }); P.push(panes[panes.length - 1]); });
-    at(205, () => { addPane({ s: 205, u: 0, v: CAM_V + 0.1, w: 2.8, h: 2.8, hp: 2 }); R.push(panes[panes.length - 1]); });
-    at(268, () => { addImp(268, -1.5, 2.4); imps[imps.length - 1].hold = true; D.push(imps[imps.length - 1]); addCrystal(clearOfArch(268), 1.5, 2.4, 0, true); D.push(crystals[crystals.length - 1]); });
+    at(40, () => { addCrystal(clearOfArch(40), -1.3, 2.4, CRYSTAL_VAL); C.push(crystals[crystals.length - 1]); }); at(46, () => addCrystal(clearOfArch(46), 0.9, 2.1, CRYSTAL_VAL)); at(52, () => addCrystal(clearOfArch(52), -0.3, 2.7, CRYSTAL_VAL));
+    at(80, () => { addPane({ s: 80, u: 0, v: CAM_V + 0.1, w: 2.8, h: 2.6 }); P.push(panes[panes.length - 1]); });
+    at(112, () => { addPane({ s: 112, u: 0, v: CAM_V + 0.1, w: 2.8, h: 2.8, hp: 2 }); R.push(panes[panes.length - 1]); });
+    at(146, () => { addImp(146, -1.5, 2.4); imps[imps.length - 1].hold = true; D.push(imps[imps.length - 1]); addCrystal(clearOfArch(146), 1.5, 2.4, 0, true); D.push(crystals[crystals.length - 1]); });
     const wp = o => (o.group || o.root).getWorldPosition(new THREE.Vector3());
     tut = { put, step: 0, steps: [
-      { at: 54, list: () => [[C[0], 0.7, T("Это кристаллы. Сбивайте их: каждый пополняет запас шаров.\nКончатся шары — закончится и заезд.", "These are crystals. Shoot them down: each one refills your balls.\nRun out of balls, and the ride is over."), "top,right,left,bottom"]] },
-      { at: 127, list: () => [[P[0], 1.6, T("Стекло — одно из препятствий. Разбивайте его, если оно может вас задеть.\nУдар о стекло отнимает шары и портит карму.", "Glass is one kind of obstacle. Break it if it could hit you.\nA hit costs balls and spoils your karma."), "top,right,left,bottom"]] },
-      { at: 187, list: () => [[R[0], 1.7, T("Красное стекло прочнее: с одного шара его не разбить.\nКуда бить, чтобы оно поддалось, придётся почувствовать.", "Red glass is tougher: one ball won't break it.\nWhere to strike so it gives way is for you to feel out."), "top,right,left,bottom"]] },
-      { at: 250, list: () => [[D[0], 0.8, T("Бес. Сбивайте бесов: чем темнее карма, тем чаще они налетают.\nДолетевший бес крадёт шары и тянет карму ещё ниже.", "An imp. Shoot imps down: the darker your karma, the more of them come.\nOne that reaches you steals balls and drags your karma lower."), "left,top,right,bottom"],
+      { at: 22, list: () => [[C[0], 0.7, T("Это кристаллы. Сбивайте их:\nкаждый пополняет запас шаров.\nКончатся шары — закончится и заезд.", "These are crystals. Shoot them down:\neach one refills your balls.\nRun out of balls, and the ride is over."), "top,right,left,bottom"]] },
+      { at: 62, list: () => [[P[0], 1.6, T("Стекло — одно из препятствий.\nРазбивайте его, если оно может вас задеть.\nУдар о стекло отнимает шары и портит карму.", "Glass is one kind of obstacle.\nBreak it if it could hit you.\nA hit costs balls and spoils your karma."), "top,right,left,bottom"]] },
+      { at: 94, list: () => [[R[0], 1.7, T("Красное стекло прочнее:\nс одного шара его не разбить.\nКуда бить, чтобы оно поддалось,\nпридётся почувствовать.", "Red glass is tougher:\none ball won't break it.\nWhere to strike so it gives way\nis for you to feel out."), "top,right,left,bottom"]] },
+      { at: 128, list: () => [[D[0], 0.8, T("Бес. Сбивайте бесов:\nчем темнее карма, тем чаще они налетают.\nДолетевший бес крадёт шары\nи тянет карму ещё ниже.", "An imp. Shoot imps down:\nthe darker your karma, the more of them come.\nOne that reaches you steals balls\nand drags your karma lower."), "left,top,right,bottom"],
         [D[1], 0.7, T("Красный кристалл — ловушка.\nНе стреляйте в него: попадание отнимает шары.", "A red crystal is a trap.\nDon't shoot it: a hit costs balls."), "right,bottom,left,top"]] }, // (on a narrow screen one over its thing, the other under its own)
     ], wp, release: () => D.forEach(o => { o.hold = false; }) };
   }
@@ -6955,12 +6955,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const W = innerWidth, H = innerHeight, f = H / 2 / Math.tan(camera.fov * Math.PI / 360), spots = [];
     for (const [o, rad, text, pref] of list) {
       const p = tut.wp(o), d = p.distanceTo(camera.position), q = p.clone().project(camera);
-      spots.push({ x: (q.x + 1) / 2 * W, y: (1 - q.y) / 2 * H, r: Math.max(46, rad * f / Math.max(1, d) * 1.5), text, pref });
+      spots.push({ x: (q.x + 1) / 2 * W, y: (1 - q.y) / 2 * H, r: Math.max(46, rad * f / Math.max(1, d) * 1.5), text, pref, open: true });
     }
-    tutVeil = document.createElement("div"); tutVeil.id = "tutVeil";
-    tutVeil.innerHTML = `<svg aria-hidden="true"><defs><radialGradient id="tutG"><stop offset="0.62" stop-color="#000"/><stop offset="1" stop-color="#fff"/></radialGradient><mask id="tutM"><rect width="100%" height="100%" fill="#fff"/>${spots.map(sp => `<circle cx="${sp.x}" cy="${sp.y}" r="${sp.r}" fill="url(#tutG)"/>`).join("")}</mask></defs><rect width="100%" height="100%" fill="rgba(3, 8, 16, 0.74)" mask="url(#tutM)"/></svg>`;
-    document.body.appendChild(tutVeil); tutVeil.addEventListener("pointerdown", e => { e.preventDefault(); tutNext(); });
-    for (const sp of spots) { const el = tipMake(sp.text, sp.pref, () => ({ left: sp.x - sp.r, right: sp.x + sp.r, top: sp.y - sp.r, bottom: sp.y + sp.r, width: sp.r * 2, height: sp.r * 2 }), tutNext); el.style.zIndex = 80; tutTips.push(el); }
+    const veil = () => `<svg aria-hidden="true"><defs><radialGradient id="tutG"><stop offset="0.62" stop-color="#000"/><stop offset="1" stop-color="#fff"/></radialGradient><mask id="tutM"><rect width="100%" height="100%" fill="#fff"/>${spots.filter(sp => sp.open).map(sp => `<circle cx="${sp.x}" cy="${sp.y}" r="${sp.r}" fill="url(#tutG)"/>`).join("")}</mask></defs><rect width="100%" height="100%" fill="rgba(3, 8, 16, 0.74)" mask="url(#tutM)"/></svg>`;
+    tutVeil = document.createElement("div"); tutVeil.id = "tutVeil"; tutVeil.innerHTML = veil(); document.body.appendChild(tutVeil);
+    // each callout closes on its own (its cross, or a tap elsewhere closes the first still open), and with it the light round its thing; the last closed, on we go
+    const shut = sp => { sp.open = false; sp.el.remove(); tutTips = tutTips.filter(t => t !== sp.el); if (spots.some(o => o.open)) tutVeil.innerHTML = veil(); else tutNext(); };
+    tutVeil.addEventListener("pointerdown", e => { e.preventDefault(); const sp = spots.find(o => o.open); if (sp) shut(sp); });
+    for (const sp of spots) { sp.el = tipMake(sp.text, sp.pref, () => ({ left: sp.x - sp.r, right: sp.x + sp.r, top: sp.y - sp.r, bottom: sp.y + sp.r, width: sp.r * 2, height: sp.r * 2 }), () => shut(sp)); sp.el.style.zIndex = 80; tutTips.push(sp.el); }
   }
   function tutNext() { // the world goes on; after the last, the lesson is over for good
     if (!tut) return; tutClear(); tut.step++; if (state === "tut") state = "play";
@@ -6977,9 +6979,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!el || !el.rect) return; const r = el.rect(); if (!r) return;
     const W = innerWidth, H = innerHeight, G = 16, M = 10; let side, w, h;
     const fits = (k, w, h) => k === "left" ? r.left - G - w > M : k === "right" ? r.right + G + w < W - M : k === "bottom" ? r.bottom + G + h < H - M : r.top - G - h > M;
-    found: for (const k of el.dataset.pref.split(",")) for (const mw of [420, 360, 300, 260]) {
-      el.style.maxWidth = `min(${mw}px, calc(100vw - 32px))`; w = el.offsetWidth; h = el.offsetHeight; if (fits(k, w, h)) { side = k; break found; } }
-    if (!side) { side = "bottom"; el.style.maxWidth = "min(420px, calc(100vw - 32px))"; w = el.offsetWidth; h = el.offsetHeight; }
+    // for each side in turn: of the widths with room there, the narrowest that still takes the fewest lines (lines as full and as even as can be)
+    for (const k of el.dataset.pref.split(",")) { let best = null;
+      for (let mw = 460; mw >= 220; mw -= 20) { el.style.maxWidth = `min(${mw}px, calc(100vw - 32px))`; const ww = el.offsetWidth, hh = el.offsetHeight;
+        if (fits(k, ww, hh) && (!best || hh <= best.h + 1)) best = { mw, w: ww, h: hh }; }
+      if (best) { side = k; el.style.maxWidth = `min(${best.mw}px, calc(100vw - 32px))`; w = el.offsetWidth; h = el.offsetHeight; break; } }
     let x, y;
     if (side === "left" || side === "right") { x = side === "left" ? r.left - G - w : r.right + G; y = clamp(r.top + r.height / 2 - h / 2, M, H - h - M); }
     else { y = side === "top" ? r.top - G - h : r.bottom + G; x = clamp(r.left + r.width / 2 - w / 2, M, W - w - M); }
@@ -6988,20 +6992,20 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (side === "left" || side === "right") { a.style.top = clamp(r.top + r.height / 2 - y - 7, 12, h - 26) + "px"; a.style.left = a.style.right = ""; }
     else { a.style.left = clamp(r.left + r.width / 2 - x - 7, 14, w - 28) + "px"; a.style.top = ""; }
   }
+  // a callout's text: written in lines (\n), each a sentence or a clause broken at its stop, colon or comma, short enough for a phone;
+  // a line too long for the room left beside the target wraps, evened out (text-wrap: balance), and the callout takes the narrowest
+  // width that keeps the fewest lines (tipPlace)
   function tipMake(text, pref, rect, close, pic) { // a callout: its text (a new line at each \n), a cross, beside rect() on the first of pref's sides with room
     const el = document.createElement("div"); el.className = "tip"; el.dataset.pref = pref; el.setAttribute("role", "dialog");
     el.innerHTML = `<span class="tip-arr" aria-hidden="true"></span><p></p><button class="tip-x" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3L13 13M13 3L3 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>`;
     const para = el.querySelector("p"); el.querySelector(".tip-x").setAttribute("aria-label", T("Закрыть", "Close"));
-    // within a line, clauses kept whole where they fit (after a stop or a comma), and the button's picture with the last words, never on a line of its own
-    const lines = text.split("\n");
-    lines.forEach((ln, i) => { const parts = ln.split(/(?<=[,.;:])\s+/);
-      parts.forEach((pt, j) => { const cl = document.createElement("span"); cl.className = "tip-cl";
-        if (pic && i === lines.length - 1 && j === parts.length - 1) { const k = pt.lastIndexOf(" "), keep = document.createElement("span"), b = document.createElement("span");
-          cl.textContent = pt.slice(0, k + 1); keep.style.whiteSpace = "nowrap"; keep.textContent = pt.slice(k + 1) + " ";
-          b.className = "tip-btn"; b.setAttribute("aria-hidden", "true"); b.textContent = pic; keep.append(b); cl.append(keep); }
-        else cl.textContent = pt;
-        para.append(cl); if (j < parts.length - 1) para.append(" "); });
-      if (i < lines.length - 1) para.append(document.createElement("br")); });
+    // each sentence (a \n between) a block of its own, its lines evened; the button's picture with the last words, never on a line of its own
+    text.split("\n").forEach((ln, i, all) => { const sp = document.createElement("span"); sp.className = "tip-ln";
+      if (pic && i === all.length - 1) { const k = ln.lastIndexOf(" "), keep = document.createElement("span"), b = document.createElement("span");
+        sp.textContent = ln.slice(0, k + 1); keep.style.whiteSpace = "nowrap"; keep.textContent = ln.slice(k + 1) + " ";
+        b.className = "tip-btn"; b.setAttribute("aria-hidden", "true"); b.textContent = pic; keep.append(b); sp.append(keep); }
+      else sp.textContent = ln;
+      para.append(sp); });
     el.querySelector(".tip-x").addEventListener("click", close); el.close = close; el.rect = rect;
     document.body.appendChild(el); tipPlace(el); requestAnimationFrame(() => tipPlace(el)); return el;
   }

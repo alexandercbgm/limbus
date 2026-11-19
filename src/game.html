@@ -806,6 +806,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     let h = 0;
     for (const m of LTW) h = Math.max(h, smooth5((s - m.sw + 40) / 40) * smooth5((m.tw1 + 32 + 40 - s) / 40));
     for (const l of LOOPS) h = Math.max(h, smooth5((s - l.s0 + 32 + 40) / 40) * smooth5((loopEnd(l) + 32 + 40 - s) / 40));
+    for (const sp of SPANS) h = Math.max(h, smooth5((s - sp.a + 40) / 40) * smooth5((sp.b + 40 - s) / 40)); // and Speculum's bridges, gate to gate
     return h;
   }
   const START_BALLS = 30, R_BALL = 0.18, G = 11, MAX_SHARDS = 520;
@@ -1997,7 +1998,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const PP = new Float64Array(NS * 3), PR = new Float64Array(NS * 3), PU = new Float64Array(NS * 3), PT = new Float64Array(NS * 3);
   let sBase = 0;
   const cartPos = new THREE.Vector3();
-  function pitchAt(s) { return (LOOPS.length ? loopPitch(s) : 0) + (s <= sC ? pitchC : pitchC + (pitchTs - pitchC) * (1 - Math.exp(-(s - sC) / LAMBDA))) * (LTW.length || LOOPS.length ? 1 - levelAt(s) : 1) + (LTW.length ? spiralPitch(s) : 0); }
+  function pitchAt(s) { return (LOOPS.length ? loopPitch(s) : 0) + (s <= sC ? pitchC : pitchC + (pitchTs - pitchC) * (1 - Math.exp(-(s - sC) / LAMBDA))) * (LTW.length || LOOPS.length || SPANS.length ? 1 - levelAt(s) : 1) + (LTW.length ? spiralPitch(s) : 0); }
   // banking (roll) follows the level's own turns only: at a fork both branches stay level, so the other
   // branch's floor never rises over the main track's rails
   // and around a fork the track is not banked at all: a tilted main floor would rise over the other branch's

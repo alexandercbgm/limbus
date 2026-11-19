@@ -493,11 +493,14 @@ html.night, .night body { background: #03060d; }
 .tip { position: fixed; z-index: 80; max-width: min(270px, calc(100vw - 32px)); box-sizing: border-box; padding: 13px 15px 12px; border-radius: 14px; background: #fffaf0; color: #10242e;
   border: 2px solid #1d6f8f; box-shadow: 0 10px 28px rgba(16, 36, 46, 0.28); font: 500 13.5px/1.45 Manrope, system-ui, sans-serif; }
 .tip p { margin: 0 0 10px; }
-.tip .tip-ok { display: block; margin-left: auto; min-width: 72px; height: 32px; padding: 0 16px; border: 0; border-radius: 9px; background: #1d6f8f; color: #fff; font: 700 13px Manrope, system-ui, sans-serif; cursor: pointer; }
+.tip .tip-ok, .tip .tip-btn { display: block; box-sizing: border-box; border: 0; border-radius: 10px; background: #1287b5; color: #ffffff; font-family: var(--display); font-weight: 600; font-size: 13px;
+  letter-spacing: 0.1em; text-transform: uppercase; text-align: center; box-shadow: 0 6px 18px -6px rgba(18, 135, 181, 0.55); }
+.tip .tip-ok { margin-left: auto; min-width: 84px; padding: 9px 18px; cursor: pointer; } .tip .tip-ok:hover { background: #1a98c8; }
+.tip .tip-btn { width: 100%; padding: 10px 14px; margin: 0 0 12px; pointer-events: none; } /* a picture of the card's button, not a button */
 .tip .tip-arr { position: absolute; width: 14px; height: 14px; background: inherit; border: inherit; border-width: 0; transform: rotate(45deg); }
 .tip.at-left .tip-arr { right: -9px; border-right-width: 2px; border-top-width: 2px; } .tip.at-right .tip-arr { left: -9px; border-left-width: 2px; border-bottom-width: 2px; }
 .tip.at-bottom .tip-arr { top: -9px; border-left-width: 2px; border-top-width: 2px; } .tip.at-top .tip-arr { bottom: -9px; border-right-width: 2px; border-bottom-width: 2px; }
-.night .tip { background: #0f1c30; color: #e6f2fb; border-color: #3cc9ec; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); } .night .tip .tip-ok { background: #3cc9ec; color: #08101e; } .night #map circle.cas { fill: #08101e; }
+.night .tip { background: #0f1c30; color: #e6f2fb; border-color: #3cc9ec; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); } .night .tip .tip-ok, .night .tip .tip-btn { background: #3cc9ec; color: #04121c; box-shadow: 0 0 22px rgba(60, 201, 236, 0.3); } .night .tip .tip-ok:hover { background: #5fd6f2; } .night #map circle.cas { fill: #08101e; }
 .night #map circle[fill="#ffffff"], .night #map circle[fill="#fffaf0"], .night #map rect[fill="#fffaf0"] { fill: #0c1628; }
 .night .map-under [stroke="#ffffff"] { stroke: #000000; } .night #map circle.case { stroke: #000000; } /* the casings black by night */
 .night #map circle[fill="#e6ecee"] { fill: #18233a; }
@@ -6843,11 +6846,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (side === "left" || side === "right") { a.style.top = clamp(r.top + r.height / 2 - y - 7, 12, h - 26) + "px"; a.style.left = a.style.right = ""; if (side === "left") a.style.left = ""; }
     else { a.style.left = clamp(r.left + r.width / 2 - x - 7, 14, w - 28) + "px"; a.style.top = ""; }
   }
-  function tipShow(text, pref, target, ok) {
+  function tipShow(text, pref, target, ok, pic) {
     if (tipEl) tipEl.remove();
     tipEl = document.createElement("div"); tipEl.className = "tip"; tipEl.dataset.pref = pref; tipEl.setAttribute("role", "dialog");
     tipEl.innerHTML = `<span class="tip-arr" aria-hidden="true"></span><p></p><button class="tip-ok" type="button">Ок</button>`;
     tipEl.querySelector("p").textContent = text; tipEl.querySelector(".tip-ok").textContent = T("Ок", "OK");
+    if (pic) { const b = document.createElement("span"); b.className = "tip-btn"; b.setAttribute("aria-hidden", "true"); b.textContent = pic; tipEl.querySelector("p").after(b); }
     tipEl.querySelector(".tip-ok").addEventListener("click", ok);
     document.body.appendChild(tipEl); tipFor = target; tipPlace(); requestAnimationFrame(tipPlace);
   }
@@ -6860,8 +6864,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function tipsGearClosed() { // the settings menu closed: on to the second tip
     if (tipStage !== 1 && tipStage !== 2) return; tipStage = 3;
-    setTimeout(() => state !== "menu" ? tipsEnd() : tipShow(T("Чтобы начать, нажмите на станцию Initium, а в открывшейся карточке — «Начать».", "To set off, tap the Initium station, then Ride on its card."),
-      "right,bottom,top,left", () => document.querySelector('#map .station[data-id="initium"] circle.hit'), tipsEnd), 250);
+    setTimeout(() => state !== "menu" ? tipsEnd() : tipShow(T("Чтобы начать, нажмите на станцию Initium, а в открывшейся карточке — на кнопку", "To set off, tap the Initium station, then on its card the button"),
+      "right,bottom,top,left", () => document.querySelector('#map .station[data-id="initium"] circle.hit'), tipsEnd, T("Начать", "Ride")), 250);
   }
   addEventListener("resize", () => requestAnimationFrame(tipPlace));
   function showMenu() {

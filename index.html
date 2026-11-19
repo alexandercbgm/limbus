@@ -546,7 +546,7 @@ video.mini { background: none; object-fit: contain; }
 .gp-label { display: inline-flex; align-items: center; gap: 8px; }
 .gp-label svg { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; } .gp-label svg.globe { fill: none; }
 .gp-link { width: 100%; border: 0; background: none; cursor: pointer; text-align: left; justify-content: flex-start; }
-.gp-link:hover { background: rgba(16, 36, 46, 0.05); } .gp-go { margin-left: auto; opacity: 0.45; padding-right: 6px; }
+.gp-link:hover { background: rgba(16, 36, 46, 0.05); } .gp-reset.armed, .gp-reset.armed svg { color: #c8323c; stroke: #c8323c; } .gp-go { margin-left: auto; opacity: 0.45; padding-right: 6px; }
 .seg { display: inline-flex; padding: 2px; border-radius: 9px; background: rgba(16, 36, 46, 0.07); }
 .seg button { min-width: 40px; height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: #4c6470; font: 700 12px var(--mono); cursor: pointer; display: grid; place-items: center; }
 .seg button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -716,9 +716,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             <span class="gp-label"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 14v-2a7.5 7.5 0 0 1 15 0v2" fill="none"/><rect x="3.5" y="13" width="4" height="6" rx="1.6" fill="none"/><rect x="16.5" y="13" width="4" height="6" rx="1.6" fill="none"/><path d="M18.5 19c0 1.6-1.6 2.5-4 2.5h-1.5" fill="none"/></svg><span data-en="Support">Поддержка</span></span>
             <span class="gp-go" aria-hidden="true">→</span>
           </button>
+          <button class="gp-row gp-link gp-reset" id="resetBtn" type="button">
+            <span class="gp-label"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" fill="none"/><path d="M4 4.5v4h4" fill="none"/></svg><span id="resetTxt" data-en="Start over">Начать сначала</span></span>
+          </button>
         </div>
       </div>
-      <div class="credit version">v1.0.427</div>
+      <div class="credit version">v1.0.428</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -919,7 +922,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.427`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.428`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -9120,6 +9123,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   new MutationObserver(() => { if ($("menu").hidden) gearOpen(false); }).observe($("menu"), { attributes: true, attributeFilter: ["hidden"] });
   gearPopEl.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => { if (b.dataset.lang !== LANG) setLang(b.dataset.lang); }));
   gearPopEl.querySelectorAll("[data-theme]").forEach(b => b.addEventListener("click", () => setTheme(b.dataset.theme)));
+  // start over: everything the game remembers wiped (progress, crystals, cannons, upgrades, language, sound, theme), as at the very
+  // first opening. The first press only asks (the row turns red and says what goes); a second within 4 s does it
+  { const rb = $("resetBtn"); let armT = 0;
+    const disarm = () => { rb.classList.remove("armed"); $("resetTxt").textContent = T("Начать сначала", "Start over"); armT = 0; };
+    rb.addEventListener("click", () => {
+      if (!armT) { rb.classList.add("armed"); $("resetTxt").textContent = T("Стереть всё? Ещё раз", "Erase all? Press again"); armT = setTimeout(disarm, 4000); return; }
+      clearTimeout(armT);
+      try { for (const k of Object.keys(localStorage)) if (k.startsWith("limbus-")) localStorage.removeItem(k); } catch (e) { /* storage unavailable */ }
+      if (TG && TG.CloudStorage && TG.isVersionAtLeast("6.9")) try { TG.CloudStorage.removeItem(STORE); } catch (e) { /* the cloud is out of reach */ }
+      setTimeout(() => location.reload(), 150); }); // (a moment for Telegram's cloud to hear)
+  }
   function setTheme(t) {
     try { localStorage.setItem("limbus-theme2", t); } catch (e) { /* storage unavailable */ }
     gearPopEl.querySelectorAll("[data-theme]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.theme === t))); // the switch answers at once

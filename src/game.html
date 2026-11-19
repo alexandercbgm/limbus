@@ -233,6 +233,22 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 }
 @media (orientation: landscape) and (max-height: 380px) and (max-width: 720px) { .tg .bank span { display: none; } } /* only the diamond and the count */
 .arms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+/* Armamentarium, beside the cannons: a shield with two chevrons up (upgrades) and its name; dim till Thesaurus is finished, a lilac
+   dot pulsing on it till something is bought there */
+.depot { position: relative; box-sizing: border-box; height: 38px; display: inline-flex; align-items: center; gap: 7px; padding: 0 13px 0 10px; border: 0; border-radius: 11px; cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.62)); color: #10242e; font: 600 11px var(--display); letter-spacing: 0.08em; text-transform: uppercase;
+  box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.07), 0 2px 6px -2px rgba(16, 36, 46, 0.12); }
+.depot svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; flex: none; }
+.depot:hover { background: #ffffff; } .depot.locked { opacity: 0.5; }
+.depot.fresh::after { content: ""; position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: #a68bd6; box-shadow: 0 0 0 2px #fffaf0; animation: depotDot 1.8s ease-in-out infinite; }
+@keyframes depotDot { 50% { transform: scale(1.35); box-shadow: 0 0 0 2px #fffaf0, 0 0 10px 3px rgba(166, 139, 214, 0.6); } }
+.night .depot { background: rgba(14, 26, 46, 0.78); color: #dff3ff; box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2); } .night .depot:hover { background: rgba(24, 40, 66, 0.9); }
+.night .depot.fresh::after { box-shadow: 0 0 0 2px #0a1426; }
+/* Emptio, beside the logo: the game's crystal and its name, in the gold of its old branch */
+.m-brand { display: flex; align-items: center; gap: 22px; } .emptio { color: #8a6412; box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(214, 160, 40, 0.55), 0 2px 8px -2px rgba(214, 160, 40, 0.35); }
+.night .emptio { color: #ffd36a; box-shadow: inset 0 1px 0 rgba(255, 220, 140, 0.18), 0 0 0 1px rgba(255, 200, 90, 0.45), 0 0 14px -4px rgba(255, 200, 90, 0.5); }
+@media (max-width: 760px) { .depot span { display: none; } .depot { padding: 0 9px; } } /* a narrow screen: the shield alone */
+@media (prefers-reduced-motion: reduce) { .depot.fresh::after { animation: none; } }
 /* the cannon buttons look like the bank beside them; the one on the cart is dark, its cost still turquoise */
 .arm { font: 700 13px var(--mono); padding: 8px 11px; border-radius: 4px; border: 0; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; cursor: pointer; }
 .arm:hover { background: rgba(255, 255, 255, 0.85); }
@@ -611,12 +627,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
 <section class="menu" id="menu">
   <div class="menu-in">
     <header class="m-head">
-      <div>
+      <div class="m-brand">
         <h1 class="logo">LIMB<span>U</span>S</h1>
+        <button class="depot emptio" id="emptioBtn" type="button" aria-label="Emptio" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l3.6 4.2v10.6L12 21.5l-3.6-4.2V6.7z"/><path d="M8.4 6.7h7.2M8.4 17.3h7.2M12.5 6.7v10.6"/></svg><span>Emptio</span></button>
       </div>
       <div class="m-side">
         <div class="bank" aria-label="Кристаллы в запасе" data-en-aria="Crystals in the bank">◆ <b id="bank">0</b></div>
         <div class="arms" id="arms" role="group" aria-label="Пушка на вагонетке" data-en-aria="The cart's cannon"></div>
+        <button class="depot" id="depotBtn" type="button" aria-label="Armamentarium"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l8 3.1v6.1c0 4.6-3.3 8.1-8 9.6-4.7-1.5-8-5-8-9.6V5.7z"/><path d="M8.2 12.6L12 8.8l3.8 3.8M8.2 16.4L12 12.6l3.8 3.8"/></svg><span>Armamentarium</span></button>
       </div>
     </header>
     <div class="map-card">
@@ -6669,9 +6687,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     { kind: "tao", to: "abyssus", pts: [[590, 190], [770, 190], [910, 320]] }, // Linea Tao: Tao, Nox, Lux
     // a dead-end branch: a short drop, a gentle slope, a short level run into its station (a long drop leaves room for the dead end's name over it; the slope is the same on every branch)
     { kind: "branch", to: "thesaurus", pts: [[90, 320], [90, 418], [116, 440], [185, 440]] }, // its level run as long as Carcer's
-    { kind: "branch", to: "armamentarium", pts: [[185, 440], [385, 440]] }, // the depot lies on from the Treasury, midway under Vitrum and Rubinus
     { kind: "branch", to: "carcer", pts: [[680, 320], [680, 418], [654, 440], [590, 440]] }, // back to the left, to midway under Rubinus and Speculum
-    { kind: "gift", to: "emptio", pts: [[90, 320], [230, 190]] }, // Emptio: a gold branch up from Initium, as long as the arc and parallel to it
   ];
   const byId = id => LEVELS.find(l => l.id === id);
   const STORE = "limbus-progress-v1";
@@ -8431,7 +8447,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the cannon on the cart: one button with its picture, name and price a shot; it opens the list of the cannons owned,
   // each with its picture and what it does. A tap outside, Escape or the button again folds it away
   let armsOpen = false;
+  function renderEmptio() { $("emptioBtn").hidden = !(unlockAll || progress.done.initium); } // (once Initium is finished, as it had been on the scheme)
+  function renderDepot() { renderEmptio(); // Armamentarium's button: dim till Thesaurus is finished; a dot on it till something is bought there
+    const lv = byId("armamentarium"), b = $("depotBtn"); b.classList.toggle("locked", !isOpen(lv)); b.classList.toggle("fresh", isOpen(lv) && !progress.bought);
+    b.title = T("Armamentarium: улучшения за кристаллы", "Armamentarium: upgrades for crystals"); }
   function renderArms() {
+    renderDepot();
     const el = $("arms"), all = Object.keys(WEAPONS);
     try { makeThumbs(all); } catch (e) { /* no pictures: the names still serve */ }
     const pic = id => armThumbs[id] ? `<img alt="" src="${armThumbs[id]}">` : "";
@@ -8444,7 +8465,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       o.type = "button"; o.className = "arm-opt"; o.setAttribute("role", "option"); o.setAttribute("aria-selected", String(progress.weapon === id));
       if (!own) o.setAttribute("aria-disabled", "true");
       const src = w.from && byId(w.from), where = own || !src ? "" : `<i>${esc(T(`за станцию ${src.latin}`, `from ${src.latin} station`))}</i>`;
-      const desc = own || !src ? w.desc : T(`Откроется, когда вы пройдёте станцию ${src.latin} (${src.ru}). ${w.desc}`, `Opens once you finish ${src.latin} station. ${w.desc}`);
+      const desc = own || !src ? w.desc : T(`Откроется, когда вы пройдёте станцию ${src.latin}. ${w.desc}`, `Opens once you finish ${src.latin} station. ${w.desc}`);
       o.innerHTML = `${pic(id)}<span class="ao"><span class="ao-h">${esc(w.name)} <b>−${w.cost}</b>${where}</span><span class="ao-d">${esc(desc)}</span></span>`;
       o.addEventListener("click", () => {
         if (!own) { armsOpen = false; renderArms(); if (src) openSheet(src, false, true); return; } // not yet had: the card of the station that gives it
@@ -8564,7 +8585,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const casing = (shape, w) => shape.replace(/stroke="[^"]*"/, 'stroke="#ffffff"').replace(/stroke-width="([\d.]+)"/, (m, x) => `stroke-width="${+x + w}"`).replace(/ stroke-dasharray="[^"]*"| opacity="[^"]*"/g, "");
     // what the scheme shows: Initium, every station open or finished, and Emptio once Initium is finished; a line into a station not
     // yet shown runs half way and fades out there, so what lies on is not seen. Lines are drawn leg by leg, station to station
-    const shown = lv => unlockAll || lv.id === "initium" || !!progress.done[lv.id] || (lv.gift ? !!progress.done.initium : isOpen(lv));
+    const shown = lv => !lv.depot && !lv.gift && (unlockAll || lv.id === "initium" || !!progress.done[lv.id] || (lv.gift ? !!progress.done.initium : isOpen(lv))); // (Armamentarium and Emptio are not on the scheme: their buttons are up top)
     const stAt = (x, y) => LEVELS.find(l => l.map.x === x && l.map.y === y);
     let fdefs = "", fn = 0;
     const leg = (pts, color, built) => { // pts from one station to the next
@@ -8634,16 +8655,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const [x1, y1, x2, y2, c] of segs) for (const [ax, ay, bx, by] of [[x1, y1, x2, y2], [x2, y2, x1, y1]]) {
         if (Math.hypot(ax - p.x, ay - p.y) > 1) continue;
         const L2 = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / L2, uy = (by - ay) / L2;
-        const outer = !hub ? stroke : lv.id === "initium" ? (uy < 0 ? LINE_GOLD : HUB_RING.initium) : HUB_RING[lv.id];
+        const outer = !hub ? stroke : HUB_RING[lv.id];
         if (c.toLowerCase() === outer.toLowerCase()) out += `<line x1="${p.x}" y1="${p.y}" x2="${p.x + ux * 25}" y2="${p.y + uy * 25}" stroke="${c}" stroke-width="8"/>`;
       }
       // the glow under the pointer: over the casing, under the station's face and rings, which hide it inward
       { const hr = hub ? 21 : 20.5, hw = hub ? 4 : 5, half = (c, s) => `<path class="halo" style="color:${c}" d="M${p.x - s * hr} ${p.y}A${hr} ${hr} 0 0 1 ${p.x + s * hr} ${p.y}" fill="none" stroke="${c}" stroke-width="${hw}"/>`;
-        out += hub && lv.id === "initium" ? half(LINE_GOLD, 1) + half(HUB_RING.initium, -1) : `<circle class="halo" style="color:${hub ? HUB_RING[lv.id] : stroke}" cx="${p.x}" cy="${p.y}" r="${hr}" fill="none" stroke="${hub ? HUB_RING[lv.id] : stroke}" stroke-width="${hw}"/>`; }
+        out += `<circle class="halo" style="color:${hub ? HUB_RING[lv.id] : stroke}" cx="${p.x}" cy="${p.y}" r="${hr}" fill="none" stroke="${hub ? HUB_RING[lv.id] : stroke}" stroke-width="${hw}"/>`; }
       if (hub) out += `<circle cx="${p.x}" cy="${p.y}" r="21" fill="#fffaf0"/>`; // a transfer's face, under its inner circle
       out += `<circle class="ring${hub ? " inner" : ""}${dark ? " done" : ""}" style="transform-origin:${p.x}px ${p.y}px" cx="${p.x}" cy="${p.y}" r="${hub ? 17 : 20.5}" fill="${fill}" stroke="${stroke}" stroke-width="5"/>`; // as wide as a transfer station with its gold ring
-      if (hub && lv.id === "initium") out += `<path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x - 21} ${p.y}A21 21 0 0 1 ${p.x + 21} ${p.y}" fill="none" stroke="${LINE_GOLD}" stroke-width="4"/><path class="hub" style="transform-origin:${p.x}px ${p.y}px" d="M${p.x + 21} ${p.y}A21 21 0 0 1 ${p.x - 21} ${p.y}" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // the gold branch leaves above, the dead end below
-      else if (hub) out += `<circle class="hub" style="transform-origin:${p.x}px ${p.y}px" cx="${p.x}" cy="${p.y}" r="21" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // its rim in the colour of the other line that meets here, in front of the inner circle
+      if (hub) out += `<circle class="hub" style="transform-origin:${p.x}px ${p.y}px" cx="${p.x}" cy="${p.y}" r="21" fill="none" stroke="${HUB_RING[lv.id]}" stroke-width="4"/>`; // its rim in the colour of the other line that meets here, in front of the inner circle
       if (hub) out += `<circle class="case" cx="${p.x}" cy="${p.y}" r="19.25" fill="none" stroke="#ffffff" stroke-width="1"/>`; // a thin casing between a transfer's two rings
       if (st === "done" || st === "avail") { // a finished station (and the Armoury once bought): a glint runs round its ring now and then, all of them at once (their clock is the page's, so a redrawn scheme keeps the beat), and crystals circle it (mapCrystals)
         const gx = 21 * Math.cos(0.35), gy = 21 * Math.sin(0.35);
@@ -9042,6 +9062,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     $("over").hidden = true; state = "play"; pop(T("второе дыхание", "second wind"), "info");
   });
   $("againBtn").addEventListener("click", () => rideLevel(LEVEL));
+  $("emptioBtn").addEventListener("click", () => openSheet(byId("emptio"), false, true));
+  $("depotBtn").addEventListener("click", () => { const lv = byId("armamentarium"); // open, it opens at once: its wares, no "Open" to press first
+    if (isOpen(lv) && !progress.open[lv.id]) { progress.open[lv.id] = true; saveProgress(); } openSheet(lv, false, true); });
   ["nextBtn", "nextBtn2"].forEach(id => $(id).addEventListener("click", () => { const nx = byId($(id).dataset.id); if (nx && nx.playable) rideLevel(nx); }));
   ["overMenu", "winMenu"].forEach(id => $(id).addEventListener("click", showMenu));
   $("nagGo").addEventListener("click", () => { $("nag").hidden = true; showMenu(); openSheet(byId("armamentarium"), false, true); });

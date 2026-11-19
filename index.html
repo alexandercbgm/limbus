@@ -721,7 +721,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.437</div>
+      <div class="credit version">v1.0.438</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -922,7 +922,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.437`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.438`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6614,7 +6614,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],
       desc: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар. Поперёк пути призмы собирают свет в лучи, а парящие зеркала отражают их в сетку: разбейте призму или зеркало, чтобы проехать. Высокие ворота в клубах пара открываются попаданием в бегущие по створкам мишени; висят и монолиты на цепях.",
       feats: ["Зеркальные стены: коридор уходит в отражения", "Ложные кристаллы: отражение мерцает и вращается в обратную сторону", "Призмы и зеркала: лучи света сеткой поперёк пути", "Высокие ворота с бегущими мишенями", "Финал Reflexio: мишени парами"],
-      req: { after: "rubinus" }, map: { x: 730, y: 320, label: "t" } },
+      req: { after: "rubinus" }, map: { x: 680, y: 320, label: "t" } }, // under midway between Tao and Nox
     { id: "abyssus", num: "V·b", latin: "Nox", ru: "Тьма", playable: true, music: "through_the_glass_corridor", len: 1500, pal: PAL_ABYSSUS, finale: "rota",
       style: { arch: "none", blocks: "cube", glassWalls: false, bridge: true, floor: "plain" }, crystalMul: 1.45, armor: 1, driftMul: 1.5, gateKinds: ["v"],
       pats: { doors: [1.5, 2, 2], rise: [1, 2, 2.5], shades: [0, 1.2, 2.5], center: [1.6, 1.6, 1.2], slider: [0.8, 1.5, 1.5], double: [0, 0.8, 1.6], triple: [0.8, 1.2, 0.8], sides: [1.6, 0.6, 0], bonus: [2, 0.5, 0], reinf: [0, 0.5, 1.6], imps: [0, 0, 0],
@@ -6635,7 +6635,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       turns: [[90, 50, 40], [190, 60, -55], [300, 50, 45], [410, 60, -60], [530, 50, 50], [640, 50, -40], [750, 50, 35], [860, 50, -45], [980, 60, 50], [1090, 50, -40]],
       desc: "Тупик глубоко во Тьме: средневековая темница, перестроенная в тюрьму для особо опасных. Короткие ржавые коридоры ведут из зала в зал. В залах стальные решётки на цепях, парящие лазерные балки и сетки и мельницы с топорами. Двери в залы надо открыть: сбить цепи откидной створки или выбить засов. В конце заперта пушка, которой нет на складе.",
       feats: ["Залы с решётками на цепях, лазерами и топорами", "Двери: откидные на цепях и двустворчатые на засове", "Награда: пушка Ferrum, финал Effugium: побег через камеры"],
-      req: { after: "speculum" }, map: { x: 615, y: 440, label: "t" } },
+      req: { after: "speculum" }, map: { x: 775, y: 440, label: "t" } },
     { id: "lux", num: "VI", latin: "Lux", ru: "Свет", playable: true, music: "translucent_path", len: 2880, superLen: 520, pal: PAL_LUX, finale: "triumphus",
       style: { arch: "square", blocks: "cube", glassWalls: true, bridge: true, floor: "plain" }, spaceMul: 1.35, crystalMul: 1.5, armor: 1, gainMul: 0.85,
       gateKinds: ["v"], // Nox's gates, as they are there
@@ -6735,12 +6735,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const MAIN_LINE = ["initium", "vitrum", "labyrinthus", "tao"]; // Linea Summa ends at Tao; from there Linea Tao runs on through Nox to Lux
   // drawn lines of the scheme, as waypoints; the main line is drawn station to station
   const MAP_LINES = [
-    { kind: "line", to: "rubinus", pts: [[270, 320], [500, 320], [730, 320]] }, // a second line: Vitrum, Rubinus, Speculum
+    { kind: "line", to: "rubinus", pts: [[270, 320], [500, 320], [680, 320]] }, // a second line: Vitrum, Rubinus, Speculum
     { kind: "tao", to: "abyssus", pts: [[590, 190], [770, 190], [910, 320]] }, // Linea Tao: Tao, Nox, Lux
     // a dead-end branch: a short drop, a gentle slope, a short level run into its station (a long drop leaves room for the dead end's name over it; the slope is the same on every branch)
     { kind: "branch", to: "thesaurus", pts: [[90, 320], [90, 418], [116, 440], [185, 440]] }, // its level run as long as Carcer's
     { kind: "branch", to: "armamentarium", pts: [[185, 440], [385, 440]] }, // the depot lies on from the Treasury, midway under Vitrum and Rubinus
-    { kind: "branch", to: "carcer", pts: [[730, 320], [730, 418], [704, 440], [615, 440]] }, // back to the left, to midway under Rubinus and Speculum
+    { kind: "branch", to: "carcer", pts: [[680, 320], [680, 418], [706, 440], [775, 440]] }, // to the right, its level run as long as Thesaurus's
     { kind: "gift", to: "emptio", pts: [[90, 320], [230, 190]] }, // Emptio: a gold branch up from Initium, as long as the arc and parallel to it
   ];
   const byId = id => LEVELS.find(l => l.id === id);

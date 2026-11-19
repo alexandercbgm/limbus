@@ -9038,11 +9038,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   gearPopEl.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => { if (b.dataset.lang !== LANG) setLang(b.dataset.lang); }));
   gearPopEl.querySelectorAll("[data-theme]").forEach(b => b.addEventListener("click", () => setTheme(b.dataset.theme)));
   // start over: everything the game remembers wiped (progress, crystals, cannons, upgrades, language, sound, theme), as at the very
-  // first opening. The first press only asks (the row turns red and says what goes); a second within 4 s does it
+  // first opening. The first press only asks (the row turns red and says what it does); a second within a minute does it
   { const rb = $("resetBtn"); let armT = 0;
     const disarm = () => { rb.classList.remove("armed"); $("resetTxt").textContent = T("Начать сначала", "Start over"); armT = 0; };
     rb.addEventListener("click", () => {
-      if (!armT) { rb.classList.add("armed"); $("resetTxt").textContent = T("Стереть всё? Ещё раз", "Erase all? Press again"); armT = setTimeout(disarm, 4000); return; }
+      if (!armT) { rb.classList.add("armed"); $("resetTxt").textContent = T("Сбросить всё и начать заново", "Reset all and start over"); armT = setTimeout(disarm, 60000); return; }
       clearTimeout(armT);
       try { for (const k of Object.keys(localStorage)) if (k.startsWith("limbus-")) localStorage.removeItem(k); } catch (e) { /* storage unavailable */ }
       if (TG && TG.CloudStorage && TG.isVersionAtLeast("6.9")) try { TG.CloudStorage.removeItem(STORE); } catch (e) { /* the cloud is out of reach */ }

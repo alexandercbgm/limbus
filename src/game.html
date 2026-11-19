@@ -3550,7 +3550,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "triple": [-2.75, 0, 2.75].forEach(u => addPane({ s, u, v: CAM_V + 0.2, w: 2.5, h: 3 })); break;
       case "sides":
         [-1, 1].forEach(k => addPane({ s, u: k * 2.95, v: 2.2, w: 1.8, h: 3.6 }));
-        if (d < 0.5) addPane({ s: s - 4, u: 0, v: 4.7, w: 1.7, h: 1.1 });
+        if (d < 0.5 && LEVEL.id !== "thesaurus") addPane({ s: s - 4, u: 0, v: 4.7, w: 1.7, h: 1.1 }); // (Thesaurus: no small glass)
         break;
       case "bonus":
         for (let i = 0; i < 4; i++) { const k = i % 2 ? 1 : -1; addPane({ s: s - i * 3.5, u: k * rand(2.4, 3.2), v: rand(1.6, 4.8), w: rand(1.1, 1.6), h: rand(1.1, 1.6) }); }
@@ -6462,7 +6462,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     { id: "thesaurus", num: "I·a", latin: "Thesaurus", ru: "Сокровищница", line: "branch", playable: true, music: "glass_horizon", len: 2450, superLen: 450, pal: PAL_AURUM, finale: "pluvia",
       // a roller coaster in the open, golden hoops over the rails (planCoaster, which sets its length); only thin glass in the way, plain or engraved
       style: { arch: "ring", blocks: "coin", glassWalls: false, air: true, floor: "plain", floorW: 1.75 }, coaster: true, crystalMul: 2.2,
-      pats: { center: [3, 3, 2], wall: [1.4, 1.6, 1.6], zigzag: [1, 1.5, 2], triple: [1, 2, 1.5], sides: [2, 1.4, 1], bonus: [3, 1, 0.3], slider: [1, 2, 2], lift: [0.6, 1.5, 1.5],
+      pats: { center: [3, 3, 2], wall: [1.4, 1.6, 1.6], zigzag: [1, 1.5, 2], triple: [1, 2, 1.5], sides: [2, 1.4, 1], bonus: [0, 0, 0], slider: [1, 2, 2], lift: [0.6, 1.5, 1.5],
         double: [0, 1, 1.5], shutter: [0.5, 1, 1.5], reinf: [0, 0, 0], imps: [0, 0, 0] }, // (its own mix on its manoeuvres too: its whole run is manoeuvres)
       turns: [],
       desc: "Тупиковая ветка от Initium. Американские горки под открытым золотым небом: спираль, штопор, бур и пара мёртвых петель, каждый заезд в новом порядке. Над рельсами золотые обручи, вокруг вращаются монеты. На пути только тонкое стекло, и кристаллов вдвое больше обычного.",

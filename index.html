@@ -570,10 +570,10 @@ html.night, .night body { background: #03060d; }
   box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.22), 0 0 0 1px rgba(120, 200, 255, 0.16), 0 30px 80px -20px rgba(0, 0, 0, 0.8); }
 .night #map line[stroke="#ffffff"], .night #map polyline[stroke="#ffffff"] { stroke: #08101e; } .night #map stop.cas { stop-color: #08101e; }
 /* first-run tips: a comic-book callout, its pointer toward what it speaks of, never touching it */
-.tip { position: fixed; z-index: 80; max-width: min(270px, calc(100vw - 32px)); box-sizing: border-box; padding: 13px 15px 12px; border-radius: 14px; background: #fffaf0; color: #10242e;
+.tip { position: fixed; z-index: 80; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 13px 15px 12px; border-radius: 14px; background: #fffaf0; color: #10242e;
   border: 2px solid #1d6f8f; box-shadow: 0 10px 28px rgba(16, 36, 46, 0.28); font: 500 13.5px/1.45 Manrope, system-ui, sans-serif; }
-.tip p { margin: 0; padding-right: 26px; }
-.tip .tip-x { position: absolute; top: 4px; right: 4px; width: 36px; height: 36px; border: 0; padding: 0; border-radius: 10px; background: none; color: inherit; cursor: pointer; opacity: 0.65; }
+.tip p { margin: 0; padding-right: 17px; text-wrap: pretty; }
+.tip .tip-x { position: absolute; top: 3px; right: 2px; width: 36px; height: 36px; border: 0; padding: 0; border-radius: 10px; background: none; color: inherit; cursor: pointer; opacity: 0.65; }
 .tip .tip-x:hover { opacity: 1; background: rgba(16, 36, 46, 0.07); } .tip .tip-x svg { width: 16px; height: 16px; display: block; margin: auto; }
 .tip .tip-btn { display: inline-block; vertical-align: 1px; margin-left: 4px; padding: 3px 9px 2px; border-radius: 7px; background: #1287b5; color: #ffffff; font-family: var(--display); font-weight: 600; font-size: 10.5px;
   letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.4; white-space: nowrap; box-shadow: 0 3px 10px -4px rgba(18, 135, 181, 0.55); pointer-events: none; } /* a picture of the card's button, not a button */
@@ -733,7 +733,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.447</div>
+      <div class="credit version">v1.0.448</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -934,7 +934,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.447`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.448`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6920,11 +6920,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let tipEl = null, tipStage = 0, tipFor = null;
   const tipsSeen = () => { try { return localStorage.getItem("limbus-tips") === "1"; } catch (e) { return true; } };
   function tipsEnd() { if (tipEl) { tipEl.remove(); tipEl = null; } if (tipStage) { tipStage = 0; try { localStorage.setItem("limbus-tips", "1"); } catch (e) { /* storage unavailable */ } } }
-  function tipPlace() { // beside its target, on the first side with room, its pointer at the target's middle, 16 px clear of it
+  function tipPlace() { // beside its target, on the first side with room, as wide as the room allows (fewer, fuller lines), its pointer at the target's middle, 16 px clear of it
     if (!tipEl || !tipFor) return; const t = tipFor(); if (!t) return;
-    const r = t.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight, W = innerWidth, H = innerHeight, G = 16, M = 10;
-    const fits = { left: r.left - G - w > M, right: r.right + G + w < W - M, bottom: r.bottom + G + h < H - M, top: r.top - G - h > M };
-    const side = tipEl.dataset.pref.split(",").find(k => fits[k]) || "bottom"; let x, y;
+    const r = t.getBoundingClientRect(), W = innerWidth, H = innerHeight, G = 16, M = 10; let side, w, h;
+    const fits = (k, w, h) => k === "left" ? r.left - G - w > M : k === "right" ? r.right + G + w < W - M : k === "bottom" ? r.bottom + G + h < H - M : r.top - G - h > M;
+    found: for (const k of tipEl.dataset.pref.split(",")) for (const mw of [420, 360, 300, 260]) {
+      tipEl.style.maxWidth = `min(${mw}px, calc(100vw - 32px))`; w = tipEl.offsetWidth; h = tipEl.offsetHeight; if (fits(k, w, h)) { side = k; break found; } }
+    if (!side) { side = "bottom"; tipEl.style.maxWidth = "min(420px, calc(100vw - 32px))"; w = tipEl.offsetWidth; h = tipEl.offsetHeight; }
+    let x, y;
     if (side === "left" || side === "right") { x = side === "left" ? r.left - G - w : r.right + G; y = clamp(r.top + r.height / 2 - h / 2, M, H - h - M); }
     else { y = side === "top" ? r.top - G - h : r.bottom + G; x = clamp(r.left + r.width / 2 - w / 2, M, W - w - M); }
     tipEl.className = "tip at-" + side; tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
@@ -6954,7 +6957,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function tipsGearClosed() { // the settings menu closed: on to the second tip
     if (tipStage !== 1 && tipStage !== 2) return; tipStage = 3;
-    setTimeout(() => state !== "menu" ? tipsEnd() : tipShow(T("Чтобы начать, нажмите на станцию Initium, а в открывшейся карточке —", "To set off, tap the Initium station, then on its card"),
+    setTimeout(() => state !== "menu" ? tipsEnd() : tipShow(T("Чтобы начать, нажмите на станцию Initium, а в открывшейся карточке", "To set off, tap the Initium station, then on its card"),
       "right,bottom,top,left", () => document.querySelector('#map .station[data-id="initium"] circle.hit'), tipsEnd, T("Начать", "Ride")), 250);
   }
   addEventListener("resize", () => requestAnimationFrame(tipPlace));

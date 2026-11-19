@@ -757,7 +757,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.469</div>
+      <div class="credit version">v1.0.470</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -958,7 +958,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.469`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.470`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -7043,6 +7043,25 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       tipShow(T("Здесь выбираются тема и язык.\nЧтобы закрыть меню, нажмите в любом месте вне его.", "Choose the theme and the language here.\nTo close the menu, tap anywhere outside it."),
         "left,bottom,right,top", () => $("gearPop"), () => { tipStage = 2; if (tipEl) { tipEl.remove(); tipEl = null; } }); }, 900);
   }
+  // tips on the scheme as the way opens, each once (remembered in limbus-tips2): once Initium is finished, the cannons' menu, then
+  // Armamentarium; once Vitrum is finished too, Emptio (its tip waits for the new terms of sale: EMPTIO_TIP). Shown whenever the
+  // player is next on the scheme, today or another day
+  const EMPTIO_TIP = false;
+  const tipsDone = () => { try { return JSON.parse(localStorage.getItem("limbus-tips2") || "{}"); } catch (e) { return {}; } };
+  function menuTips() {
+    setTimeout(() => {
+      if (state !== "menu" || $("menu").hidden || !$("sheet").hidden || tipEl || tipStage || !tipsSeen()) return;
+      const done = tipsDone(), mark = k => { done[k] = 1; try { localStorage.setItem("limbus-tips2", JSON.stringify(done)); } catch (e) { /* storage unavailable */ } };
+      const next = [
+        progress.done.initium && !done.arms && ["arms", T("Здесь выбирается пушка для вагонетки.\nНовые пушки дарят станции, менять их можно когда угодно.", "Choose the cart's cannon here.\nStations give new cannons; change them whenever you like."), () => document.querySelector(".arm-cur")],
+        progress.done.initium && !done.depot && ["depot", T("Armamentarium: здесь за кристаллы\nпокупают улучшения для вагонетки.", "Armamentarium: crystals buy\nupgrades for the cart here."), () => $("depotBtn")],
+        EMPTIO_TIP && progress.done.initium && progress.done.vitrum && !done.emptio && ["emptio", T("Emptio: покупка открывает\nпрохождение остальных уровней.", "Emptio: a purchase opens\nthe rest of the levels."), () => $("emptioBtn")],
+      ].find(Boolean);
+      if (!next) return;
+      const [k, text, target] = next;
+      tipShow(text, "bottom,left,right,top", target, () => { mark(k); if (tipEl) { tipEl.remove(); tipEl = null; } menuTips(); });
+    }, 700);
+  }
   function tipsGearClosed() { // the settings menu closed: on to the second tip
     if (tipStage !== 1 && tipStage !== 2) return; tipStage = 3;
     setTimeout(() => state !== "menu" ? tipsEnd() : tipShow(T("Чтобы начать, нажмите на станцию Initium,\nа в открывшейся карточке", "To set off, tap the Initium station,\nthen on its card"),
@@ -7059,6 +7078,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     darkHud = false; document.body.classList.remove("dark"); vignetteEl.style.opacity = "0";
     $("menu").hidden = false;
     renderMap(); if (window.__fitMap) requestAnimationFrame(window.__fitMap);
+    menuTips();
     resetWorld(false); // the rails keep rolling empty behind the menu
   }
   // Lux is the end of the game: its win screen congratulates, sums up the journey and says what is left to do
@@ -8843,6 +8863,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function closeSheet() {
     const sh = $("sheet"); if (sh.hidden) return;
     sh.querySelector(".panel").classList.remove("enter"); sh.classList.remove("waiting"); stopClips(); sh.hidden = true; // gone at once: a fade out was slow on Android
+    menuTips(); // (a tip that waited for the sheet to close)
   }
   function openSheet(lv, keep, from) { // keep: re-drawn after a purchase, the sheet stays scrolled where it was; from: opened from the scheme or by a link, so it steps in
     const scroll = keep ? $("sheet").scrollTop : 0;

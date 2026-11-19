@@ -721,7 +721,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.440</div>
+      <div class="credit version">v1.0.441</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -922,7 +922,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.440`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.441`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -8536,10 +8536,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const op = d => clamp((tot * 0.5 - d) / (tot * 0.25), 0, 1);
       let d = 0;
       for (let i = 0; i + 1 < P.length && d < tot * 0.5; i++) {
-        const [x0, y0] = P[i], k = Math.min(1, (tot * 0.5 - d) / L[i]), x1 = x0 + (P[i + 1][0] - x0) * k, y1 = y0 + (P[i + 1][1] - y0) * k, id = `fade${fn++}`;
-        fdefs += `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}"><stop offset="0" stop-color="${color}" stop-opacity="${op(d).toFixed(3)}"/><stop offset="1" stop-color="${color}" stop-opacity="${op(d + L[i] * k).toFixed(3)}"/></linearGradient>`;
-        out += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="url(#${id})" stroke-width="8" stroke-linecap="${i ? "butt" : "round"}"${built ? "" : ' stroke-dasharray="1 11"'}/>`;
-        if (i && op(d) > 0) out += `<circle cx="${x0}" cy="${y0}" r="4" fill="${color}" fill-opacity="${op(d).toFixed(3)}"/>`; // (a round joint where it bends)
+        const [x0, y0] = P[i], k = Math.min(1, (tot * 0.5 - d) / L[i]), x1 = x0 + (P[i + 1][0] - x0) * k, y1 = y0 + (P[i + 1][1] - y0) * k, o0 = op(d), o1 = op(d + L[i] * k);
+        // as glass as the rest (see below): its colour a little clear, a paler band down its middle and a thin bright line in that, all fading
+        for (const [c, w, a] of [[color, 8, 0.78], ["#fffffe", 3.6, 0.22], ["#fffffe", 1.1, 0.7]]) { const id = `fade${fn++}`;
+          fdefs += `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}"><stop offset="0" stop-color="${c}" stop-opacity="${(o0 * a).toFixed(3)}"/><stop offset="1" stop-color="${c}" stop-opacity="${(o1 * a).toFixed(3)}"/></linearGradient>`;
+          out += `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="url(#${id})" stroke-width="${w}" stroke-linecap="${i ? "butt" : "round"}"${built ? "" : ' stroke-dasharray="1 11"'}/>`;
+          if (i && o0 > 0) out += `<circle cx="${x0}" cy="${y0}" r="${w / 2}" fill="${c}" fill-opacity="${(o0 * a).toFixed(3)}"/>`; } // (a round joint where it bends)
         d += L[i] * k;
       }
     };

@@ -766,7 +766,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.485</div>
+      <div class="credit version">v1.0.486</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -967,7 +967,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.485`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.486`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6426,12 +6426,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const UPGRADES = {
     copia: { name: "Copia", ru: "Запас", en: "Reserve", prices: [40, 80, 140],
       desc: ["Шаров на старте каждого заезда: +10 за уровень.", "Balls at the start of every ride: +10 a level."],
+      at: n => T(`Шаров на старте каждого заезда: +${n * 10}.`, `Balls at the start of every ride: +${n * 10}.`),
       now: n => T(`+${n * 10} шаров на старте`, `+${n * 10} balls at the start`) },
     spiritus: { name: "Spiritus", ru: "Второе дыхание", en: "Second wind", prices: [30, 60, 110],
       desc: ["Шары кончились — заезд можно один раз продолжить с того же места: +10 шаров за уровень.", "Out of balls, a ride can go on once from where it stopped: +10 balls a level."],
+      at: n => T(`Шары кончились — заезд можно один раз продолжить с того же места с ${n * 10} шарами.`, `Out of balls, a ride can go on once from where it stopped, with ${n * 10} balls.`),
       now: n => T(`продолжение с ${n * 10} шарами`, `go on with ${n * 10} balls`) },
     largitas: { name: "Largitas", ru: "Щедрость", en: "Bounty", prices: [50, 100, 160],
       desc: ["Каждый шар, попавший в голубой кристалл, приносит больше шаров: +1 за уровень.", "Every ball that hits a blue crystal brings more balls: +1 a level."],
+      at: n => T(`Каждый шар, попавший в голубой кристалл, приносит больше шаров: +${n}.`, `Every ball that hits a blue crystal brings more balls: +${n}.`),
       now: n => T(`+${n} ${ballsWord(n)} с попадания`, `+${n} ${ballsWord(n)} a hit`) },
   };
   const upLevel = id => progress.up[id] || 0;
@@ -7147,9 +7150,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       $("giftTitle").textContent = T("Улучшение!", "An upgrade!");
       $("giftPic").innerHTML = `<svg viewBox="-12 -12 24 24" aria-hidden="true"><path d="${PK_GEM}"/></svg>`;
       $("giftName").textContent = `${u.name} · ${T(u.ru, u.en)}`;
-      $("giftDesc").textContent = T(...u.desc);
+      $("giftDesc").textContent = u.at(g.lvl); // (what this level gives in all)
       $("giftPips").hidden = false; $("giftPips").innerHTML = [1, 2, 3].map(i => `<i class="${i <= g.lvl ? "on" : ""}"></i>`).join("") + `<span>${T(`уровень ${g.lvl} из 3`, `level ${g.lvl} of 3`)}</span>`;
-      $("giftNote").textContent = T(`Уже действует: ${u.now(g.lvl)}.`, `In force already: ${u.now(g.lvl)}.`);
+      $("giftNote").textContent = "\u00a0"; // (no words: the line kept for its room)
     }
     $("gift").hidden = false; Sound.crystal(6); setTimeout(() => Sound.crystal(6), 260);
     $("giftGo").onclick = () => { $("gift").hidden = true; then(); };
@@ -8983,7 +8986,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const pane = { ingenia: extra };
         for (const id in UPGRADES) {
           const u = UPGRADES[id], lvl = upLevel(id), card = document.createElement("div"); card.className = "wcard";
-          card.innerHTML = `<h3>${esc(u.name)}<small>${esc(T(u.ru, u.en))} · ${T("уровень", "level")} ${lvl}/3${lvl ? " · " + esc(u.now(lvl)) : ""}</small></h3><p>${esc(T(...u.desc))}</p>`;
+          card.innerHTML = `<h3>${esc(u.name)}<small>${esc(T(u.ru, u.en))} · ${T("уровень", "level")} ${lvl}/3${lvl ? " · " + esc(u.now(lvl)) : ""}</small></h3><p>${esc(u.at(Math.min(3, lvl + 1)))}</p>`;
           if (lvl >= 3) button(card, "ghost", T("Всё куплено", "Maxed out"), null, true);
           else { const price = u.prices[lvl]; button(card, "cta", T(`Уровень ${lvl + 1}: ◆ ${price}`, `Level ${lvl + 1}: ◆ ${price}`), () => { progress.bank -= price; progress.up[id] = lvl + 1; progress.bought = true; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
           pane.ingenia.appendChild(card);

@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.414</div>
+      <div class="credit version">v1.0.415</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -918,7 +918,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.414`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.415`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -7013,6 +7013,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       ["nextBtn", "nextBtn2"].forEach((id, i) => { const nb = $(id), nx = nxs[i]; nb.hidden = !nx; if (nx) { nb.dataset.id = nx.id; nb.textContent = `${nx.latin} →`; nb.setAttribute("aria-label", T(`Дальше: ${nx.latin}`, `Next: ${nx.latin}`)); } }); // the station's name and an arrow on
       $("againBtn").textContent = againText();
       journey(firstFinish);
+      if (!nxs.length) $("winMenu").className = "cta"; // nowhere on from here (a dead end): the way back to the scheme is the lit button
       if (window.__askNews) setTimeout(window.__askNews, 1500); // a moment after the arrival shows
       const showWin = () => { $("win").hidden = false;
         requestAnimationFrame(() => ["nextBtn", "nextBtn2"].forEach(id => { // a long name that won't fit its button is cut short: Lab.
@@ -7651,7 +7652,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     alt = clamp(alt + dA - drift * dt, -1, 1);
     altVel += ((alt - prevAlt) / dt - altVel) * (1 - Math.exp(-dt / 0.6));
     const up = altVel > 0 && alt > 0 ? 1.15 : 1; // climbs in the light half are 15% steeper, so they read
-    const rawPitch = sC > SUPER_END - 40 || LEVEL.id === "initium" || LEVEL.id === "vitrum" ? 0 : clamp(altVel * 7 * up, -0.42, 0.3 * up); // the station sits level; Initium's bridge over its city and Vitrum's glass never tilt with the karma
+    const rawPitch = sC > SUPER_END - 40 || LEVEL.id === "initium" || LEVEL.id === "vitrum" || LEVEL.id === "thesaurus" ? 0 : clamp(altVel * 7 * up, -0.42, 0.3 * up); // the station sits level; Initium's bridge over its city, Vitrum's glass and Thesaurus's coaster never tilt with the karma
     pitchTs += (rawPitch - pitchTs) * (1 - Math.exp(-dt * 2.5));
 
     // motion: uphill is slower, downhill faster

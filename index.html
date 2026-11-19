@@ -709,7 +709,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     <header class="m-head">
       <div class="m-brand">
         <h1 class="logo">LIMB<span>U</span>S</h1>
-        <button class="depot emptio" id="emptioBtn" type="button" aria-label="Emptio" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l3.6 4.2v10.6L12 21.5l-3.6-4.2V6.7z"/><path d="M8.4 6.7h7.2M8.4 17.3h7.2M12.5 6.7v10.6"/></svg><span>Emptio</span></button>
+        <button class="depot emptio" id="emptioBtn" type="button" aria-label="Emptio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l3.6 4.2v10.6L12 21.5l-3.6-4.2V6.7z"/><path d="M8.4 6.7h7.2M8.4 17.3h7.2M12.5 6.7v10.6"/></svg><span>Emptio</span></button>
       </div>
       <div class="m-side">
         <div class="bank" aria-label="Кристаллы в запасе" data-en-aria="Crystals in the bank">◆ <b id="bank">0</b></div>
@@ -754,7 +754,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.460</div>
+      <div class="credit version">v1.0.461</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -955,7 +955,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.460`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.461`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -8533,7 +8533,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the cannon on the cart: one button with its picture, name and price a shot; it opens the list of the cannons owned,
   // each with its picture and what it does. A tap outside, Escape or the button again folds it away
   let armsOpen = false;
-  function renderEmptio() { $("emptioBtn").hidden = !(unlockAll || progress.done.initium); } // (once Initium is finished, as it had been on the scheme)
+  function renderEmptio() { $("emptioBtn").hidden = false; } // (there from the start)
   function renderDepot() { renderEmptio(); // Armamentarium's button: a dot on it till something is bought there
     const lv = byId("armamentarium"), b = $("depotBtn"); b.classList.toggle("locked", !isOpen(lv)); b.classList.toggle("fresh", isOpen(lv) && !progress.bought);
     b.title = T("Armamentarium: улучшения за кристаллы", "Armamentarium: upgrades for crystals"); }

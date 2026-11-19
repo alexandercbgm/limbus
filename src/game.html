@@ -6967,8 +6967,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (state !== "menu" || $("menu").hidden || !$("sheet").hidden || tipEl || tipStage || !tipsSeen()) return;
       const done = tipsDone(), mark = k => { done[k] = 1; try { localStorage.setItem("limbus-tips2", JSON.stringify(done)); } catch (e) { /* storage unavailable */ } };
       const next = [
-        progress.done.initium && !done.arms && ["arms", T("Здесь выбирается пушка для вагонетки.\nНовые пушки дарят станции, менять их можно когда угодно.", "Choose the cart's cannon here.\nStations give new cannons; change them whenever you like."), () => document.querySelector(".arm-cur")],
-        progress.done.initium && !done.depot && ["depot", T("Armamentarium: здесь за кристаллы\nпокупают улучшения для вагонетки.", "Armamentarium: crystals buy\nupgrades for the cart here."), () => $("depotBtn")],
+        progress.done.initium && !done.arms && ["arms", T("Здесь выбирается пушка для вагонетки.\nНовые пушки даются при прохождении станций.", "Choose the cart's cannon here.\nNew cannons come with finishing stations."), () => document.querySelector(".arm-cur")],
+        progress.done.initium && !done.depot && ["depot", T("Здесь за кристаллы покупают\nулучшения для вагонетки.", "Crystals buy upgrades\nfor the cart here."), () => $("depotBtn")],
         EMPTIO_TIP && progress.done.initium && progress.done.vitrum && !done.emptio && ["emptio", T("Emptio: покупка открывает\nпрохождение остальных уровней.", "Emptio: a purchase opens\nthe rest of the levels."), () => $("emptioBtn")],
       ].find(Boolean);
       if (!next) return;
@@ -7033,7 +7033,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       $("giftName").textContent = `${w.name} · ${w.cost} ${ballsWord(w.cost)} ${T("за выстрел", "a shot")}`;
       $("giftDesc").textContent = w.desc;
       $("giftPips").hidden = true;
-      $("giftNote").textContent = T("Она уже стоит на вагонетке. Сменить пушку можно в меню.", "It is on the cart already. Switch cannons in the menu.");
+      $("giftNote").textContent = "\u00a0"; // (no words: the line kept for its room)
     } else {
       const u = UPGRADES[g.u];
       $("giftTitle").textContent = T("Улучшение!", "An upgrade!");

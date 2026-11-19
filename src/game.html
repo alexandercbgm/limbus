@@ -7062,7 +7062,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       $("oBroken").textContent = stats.broken;
       // every third failed ride in a row, till something is bought at Armamentarium, a word about crystals and the depot first
       progress.fails = (progress.fails || 0) + 1; saveProgress();
-      if (!progress.bought && !progress.noNag && progress.fails % 3 === 0) $("nag").hidden = false; else $("over").hidden = false;
+      if (!progress.bought && !progress.noNag && progress.done.initium && progress.fails % 3 === 0) $("nag").hidden = false; else $("over").hidden = false; // (not before Initium is finished: till then Thesaurus is shut, and there is nowhere to go for crystals)
     }
   }
 

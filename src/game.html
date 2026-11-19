@@ -6922,8 +6922,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     else { y = side === "top" ? r.top - G - h : r.bottom + G; x = clamp(r.left + r.width / 2 - w / 2, M, W - w - M); }
     el.className = "tip at-" + side; el.style.left = x + "px"; el.style.top = y + "px";
     const a = el.querySelector(".tip-arr");
-    if (side === "left" || side === "right") { a.style.top = clamp(r.top + r.height / 2 - y - 7, 12, h - 26) + "px"; a.style.left = a.style.right = ""; }
-    else { a.style.left = clamp(r.left + r.width / 2 - x - 7, 14, w - 28) + "px"; a.style.top = ""; }
+    // (the pointer is placed from inside the callout's 2 px border: its tip on the target's middle line)
+    if (side === "left" || side === "right") { a.style.top = clamp(r.top + r.height / 2 - y - 10, 12, h - 26) + "px"; a.style.left = a.style.right = ""; }
+    else { a.style.left = clamp(r.left + r.width / 2 - x - 10, 14, w - 28) + "px"; a.style.top = ""; }
   }
   // a callout's text: written in lines (\n), each a sentence or a clause broken at its stop, colon or comma, short enough for a phone;
   // a line too long for the room left beside the target wraps, evened out (text-wrap: balance), and the callout takes the narrowest

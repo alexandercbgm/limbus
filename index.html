@@ -754,7 +754,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.461</div>
+      <div class="credit version">v1.0.462</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -955,7 +955,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.461`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.462`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -7008,8 +7008,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     else { y = side === "top" ? r.top - G - h : r.bottom + G; x = clamp(r.left + r.width / 2 - w / 2, M, W - w - M); }
     el.className = "tip at-" + side; el.style.left = x + "px"; el.style.top = y + "px";
     const a = el.querySelector(".tip-arr");
-    if (side === "left" || side === "right") { a.style.top = clamp(r.top + r.height / 2 - y - 7, 12, h - 26) + "px"; a.style.left = a.style.right = ""; }
-    else { a.style.left = clamp(r.left + r.width / 2 - x - 7, 14, w - 28) + "px"; a.style.top = ""; }
+    // (the pointer is placed from inside the callout's 2 px border: its tip on the target's middle line)
+    if (side === "left" || side === "right") { a.style.top = clamp(r.top + r.height / 2 - y - 10, 12, h - 26) + "px"; a.style.left = a.style.right = ""; }
+    else { a.style.left = clamp(r.left + r.width / 2 - x - 10, 14, w - 28) + "px"; a.style.top = ""; }
   }
   // a callout's text: written in lines (\n), each a sentence or a clause broken at its stop, colon or comma, short enough for a phone;
   // a line too long for the room left beside the target wraps, evened out (text-wrap: balance), and the callout takes the narrowest

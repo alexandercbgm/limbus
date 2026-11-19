@@ -6983,7 +6983,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         "left,bottom,right,top", () => $("gearPop"), () => { tipStage = 2; if (tipEl) { tipEl.remove(); tipEl = null; } }); }, 900);
   }
   // tips on the scheme as the way opens, each once (remembered in limbus-tips2): once Initium is finished, the cannons' menu, then
-  // Armamentarium, then Emptio (while the game is not bought). Shown whenever the
+  // Armamentarium; once Vitrum is finished, Emptio (while the game is not bought). Shown whenever the
   // player is next on the scheme, today or another day
   const EMPTIO_TIP = true;
   const tipsDone = () => { try { return JSON.parse(localStorage.getItem("limbus-tips2") || "{}"); } catch (e) { return {}; } };
@@ -6994,7 +6994,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const next = [
         progress.done.initium && !done.arms && ["arms", T("Здесь выбирается пушка для вагонетки.\nНовые пушки можно получить при прохождении станций.", "Choose the cart's cannon here.\nNew cannons can be won by finishing stations."), () => document.querySelector(".arm-cur")],
         progress.done.initium && !done.depot && ["depot", T("Здесь покупают улучшения\nза кристаллы.", "Upgrades are bought here\nfor crystals."), () => $("depotBtn")],
-        EMPTIO_TIP && progress.done.initium && !progress.full && !done.emptio && ["emptio", T("Покупка игры открывает\nвсе остальные уровни.", "Buying the game opens\nevery other level."), () => $("emptioBtn")],
+        EMPTIO_TIP && progress.done.vitrum && !progress.full && !done.emptio && ["emptio", T("Покупка игры открывает\nвсе остальные уровни.", "Buying the game opens\nevery other level."), () => $("emptioBtn")],
       ].find(Boolean);
       if (!next) return;
       const [k, text, target] = next;

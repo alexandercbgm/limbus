@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.415</div>
+      <div class="credit version">v1.0.416</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -918,7 +918,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.415`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.416`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1055,7 +1055,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // cart, a phone held upright, 30 m and more of the way ahead in sight all through them (Lux's showed 21 and 24)
   const COASTER_TW = { drill: { len: 330, p: { r: 9 } }, screw: { len: 190 }, spiral: { len: 350 } }; // a loop edges this far sideways as it goes round: its way out clear of its way in, arches and all
   function planCoaster(add) {
-    TURNS = []; const L = MAIN_LEN, LEAD = 70, TAIL = 60, seq = [];
+    TURNS = []; const LEAD = 70, TAIL = 60, seq = [];
     const loopPair = () => {
       const v = ["chain", "chainR", "up", "down", "updown", "downup"][Math.floor(Math.random() * 6)], m = Math.random() < 0.5 ? -1 : 1, out = [];
       if (v === "chain") out.push({ kind: "v", s0: 0, side: m, len: 179.67, w: 29.625, r: 0.06 }, { kind: "h", s0: 189.93, side: m, th: TAU, len: 192, r: 0.082, dh: 25.2, c0: -7.86, cf: 0.91, bank: Math.PI / 2 });
@@ -1069,9 +1069,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       return { kind: "loops", parts: out, len: Math.max(...out.map(l => l.s0 + l.len + Math.max(0, (l.c0 || 0) + l.len * (l.cf || 1) - l.len))) };
     };
-    for (const kind of ["spiral", "screw", "drill", "snake", "loops"].sort(() => Math.random() - 0.5))
+    const order = ["spiral", "screw", "drill", "snake", "loops"];
+    for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; } // (a fair shuffle: a sort by coin toss had favoured some orders)
+    for (const kind of order)
       seq.push(kind === "loops" ? loopPair() : kind === "snake" ? { kind, len: SNAKE_LEN } : { kind, ...COASTER_TW[kind] });
-    const gap = (L - LEAD - TAIL - seq.reduce((a, q) => a + q.len, 0)) / (seq.length - 1);
+    // 40 m of level road between one and the next; the run as long as they make it (its length, and so its time, as the pair of loops falls)
+    const gap = 40; MAIN_LEN = Math.round(LEAD + TAIL + seq.reduce((a, q) => a + q.len, 0) + gap * (seq.length - 1)); SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     let at = LEAD;
     for (const q of seq) {
       if (q.kind === "loops") for (const l of q.parts) LOOPS.push(Object.assign(l, { s0: at + l.s0 }));
@@ -1081,23 +1084,32 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     for (const m of LTW) { m.mt = 99; m.dirNow = m.dir; m.pdirNow = m.pdir; } // whole from the start
   }
-  // the snake, always the same: from the level road a plunge 70 m down, then three humps, each lower, between ever deeper troughs,
-  // and out onto a level road 95 m under where it began, where the cart brakes back to its own speed. Each stretch from one
-  // height to the next eased (smooth5): its slope and its bend both die away at every top and trough, so the cart never jolts.
-  // [length, from height, to height]; steepest 61 degrees, on the plunge
-  const SNAKE = [[150, 0, -70], [110, -70, -30], [110, -30, -80], [90, -80, -50], [90, -50, -90], [75, -90, -72], [75, -72, -95]];
-  const SNAKE_RUN = SNAKE.reduce((a, q) => a + q[0], 0), SNAKE_BRAKE = 60, SNAKE_LEN = SNAKE_RUN + SNAKE_BRAKE;
-  function snakeSlope(l, s) { let x = s - l.s0; for (const [n, a, b] of SNAKE) { if (x > 0 && x < n) { const u = x / n; return (b - a) / n * 30 * u * u * (1 - u) * (1 - u); } x -= n; } return 0; }
-  function snakeH(l, s) { let x = s - l.s0; for (const [n, a, b] of SNAKE) { if (x < n) return a + (b - a) * smooth5(x / n); x -= n; } return SNAKE[SNAKE.length - 1][2]; }
-  // the cart's speed on it, as a coaster's: what height it has lost turned into speed (gravity at 0.6 of the real), less a steady
-  // loss to the rails and the air: it speeds up down every slope and slows up every one as the slope says. In Thesaurus (15.6 m/s)
-  // over the plunge to 30 m/s, up the first hump down to 17, down to 27, up to 18, down to 26, up the last to 19, out onto the level
-  // road at 24, then braked over 60 m back to its own speed
-  const SNAKE_G = 6, SNAKE_LOSS = 1.16;
+  // the snake, always the same: from the level road a plunge 140 m down, then three humps 80, 60 and 36 m high between ever deeper
+  // troughs, and out onto a level road 190 m under where it began, where the cart brakes back to its own speed. Each stretch from
+  // one height to the next steepens in over its first quarter, runs at its steepest (66 to 68 degrees, the last hump's 35 and 43) and eases out
+  // over its last: its slope and its bend die away at every top and trough, so the cart never jolts. [from height, to height]
+  const SNAKE_PTS = [0, -140, -60, -160, -100, -180, -144, -190], SNAKE_E = 0.25;
+  // (its steepest slope 0.93; the last hump, short, drawn out to 85 and 90 m: steep, its top had hidden all but 22 m of the way on)
+  const SNAKE = SNAKE_PTS.slice(1).map((b, i) => { const a = SNAKE_PTS[i]; return [i === 5 ? 85 : i === 6 ? 90 : Math.round(Math.abs(b - a) * 1.434), a, b]; });
+  const SNAKE_RUN = SNAKE.reduce((a, q) => a + q[0], 0), SNAKE_BRAKE = 150, SNAKE_LEN = SNAKE_RUN + SNAKE_BRAKE;
+  const snakeG5 = y => y * y * y * y * (y * (y - 3) + 2.5);
+  const snakePh = x => (x <= 0 ? 0 : x < SNAKE_E ? SNAKE_E * snakeG5(x / SNAKE_E) : x < 1 - SNAKE_E ? SNAKE_E / 2 + x - SNAKE_E : x < 1 ? 1 - SNAKE_E - SNAKE_E * snakeG5((1 - x) / SNAKE_E) : 1 - SNAKE_E) / (1 - SNAKE_E);
+  const snakeDPh = x => (x <= 0 || x >= 1 ? 0 : x < SNAKE_E ? smooth5(x / SNAKE_E) : x < 1 - SNAKE_E ? 1 : smooth5((1 - x) / SNAKE_E)) / (1 - SNAKE_E);
+  function snakeSlope(l, s) { let x = s - l.s0; for (const [n, a, b] of SNAKE) { if (x > 0 && x < n) return (b - a) / n * snakeDPh(x / n); x -= n; } return 0; }
+  function snakeH(l, s) { let x = s - l.s0; for (const [n, a, b] of SNAKE) { if (x < n) return a + (b - a) * snakePh(x / n); x -= n; } return SNAKE_PTS[SNAKE_PTS.length - 1]; }
+  // the cart's speed on it, as a coaster's, worked out step by step: down a slope gravity (0.8 of the real) speeds it, up one slows
+  // it, and the air holds it back the more the faster it goes, the rails a little all the time. From 12.5 m/s down the plunge to
+  // 42, up the first hump to 14, down to 38, up the second to 17, down to 36, up the last to 24, out onto the road at 34, then
+  // braked over 150 m back to its own speed. (the square of its speed every half metre, worked out once for each starting speed)
+  const SNAKE_G = 7.84, SNAKE_AIR = 0.0025, SNAKE_ROLL = 0.3, snakeV2 = new Map();
+  function snakeTable(v0) { let t = snakeV2.get(v0); if (t) return t;
+    const l = { s0: 0 }, n = Math.ceil(SNAKE_LEN * 2) + 2; t = new Float32Array(n); let v2 = v0 * v0;
+    for (let i = 0; i < n; i++) { const x = i / 2; t[i] = v2; if (x < SNAKE_RUN) v2 = Math.max(4, v2 - 2 * SNAKE_G * (snakeH(l, x + 0.5) - snakeH(l, x)) - (SNAKE_AIR * v2 + SNAKE_ROLL) * 0.5); }
+    const ve = t[SNAKE_RUN * 2]; for (let i = SNAKE_RUN * 2; i < n; i++) t[i] = lerp(ve, v0 * v0, smooth5((i / 2 - SNAKE_RUN) / SNAKE_BRAKE));
+    snakeV2.set(v0, t); return t; }
   function snakeMul(s, v0) { for (const l of LOOPS) if (l.kind === "s" && s > l.s0 && s < l.s0 + l.len) {
-    const e = x => v0 * v0 - 2 * SNAKE_G * snakeH(l, x) - SNAKE_LOSS * (x - l.s0), x = s - l.s0;
-    const v2 = x < SNAKE_RUN ? e(s) : lerp(e(l.s0 + SNAKE_RUN), v0 * v0, smooth5((x - SNAKE_RUN) / SNAKE_BRAKE));
-    return Math.sqrt(Math.max(9, v2)) / v0; }
+    const t = snakeTable(v0), f = (s - l.s0) * 2, i = Math.floor(f), v2 = t[i] + (t[i + 1] - t[i]) * (f - i);
+    return Math.sqrt(v2) / v0; }
     return 0; }
   // the spiral: how far round it has turned at s, and how steep it is there
   const spiralYaw = s => { let y = 0; for (const m of LTW) if (m.kind === "spiral" && s > m.tw0) y -= m.dirNow * /* (the track's yaw is positive to the left; dir +1 is the gantry's right) */ m.turns * TAU * spanPhase(Math.min(1, (s - m.tw0) / m.len)); return y; };
@@ -1418,11 +1430,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const sun = new THREE.DirectionalLight(0xffffff, 0.75);
   scene.add(sun); scene.add(sun.target);
 
+  let FOV0 = 70; // the camera's own field of view, for the screen's shape (the coaster widens it with speed)
   function resize() {
     const w = window.innerWidth, h = window.innerHeight;
     renderer.setSize(w, h, false); window.__redraw = true; // a resized canvas is blank till drawn again, even while the world stands still
     camera.aspect = w / h;
-    camera.fov = w / h < 0.8 ? 86 : 70;
+    camera.fov = FOV0 = w / h < 0.8 ? 86 : 70;
     camera.updateProjectionMatrix();
   }
   window.addEventListener("resize", resize);
@@ -3602,7 +3615,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     while (pgPlan.length && pgPlan[0] < s + 12) { addPrismGear(pgPlan.shift()); crystalsClear(); }
     while (luxPlan.length && luxPlan[0].s < s + 12) { const q = luxPlan.shift(); if (q.k === "iris") addGate(q.s, "iris"); else addSwitch(q.m); }
     { const sn = LOOPS.find(l => l.kind === "s" && s > l.s0 - 10 && s < l.s0 + l.len); // the snake: glass only where the cart is slow, on the humps' tops and the braking road
-      if (sn && (Math.abs(snakeSlope(sn, s)) > 0.3 || snakeMul(Math.max(s, sn.s0 + 0.01), BASE_SPEED * (LEVEL.speedMul || 1)) > 1.4)) return; }
+      if (sn && (Math.abs(snakeSlope(sn, s)) > 0.3 || snakeMul(Math.max(s, sn.s0 + 0.01), BASE_SPEED * (LEVEL.speedMul || 1)) > 1.45)) return; }
     if (LTW.some(m => s > m.sw - 24 && s < m.sw + 16)) return; // nothing at a manoeuvre's gantry, nor nearer before it than one group to the next
     if (pgears.some(g => Math.abs(g.s - s) < 8)) return; // nothing under a prism gear
     if (doors.some(dr => Math.abs(dr.s - s) < 9)) return;
@@ -3638,7 +3651,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // poor), but nothing on chains where it would not hang (on the loop once it has begun to climb, on the ring), nor a gate up the loop
       const lpA = LOOPS.find(l => l.kind === "v" && s > l.s0 - 10 && s < l.s0 + l.len + 10), onRing = LOOPS.some(l => l.kind === "h" && s > l.s0 - 10 && s < l.s0 + l.len + 10);
       if ((pat === "pendulum" || pat === "gate") && ((lpA && s > lpA.s0 + 12) || onRing)) pat = pat === "pendulum" ? "catapult" : "reinf";
-    } else if (onM) { // on every other manoeuvre the same: glass on the deck or turning over it, blocks on chains in their frames, laser bars, laser mills
+    } else if (onM && !LEVEL.coaster) { // on every other manoeuvre the same: glass on the deck or turning over it, blocks on chains in their frames, laser bars, laser mills
       const opts = LEVEL.id === "lux" ? ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "abbar", "lblock", "abspin"] : ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
     }
     if (!spawnGroupKind && LUXH.some(h => s > h.b - 4 && s < h.b + 22)) pat = "center"; // and nothing big just out of a hall: its end hid it
@@ -6562,14 +6575,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       desc: "Знакомство с рельсами. Белые залы с квадратными арками, первые стёкла и первый спуск во Тьму.",
       feats: ["Квадратные арки, сплошные стены и парящие кубы", "Стекло, голубые кристаллы, во Тьме шипы и чёрно-красные кристаллы бесы", "Финал Iudicium: печати и множитель"],
       req: {}, map: { x: 90, y: 320, label: "t", dx: -14 } }, // nudged left, clear of the gift branch
-    { id: "thesaurus", num: "I·a", latin: "Thesaurus", ru: "Сокровищница", line: "branch", playable: true, music: "glass_horizon", len: 2450, superLen: 560, pal: PAL_AURUM, finale: "pluvia",
-      // a roller coaster in the open, golden hoops over the rails (planCoaster); only thin glass in the way, plain or engraved
-      style: { arch: "ring", blocks: "coin", glassWalls: false, air: true, floor: "plain", floorW: 1.75 }, coaster: true, speedMul: 1.25, crystalMul: 2.2, // (a quarter faster: the five manoeuvres fill its 2.5 minutes)
-      pats: { center: [3, 3, 2], wall: [1, 1, 1], triple: [1, 2, 1.5], sides: [2, 1, 0.6], bonus: [3, 1, 0.3], slider: [1, 2, 2], lift: [0.6, 1.5, 1.5], double: [0, 1, 1.5],
-        shutter: [0, 0.6, 1.2], reinf: [0, 0, 0], imps: [0, 0, 0] },
+    { id: "thesaurus", num: "I·a", latin: "Thesaurus", ru: "Сокровищница", line: "branch", playable: true, music: "glass_horizon", len: 2450, superLen: 450, pal: PAL_AURUM, finale: "pluvia",
+      // a roller coaster in the open, golden hoops over the rails (planCoaster, which sets its length); only thin glass in the way, plain or engraved
+      style: { arch: "ring", blocks: "coin", glassWalls: false, air: true, floor: "plain", floorW: 1.75 }, coaster: true, crystalMul: 2.2,
+      pats: { center: [3, 3, 2], wall: [1.4, 1.6, 1.6], zigzag: [1, 1.5, 2], triple: [1, 2, 1.5], sides: [2, 1.4, 1], bonus: [3, 1, 0.3], slider: [1, 2, 2], lift: [0.6, 1.5, 1.5],
+        double: [0, 1, 1.5], shutter: [0.5, 1, 1.5], reinf: [0, 0, 0], imps: [0, 0, 0] }, // (its own mix on its manoeuvres too: its whole run is manoeuvres)
       turns: [],
       desc: "Тупиковая ветка от Initium. Американские горки под открытым золотым небом: спираль, штопор, бур, змейка и пара мёртвых петель, каждый заезд в новом порядке. Над рельсами золотые обручи, вокруг вращаются монеты. На пути только тонкое стекло, и кристаллов вдвое больше обычного.",
-      feats: ["Пять виражей в случайном порядке, петли каждый раз другие", "Кристаллов в 2,2 раза больше", "Финал Pluvia: дождь кристаллов"],
+      feats: ["Пять виражей в случайном порядке, петли каждый раз другие, змейка со спуском на 140 м", "Кристаллов в 2,2 раза больше", "Финал Pluvia: дождь кристаллов"],
       req: { after: "initium" }, map: { x: 185, y: 440, label: "t" } }, // the first branch: Initium opens it
     { id: "vitrum", num: "II", latin: "Vitrum", ru: "Стекло", playable: true, music: "glass_halls_in_blue", len: 1560, pal: PAL_VITRUM, finale: "ruina",
       style: { arch: "hex", blocks: "quartz", glassWalls: true, bare: true, floor: "plain", floorW: 2.6 }, crystalMul: 1.1, spaceMul: 0.93, // (groups a little closer: its gantry and its catapults take room, and it had as many before its manoeuvres)
@@ -7665,6 +7678,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (sC > END_S - 34) sp = Math.min(sp, Math.max(0.3, toStop * 0.55 + 1.7 * clamp(toStop / 5, 0, 1)));
     const ds = Math.min(sp * dt, Math.max(0, toStop));
     speedNow = dt > 0 ? ds / dt : 0;
+    if (LEVEL.coaster || camera.fov !== FOV0) { // the coaster: the faster the cart, the wider the view, up to 16 degrees at three times its speed: the rush is felt
+      const f = FOV0 + (LEVEL.coaster && state === "play" ? clamp((speedNow / BASE_SPEED - 1) * 8, 0, 16) : 0); if (Math.abs(f - camera.fov) > 0.05) { camera.fov = f; camera.updateProjectionMatrix(); } }
     frameAt(sC + ds / 2); // uses last frame's path; close enough for one step
     cartPos.addScaledVector(SPANS.length || LTW.length ? tangent0(sC + ds / 2) : _T, ds); // the line the track winds round, not the rails' own heading
     if (LOOPS.length) { loopOff(sC + ds, LO0); const x1 = LO0.x, z1 = LO0.z; loopOff(sC, LO0); cartPos.x += x1 - LO0.x; cartPos.z += z1 - LO0.z; } // (and on a loop its sideways edging)

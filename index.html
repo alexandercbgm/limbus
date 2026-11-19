@@ -524,8 +524,8 @@ video.mini { background: none; object-fit: contain; }
 /* a phone (the app, Telegram): a station's card as far from the screen's top edge as from its foot, clear of a curved screen's
    bend and of the system's or Telegram's bars, whichever reaches further */
 @media (pointer: coarse) { .overlay.sheet { padding-block: calc(max(var(--safe-top, env(safe-area-inset-top, 0px)), var(--safe-bottom, env(safe-area-inset-bottom, 0px))) + 12px); } }
-.sheet .panel.nomini { display: block; align-self: start; } /* the depot has no shot to show; its top stays put as its tabs change, its foot follows the cards */
-.tgphone .overlay.sheet .panel.nomini { align-self: start; }
+.sheet .panel.nomini { display: block; } .sheet .panel.pinned { align-self: start; } /* the depot has no shot to show; open (and Emptio), its top stays put as its tabs change, its foot follows the cards; shut, it sits midway as a station's */
+.tgphone .overlay.sheet .panel.pinned { align-self: start; }
 .sheet .btns > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* a button's words on one line ("Under construction") */
 .sheet .btns > :only-child { grid-column: 1 / -1; } /* a lone button (Back to the scheme, at the depot and the shop) across the whole sheet */
 .titlecard { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; text-align: center; }
@@ -721,7 +721,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.434</div>
+      <div class="credit version">v1.0.435</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -922,7 +922,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.434`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.435`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -8799,6 +8799,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // a station with a clip of its level (minis/<id>.mp4, embedded by build.py) plays it in place of the shot
     const clip = !lv.depot && !lv.gift && document.getElementById("clip-" + lv.id);
     $("mini").hidden = !!(lv.depot || lv.gift || clip); $("sheet").querySelector(".panel").classList.toggle("nomini", !!(lv.depot || lv.gift));
+    $("sheet").querySelector(".panel").classList.toggle("pinned", !!(lv.gift || (lv.depot && progress.open[lv.id])));
     if (clip) playClip(lv.id); else hideClips();
     if (!clip && !lv.depot && !lv.gift && document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { if (!$("sheet").hidden && document.getElementById("clip-" + lv.id)) openSheet(lv, true); }, { once: true }); // a link to a level opens its sheet before the clips are parsed
     if (!lv.depot && !lv.gift && !clip) drawMini(lv);

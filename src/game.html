@@ -653,7 +653,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     <h1 id="howTitle" data-en="How to play">Как играть</h1>
     <p data-pg="1" data-en="The cart rolls on by itself. Tap or click to fire steel balls at the glass before you crash into it. &lt;span class=&quot;spc&quot;&gt;Space fires at the centre.&lt;/span&gt;">Вагонетка едет сама. Тапайте или кликайте, чтобы стрелять шарами по стеклу раньше, чем врежетесь. <span class="spc">Пробел стреляет в центр.</span></p>
     <p data-pg="2" data-en="&lt;b&gt;Points lift you to the Light:&lt;/b&gt; the world brightens, obstacles thin out and blue crystals come often, but the climb is hard. &lt;b&gt;Damage drags you into the Dark:&lt;/b&gt; spikes, black-red crystal imps and red decoys, and fewer blue crystals, yet each one there gives almost twice the balls and banks two crystals."><b>Очки поднимают к Свету:</b> мир светлеет, преград меньше, голубые кристаллы попадаются часто, но подъём тяжёлый. <b>Урон тянет во Тьму:</b> там шипы, чёрно-красные кристаллы бесы и красные ловушки, а голубых кристаллов меньше — зато каждый даёт почти вдвое больше шаров и два кристалла в запас.</p>
-    <p data-pg="2" data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they pay the way into Armamentarium and buy its upgrades. New cannons, and some upgrades, are stations' gifts the first time you finish them. Later stations hold more crystals, and tougher glass. Two lines leave Vitrum: the lower through Rubinus to Speculum, the upper through Labyrinthus to Tao, from where the Way of Tao leads through Nox to Lux.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: ими платят за вход в Armamentarium и покупают там улучшения. Новые пушки и часть улучшений станции дарят, когда вы проходите их впервые. Дальше по линии кристаллов больше, но и стекло прочнее. Из Vitrum расходятся две линии: нижняя через Rubinus к Speculum, верхняя через Labyrinthus к Tao, откуда путь Дао ведёт через Nox к Lux.</p>
+    <p data-pg="2" data-en="Each level ends with a 20-second finale with its own rules, then the station. Crystals go to the bank: they buy upgrades at Armamentarium. New cannons, and some upgrades, are stations' gifts the first time you finish them. Later stations hold more crystals, and tougher glass. Two lines leave Vitrum: the lower through Rubinus to Speculum, the upper through Labyrinthus to Tao, from where the Way of Tao leads through Nox to Lux.">В конце уровня — финал на 20 секунд со своими правилами, затем станция. Кристаллы уходят в запас: на них покупают улучшения в Armamentarium. Новые пушки и часть улучшений станции дарят, когда вы проходите их впервые. Дальше по линии кристаллов больше, но и стекло прочнее. Из Vitrum расходятся две линии: нижняя через Rubinus к Speculum, верхняя через Labyrinthus к Tao, откуда путь Дао ведёт через Nox к Lux.</p>
     <ul class="rules" data-pg="1">
       <li><b>−1</b><span data-en="ball a shot">шар за выстрел</span></li>
       <li><b>+4/+7</b><span data-en="a blue crystal, for every ball that hits it; +7 in the Dark">голубой кристалл за каждый попавший шар, во Тьме +7</span></li>
@@ -6491,7 +6491,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
       desc: "Тупиковый склад за Сокровищницей (Thesaurus). Здесь за кристаллы покупают улучшения для вагонетки. Пушки здесь не продаются: их дарят станции.",
       feats: ["Улучшения: запас шаров, второе дыхание, щедрость кристаллов", "У каждого три уровня; купленное остаётся навсегда", "Пушки дарят станции: Initium, Labyrinthus, Nox, Rubinus и Carcer"],
-      req: { after: "thesaurus", toll: 15 }, map: { x: 385, y: 440, label: "t" } },
+      req: { after: "thesaurus" }, map: { x: 385, y: 440, label: "t" } },
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.2,
       forks: [330, 720, 1110],
@@ -8250,7 +8250,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   function stationStatus(lv) {
     if (lv.gift) return "gift";
-    if (lv.depot) return progress.open[lv.id] ? (progress.bought ? "avail" : "opened") : isOpen(lv) ? "locked" : "closed"; // closed till Thesaurus is finished, then grey till its entry is paid, white once open, dark once something is bought
+    if (lv.depot) return progress.open[lv.id] ? (progress.bought ? "avail" : "opened") : isOpen(lv) ? "locked" : "closed"; // closed till Thesaurus is finished, then grey till opened, white once open, dark once something is bought
     if (progress.done[lv.id]) return "done";
     if (!lv.playable) return "build";
     return isOpen(lv) ? "open" : "closed";
@@ -8551,15 +8551,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const pkIcon = (n, path = PK_GEM) => `<path d="${path}" transform="translate(${n > 1 ? -4.5 : 0} 0)"/>` + (n > 1 ? `<text x="6" y="4.5" font-size="11" font-weight="700">${["", "I", "II", "III"][n]}</text>` : "");
   const PACKS = [
     { id: "t1", tab: "up", stars: 40, crystals: 170, ru: "Арсенал I", en: "Armoury I", icon: `<path d="${PK_GEM}" transform="translate(-4.5 0)"/><text x="6" y="4.5" font-size="11" font-weight="700">I</text>`,
-      desc: ["Первый уровень всех трёх улучшений: вход на склад, +10 шаров на старте, второе дыхание с 10 шарами, +1 шар с попадания.", "The first level of all three upgrades: the depot's entry, +10 balls at the start, a second wind with 10, +1 ball a hit."] },
+      desc: ["Первый уровень всех трёх улучшений: +10 шаров на старте, второе дыхание с 10 шарами, +1 шар с попадания.", "The first level of all three upgrades: +10 balls at the start, a second wind with 10, +1 ball a hit."] },
     { id: "t2", tab: "up", stars: 70, crystals: 300, ru: "Арсенал II", en: "Armoury II", icon: pkIcon(2),
       desc: ["Второй уровень всех трёх улучшений: +20 шаров на старте, второе дыхание с 20 шарами, +2 шара с попадания.", "The second level of all three upgrades: +20 balls at the start, a second wind with 20, +2 balls a hit."] },
     { id: "t3", tab: "up", stars: 110, crystals: 515, ru: "Арсенал III", en: "Armoury III", icon: pkIcon(3),
       desc: ["Третий уровень всех трёх улучшений: +30 шаров на старте, второе дыхание с 30 шарами, +3 шара с попадания.", "The third level of all three upgrades: +30 balls at the start, a second wind with 30, +3 balls a hit."] },
     { id: "guns", tab: "guns", stars: 90, crystals: 385, ru: "Пушки", en: "Cannons", icon: '<path d="M-6.5 6.5L5 -5M-1 -6.5H5V-0.5M6.5 6.5L-5 -5M1 -6.5H-5V-0.5"/>',
-      desc: ["Вход на склад, Triplex, Gemini и Lumen. Ferrum так не купить — его освобождают в Темнице.", "The depot's entry, Triplex, Gemini and Lumen. Ferrum can't be bought: it is freed in the Dungeon."] },
+      desc: ["Triplex, Gemini и Lumen. Ferrum так не купить — его освобождают в Темнице.", "Triplex, Gemini and Lumen. Ferrum can't be bought: it is freed in the Dungeon."] },
     { id: "all", tab: "guns", stars: 200, crystals: 1345, ru: "Всё сразу", en: "Everything", icon: `<path d="${PK_GEM}" transform="translate(-5 0) scale(0.8)"/><path d="${PK_GEM}" transform="translate(5 0) scale(0.8)"/><path d="${PK_GEM}" transform="translate(0 -1) scale(1.05)"/>`,
-      desc: ["Вход на склад, все пушки (кроме Ferrum) и все улучшения до третьего уровня.", "The depot's entry, every cannon (but Ferrum) and every upgrade to the third level."] },
+      desc: ["Все пушки (кроме Ferrum) и все улучшения до третьего уровня.", "Every cannon (but Ferrum) and every upgrade to the third level."] },
   ];
   let shopTab = "guns";
   // Google Play's billing (the Play build's Android app, PlayBilling.java): the price as Play shows it (null till it answers,
@@ -8589,7 +8589,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const scroll = keep ? $("sheet").scrollTop : 0;
     if (!keep) { shopTab = "guns"; $("sheet").scrollTop = 0; } // opened afresh: the first tab, from the top, never as it was left
     const st = stationStatus(lv), req = lv.req, bank = progress.bank;
-    $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("кристаллы для Арсенала", "crystals for Armamentarium") : st === "locked" ? T("вход платный", "paid entry") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
+    $("shEyebrow").textContent = `${lv.line === "branch" ? T("Тупик", "Dead end") : T("Станция", "Station")} · ${lv.gift ? T("кристаллы для Арсенала", "crystals for Armamentarium") : st === "locked" ? T("можно открыть", "ready to open") : STATUS(st)}`; // on the scheme a closed depot says "tap"; its sheet says why
     $("shName").innerHTML = `${esc(lv.latin)}<small>${esc(lv.ru)}</small>`;
     $("shDesc").textContent = lv.desc;
     $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead
@@ -8699,8 +8699,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           else { const price = u.prices[lvl]; button(card, "cta", T(`Уровень ${lvl + 1}: ◆ ${price}`, `Level ${lvl + 1}: ◆ ${price}`), () => { progress.bank -= price; progress.up[id] = lvl + 1; progress.bought = true; saveProgress(); openSheet(lv, true); renderMap(); }, bank < price); }
           pane.ingenia.appendChild(card);
         }
-      } else if (reached && bank >= req.toll) button(btns, "cta", T(`Открыть склад: −${req.toll} ◆`, `Open the depot: −${req.toll} ◆`), () => { progress.bank -= req.toll; progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); });
-      else if (reached) { const rich = [byId("thesaurus")].filter(isOpen); short(rich.length ? rich : [byId(WAY.find(id => !progress.done[id]) || "lux")]); } // the dead ends richest in crystals
+      } else if (reached) button(btns, "cta", T("Открыть", "Open"), () => { progress.open[lv.id] = true; saveProgress(); renderMap(); openSheet(lv); }); // (free: open once Thesaurus is finished)
       else button(btns, "cta", T("Пока закрыт", "Closed for now"), null, true);
     } else if (!lv.playable) button(btns, "cta", T("Станция строится", "Under construction"), null, true);
     else if (isOpen(lv) && req.fare && bank >= req.fare) button(btns, "cta", T(`Начать: −${req.fare} ◆`, `Ride: −${req.fare} ◆`), () => rideLevel(lv));

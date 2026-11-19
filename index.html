@@ -718,7 +718,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.418</div>
+      <div class="credit version">v1.0.419</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -918,7 +918,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.418`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.419`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3438,7 +3438,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (room - inner >= 0.8) { o.w = room - inner; o.u = Math.sign(o.u) * (inner + o.w / 2); }
     else o.u = Math.sign(o.u || 1) * Math.max(0, room - o.w / 2);
   }
-  // Thesaurus's glass: on a pane neither big nor tall the game's crystal engraved in its middle, frosted: its outline and the ridge
+  // Thesaurus's glass: on every pane the game's crystal engraved in its middle, frosted: its outline and the ridge
   // and shoulders in lines, its left facets frosted lighter than its right, as the logo's are lit. Made once, 1 m high, scaled
   const ENGRAVE = (() => {
     const H = 0.5, X = 0.17, ST = 0.266, SB = -0.291, RX = 0.021, T = [0, H], B = [0, -H], LT = [-X, ST], RT = [X, ST], LB = [-X, SB], RB = [X, SB], KT = [RX, ST], KB = [RX, SB];
@@ -3478,7 +3478,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.add(new THREE.Mesh(geo, reinf ? reinfMat : glassMat));
     g.add(new THREE.LineSegments(eg, reinf ? reinfEdgeMat : edgeMat));
     if (reinf) { const inner = new THREE.LineSegments(eg, reinfEdgeMat); inner.scale.set(0.86, 0.86, 1); g.add(inner); }
-    if (LEVEL.id === "thesaurus" && !reinf && !o.thick && !o.cross && o.rot === undefined && o.h < 3.4 && o.w * o.h < 11) engrave(g, o); // (none on big, tall or full-height glass)
+    if (LEVEL.id === "thesaurus" && !reinf && !o.thick && !o.cross && o.rot === undefined) engrave(g, o); // (on every pane, big, tall and full-height too)
     scene.add(g);
     const pn = Object.assign({ bu: o.u, bv: o.v, hp: 1, group: g, geo, eg, alive: true, C: new THREE.Vector3(), R: new THREE.Vector3(), U: new THREE.Vector3(), T: new THREE.Vector3(), q: new THREE.Quaternion(), cracks: [] }, o, { maxhp: o.hp || 1, mat: reinf ? reinfMat : glassMat }); panes.push(pn);
     mirrorReg(g, () => pn.s); // Speculum: reflected in the mirrors

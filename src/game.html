@@ -3352,7 +3352,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (room - inner >= 0.8) { o.w = room - inner; o.u = Math.sign(o.u) * (inner + o.w / 2); }
     else o.u = Math.sign(o.u || 1) * Math.max(0, room - o.w / 2);
   }
-  // Thesaurus's glass: on a pane neither big nor tall the game's crystal engraved in its middle, frosted: its outline and the ridge
+  // Thesaurus's glass: on every pane the game's crystal engraved in its middle, frosted: its outline and the ridge
   // and shoulders in lines, its left facets frosted lighter than its right, as the logo's are lit. Made once, 1 m high, scaled
   const ENGRAVE = (() => {
     const H = 0.5, X = 0.17, ST = 0.266, SB = -0.291, RX = 0.021, T = [0, H], B = [0, -H], LT = [-X, ST], RT = [X, ST], LB = [-X, SB], RB = [X, SB], KT = [RX, ST], KB = [RX, SB];
@@ -3392,7 +3392,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.add(new THREE.Mesh(geo, reinf ? reinfMat : glassMat));
     g.add(new THREE.LineSegments(eg, reinf ? reinfEdgeMat : edgeMat));
     if (reinf) { const inner = new THREE.LineSegments(eg, reinfEdgeMat); inner.scale.set(0.86, 0.86, 1); g.add(inner); }
-    if (LEVEL.id === "thesaurus" && !reinf && !o.thick && !o.cross && o.rot === undefined && o.h < 3.4 && o.w * o.h < 11) engrave(g, o); // (none on big, tall or full-height glass)
+    if (LEVEL.id === "thesaurus" && !reinf && !o.thick && !o.cross && o.rot === undefined) engrave(g, o); // (on every pane, big, tall and full-height too)
     scene.add(g);
     const pn = Object.assign({ bu: o.u, bv: o.v, hp: 1, group: g, geo, eg, alive: true, C: new THREE.Vector3(), R: new THREE.Vector3(), U: new THREE.Vector3(), T: new THREE.Vector3(), q: new THREE.Quaternion(), cracks: [] }, o, { maxhp: o.hp || 1, mat: reinf ? reinfMat : glassMat }); panes.push(pn);
     mirrorReg(g, () => pn.s); // Speculum: reflected in the mirrors

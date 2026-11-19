@@ -8461,7 +8461,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const w = WEAPONS[id], own = !!progress.weapons[id], o = document.createElement("button");
       o.type = "button"; o.className = "arm-opt"; o.setAttribute("role", "option"); o.setAttribute("aria-selected", String(progress.weapon === id));
       if (!own) o.setAttribute("aria-disabled", "true");
-      const src = w.from && byId(w.from), where = own || !src ? "" : `<i>${esc(T(`за станцию ${src.latin}`, `from ${src.latin}`))}</i>`;
+      const src = w.from && byId(w.from), where = own || !src ? "" : `<i>${esc(T(`пройдите ${src.latin}`, `finish ${src.latin}`))}</i>`;
       const desc = own || !src ? w.desc : T(`Откроется, когда вы пройдёте станцию ${src.latin}. ${w.desc}`, `Opens once you finish ${src.latin}. ${w.desc}`);
       o.innerHTML = `${pic(id)}<span class="ao"><span class="ao-h">${esc(w.name)} <b>−${w.cost}</b>${where}</span><span class="ao-d">${esc(desc)}</span></span>`;
       o.addEventListener("click", () => {

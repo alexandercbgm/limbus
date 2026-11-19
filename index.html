@@ -750,7 +750,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.463</div>
+      <div class="credit version">v1.0.464</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -951,7 +951,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.463`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.464`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -8547,7 +8547,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const w = WEAPONS[id], own = !!progress.weapons[id], o = document.createElement("button");
       o.type = "button"; o.className = "arm-opt"; o.setAttribute("role", "option"); o.setAttribute("aria-selected", String(progress.weapon === id));
       if (!own) o.setAttribute("aria-disabled", "true");
-      const src = w.from && byId(w.from), where = own || !src ? "" : `<i>${esc(T(`за станцию ${src.latin}`, `from ${src.latin}`))}</i>`;
+      const src = w.from && byId(w.from), where = own || !src ? "" : `<i>${esc(T(`пройдите ${src.latin}`, `finish ${src.latin}`))}</i>`;
       const desc = own || !src ? w.desc : T(`Откроется, когда вы пройдёте станцию ${src.latin}. ${w.desc}`, `Opens once you finish ${src.latin}. ${w.desc}`);
       o.innerHTML = `${pic(id)}<span class="ao"><span class="ao-h">${esc(w.name)} <b>−${w.cost}</b>${where}</span><span class="ao-d">${esc(desc)}</span></span>`;
       o.addEventListener("click", () => {

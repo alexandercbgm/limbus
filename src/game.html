@@ -6875,9 +6875,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     const veil = () => `<svg aria-hidden="true"><defs><radialGradient id="tutG"><stop offset="0.62" stop-color="#000"/><stop offset="1" stop-color="#fff"/></radialGradient><mask id="tutM"><rect width="100%" height="100%" fill="#fff"/>${spots.filter(sp => sp.open).map(sp => `<circle cx="${sp.x}" cy="${sp.y}" r="${sp.r}" fill="url(#tutG)"/>`).join("")}</mask></defs><rect width="100%" height="100%" fill="rgba(3, 8, 16, 0.74)" mask="url(#tutM)"/></svg>`;
     tutVeil = document.createElement("div"); tutVeil.id = "tutVeil"; tutVeil.innerHTML = veil(); document.body.appendChild(tutVeil);
-    // each callout closes on its own (its cross, or a tap elsewhere closes the first still open), and with it the light round its thing; the last closed, on we go
+    // each callout closes on its own by its cross, and with it the light round its thing; a tap elsewhere closes all still open; the last closed, on we go
     const shut = sp => { sp.open = false; sp.o.tutLock = false; sp.o.hold = false; sp.el.remove(); tutTips = tutTips.filter(t => t !== sp.el); if (spots.some(o => o.open)) tutVeil.innerHTML = veil(); else tutNext(); };
-    tutVeil.addEventListener("pointerdown", e => { e.preventDefault(); const sp = spots.find(o => o.open); if (sp) shut(sp); });
+    tutVeil.addEventListener("pointerdown", e => { e.preventDefault(); for (const sp of spots) if (sp.open) shut(sp); }); // (a tap elsewhere closes all still open at once)
     for (const sp of spots) { sp.el = tipMake(sp.text, sp.pref, () => ({ left: sp.x - sp.r, right: sp.x + sp.r, top: sp.y - sp.r, bottom: sp.y + sp.r, width: sp.r * 2, height: sp.r * 2 }), () => shut(sp)); sp.el.style.zIndex = 80; tutTips.push(sp.el); }
   }
   function tutNext() { // the world goes on; after the last, the lesson is over for good

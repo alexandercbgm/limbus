@@ -262,7 +262,13 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 /* Play, on the top bar between the logo and Emptio: a chip as the others there, its triangle and word turquoise */
 .m-head.c1 #depotBtn span, .m-head.c2 #emptioBtn span, .m-head.c3 #playBtn span { display: none; } .m-head.c1 #depotBtn, .m-head.c2 #emptioBtn, .m-head.c3 #playBtn { padding: 0 9px; } /* the bar in one row: words dropped, the icons kept, as needed (fitHead) */
 .depot.playbtn { color: #0c8fb0; box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.07), 0 0 12px 2px rgba(20, 170, 200, 0.4); } /* a steady turquoise glow */
-.night .depot.playbtn { box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 14px 3px rgba(60, 214, 240, 0.45); } .depot.playbtn svg { fill: currentColor; stroke: none; width: 17px; height: 17px; } .night .depot.playbtn { color: #3cd6f0; }
+.night .depot.playbtn { box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 14px 3px rgba(60, 214, 240, 0.45); }
+.depot.playbtn { animation: playGlow 2.4s ease-in-out infinite; } .night .depot.playbtn { animation-name: playGlowN; } /* breathing, as Emptio's */
+@keyframes playGlow { 0%, 100% { box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.07), 0 0 6px 0 rgba(20, 170, 200, 0.25); }
+  50% { box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.07), 0 0 16px 3px rgba(20, 170, 200, 0.55); } }
+@keyframes playGlowN { 0%, 100% { box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 6px 0 rgba(60, 214, 240, 0.25); }
+  50% { box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 18px 4px rgba(60, 214, 240, 0.55); } }
+@media (prefers-reduced-motion: reduce) { .depot.playbtn, .night .depot.playbtn { animation: none; } } .depot.playbtn svg { fill: currentColor; stroke: none; width: 17px; height: 17px; } .night .depot.playbtn { color: #3cd6f0; }
 .map-tools { position: absolute; top: 12px; right: 14px; z-index: 3; display: flex; gap: 8px; } /* over the credit and version, so its menu covers them */
 .map-tools .ibtn { border: 1px solid rgba(16, 36, 46, 0.22); border-radius: 4px; background: rgba(255, 255, 255, 0.75); cursor: pointer; }
 .map-tools .ibtn:hover { background: #ffffff; }
@@ -762,7 +768,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.495</div>
+      <div class="credit version">v1.0.496</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -963,7 +969,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.495`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.496`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));

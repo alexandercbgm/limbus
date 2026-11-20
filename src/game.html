@@ -5201,7 +5201,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   // was out of sight till too late), of three kinds (addRubyBeam). Its beam runs on till it meets something: a wall, the deck,
   // the deck's coils elsewhere (deckBlock), or off the open bridge out of sight. Through the cart: −3 balls, once
   let rubeams = [];
-  const RB_ARC = 4.25 * 4 / 3, RB_SR = 7.4, RB_R = 5.06, RB_CV = 2.2, RB_HIT = 0.72, RB_TIP = 0.95, RB_PU = 4.25, RB_CUT = 0.16; // its point cut off flat, as wide as the beam with its glow: the beam leaves it as from a nozzle
+  const RB_ARC = 4.25 * 4 / 3, RB_AIM = 0.05, RB_SR = 7.4, RB_R = 5.06, RB_CV = 2.2, RB_HIT = 0.72, RB_TIP = 0.95, RB_PU = 4.25, RB_CUT = 0.16; // its point cut off flat, as wide as the beam with its glow: the beam leaves it as from a nozzle
   const rbPavGeo = new THREE.CylinderGeometry(RB_CUT, 0.46, RB_TIP, 6).translate(0, RB_TIP / 2, 0), rbCrownGeo = new THREE.CylinderGeometry(0.32, 0.46, 0.24, 6).translate(0, -0.12, 0);
   const rbPavEdge = new THREE.EdgesGeometry(rbPavGeo), rbCrownEdge = new THREE.EdgesGeometry(rbCrownGeo);
   const rbMat = new THREE.MeshStandardMaterial({ color: 0xe0142f, emissive: 0xc00a24, emissiveIntensity: 1.0, roughness: 0.08, metalness: 0.25, flatShading: true }); // lit from within: it had looked dull against the ruby sky
@@ -5234,7 +5234,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     const side = Math.random() < 0.5 ? -1 : 1, gm = rubyGem(root), o = { s, kind, root, gems: [gm], beams: [rubyBeam()], passed: false, ph: rand(0, TAU) };
     root.add(o.beams[0]);
     if (kind === "h") { gm.u = side * RB_PU; gm.du = -side; gm.dv = 0; gm.g.rotation.z = side * Math.PI / 2; o.vc = 2.05; o.amp = 1.35; o.w = TAU / 3.6; }
-    else if (kind === "top") { gm.u = side * RB_ARC; gm.v = CAM_V + 0.1; o.arc = true; } // it travels a half circle over the cart, side to side (see updateRubyBeams)
+    else if (kind === "top") { gm.u = side * RB_ARC; gm.v = RB_AIM; o.arc = true; } // it travels a half circle over the cart, side to side (see updateRubyBeams)
     else { // high to a side, 45° up from the cart, farther out: its beam goes round a cone (35° wide) about a line to just over the cart, once in 2 s,
       // a searchlight; out of the track's cross-section, toward the cart and away, so the cart may meet it ahead of the ruby or past it
       gm.u = side * RB_SR * Math.SQRT1_2; gm.v = CAM_V + RB_SR * Math.SQRT1_2;
@@ -5292,10 +5292,10 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       const segs = [], gm = o.gems[0];
       if (o.kind === "side") { updateRubyCone(o, gm); continue; }
       if (o.kind === "h") gm.v = o.vc + o.amp * Math.sin(time * o.w + o.ph);
-      else if (o.arc) { // round an arc over the cart, 5.7 m out from its middle, from low on one side over the top to low on the other, 2 s each way,
-        // easing to a stop at either end; its beam always in toward the track's middle: across it beside the cart, down through it overhead
+      else if (o.arc) { // round an arc over the deck's middle, 5.7 m out from it, from low on one side over the top to low on the other, 2 s each way,
+        // easing to a stop at either end; its beam always on that one point: the spot of light stands still while the ruby sweeps round it
         const th = Math.PI / 2 + 1.13 * Math.sin(time * Math.PI / 2 + o.ph), c = Math.cos(th), sn = Math.sin(th); // 130° of arc (25° short of either side), 5.7 m out
-        gm.u = RB_ARC * c; gm.v = CAM_V + 0.1 + RB_ARC * sn; gm.du = -c; gm.dv = -sn; gm.g.rotation.z = Math.atan2(-gm.du, gm.dv); }
+        gm.u = RB_ARC * c; gm.v = RB_AIM + RB_ARC * sn; gm.du = -c; gm.dv = -sn; gm.g.rotation.z = Math.atan2(-gm.du, gm.dv); }
       else { const a = o.c + o.A * Math.sin(time * Math.PI / 2 + o.ph); gm.du = Math.cos(a); gm.dv = Math.sin(a); gm.g.rotation.z = Math.atan2(-gm.du, gm.dv); } // 2 s each way, easing to a stop at either end
       if (gm.alive) { const [x0, y0, , , L0] = rbRay(gm.u, gm.v, gm.du, gm.dv, o.s), L = deckBlock(o, x0, y0, gm.du, gm.dv, Math.min(L0, BEAM_FAR)); segs.push([x0, y0, x0 + gm.du * L, y0 + gm.dv * L]); }
       for (const gm of o.gems) { gm.g.position.set(gm.u, gm.v, 0); gm.wp.set(gm.u, gm.v, 0).applyMatrix4(o.root.matrixWorld); }

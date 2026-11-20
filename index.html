@@ -724,7 +724,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     <header class="m-head">
       <div class="m-brand">
         <h1 class="logo">LIMB<span>U</span>S</h1>
-        <button class="depot playbtn" id="playBtn" type="button" aria-label="Lude"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z"/></svg><span>Lude</span></button>
+        <button class="depot playbtn" id="playBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z"/></svg><span data-en="Play">Играть</span></button>
         <button class="depot emptio" id="emptioBtn" type="button" aria-label="Emptio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l3.6 4.2v10.6L12 21.5l-3.6-4.2V6.7z"/><path d="M8.4 6.7h7.2M8.4 17.3h7.2M12.5 6.7v10.6"/></svg><span>Emptio</span></button>
       </div>
       <div class="m-side">
@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.501</div>
+      <div class="credit version">v1.0.502</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.501`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.502`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -8958,7 +8958,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const unlock = () => { progress.full = true; saveProgress(); renderMap(); renderArms(); closeSheet(); renderMap(); pop(T("Все уровни открыты — спасибо!", "Every level is open: thank you!"), "info"); };
       const inTg = TG && BOT_API && TG.isVersionAtLeast("6.1"), c = document.createElement("div"); c.className = "wcard pack";
       const price = window.LimbusPlay ? playPrice || "" : "$3";
-      c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true"><path d="${PK_GEM}" transform="translate(5 0)"/></svg>${esc(T("Полная игра", "The full game"))}${price ? `<small>${esc(price)}</small>` : ""}</h3><p>${esc(T("Все уровни: Labyrinthus, Rubinus, Speculum, Carcer, Tao, Nox и Lux. Покупка один раз — навсегда.", "Every level: Labyrinthus, Rubinus, Speculum, Carcer, Tao, Nox and Lux. Bought once, yours for good."))}</p>`;
+      c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true"><path d="${PK_GEM}" transform="translate(5 0)"/></svg>${esc(T("Полная игра", "The full game"))}${price ? `<small>${esc(price)}</small>` : ""}</h3><p>${esc(T("Все уровни.", "Every level."))}</p>`;
       extra.appendChild(c);
       if (progress.full) button(c, "ghost", T("Куплено", "Bought"), null, true);
       else if (inTg) button(c, "cta", T("Купить", "Buy"), async ev => { // for Stars, in Telegram itself

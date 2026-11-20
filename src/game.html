@@ -3761,7 +3761,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         break;
       case "abspin": { const side = Math.random() < 0.5 ? -1 : 1; addSpinner(s, side, Math.random() < 0.5 ? -1 : 1); break; } // Abyssus: a laser mill beside the bridge
       // a bar of three: overhead, gliding side to side or still and centred over the rails; or beside, low at the wheels, gliding up and down or still
-      case "abbar": { const mv = LEVEL.id === "abyssus" || Math.random() < 0.85; if (Math.random() < 0.5) addLaserBars(s, "h", 3, false, mv ? "u" : null); else addLaserBars(s, "v", 3, false, mv ? "v" : null); break; } // (Nox: never standing still: a pair of bars had hung still right over the cart)
+      case "abbar": { const mv = Math.random() < 0.85; if (Math.random() < 0.5) addLaserBars(s, "h", 3, false, mv ? "u" : null); else addLaserBars(s, "v", 3, false, mv || LEVEL.id === "abyssus" ? "v" : null); break; } // (a bar overhead may hang still; Nox's bars beside the bridge, often a pair facing each other, always glide: a pair had stood still)
       case "gears": addGears(s, Math.random() < 0.7); break; // more often a pair than one
       case "fblocks": { // glass blocks hovering over the bridge, no chains: one, or two at different heights, gliding; one hit breaks one
         const n = Math.random() < 0.55 ? 1 : 2;

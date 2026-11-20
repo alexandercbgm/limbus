@@ -771,7 +771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.540</div>
+      <div class="credit version">v1.0.541</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -972,7 +972,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.540`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.541`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3847,7 +3847,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         break;
       case "abspin": { const side = Math.random() < 0.5 ? -1 : 1; addSpinner(s, side, Math.random() < 0.5 ? -1 : 1); break; } // Abyssus: a laser mill beside the bridge
       // a bar of three: overhead, gliding side to side or still and centred over the rails; or beside, low at the wheels, gliding up and down or still
-      case "abbar": { const mv = LEVEL.id === "abyssus" || Math.random() < 0.85; if (Math.random() < 0.5) addLaserBars(s, "h", 3, false, mv ? "u" : null); else addLaserBars(s, "v", 3, false, mv ? "v" : null); break; } // (Nox: never standing still: a pair of bars had hung still right over the cart)
+      case "abbar": { const mv = Math.random() < 0.85; if (Math.random() < 0.5) addLaserBars(s, "h", 3, false, mv ? "u" : null); else addLaserBars(s, "v", 3, false, mv || LEVEL.id === "abyssus" ? "v" : null); break; } // (a bar overhead may hang still; Nox's bars beside the bridge, often a pair facing each other, always glide: a pair had stood still)
       case "gears": addGears(s, Math.random() < 0.7); break; // more often a pair than one
       case "fblocks": { // glass blocks hovering over the bridge, no chains: one, or two at different heights, gliding; one hit breaks one
         const n = Math.random() < 0.55 ? 1 : 2;

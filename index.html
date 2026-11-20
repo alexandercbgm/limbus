@@ -771,7 +771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.551</div>
+      <div class="credit version">v1.0.552</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -972,7 +972,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.551`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.552`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5514,6 +5514,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   const gramGeo = new THREE.BoxGeometry(RAM_LEN, 2 * RAM_R, 1.1), gramEdge = new THREE.EdgesGeometry(gramGeo), gramPostGeo = new THREE.BoxGeometry(0.22, H - 0.1, 0.22);
   function addRams(s, both, glass) {
     s = Math.floor(s / SL) * SL + SL / 2; // in the middle of a stretch of the wall: its one pane of glass taken away
+    if (glass && LEVEL.id === "rubinus") for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) getDecor(k).ceil = true; // a roof over them (Rubinus is open above)
     // a real pendulum: a pair swing as one and meet in the middle; a lone glass block hangs lower and swings as wide
     const ph = rand(0, TAU), sides = both ? [-1, 1] : [Math.random() < 0.5 ? -1 : 1];
     // Tao's logs swing about a point leaned in from straight down, so they hardly swing out at the wall behind them
@@ -5522,8 +5523,10 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     { const dc = getDecor(Math.floor(s / SL)); for (const sd of sides) dc[sd < 0 ? "wl" : "wr"] = dc[sd < 0 ? "wl0" : "wr0"] = false; } // room to swing out: one pane of the wall away, the one it swings through (it hangs in its middle, 1.1 m deep in a 2 m pane)
     for (const side of sides) {
       const root = new THREE.Group(); root.matrixAutoUpdate = false;
-      root.add(new THREE.Mesh(ramBeamGeo, frameMat));
+      const roofed = glass && LEVEL.id === "rubinus"; // Rubinus: under a roof, each chain from a square plate in it, as a block on one chain hangs (no beam in the air)
+      if (!roofed) root.add(new THREE.Mesh(ramBeamGeo, frameMat));
       const xs = [-1, 1].map(k => k * (RAM_LEN / 2 - 0.25));
+      if (roofed) xs.forEach(x => { const plate = new THREE.Mesh(mountGeo, frameMat); plate.position.set(x, 0.05, 0); root.add(plate); });
       const chains = xs.map(x => { const c = makeChainMesh(L - RAM_R); c.position.x = x; root.add(c); return { x, alive: true, mesh: c, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
       const body = new THREE.Group(); root.add(body);
       if (glass) {

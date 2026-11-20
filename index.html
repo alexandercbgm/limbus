@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.517</div>
+      <div class="credit version">v1.0.518</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.517`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.518`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -4024,10 +4024,10 @@ vec3 bNor(vec3 n) { vec3 P; float tr, st, sh; bAt(P, tr, st, sh); return normali
     mat.customProgramCacheKey = () => key; return mat; };
   const burstMat = burstify(glassMat.clone(), "burst", true), burstEdgeMat = burstify(edgeMat.clone(), "burstEdge", false);
   // the pieces of a w × h pane struck at (lx, ly), as a pane has always broken: spokes from the blow out to the edge (as many on a
-  // small pane as on a big one, so a small one breaks the same way, scaled down; fewer in Speculum), each cut twice across: a
+  // small pane as on a big one, so a small one breaks the same way, scaled down; Speculum too, now that a burst is two draws), each cut twice across: a
   // splinter at the blow, a band, and the long piece out to the edge. Every piece convex (a wedge of the pane cut by a chord)
   function burstPieces(hw, hh, lx, ly) {
-    const n = STYLE.mirror ? 12 : 4 * hw * hh > 30 ? 20 : 18, step = TAU / n, base = Math.random() * TAU, angs = [];
+    const n = 4 * hw * hh > 30 ? 20 : 18, step = TAU / n, base = Math.random() * TAU, angs = [];
     for (let i = 0; i < n; i++) angs.push(base + i * step + (Math.random() - 0.5) * step * 0.55);
     angs.sort((a, b) => a - b);
     const corners = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(c => ({ c, a: Math.atan2(c[1] - ly, c[0] - lx) }));
@@ -4045,7 +4045,7 @@ vec3 bNor(vec3 n) { vec3 P; float tr, st, sh; bAt(P, tr, st, sh); return normali
   }
   function burstPane(p, lx, ly, impL) {
     const hw = p.w / 2, hh = p.h / 2; lx = clamp(lx, -hw + 0.03, hw - 0.03); ly = clamp(ly, -hh + 0.03, hh - 0.03);
-    const polys = p.cross ? [...burstPieces(hw, hh, lx, ly), ...burstPieces(hh, hw, lx, ly)] : burstPieces(hw, hh, lx, ly), H = SHARD_T / 2, lit = !STYLE.mirror; // (a cross: its two bars; in Speculum no lit outlines, as ever)
+    const polys = p.cross ? [...burstPieces(hw, hh, lx, ly), ...burstPieces(hh, hw, lx, ly)] : burstPieces(hw, hh, lx, ly), H = SHARD_T / 2, lit = true; // (a cross: its two bars)
     const mesh = new THREE.Mesh(new THREE.BufferGeometry(), burstMat), lines = new THREE.LineSegments(new THREE.BufferGeometry(), burstEdgeMat);
     mesh.matrixAutoUpdate = lines.matrixAutoUpdate = false; mesh.frustumCulled = lines.frustumCulled = false;
     setObj(mesh, p.s, 0, 0); const fP = _P.clone(), fR = _R.clone(), fU = _U.clone(), fT = _T.clone(); // the track's frame at the pane: x across, y up, z back toward the cart

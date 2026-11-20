@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.527</div>
+      <div class="credit version">v1.0.528</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.527`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.528`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3966,7 +3966,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       let dx = x - lx, dy = y - ly; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
       const spd = rand(1.5, 3.2) / (0.8 + d * 0.3);
       const v = new THREE.Vector3().addScaledVector(p.R, dx * spd + impL.x * 0.05).addScaledVector(p.U, dy * spd + impL.y * 0.05 + 1).addScaledVector(p.T, impL.z * rand(0.1, 0.25));
-      out.push({ pl, d: depth, c, v, w: [rand(-4, 4), rand(-4, 4), rand(-3, 3)], life: rand(2.6, 3.4), lag: d / CRACK_V });
+      out.push({ pl, d: depth, c, v, w: [rand(-4, 4), rand(-4, 4), rand(-3, 3)], life: rand(2.6, 3.4) });
     }
     gpuBurst(p.s, p.q, p.mat, edgeMat, out, paneMotion(p)); // all one mesh, moved on the GPU, flying on as the block moved
     Sound.shatter(1.4); Sound.crash();
@@ -4007,7 +4007,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // how it set off, so a burst costs two draws and nothing on the CPU after it is made. Pieces off the deck fall away and shrink
   // out; those on it lie till passed
   let bursts = [];
-  const CRACK_V = 40; // how fast the crack runs out from the blow (m/s): each piece breaks away as it reaches it, a pane coming apart from the blow outward
   const burstU = { value: 0 };
   const BURST_HEAD = `attribute vec3 aP; attribute vec3 aC; attribute vec3 aV; attribute vec3 aW; attribute vec4 aQ; attribute vec4 aT; attribute vec4 aG; attribute vec4 aM;
 uniform float uBurstT;
@@ -4116,7 +4115,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       const spd = (2.2 + Math.random() * 3) / (0.7 + d * 0.55);
       const v = new THREE.Vector3().addScaledVector(p.R, dx * spd + impL.x * 0.06).addScaledVector(p.U, dy * spd + impL.y * 0.06 + 0.6).addScaledVector(p.T, Math.min(impL.z * (0.15 + Math.random() * 0.25), SHARD_FWD_THIN * (0.2 + 0.8 * Math.random()) / (0.8 + d * 0.35)));
       const ks = 1 / (1 + size * 1.2); // a big piece turns slowly, heavy
-      pieces.push({ pl, d: SHARD_T, c, v, w: [(Math.random() - 0.5) * 10 * ks, (Math.random() - 0.5) * 10 * ks, (Math.random() - 0.5) * 6 * ks], life: rand(2.4, 3.6), fwd: SHARD_FWD_THIN, lag: d / CRACK_V });
+      pieces.push({ pl, d: SHARD_T, c, v, w: [(Math.random() - 0.5) * 10 * ks, (Math.random() - 0.5) * 10 * ks, (Math.random() - 0.5) * 6 * ks], life: rand(2.4, 3.6), fwd: SHARD_FWD_THIN });
     }
     gpuBurst(p.s, p.q, p.mat, p.mat === glassMat ? edgeMat : reinfEdgeMat, pieces, paneMotion(p));
     Sound.shatter(clamp(p.w * p.h / 9, 0.6, 1.6));
@@ -4239,7 +4238,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
         let cx = 0, cy = 0; pg.forEach(([x, y]) => { cx += x; cy += y; }); cx /= pg.length; cy /= pg.length;
         const dd = depth * rand(0.75, 1), pl = pg.map(([x, y]) => [x - cx, y - cy]), c = new THREE.Vector3(cx, cy, 0).applyMatrix4(M);
         const v = c.clone().sub(ctr).multiplyScalar(rand(0.5, 1.1) * push); v.addScaledVector(_T, rand(1, 3)).y += rand(0.3, 2);
-        out.push({ pl, d: dd, c, v, w: [rand(-3, 3), rand(-3, 3), rand(-3, 3)], life: rand(2.2, 3.0), lag: Math.hypot(cx - ix, cy - iy) / CRACK_V });
+        out.push({ pl, d: dd, c, v, w: [rand(-3, 3), rand(-3, 3), rand(-3, 3)], life: rand(2.2, 3.0) });
       }
     }
     gpuBurst(s, q, mat, edgeM, out, mo); // all one mesh, moved on the GPU
@@ -6425,7 +6424,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
         let cx = 0, cy = 0; poly.forEach(([x, y]) => { cx += x; cy += y; }); cx /= poly.length; cy /= poly.length;
         const pl = poly.map(([x, y]) => [x - cx, y - cy]), cw = new THREE.Vector3(cx, HEX_V + cy, 0).applyMatrix4(c.slab.matrixWorld);
         const v = out.copy(cw).sub(ctr).multiplyScalar(rand(0.5, 1.1)).clone(); frameAt(c.s); v.addScaledVector(_T, rand(3, 6)).y += rand(0.5, 2.5); // out from the blow, on along the track
-        list.push({ pl, d: 0.6, c: cw, v, w: [rand(-3, 3), rand(-3, 3), rand(-3, 3)], life: rand(2.2, 3.0), lag: Math.hypot(cx - ix, cy - iy) / CRACK_V });
+        list.push({ pl, d: 0.6, c: cw, v, w: [rand(-3, 3), rand(-3, 3), rand(-3, 3)], life: rand(2.2, 3.0) });
       }
     }
     gpuBurst(c.s, qs, slabGlass, glassEdge, list); // all one mesh, moved on the GPU

@@ -1953,9 +1953,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const goldHoopMat = new THREE.MeshStandardMaterial({ roughness: 0.22, metalness: 0.9, envMap: coinMat.envMap, envMapIntensity: 1.3 });
   // a coin, 1 m across its face (scaled as it is set down): a raised rim round a flat field, a reeded edge, and on both faces the
   // game's crystal standing out in relief, its two long facets either side of a ridge, as on the logo; it turns about its upright
-  // (its faces to ±z). near: 48 ribs round the edge; far (lo): no ribs, fewer sides
+  // (its faces to ±z). near: 36 ribs round the edge; far (lo): no ribs, fewer sides
   function coinGeo(lo) {
-    const seg = lo ? 28 : 96, F = 0.055, prof = [[0, 0.044], [0.45, 0.047], [0.8, F], [0.83, 0.06], [0.86, 0.092], [0.89, 0.1], [0.93, 0.1], [0.965, 0.09], [0.99, 0.075], [1, 0.06]];
+    const seg = lo === 2 ? 12 : lo ? 22 : 72, F = 0.055, prof = [[0, 0.044], [0.45, 0.047], [0.8, F], [0.83, 0.06], [0.86, 0.092], [0.89, 0.1], [0.93, 0.1], [0.965, 0.09], [0.99, 0.075], [1, 0.06]];
     const pts = [...prof.map(([r, y]) => [r, -y]), ...prof.slice().reverse().map(([r, y]) => [r, y])].map(([r, y]) => new THREE.Vector2(r, y));
     const lathe = new THREE.LatheGeometry(pts, seg), pos = lathe.attributes.position;
     if (!lo) for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), r = Math.hypot(x, z), col = Math.floor(i / pts.length);
@@ -2208,8 +2208,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     quartz: inst(new THREE.LatheGeometry([[0, -1], [0.32, -0.62], [0.32, 0.62], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 220),
     // and a cluster's: one point, the flat foot at the origin (2 long before it's scaled)
     quartz1: inst(new THREE.LatheGeometry([[0, 0], [0.32, 0], [0.32, 1.42], [0, 2]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 410),
-    ring: inst(new THREE.TorusGeometry(4.75, 0.17, 12, 72), frameMat, 30), // round arches of Thesaurus, squeezed to fit (RING_SX, RING_SY)
-    coin: inst(coinGeo(false), coinMat, 80), coinLo: inst(coinGeo(true), coinMat, 220), // near ones reeded, far ones plain
+    ring: inst(new THREE.TorusGeometry(4.75, 0.17, 8, 60), frameMat, 30), // round arches of Thesaurus, squeezed to fit (RING_SX, RING_SY)
+    coin: inst(coinGeo(false), coinMat, 80), coinLo: inst(coinGeo(true), coinMat, 220), coinFar: inst(coinGeo(2), coinMat, 220), // near ones reeded, far ones plain, the farthest coarser still
     block: inst(new THREE.BoxGeometry(1, 1, 1), blockMat, 1200),
     tower: (() => { const m = inst(new THREE.BoxGeometry(1, 1, 1), towerMat, 4300); m.setColorAt(0, new THREE.Color(1, 1, 1)); return m; })(), // Initium's city: the tops of towers beside the track, the blocks of houses far below
     drop: inst(new THREE.SphereGeometry(1, 20, 12), dropMat, 120), // Speculum's mercury drops
@@ -2499,6 +2499,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     decor.set(k, d);
     return d;
   }
+  const CAM_FWD = new THREE.Vector3();
   const M = new THREE.Matrix4(), M2 = new THREE.Matrix4(), EU = new THREE.Euler(), SV = new THREE.Vector3();
   // Rubinus: a triangle, vertex down, around the track. Along the level it turns, and from equilateral grows
   // isosceles and then scalene; it always keeps the cart's whole outline inside it
@@ -2585,6 +2586,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function layoutCorridor() {
     const n = {}; for (const key in I) n[key] = 0; nKept = 0;
     for (const m of LTW) if (m.late && m.ft >= 0 && m.ft < FORM_T && !m.fplan) planFade(m);
+    camera.getWorldDirection(CAM_FWD); // (for leaving out what is behind the eye)
     const tubeR = LTW.length || LOOPS.length || SPANS.length ? tubeFill() : 0, dtv = clamp(time - decorT, 0, 0.1); decorT = time;
     const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
     // a wall block as long as its outer face's stretch, and a little over: on a bend the blocks had parted on the outside
@@ -2671,7 +2673,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       if (dec.arch && !open && !dec.hw && !dec.span && (!STYLE.bridge || dec.hall) && (LEVEL.id !== "initium" || dec.wl || dec.wl0 || dec.wr || dec.wr0 || luxWild(s))) { // (Initium: frames only where a corridor's walls meet them, and over its drill)
         if (STYLE.arch === "hex") put("hex", s, 0, 4.2);
-        else if (STYLE.arch === "ring") I.ring.setMatrixAt(n.ring++, placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY).scale(SV.set(RING_SX, RING_SY, RING_SX))); // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
+        else if (STYLE.arch === "ring") { placeM(M, s, 0, H - 0.1 - 4.92 * RING_SY); // (none wholly behind the eye: round a loop or a spiral, dozens had been drawn there for nothing)
+          if (s > sC + 2 || tmpV.setFromMatrixPosition(M).sub(camera.position).dot(CAM_FWD) > -6) I.ring.setMatrixAt(n.ring++, M.scale(SV.set(RING_SX, RING_SY, RING_SX))); } // its top just under the vault; the floor hides the bottom // an oval that stays inside the walls
         else if (STYLE.arch === "tri") { const tr = triAt(s); for (let e = 0; e < 3; e++) { const A = tr[e], B = tr[(e + 1) % 3], L = Math.hypot(B[0] - A[0], B[1] - A[1]);
           I.tribar.setMatrixAt(n.tribar++, placeM(M, s, (A[0] + B[0]) / 2, (A[1] + B[1]) / 2).multiply(M2.makeRotationZ(Math.atan2(B[1] - A[1], B[0] - A[0]))).scale(SV.set(L + 0.2, 1, 1))); } }
         else if (STYLE.arch !== "none") { put("post", s, -W + 0.1, H / 2); put("post", s, W - 0.1, H / 2); put("beam", s, 0, H - 0.18); put("sill", s, 0, 0.025); }
@@ -2732,7 +2735,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         else { EU.set(b.rx + time * b.spin, b.ry + time * b.spin * 0.7, 0); M.multiply(M2.makeRotationFromEuler(EU)); }
         const wob = b.wob !== undefined ? 1 + 0.07 * Math.sin(time * 2.2 + b.wob) : 1; // a drop of mercury trembles
         M.scale(blockKey === "coin" ? SV.setScalar(b.sx * 0.55) : SV.set(b.sx * wob, b.sy / wob, b.sz * wob)).scale(SV.setScalar(grow * (b.sc !== undefined ? b.sc : smooth5(b.vis))));
-        const key = b.key || (blockKey === "coin" && s - sC > 40 ? "coinLo" : blockKey); I[key].setMatrixAt(n[key]++, M); // (coins past 40 m: the plainer ones)
+        const cd = blockKey === "coin" ? tmpV.setFromMatrixPosition(M).distanceToSquared(camera.position) / (b.sx > 3 ? 2 : 1) : 0;
+        const key = b.key || (blockKey === "coin" && cd > 900 ? (cd > 6400 ? "coinFar" : "coinLo") : blockKey); I[key].setMatrixAt(n[key]++, M); // (coins more than 30 m from the eye (42 the big ones) the plainer, past 80 m (113) the coarsest: by their distance, not their place along the track, which behind a loop had put hundreds near)
       }
     }
     if (SPANS.length) spanPiers();
@@ -6569,7 +6573,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 45], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
       desc: "Нижний путь от Vitrum к Speculum сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат якоря на цепях: попадите в оранжевую мишень над клюзом, цепь втянется, и дверца распахнётся. Поперёк пути вращаются массивные стеклянные кресты и качаются на цепях стеклянные блоки.",
-      feats: ["Треугольный профиль, который поворачивается и меняется", "Ворота с дверцами на якорных цепях", "Финал Tessera: мозаика из рубинов"],
+      feats: ["Треугольный профиль, который поворачивается и меняется", "Два рубиновых моста-штопора над пустотой", "Ворота с дверцами на якорных цепях", "Финал Tessera: мозаика из рубинов"],
       req: { after: "vitrum" }, map: { x: 500, y: 320, label: "t" } }, // midway between Vitrum and Abyssus
     { id: "tao", num: "V", latin: "Tao", ru: "Дао", playable: true, music: "translucent_corridor", len: 1500, pal: PAL_TAO, finale: "taiji",
       // two bridges, yin and yang: out of the halls by a tall gate, the track turns twice round one way a third of the way, and twice
@@ -6583,7 +6587,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       turns: [[100, 60, 45], [220, 60, -55], [340, 50, 45], [460, 70, -70], [600, 50, 50], [710, 60, -50], [830, 50, 45],
         [950, 70, -65], [1090, 50, 50], [1190, 60, -50], [1310, 50, 40], [1400, 50, -35]],
       desc: "Вершина верхней линии, откуда путь Дао уходит через Nox к Lux. Круглые лунные врата. Тушь и рисовая бумага: в Свете белое с алой печатью, во Тьме чёрная тушь с нефритовым свечением. Над путём плывёт туман и медленно вращается знак инь-ян.",
-      feats: ["Ворота инь-ян: кнопки раздвигают половины", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
+      feats: ["Ворота инь-ян: кнопки раздвигают половины", "Мосты инь и ян: штопор в одну сторону, потом в другую", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1500, pal: PAL_SPECULUM, finale: "reflexio",
       spans: [{ a: 0.2, turns: 3, len: 180, r: 7.5, dir: 1 }, { a: 0.56, turns: 2, len: 160, r: 11, dir: -1 }], // its two bridges (planSpans)
@@ -6603,7 +6607,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 40], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
       desc: "Узкий мост над бездной, без стен и потолка. Поперёк моста встают стальные ворота, над рамой крутятся вертушки с чашками: попадите во все, и створки разъедутся. Стёкла и тени поднимаются снизу, из пустоты. Тьма здесь тянет сильнее. Над мостом вращаются лазерные мельницы и парят планки с тремя лазерами, огромные шестерни опускают зубья на рельсы и парят стеклянные блоки.",
-      feats: ["Ворота из тёмного стекла: откройте их вертушками", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
+      feats: ["Ворота из тёмного стекла: откройте их вертушками", "Штопор и спираль над бездной", "Стёкла и тени всплывают из бездны", "Финал Rota: колёса из кристаллов"],
       req: { after: "tao" }, map: { x: 770, y: 190, label: "t" } },
     { id: "carcer", num: "V·a", latin: "Carcer", ru: "Темница", line: "branch", playable: true, music: "refraction_point", len: 1200, pal: PAL_CARCER, finale: "effugium",
       // corridors only link the halls; the halls, wider and higher, hold the traps
@@ -6650,13 +6654,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hang two boards, an arrow under each. Hit an arrow and the rails turn into its branch; you choose once. Choose none and you take the rich branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains.",
         feats: ["Three forks: pick the branch by shooting the arrow under its board", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       rubinus: { ru: "Ruby", desc: "The lower way from Vitrum to Speculum through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by anchors on chains: hit the orange target over the hawse, the chain hauls in and its door swings open. Solid glass crosses turn across the way and glass blocks swing on chains.",
-        feats: ["A triangular profile that turns and changes", "Gates with doors on anchor chains", "Finale Tessera: a ruby mosaic"] },
+        feats: ["A triangular profile that turns and changes", "Two ruby corkscrew bridges over the void", "Gates with doors on anchor chains", "Finale Tessera: a ruby mosaic"] },
       tao: { ru: "The Way", desc: "The top of the upper line, from where the Way of Tao runs through Nox to Lux. Round moon gates. Ink and rice paper: in the Light white with a scarlet seal, in the Dark black ink with a jade glow. Mist drifts over the track and a yin-yang sign slowly turns.",
-        feats: ["Yin-yang gates: buttons part the halves", "Rams on chains beside the track and hammer mills", "Finale Taiji: yin and yang in turn"] },
+        feats: ["Yin-yang gates: buttons part the halves", "Bridges of yin and yang: a corkscrew one way, then the other", "Rams on chains beside the track and hammer mills", "Finale Taiji: yin and yang in turn"] },
       speculum: { ru: "Mirror", desc: "Mirror halls. Behind the glass walls the corridor repeats, and beside each real crystal its reflection may hang. A reflection gives no balls, and a shot at it costs a ball. Across the way prisms gather light into beams that hovering mirrors bounce into a web: break a prism or a mirror to get through. Tall gates in drifting steam open to hits on the targets running up and down their leaves; monoliths hang on chains.",
         feats: ["Mirror walls: the corridor runs off into reflections", "False crystals: a reflection flickers and spins the other way", "Prisms and mirrors: beams of light in a web across the way", "Tall gates with running targets", "Finale Reflexio: targets in pairs"] },
       abyssus: { ru: "Dark", desc: "A narrow bridge over the abyss, with no walls or ceiling. Steel gates rise across the bridge, with cup anemometers spinning over the frame: hit them all and the leaves slide apart. Glass and shades rise from the void below. The Dark pulls harder here. Over the bridge laser mills turn and bars of three lasers hover, great gears bring their teeth down over the rails, and glass blocks float.",
-        feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
+        feats: ["Dark glass gates: open them with the anemometers", "A corkscrew and a spiral over the abyss", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
       carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang steel grates on chains, floating laser bars and grids, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
         feats: ["Halls of grates on chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Effugium: a run of barred cells"] },
       emptio: { ru: "Buy", desc: "Every station from Initium to Lux.", feats: [] },

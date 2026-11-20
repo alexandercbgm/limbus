@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.524</div>
+      <div class="credit version">v1.0.525</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.524`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.525`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3490,7 +3490,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function engrave(g, o) {
     // as the logo's, never stretched, in two sizes: 0.9 m on glass under 4 m high, 1.15 m on full-height glass, each of a kind
     // just the same
-    const ch = (o.h < 4 ? Math.min(0.9, o.h * 0.42) : 1.15), e = new THREE.Group();
+    const ch = (o.h < 4 ? Math.min(0.9, o.h * 0.42) * (LEVEL.id === "rubinus" ? 0.85 : 1) : 1.15), e = new THREE.Group(); // (Rubinus's ruby, wider than the crystal, 15% smaller on its lower glass)
     e.scale.setScalar(ch); e.position.z = 0.004;
     const E = LEVEL.id === "rubinus" ? ENGRAVE_RUBY : ENGRAVE;
     e.add(new THREE.LineSegments(E.lines, edgeMat), new THREE.Mesh(E.light, E.lightMat), new THREE.Mesh(E.dark, E.darkMat)); g.add(e);
@@ -3499,7 +3499,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // a level with one size of glass (Rubinus): every pane short of full height the same, whatever the pattern (a pane in the middle,
     // two or three side by side, sliding, gliding up and down, armoured), and the small ones the same small size
     if (LEVEL.paneStd && o.rot === undefined && !o.thick && !o.cross && o.rise === undefined && o.h < 4 && !(o.move && o.move.axis === "shutter")) {
-      if (o.w < 1.7 && o.h < 1.7) o.w = o.h = LEVEL.paneStd[2]; else { o.w = LEVEL.paneStd[0]; o.h = LEVEL.paneStd[1]; }
+      if (o.h > 3.3 && o.w < 2) { o.w = LEVEL.paneStd[2]; o.side = true; } else { o.w = LEVEL.paneStd[0]; o.h = LEVEL.paneStd[1]; } // (a tall narrow one beside the track keeps its height, a little wider)
       if (!o.move && o.v - o.h / 2 < 0.32 && o.v - o.h / 2 > -0.5) o.v = 0.32 + o.h / 2; } // (lifted clear of the rails, not cut down to clear them: one size)
     // no glass that stands clear of the floor (a hovering block, a pane gliding up and down) ever comes down into the rails: its lowest
     // edge, at the bottom of its glide, kept 0.6 m over them (only a full-height pane or one in a wall stands on the floor)
@@ -3716,7 +3716,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "triple": [-2.75, 0, 2.75].forEach(u => addPane({ s, u, v: CAM_V + 0.2, w: 2.5, h: 3 })); break;
       case "sides":
         [-1, 1].forEach(k => addPane({ s, u: k * 2.95, v: 2.2, w: 1.8, h: 3.6 }));
-        if (d < 0.5 && LEVEL.id !== "thesaurus") addPane({ s: s - 4, u: 0, v: 4.7, w: 1.7, h: 1.1 }); // (Thesaurus: no small glass)
+        if (d < 0.5 && LEVEL.id !== "thesaurus" && !LEVEL.paneStd) addPane({ s: s - 4, u: 0, v: 4.7, w: 1.7, h: 1.1 }); // (Thesaurus and Rubinus: no small glass)
         break;
       case "bonus":
         for (let i = 0; i < 4; i++) { const k = i % 2 ? 1 : -1; addPane({ s: s - i * 3.5, u: k * rand(2.4, 3.2), v: rand(1.6, 4.8), w: rand(1.1, 1.6), h: rand(1.1, 1.6) }); }
@@ -6939,10 +6939,10 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       // two ruby bridges out of the tunnel, through its own anchor gates each way: a third of the way a corkscrew twice round, wide (on
       // it glass on the deck or turning over it, solid crosses only, rubies' beams); two thirds a spiral, its usual mix
       spans: [{ c: 1 / 3, turns: 2, len: 190, r: 11 }, { c: 2 / 3, spiral: true, len: 350 }],
-      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "rotor", "lift", "imps", "zigzag", "shutter", "rbeam", "rbeam", "rbeam2"], spanGates: "own", paneStd: [2.6, 2.9, 1.3], // one size of glass: 2.6 × 2.9 m, the small ones 1.3 m square
+      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "rotor", "lift", "imps", "zigzag", "shutter", "rbeam", "rbeam", "rbeam2"], spanGates: "own", paneStd: [2.6, 2.9, 2.1], // one size of glass, 2.6 × 2.9 m; beside the track, a pair 2.1 × 3.6 m; no small glass
       style: { arch: "tri", blocks: "ruby", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0xa00a24, gateIron: true,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
-        shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0],
+        shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], 
         grams: [0.7, 1, 1.2] }, // and glass blocks on chains, as in Labyrinthus
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 45], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],

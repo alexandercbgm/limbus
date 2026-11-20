@@ -6797,7 +6797,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the order the Play button goes by: the first level open and not yet finished, else the last open one
   const PLAY_ORDER = ["initium", "vitrum", "thesaurus", "labyrinthus", "rubinus", "speculum", "carcer", "tao", "abyssus", "lux"];
   const WAY = ["initium", "vitrum", "labyrinthus", "rubinus", "speculum", "tao", "abyssus", "lux"]; // the way from the Beginning to the Light, in its order
-  const unlockAll = location.hash === "#all"; // for testing: open every built station
+  const unlockAll = true || location.hash === "#all"; // for testing: open every built station
   // a station opens once the one before it on its line is finished (or the other way in, where two lines lead to it)
   // free to play: Initium, Thesaurus and Vitrum; every other level once the game is bought (Emptio)
   const paidFor = lv => unlockAll || progress.full || FREE_LEVELS.includes(lv.id) || !!progress.freeOpen[lv.id] || !lv.playable || lv.depot || lv.gift;

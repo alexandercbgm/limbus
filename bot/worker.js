@@ -45,8 +45,8 @@ const PACKS = {
   guns: { stars: 90, crystals: 385, ru: "Пушки", en: "Cannons" },
   all: { stars: 200, crystals: 1345, ru: "Всё сразу", en: "Everything" },
   // the full game (every level), ~$3: in Telegram (game), and outside it as a code to enter in the game (apk)
-  game: { stars: 200, game: true, ru: "Полная игра", en: "The full game" },
-  apk: { stars: 200, game: true, ru: "Полная игра — код для игры", en: "The full game: a code for the game" },
+  game: { stars: 200, game: true, ru: "Полная версия", en: "The full version" },
+  apk: { stars: 200, game: true, ru: "Полная версия — код для игры", en: "The full version: a code for the game" },
 };
 
 export default {
@@ -342,9 +342,9 @@ async function onUpdate(u, env) {
 
 // ---------- Stars ----------
 const invoiceBody = (from, id) => { const pk = PACKS[id]; return { title: "Limbus",
-  description: pk.game ? T(from, "Полная игра: все станции от Initium до Lux.", "The full game: every station from Initium to Lux.")
+  description: pk.game ? T(from, "Полная версия: все станции от Initium до Lux.", "The full version: every station from Initium to Lux.")
     : T(from, `💎 ${pk.crystals} кристаллов для Арсенала +25% бонус.`, `💎 ${pk.crystals} crystals for Armamentarium +25% bonus.`),
-  payload: id, currency: "XTR", prices: [{ label: pk.game ? T(from, "Полная игра", "The full game") : `◆ ${pk.crystals}`, amount: pk.stars }] }; };
+  payload: id, currency: "XTR", prices: [{ label: pk.game ? T(from, "Полная версия", "The full version") : `◆ ${pk.crystals}`, amount: pk.stars }] }; };
 async function invoice(req, env) {
   const { product, lang } = await req.json().catch(() => ({}));
   if (!PACKS[product] || product === "apk") return Response.json({ error: "no such pack" }, { status: 400 });

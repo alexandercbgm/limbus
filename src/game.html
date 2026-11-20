@@ -2460,19 +2460,19 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       {
         // where on its side, out and up: a low-discrepancy (R2) sequence along the side, so the places never bunch the way hashes can;
         // the cut steps on each place, so no two neighbours share one
-        const m = k, n = Math.floor(m / 2), h3 = (0.5 + n * 0.7548777) % 1, h2 = (0.5 + n * 0.5698403) % 1, r0 = hash(k * 11 + 1);
-        const side = hash(k * 31) < 0.5 ? -1 : 1, keys = ["gDia", "gEmer", "gOval", "gPear"], k0 = (m + Math.floor(m / 3)) % 4;
-        const stone = (j, r, du, dv, ds) => {
+        // evenly hung now: every 2 m one stone on each side, each at its own point of the sequence, no clusters (they had bunched)
+        const m = k, keys = ["gDia", "gEmer", "gOval", "gPear"], k0 = (m + Math.floor(m / 3)) % 4;
+        for (const side of [-1, 1]) {
+        const n = 2 * k + (side > 0 ? 1 : 0), h3 = (0.5 + n * 0.7548777) % 1, h2 = (0.5 + n * 0.5698403) % 1, j0 = side > 0 ? 2 : 0;
+        const stone = (j, r, du, dv, ds) => { j += j0;
           const key = keys[(k0 + j) % 4], dia = key === "gDia", la = hash(k * 41 + j) * TAU, lt = 0.1 + hash(k * 43 + j) * 0.5; // a brilliant from above or below shows only its round outline: kept about eye height, seen side on
           const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), hash(k * 47 + j) * TAU);
           d.blocks.push({ key, u: side * (SW + 5 + (dia ? 6 : 0) + h3 * 18 + r) + du, v: (dia ? CAM_V - r * 0.15 + (h2 - 0.5) * 1.2 : -6 + h2 * 16) + dv, ds, sx: r, sy: r, sz: r,
             q: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(la), 0, Math.sin(la)), dia ? lt * 0.4 : lt).multiply(yaw), sway: hash(k * 53 + j) * TAU }); // (the brilliant leans less: up to 14 degrees)
         };
-        const r = 2.2 + hash(k * 29) * 2.6;
-        if (r0 < 0.1) { /* nothing here */ }
-        else if (r0 < 0.5) stone(0, r, 0, 0, 0);
-        else { stone(0, r, 0, 0, 0); const nn = r0 < 0.7 ? 1 : r0 < 0.88 ? 2 : 3; // a cluster: smaller stones about the first
-          for (let j = 1; j <= nn; j++) { const a = hash(k * 61 + j) * TAU, rr = r * (0.55 + hash(k * 67 + j) * 0.25), dd = r + rr + 0.6; stone(j, rr, Math.cos(a) * dd * side, Math.sin(a) * dd * 0.7, (hash(k * 71 + j) - 0.5) * 2 * dd); } }
+        const r = 2.2 + hash(k * 29 + j0) * 2.6;
+        if (hash(k * 11 + 1 + j0) >= 0.08) stone(0, r, 0, 0, (hash(k * 71 + j0) - 0.5) * 1.2); // (now and then a place left empty)
+        }
       }
       decor.set(k, d); return d;
     }

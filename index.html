@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.505</div>
+      <div class="credit version">v1.0.506</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.505`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.506`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6630,7 +6630,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       req: { after: "initium" }, map: { x: 270, y: 320, label: "t", dx: -14 } }, // level with the other names on the line, clear of the arc
     { id: "armamentarium", num: "II·a", latin: "Armamentarium", ru: "Арсенал", line: "branch", depot: true, playable: false,
       mood: { sky: "#d6dadc", hor: "#c4c9cc", surf: "#e8ebec", wall: "#d4d8da", frame: "#3a4248", rail: "#6a747a", glass: "#cfe0e6", accent: "#e07a2a" },
-      desc: "Здесь за кристаллы покупают улучшения для вагонетки. Пушки здесь не продаются: их дарят станции.",
+      desc: "Здесь за кристаллы можно купить улучшения для вагонетки.",
       feats: ["Улучшения: запас шаров, второе дыхание, щедрость кристаллов", "У каждого три уровня; купленное остаётся навсегда", "Пушки дарят станции: Initium, Labyrinthus, Nox, Rubinus и Carcer"],
       req: {}, map: { x: 385, y: 440, label: "t" } }, // (no station now: always open, its button on the top bar)
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
@@ -6720,7 +6720,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["Four manoeuvres in a random order, the loops different every time", "2.2 times the crystals", "Finale Pluvia: a rain of crystals"] },
       vitrum: { ru: "Glass", desc: "Prismatic arches over the abyss in a clear evening sky: the sun setting behind, the stars coming out ahead. Hexagonal vaults and monoliths on chains: shoot the chains and the monolith drops into the abyss. Glass bars and crosses turn across the track, and thick glass that fills the way breaks only to a catapult: hit its target.",
         feats: ["Glass catapults: hit the target and the shot breaks the thick glass", "Monoliths on chains, turning glass bars and crosses", "Finale Ruina: falling boulders"] },
-      armamentarium: { ru: "Armoury", desc: "Here crystals buy upgrades for the cart. Cannons are not sold here: stations give them.",
+      armamentarium: { ru: "Armoury", desc: "Here crystals can buy upgrades for the cart.",
         feats: ["Upgrades: a bigger reserve, a second wind, more bounty from crystals", "Three levels each; what you buy stays yours", "Cannons are stations' gifts: Initium, Labyrinthus, Nox, Rubinus and Carcer"] },
       labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hang two boards, an arrow under each. Hit an arrow and the rails turn into its branch; you choose once. Choose none and you take the rich branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains.",
         feats: ["Three forks: pick the branch by shooting the arrow under its board", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },

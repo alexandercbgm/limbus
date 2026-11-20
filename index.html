@@ -309,7 +309,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 
 .m-side { display: grid; grid-auto-flow: column; gap: 8px; align-items: center; justify-items: end; } /* the bank and the cannons side by side */
 /* Telegram: the bank and the cannons side by side */
-.tg .m-side { grid-template-columns: auto auto; grid-auto-flow: row; align-items: center; justify-content: end; }
+.tg .m-side { grid-auto-flow: column; align-items: center; justify-content: end; } /* (in one row, as anywhere: wrapped, Armamentarium had dropped below) */
 /* a phone in Telegram: the Space line on a line of its own, and a station sheet the whole height of the screen, so nothing shows round it */
 .tgphone .spc { display: block; }
 .tgphone .overlay.sheet .panel { align-self: stretch; align-content: center; }
@@ -340,7 +340,7 @@ html.tgbuild:not(.tgready) body > :not(.rotate), html.tgbuild:not(.tgready) .rot
 @keyframes emptioGlowN { 0%, 100% { box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 6px 0 rgba(255, 200, 90, 0.25); }
   50% { box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 18px 4px rgba(255, 200, 90, 0.55); } }
 @media (prefers-reduced-motion: reduce) { .emptio, .night .emptio { animation: none; } }
-@media (max-width: 760px) { .depot span { display: none; } .depot { padding: 0 9px; } } /* a narrow screen: the shield alone */
+@media (max-width: 760px) and (orientation: portrait) { .depot span { display: none; } .depot { padding: 0 9px; } } /* a narrow screen: the shield alone */
 
 /* the cannon buttons look like the bank beside them; the one on the cart is dark, its cost still turquoise */
 .arm { font: 700 13px var(--mono); padding: 8px 11px; border-radius: 4px; border: 0; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; cursor: pointer; }
@@ -768,7 +768,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.498</div>
+      <div class="credit version">v1.0.499</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -969,7 +969,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.498`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.499`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -8592,8 +8592,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the top bar kept on one row where it was (a wide screen): the words on its buttons dropped one by one till it fits
   function fitHead() {
     const h = document.querySelector(".m-head"), side = document.querySelector(".m-side"), brand = document.querySelector(".m-brand"); if (!h || !side || !brand) return;
-    h.classList.remove("c1", "c2", "c3"); if (innerWidth <= 760) return; // (a narrow screen has its two rows anyway)
-    for (const c of ["c1", "c2", "c3"]) { if (side.offsetTop < brand.offsetTop + brand.offsetHeight - 4) return; /* (on brand's row: not wrapped) */ h.classList.add(c); }
+    h.classList.remove("c1", "c2", "c3"); if (innerWidth < innerHeight) return; // (a phone held upright has its two rows anyway)
+    for (const c of ["c1", "c2", "c3"]) { const r = h.getBoundingClientRect(); if (side.offsetTop < brand.offsetTop + brand.offsetHeight - 4 && side.getBoundingClientRect().right <= r.right + 1) return; /* (on brand's row, and within it) */ h.classList.add(c); }
   }
   addEventListener("resize", () => requestAnimationFrame(fitHead));
   function renderEmptio() { requestAnimationFrame(fitHead); $("emptioBtn").hidden = !!progress.full; $("emptioBtn").classList.toggle("glow", !!progress.done.vitrum); } // (there from the start till the game is bought)

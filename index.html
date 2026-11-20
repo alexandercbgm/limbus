@@ -771,7 +771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.547</div>
+      <div class="credit version">v1.0.548</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -972,7 +972,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.547`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.548`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3522,12 +3522,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // Nox's and Lux's: their trigrams (the scheme's glyphs), Kun's three broken bars and Qian's three whole ones, each bar frosted
   // with its outline in lines; on the same scale as the ruby (15 of the glyph's units to the metre)
   const engraveTri = broken => {
-    const k = 1 / 15, hb = 1.2, v3 = q => new THREE.Vector3(q[0] * k, q[1] * k, 0), seg = [], lt = [], dk = [];
-    const bar = (x0, x1, y) => { const a = [x0, y + hb], b = [x1, y + hb], c = [x1, y - hb], d = [x0, y - hb]; seg.push(a, b, b, c, c, d, d, a); (y > 0 ? lt : y < 0 ? dk : x0 < 0 ? lt : dk).push([a, b, c], [a, c, d]); }; // (the top bar lighter, the bottom darker, as the others are lit)
+    // drawn as the scheme's glyph is, in strokes, not blocks: each bar a narrow frosted band (a third of what it was), a bright line
+    // along its middle (as wide blocks with an outline, they had looked like bricks)
+    const k = 1 / 15, hb = 0.42, v3 = q => new THREE.Vector3(q[0] * k, q[1] * k, 0), seg = [], lt = [], dk = [];
+    const bar = (x0, x1, y) => { const a = [x0, y + hb], b = [x1, y + hb], c = [x1, y - hb], d = [x0, y - hb]; seg.push([x0, y], [x1, y]); lt.push([a, b, c], [a, c, d]); };
     for (const y of [5, 0, -5]) { if (broken) { bar(-7, -1.6, y); bar(1.6, 7, y); } else bar(-7, 7, y); }
     const tris = list => new THREE.BufferGeometry().setFromPoints(list.flat().map(v3));
     const mat = o => new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: o, depthWrite: false, side: THREE.DoubleSide });
-    return { lines: new THREE.BufferGeometry().setFromPoints(seg.map(v3)), light: tris(lt), dark: tris(dk), lightMat: mat(0.24), darkMat: mat(0.14) };
+    return { lines: new THREE.BufferGeometry().setFromPoints(seg.map(v3)), light: tris(lt), dark: tris(dk), lightMat: mat(0.3), darkMat: mat(0.14) };
   };
   const ENGRAVE_KUN = engraveTri(true), ENGRAVE_QIAN = engraveTri(false);
   const ENGRAVED = ["thesaurus", "rubinus", "abyssus", "lux"];

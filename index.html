@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.516</div>
+      <div class="credit version">v1.0.517</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.516`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.517`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3986,7 +3986,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (p.maxhp > 1 && !p.cross) { crumblePane(p, lx, ly); return; } // armoured glass crumbles into chunks, as a slab on a chain does
     if (p.thick) { chunkPane(p, lx, ly, impL); return; }
     removePane(p);
-    if (!p.cross && p.mat === glassMat && p.w * p.h > 10 && !STYLE.mirror) { burstPane(p, lx, ly, impL); return; } // a big pane: its burst on the GPU
+    if (p.mat === glassMat) { burstPane(p, lx, ly, impL); return; } // its pieces drawn and moved on the GPU
     if (p.cross) { // a cross breaks as its two bars
       const { w, h } = p;
       shatterRect(p, lx, ly, impL);
@@ -3995,14 +3995,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     shatterRect(p, lx, ly, impL);
   }
-  // ---------- a big pane's burst, worked out on the GPU ----------
-  // a pane of more than 10 m² (a wall of glass, a maze's partition, a tall pane) had broken as a small one does: 20 spokes, 60
-  // pieces, the outer ones metres long, each piece two draws of its own (its body and its lit edges) moved by the CPU every frame;
-  // a few at once made a phone stutter. Now it breaks into pieces of a small pane's size (the spokes split in two outward, so they
-  // stay that size out to the edge), a few hundred, all in one mesh and one set of edges: where each piece is, how it flies, turns,
-  // lands on the deck and settles flat on its face is worked out in the vertex shader from how it set off, so a burst costs two
-  // draws and nothing on the CPU after it is made. The crack runs out from the blow (40 m/s), each piece breaking away as it reaches it.
-  // Pieces off the deck fall away and shrink out; those on it lie till passed
+  // ---------- a pane's burst, worked out on the GPU ----------
+  // a pane breaks as it always has (burstPieces), but its pieces had each been two draws of their own (body and lit edges), moved
+  // by the CPU every frame: a few panes at once made a phone stutter. Now all of a pane's pieces are one mesh and one set of edges:
+  // where each piece is, how it flies, turns, lands on the deck, hops and settles flat on its face is worked out in the vertex shader from
+  // how it set off, so a burst costs two draws and nothing on the CPU after it is made. Pieces off the deck fall away and shrink
+  // out; those on it lie till passed
   let bursts = [];
   const burstU = { value: 0 };
   const BURST_HEAD = `attribute vec3 aP; attribute vec3 aC; attribute vec3 aV; attribute vec3 aW; attribute vec4 aQ; attribute vec4 aT; attribute vec3 aG;
@@ -4010,44 +4008,44 @@ uniform float uBurstT;
 vec3 bQr(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
 vec3 bAr(vec3 w, float t, vec3 v) { float l = length(w), a = l * t; if (a < 1e-5) return v; vec3 k = w / l; return v * cos(a) + cross(k, v) * sin(a) + k * dot(k, v) * (1.0 - cos(a)); }
 vec3 bFl(vec3 v, float y) { float c = cos(y), s = sin(y); return vec3(v.x * c - v.y * s, v.z, v.x * s + v.y * c); }
-vec3 bPos() { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y), st = clamp((age - aT.y) / 0.16, 0.0, 1.0);
-  vec3 off = mix(bAr(aW, te, bQr(aQ, aP)), bFl(aP, aT.w), st);
-  float sh = age < aT.y ? 1.0 - smoothstep(aT.z, aT.z + 0.6, age) : 1.0;
-  return aC + aV * te + 0.5 * aG * te * te + off * sh; }
-vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); return normalize(mix(bAr(aW, te, bQr(aQ, n)), bFl(n, aT.w), clamp((age - aT.y) / 0.16, 0.0, 1.0))); }
+void bAt(out vec3 P, out float tr, out float st, out float sh) { // where the piece's middle is, how long it has turned, how far settled, its size
+  float age = max(0.0, uBurstT - aT.x), t1 = aT.y;
+  sh = age < t1 ? 1.0 - smoothstep(aT.z, aT.z + 0.6, age) : 1.0;
+  if (age < t1) { P = aC + aV * age + 0.5 * aG * age * age; tr = age; st = 0.0; return; }
+  vec3 v1 = aV + aG * t1, vb = vec3(0.5 * v1.x, -0.125 * v1.y, 0.5 * v1.z); // on the deck: half its speed, a little hop (as the CPU's pieces did)
+  float t2 = t1 + 2.0 * vb.y / max(1e-3, -aG.y), ta = min(age, t2) - t1;
+  P = aC + aV * t1 + 0.5 * aG * t1 * t1 + vb * ta + 0.5 * aG * ta * ta; tr = t1 + 0.6 * ta; st = clamp((age - t2) / 0.16, 0.0, 1.0); }
+vec3 bPos() { vec3 P; float tr, st, sh; bAt(P, tr, st, sh); return P + mix(bAr(aW, tr, bQr(aQ, aP)), bFl(aP, aT.w), st) * sh; }
+vec3 bNor(vec3 n) { vec3 P; float tr, st, sh; bAt(P, tr, st, sh); return normalize(mix(bAr(aW, tr, bQr(aQ, n)), bFl(n, aT.w), st)); }
 `;
   const burstify = (mat, key, normals) => { mat.onBeforeCompile = function (sh, r) { THREE.Material.prototype.onBeforeCompile.call(this, sh, r); sh.uniforms.uBurstT = burstU;
     sh.vertexShader = BURST_HEAD + sh.vertexShader.replace("#include <begin_vertex>", "vec3 transformed = bPos();");
     if (normals) sh.vertexShader = sh.vertexShader.replace("#include <beginnormal_vertex>", "vec3 objectNormal = bNor(vec3(normal));"); };
     mat.customProgramCacheKey = () => key; return mat; };
   const burstMat = burstify(glassMat.clone(), "burst", true), burstEdgeMat = burstify(edgeMat.clone(), "burstEdge", false);
-  // the pieces of a w × h pane struck at (lx, ly): rings out from the blow ever farther apart, spokes between them that split in two
-  // where a piece would grow wider than a small pane's; each piece a convex polygon, clipped to the pane
+  // the pieces of a w × h pane struck at (lx, ly), as a pane has always broken: spokes from the blow out to the edge (as many on a
+  // small pane as on a big one, so a small one breaks the same way, scaled down; fewer in Speculum), each cut twice across: a
+  // splinter at the blow, a band, and the long piece out to the edge. Every piece convex (a wedge of the pane cut by a chord)
   function burstPieces(hw, hh, lx, ly) {
-    const maxR = Math.max(...[[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([x, y]) => Math.hypot(x - lx, y - ly)));
-    const rings = [0]; for (let r = rand(0.16, 0.26); rings[rings.length - 1] < maxR; r += clamp(0.3 + 0.24 * r, 0.3, 0.95) * rand(0.8, 1.2)) rings.push(r);
-    let angs = []; const n0 = 16, base = rand(0, TAU); for (let i = 0; i < n0; i++) angs.push(base + (i + rand(-0.3, 0.3)) * TAU / n0);
-    const P = (a, r) => [lx + Math.cos(a) * r, ly + Math.sin(a) * r], out = [];
-    const clip = (poly, ax, sg, lim) => { const res = []; for (let i = 0; i < poly.length; i++) { const A = poly[i], B = poly[(i + 1) % poly.length], ia = sg * A[ax] <= lim, ib = sg * B[ax] <= lim;
-      if (ia) res.push(A); if (ia !== ib) { const k = (lim - sg * A[ax]) / (sg * B[ax] - sg * A[ax]); res.push([A[0] + (B[0] - A[0]) * k, A[1] + (B[1] - A[1]) * k]); } } return res; };
-    for (let k = 0; k + 1 < rings.length; k++) {
-      const r0 = rings[k], r1 = rings[k + 1], fine = [];
-      for (let i = 0; i < angs.length; i++) { const a0 = angs[i], a1 = i + 1 < angs.length ? angs[i + 1] : angs[0] + TAU; fine.push(a0); if ((a1 - a0) * r1 > 1.05) fine.push(a0 + (a1 - a0) * rand(0.4, 0.6)); }
-      for (let i = 0; i < angs.length; i++) {
-        const a0 = angs[i], a1 = i + 1 < angs.length ? angs[i + 1] : angs[0] + TAU, mids = fine.filter(a => a > a0 + 1e-6 && a < a1 - 1e-6);
-        let poly = [...(r0 ? [P(a0, r0)] : [[lx, ly]]), P(a0, r1), ...mids.map(a => P(a, r1)), P(a1, r1), ...(r0 ? [P(a1, r0)] : [])];
-        poly = clip(clip(clip(clip(poly, 0, 1, hw), 0, -1, hw), 1, 1, hh), 1, -1, hh);
-        if (poly.length < 3) continue;
-        let ar = 0; for (let j = 0; j < poly.length; j++) { const [x1, y1] = poly[j], [x2, y2] = poly[(j + 1) % poly.length]; ar += x1 * y2 - x2 * y1; }
-        if (Math.abs(ar) > 2e-3) out.push(poly);
-      }
-      angs = fine;
+    const n = STYLE.mirror ? 12 : 4 * hw * hh > 30 ? 20 : 18, step = TAU / n, base = Math.random() * TAU, angs = [];
+    for (let i = 0; i < n; i++) angs.push(base + i * step + (Math.random() - 0.5) * step * 0.55);
+    angs.sort((a, b) => a - b);
+    const corners = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(c => ({ c, a: Math.atan2(c[1] - ly, c[0] - lx) }));
+    const edge = a => { const dx = Math.cos(a), dy = Math.sin(a), tx = dx > 1e-9 ? (hw - lx) / dx : dx < -1e-9 ? (-hw - lx) / dx : Infinity, ty = dy > 1e-9 ? (hh - ly) / dy : dy < -1e-9 ? (-hh - ly) / dy : Infinity, k = Math.min(tx, ty); return [lx + dx * k, ly + dy * k]; };
+    const I = [lx, ly], lp = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k], out = [];
+    const keep = pts => { const q = []; for (const v of pts) { const l = q[q.length - 1]; if (!l || Math.hypot(v[0] - l[0], v[1] - l[1]) > 1e-4) q.push(v); } if (q.length > 2 && Math.hypot(q[0][0] - q[q.length - 1][0], q[0][1] - q[q.length - 1][1]) < 1e-4) q.pop(); if (q.length > 2) out.push(q); };
+    for (let i = 0; i < n; i++) {
+      const a0 = angs[i], a1 = i + 1 < n ? angs[i + 1] : angs[0] + TAU, span = a1 - a0, P0 = edge(a0), P1 = edge(a1);
+      const mid = corners.map(o => ({ c: o.c, rel: ((o.a - a0) % TAU + TAU) % TAU })).filter(o => o.rel > 1e-6 && o.rel < span - 1e-6).sort((a, b) => a.rel - b.rel).map(o => o.c);
+      const r1 = 0.22 + Math.random() * 0.2, r2 = Math.min(0.86, r1 + 0.22 + Math.random() * 0.22);
+      const A1 = lp(I, P0, r1), B1 = lp(I, P1, r1), A2 = lp(I, P0, r2), B2 = lp(I, P1, r2);
+      keep([I, A1, B1]); keep([A1, A2, B2, B1]); keep([A2, P0, ...mid, P1, B2]);
     }
     return out;
   }
   function burstPane(p, lx, ly, impL) {
     const hw = p.w / 2, hh = p.h / 2; lx = clamp(lx, -hw + 0.03, hw - 0.03); ly = clamp(ly, -hh + 0.03, hh - 0.03);
-    const polys = burstPieces(hw, hh, lx, ly), H = SHARD_T / 2;
+    const polys = p.cross ? [...burstPieces(hw, hh, lx, ly), ...burstPieces(hh, hw, lx, ly)] : burstPieces(hw, hh, lx, ly), H = SHARD_T / 2, lit = !STYLE.mirror; // (a cross: its two bars; in Speculum no lit outlines, as ever)
     const mesh = new THREE.Mesh(new THREE.BufferGeometry(), burstMat), lines = new THREE.LineSegments(new THREE.BufferGeometry(), burstEdgeMat);
     mesh.matrixAutoUpdate = lines.matrixAutoUpdate = false; mesh.frustumCulled = lines.frustumCulled = false;
     setObj(mesh, p.s, 0, 0); const fP = _P.clone(), fR = _R.clone(), fU = _U.clone(), fT = _T.clone(); // the track's frame at the pane: x across, y up, z back toward the cart
@@ -4056,7 +4054,7 @@ vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); r
     const g = toF(new THREE.Vector3(0, -G, 0), new THREE.Vector3()), fw = (openAt(p.s) || iniOpen(p.s) ? BRIDGE_W : spanAt(p.s) ? SW : LEVEL.halls ? HALL_W : STYLE.floorW || SW) + 0.1;
     const prevM = p.pm && p.pdt > 0 ? p.pm : null, inv = new THREE.Matrix4().copy(p.group.matrix).invert();
     // typed arrays sized up front, filled in place (with arrays grown by push a big pane took 15 ms to break, a hitch)
-    let nv = 0, nl = 0; for (const q of polys) { nv += 6 * (q.length - 2); nl += 2 * q.length; } // (no sides: 4 cm of glass edge-on is its lit outline)
+    let nv = 0, nl = 0; for (const q of polys) { nv += 6 * (q.length - 2) + 6 * q.length; if (lit) nl += 6 * q.length; } // faces, the sides, and the outline round both faces and across
     const mk = (n, w) => new Float32Array(n * w), KS = [["aP", 3], ["aC", 3], ["aV", 3], ["aW", 3], ["aQ", 4], ["aT", 4], ["aG", 3]];
     const A = { position: mk(nv, 3), normal: mk(nv, 3) }, L = { position: mk(nl, 3) }; for (const [k, w] of KS) { A[k] = mk(nv, w); L[k] = mk(nl, w); }
     let ia = 0, il = 0; const per = { aC: [0, 0, 0], aV: [0, 0, 0], aW: [0, 0, 0], aQ: [Q.x, Q.y, Q.z, Q.w], aT: [0, 0, 0, 0], aG: [g.x, g.y, g.z] };
@@ -4068,7 +4066,7 @@ vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); r
       const pl = poly.map(([x, y]) => [x - cx, y - cy]); let size = 0; pl.forEach(([x, y]) => { size = Math.max(size, Math.hypot(x, y)); });
       Wc.copy(p.C).addScaledVector(p.R, cx).addScaledVector(p.U, cy);
       let dx = cx - lx, dy = cy - ly; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
-      const spd = Math.max(0.9, (2.2 + Math.random() * 3) / (0.7 + d * 0.55)); // (the far ones too, so the whole sheet comes down, not hangs)
+      const spd = (2.2 + Math.random() * 3) / (0.7 + d * 0.55);
       V.set(0, 0, 0).addScaledVector(p.R, dx * spd + impL.x * 0.06).addScaledVector(p.U, dy * spd + impL.y * 0.06 + 0.6).addScaledVector(p.T, Math.min(impL.z * (0.15 + Math.random() * 0.25), SHARD_FWD_THIN * (0.2 + 0.8 * Math.random()) / (0.8 + d * 0.35)));
       if (prevM) { was.copy(Wc).applyMatrix4(inv).applyMatrix4(prevM); was.subVectors(Wc, was).divideScalar(p.pdt); if (was.lengthSq() < 900) V.add(was); } // the pane's own motion
       toF(C.copy(Wc).sub(fP), C); toF(V, Vl);
@@ -4076,16 +4074,16 @@ vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); r
       // where it comes down on the deck (its middle a thickness over it), if it does: before that it flies and turns, then lies flat
       let tl = 1e6; const y0 = C.y - 0.05, disc = Vl.y * Vl.y - 2 * g.y * y0;
       if (g.y < -1 && y0 > 0 && disc > 0) { const tt = (-Vl.y - Math.sqrt(disc)) / g.y, xl = C.x + Vl.x * tt + 0.5 * g.x * tt * tt; if (Math.abs(xl) < fw) tl = tt; }
-      const lag = d * 0.025; // the crack reaches it
       per.aC[0] = C.x; per.aC[1] = C.y; per.aC[2] = C.z; per.aV[0] = Vl.x; per.aV[1] = Vl.y; per.aV[2] = Vl.z;
-      per.aT[0] = time + lag; per.aT[1] = tl; per.aT[2] = rand(2.4, 3.6); per.aT[3] = rand(0, TAU);
+      per.aT[0] = time; per.aT[1] = tl; per.aT[2] = rand(2.4, 3.6); per.aT[3] = rand(0, TAU);
       const ia0 = ia, il0 = il;
       for (let j = 1; j + 1 < pl.length; j++) { // faces: front and back, fanned
         vert(A, ia++, pl[0][0], pl[0][1], H, 0, 0, 1); vert(A, ia++, pl[j][0], pl[j][1], H, 0, 0, 1); vert(A, ia++, pl[j + 1][0], pl[j + 1][1], H, 0, 0, 1);
         vert(A, ia++, pl[0][0], pl[0][1], -H, 0, 0, -1); vert(A, ia++, pl[j + 1][0], pl[j + 1][1], -H, 0, 0, -1); vert(A, ia++, pl[j][0], pl[j][1], -H, 0, 0, -1);
       }
-      for (let j = 0; j < pl.length; j++) { const [x1, y1] = pl[j], [x2, y2] = pl[(j + 1) % pl.length];
-        vert(L, il++, x1, y1, H); vert(L, il++, x2, y2, H); }
+      for (let j = 0; j < pl.length; j++) { const [x1, y1] = pl[j], [x2, y2] = pl[(j + 1) % pl.length], l = Math.hypot(x2 - x1, y2 - y1) || 1, nx = (y2 - y1) / l, ny = -(x2 - x1) / l;
+        vert(A, ia++, x1, y1, -H, nx, ny, 0); vert(A, ia++, x2, y2, -H, nx, ny, 0); vert(A, ia++, x2, y2, H, nx, ny, 0); vert(A, ia++, x1, y1, -H, nx, ny, 0); vert(A, ia++, x2, y2, H, nx, ny, 0); vert(A, ia++, x1, y1, H, nx, ny, 0);
+        if (lit) { vert(L, il++, x1, y1, H); vert(L, il++, x2, y2, H); vert(L, il++, x1, y1, -H); vert(L, il++, x2, y2, -H); vert(L, il++, x1, y1, -H); vert(L, il++, x1, y1, H); } }
       spread(A, ia0, ia); spread(L, il0, il);
     }
     for (const k in A) mesh.geometry.setAttribute(k, new THREE.BufferAttribute(A[k], k === "aQ" || k === "aT" ? 4 : 3));
@@ -4093,7 +4091,7 @@ vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); r
     lines.matrix.copy(mesh.matrix);
     scene.add(mesh); scene.add(lines);
     bursts.push({ s: p.s, mesh, lines, t: time });
-    while (bursts.length > 5) dropBurst(bursts.shift()); // (never more than a handful about)
+    while (bursts.length > 10) dropBurst(bursts.shift()); // (never more than ten panes' pieces about)
     Sound.shatter(clamp(p.w * p.h / 9, 0.6, 1.6));
   }
   function dropBurst(b) { scene.remove(b.mesh); scene.remove(b.lines); b.mesh.geometry.dispose(); b.lines.geometry.dispose(); }

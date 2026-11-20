@@ -768,7 +768,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.497</div>
+      <div class="credit version">v1.0.498</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -969,7 +969,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.497`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.498`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6425,16 +6425,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     ferrum: { name: "Ferrum", ru: "Железо", cost: 2, price: null, from: "carcer", desc: "Мортира из Темницы. За 2 шара — книппель: два железных ядра на цепи, вращаются в полёте. Ядра и цепь пробивают стекло насквозь и летят дальше. Твёрдое останавливает снаряд целиком. На складе не продаётся." },
   };
   // upgrades sold at the depot, three levels each: more balls at the start, a second wind once a ride, more balls a crystal
+  // (priced so all three upgrades in full, 1670, take about three rides of every level with Thesaurus ridden for crystals between;
+  // a ride banks what it picked up only when finished: some 25 to 45 on a level, 80 to 90 in Thesaurus)
   const UPGRADES = {
-    copia: { name: "Copia", ru: "Запас", en: "Reserve", prices: [40, 80, 140],
+    copia: { name: "Copia", ru: "Запас", en: "Reserve", prices: [100, 180, 280],
       desc: ["Шаров на старте каждого заезда: +10 за уровень.", "Balls at the start of every ride: +10 a level."],
       at: n => T(`Шаров на старте каждого заезда: +${n * 10}.`, `Balls at the start of every ride: +${n * 10}.`),
       now: n => T(`+${n * 10} шаров на старте`, `+${n * 10} balls at the start`) },
-    spiritus: { name: "Spiritus", ru: "Второе дыхание", en: "Second wind", prices: [30, 60, 110],
+    spiritus: { name: "Spiritus", ru: "Второе дыхание", en: "Second wind", prices: [80, 150, 240],
       desc: ["Шары кончились — заезд можно один раз продолжить с того же места: +10 шаров за уровень.", "Out of balls, a ride can go on once from where it stopped: +10 balls a level."],
       at: n => T(`Если шары кончились, заезд можно один раз продолжить с того же места с ${n * 10} шарами.`, `If the balls run out, a ride can go on once from where it stopped, with ${n * 10} balls.`),
       now: n => T(`продолжение с ${n * 10} шарами`, `go on with ${n * 10} balls`) },
-    largitas: { name: "Largitas", ru: "Щедрость", en: "Bounty", prices: [50, 100, 160],
+    largitas: { name: "Largitas", ru: "Щедрость", en: "Bounty", prices: [120, 200, 320],
       desc: ["Каждый шар, попавший в голубой кристалл, приносит больше шаров: +1 за уровень.", "Every ball that hits a blue crystal brings more balls: +1 a level."],
       at: n => T(`Каждый шар, попавший в голубой кристалл, приносит больше шаров: +${n}.`, `Every ball that hits a blue crystal brings more balls: +${n}.`),
       now: n => T(`+${n} ${ballsWord(n)} с попадания`, `+${n} ${ballsWord(n)} a hit`) },

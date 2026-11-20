@@ -3410,6 +3410,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     e.add(new THREE.LineSegments(E.lines, edgeMat), new THREE.Mesh(E.light, E.lightMat), new THREE.Mesh(E.dark, E.darkMat)); g.add(e);
   }
   function addPane(o) {
+    // a level with one size of glass (Rubinus): every pane short of full height the same, whatever the pattern (a pane in the middle,
+    // two or three side by side, sliding, gliding up and down, armoured), and the small ones the same small size
+    if (LEVEL.paneStd && o.rot === undefined && !o.thick && !o.cross && o.rise === undefined && o.h < 4 && !(o.move && o.move.axis === "shutter")) {
+      if (o.w < 1.7 && o.h < 1.7) o.w = o.h = LEVEL.paneStd[2]; else { o.w = LEVEL.paneStd[0]; o.h = LEVEL.paneStd[1]; }
+      if (!o.move && o.v - o.h / 2 < 0.32 && o.v - o.h / 2 > -0.5) o.v = 0.32 + o.h / 2; } // (lifted clear of the rails, not cut down to clear them: one size)
     // no glass that stands clear of the floor (a hovering block, a pane gliding up and down) ever comes down into the rails: its lowest
     // edge, at the bottom of its glide, kept 0.6 m over them (only a full-height pane or one in a wall stands on the floor)
     if (o.rot === undefined && o.v - o.h / 2 > 0.3) { const low = o.v - o.h / 2 - (o.move && o.move.axis === "v" ? Math.abs(o.move.amp) : 0); if (low < 0.6) o.v += 0.6 - low; }
@@ -3717,7 +3722,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "prisms": if (!addPrisms(s)) addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break; // Speculum: light through prisms off mirrors
       case "twins": { // two panes mirrored about the track that close and part like doors
         const freq = rand(0.9, 1.3) * (1 + 0.3 * d), phase = rand(0, TAU);
-        [-1, 1].forEach(k => addPane({ s, u: k * 2.0, v: CAM_V + 0.2, w: 2.2, h: 2.9, move: { axis: "u", amp: k * TWIN_AMP, freq, phase } })); // closed, 10 cm apart
+        const tw = LEVEL.paneStd ? LEVEL.paneStd[0] : 2.2; // (a level's one size of glass: they close 10 cm apart all the same)
+        [-1, 1].forEach(k => addPane({ s, u: k * 2.0, v: CAM_V + 0.2, w: tw, h: 2.9, move: { axis: "u", amp: k * (2.0 - tw / 2 - 0.05), freq, phase } })); // closed, 10 cm apart
         break;
       }
       case "lift": addPane({ s, u: 0, v: 3.1, w: 3.4, h: 2.2, move: { axis: "v", amp: 1.6, freq: rand(1.1, 1.7), phase: rand(0, TAU) } }); break;
@@ -6536,7 +6542,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     addSigil(s, u, v); addSigil(s, -u, v);
     const a = sigils[sigils.length - 2], b = sigils[sigils.length - 1];
     a.pair = b; b.pair = a; b.phase = a.phase; a.mir = 1; b.mir = -1;
-    if (superWave % 3 === 0) [-1, 1].forEach(k => addPane({ s: s + 6, u: k * 2.0, v: CAM_V + 0.2, w: 2.2, h: 2.9, move: { axis: "u", amp: k * TWIN_AMP, freq: 1.1, phase: rand(0, TAU) } }));
+    if (superWave % 3 === 0) { const tw = LEVEL.paneStd ? LEVEL.paneStd[0] : 2.2; [-1, 1].forEach(k => addPane({ s: s + 6, u: k * 2.0, v: CAM_V + 0.2, w: tw, h: 2.9, move: { axis: "u", amp: k * (2.0 - tw / 2 - 0.05), freq: 1.1, phase: rand(0, TAU) } })); }
   }
   function hitPairSigil(g, b) {
     g.alive = false; g.hit = true; scene.remove(g.group);
@@ -6847,7 +6853,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       // two ruby bridges out of the tunnel, through its own anchor gates each way: a third of the way a corkscrew twice round, wide (on
       // it glass on the deck or turning over it, solid crosses only, rubies' beams); two thirds a spiral, its usual mix
       spans: [{ c: 1 / 3, turns: 2, len: 190, r: 11 }, { c: 2 / 3, spiral: true, len: 350 }],
-      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "rotor", "lift", "imps", "zigzag", "shutter", "rbeam", "rbeam", "rbeam2"], spanGates: "own",
+      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "rotor", "lift", "imps", "zigzag", "shutter", "rbeam", "rbeam", "rbeam2"], spanGates: "own", paneStd: [2.6, 2.9, 1.3], // one size of glass: 2.6 × 2.9 m, the small ones 1.3 m square
       style: { arch: "tri", blocks: "ruby", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0xa00a24, gateIron: true,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
         shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0],

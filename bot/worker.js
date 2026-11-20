@@ -342,7 +342,7 @@ async function onUpdate(u, env) {
 
 // ---------- Stars ----------
 const invoiceBody = (from, id) => { const pk = PACKS[id]; return { title: "Limbus",
-  description: pk.game ? T(from, "Полная игра: все станции после Vitrum, до самого Lux. Один раз — навсегда.", "The full game: every station past Vitrum, all the way to Lux. Once, for good.")
+  description: pk.game ? T(from, "Полная игра: все станции от Initium до Lux.", "The full game: every station from Initium to Lux.")
     : T(from, `💎 ${pk.crystals} кристаллов для Арсенала +25% бонус.`, `💎 ${pk.crystals} crystals for Armamentarium +25% bonus.`),
   payload: id, currency: "XTR", prices: [{ label: pk.game ? T(from, "Полная игра", "The full game") : `◆ ${pk.crystals}`, amount: pk.stars }] }; };
 async function invoice(req, env) {

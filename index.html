@@ -380,6 +380,7 @@ html:not(.mapready) .menu-in { visibility: hidden; animation: mapwait 0s 6s forw
 .arms .arm[aria-pressed="true"] { background: linear-gradient(180deg, #1b3846, #10242e); color: #f4fbfc;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 6px -1px rgba(16, 36, 46, 0.35); }
 .arms { position: relative; }
+.arm-cur .arm-nm { font: 600 12px var(--display); letter-spacing: 0.1em; text-transform: uppercase; padding-left: 2px; } /* the gun's name in the buttons' face; its price only in the list below */
 .arm-cur img { width: 39px; height: 26px; object-fit: contain; margin: 0 1px 0 -5px; }
 .arm-cur .caret { width: 10px; height: 6px; fill: none; stroke: currentColor; stroke-width: 1.6; margin-left: 2px; opacity: 0.55; transition: transform 0.15s; }
 .arm-cur[aria-expanded="true"] .caret { transform: rotate(180deg); }
@@ -770,7 +771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.538</div>
+      <div class="credit version">v1.0.539</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +972,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.538`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.539`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -8930,7 +8931,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   const ARC = ["vitrum", "labyrinthus", "tao"], ARC_HUBS = ["vitrum", "tao"];
   const LINE_TAO = "#d0642a"; // Linea Tao, Tao through Nox to Lux
   const LINE_GOLD = "#c9a02e"; // Emptio, the crystal shop
-  const HUB_RING = { vitrum: "#2f9a72", tao: LINE_TAO, initium: "#a68bd6", speculum: "#a68bd6" }; // where a dead-end branch leaves, the ring is the branches' lilac
+  const HUB_RING = { vitrum: "#2f9a72", tao: LINE_TAO, initium: LINE_GOLD, speculum: "#a68bd6" }; // where a dead-end branch leaves, the ring is the branches' lilac
   const LINE_MAIN = "#1d6f8f", LINE_ARC = "#2f9a72", LINE_TR = "#b8892b", LINE_BR = "#a68bd6", INK = "#10242e", MUTED = "#8a9ba3";
   // one glyph per station, drawn in a 16-unit box around the station center
   const LOCK_GLYPH = "M-5.5 -1.5H5.5V6H-5.5ZM-3.5 -1.5V-4.5A3.5 3.5 0 0 1 3.5 -4.5V-1.5M0 1.6V3.4"; // a padlock: a level not yet bought
@@ -9021,7 +9022,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     try { makeThumbs(all); } catch (e) { /* no pictures: the names still serve */ }
     const pic = id => armThumbs[id] ? `<img alt="" src="${armThumbs[id]}">` : "";
     const cur = WEAPONS[progress.weapon];
-    el.innerHTML = `<button type="button" class="arm arm-cur" aria-haspopup="listbox" aria-expanded="${armsOpen}" aria-controls="armPop">${pic(progress.weapon)}<span>${esc(cur.name)}</span> <b>−${cur.cost}</b><svg class="caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
+    el.innerHTML = `<button type="button" class="arm arm-cur" aria-haspopup="listbox" aria-expanded="${armsOpen}" aria-controls="armPop"><span class="arm-nm">${esc(cur.name)}</span><svg class="caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
       <div class="arm-pop" id="armPop" role="listbox" aria-label="${esc(T("Пушка на вагонетке", "The cart's cannon"))}"${armsOpen ? "" : " hidden"}></div>`;
     const pop = el.querySelector(".arm-pop"), btn = el.querySelector(".arm-cur");
     for (const id of all) { // the cannons not yet had too, dimmed, with the station that gives them; a tap opens that station's card
@@ -9187,7 +9188,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     }
     // the other lines and the dead-end branches
     for (const ln of MAP_LINES) {
-      const to = byId(ln.to), color = ln.kind === "transfer" ? LINE_TR : ln.kind === "line" ? LINE_MAIN : ln.kind === "tao" ? LINE_TAO : ln.kind === "gift" ? LINE_GOLD : LINE_BR, built = to.playable || to.depot || to.gift;
+      const to = byId(ln.to), color = ln.kind === "transfer" ? LINE_TR : ln.kind === "line" ? LINE_MAIN : ln.kind === "tao" ? LINE_TAO : ln.kind === "gift" || to.id === "thesaurus" ? LINE_GOLD : LINE_BR, built = to.playable || to.depot || to.gift;
       legs(ln.pts, color, built);
     }
     out += `<defs>${fdefs}</defs>`;
@@ -9199,7 +9200,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       const hub = !!HUB_RING[lv.id]; // where two lines meet, or a dead-end branch leaves
       const dark = st === "done" || st === "avail", lit = dark || st === "open" || st === "opened" || st === "gift";
       const fill = lit ? "#ffffff" : "#e6ecee"; // lit stations white by day; by night done ones (and a bought depot) black, open ones navy (CSS)
-      const stroke = lv.gift ? LINE_GOLD : lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (["abyssus", "lux"].includes(lv.id) ? LINE_TAO : ARC.includes(lv.id) && lv.id !== "vitrum" ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
+      const stroke = lv.gift ? LINE_GOLD : lv.id === "thesaurus" ? (lit || st === "locked" ? LINE_GOLD : MUTED) : lv.line === "branch" ? (lit || st === "locked" ? LINE_BR : MUTED) : (lit ? (["abyssus", "lux"].includes(lv.id) ? LINE_TAO : ARC.includes(lv.id) && lv.id !== "vitrum" ? LINE_ARC : LINE_MAIN) : MUTED); // a station wears its line's colour
       const timed = st === "buy" && progress.wk && progress.wk.id === lv.id; // the level the week's countdown opens: its time left for its label
       const glyph = lit ? INK : MUTED, tag = first ? T("нажмите", "tap here") : timed ? wkText() : STATUS(st);
       const L = { b: [p.x, p.y + 42, "middle"], t: [p.x, p.y - 67, "middle"], tl: [p.x - 28, p.y - 46, "end"], tr: [p.x + 28, p.y - 46, "start"], r: [p.x + 32, p.y - 9, "start"], l: [p.x - 30, p.y - 30, "end"], bl: [p.x - 32, p.y + 12, "end"] }[p.label];

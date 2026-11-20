@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.502</div>
+      <div class="credit version">v1.0.503</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.502`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.503`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -8958,7 +8958,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const unlock = () => { progress.full = true; saveProgress(); renderMap(); renderArms(); closeSheet(); renderMap(); pop(T("Все уровни открыты — спасибо!", "Every level is open: thank you!"), "info"); };
       const inTg = TG && BOT_API && TG.isVersionAtLeast("6.1"), c = document.createElement("div"); c.className = "wcard pack";
       const price = window.LimbusPlay ? playPrice || "" : "$3";
-      c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true"><path d="${PK_GEM}" transform="translate(5 0)"/></svg>${esc(T("Полная игра", "The full game"))}${price ? `<small>${esc(price)}</small>` : ""}</h3><p>${esc(T("Все уровни.", "Every level."))}</p>`;
+      c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true"><path d="${PK_GEM}" transform="translate(5 0)"/></svg>${esc(T("Полная игра", "The full game"))}${price ? `<small>${esc(price)}</small>` : ""}</h3><p>${esc(T("Разблокировать все уровни.", "Unlock every level."))}</p>`;
       extra.appendChild(c);
       if (progress.full) button(c, "ghost", T("Куплено", "Bought"), null, true);
       else if (inTg) button(c, "cta", T("Купить", "Buy"), async ev => { // for Stars, in Telegram itself

@@ -5427,12 +5427,13 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   // glass: a block of glass like a pyramid's stone instead of the log, its beam on two posts (an open hall has no walls)
   const gramGeo = new THREE.BoxGeometry(RAM_LEN, 2 * RAM_R, 1.1), gramEdge = new THREE.EdgesGeometry(gramGeo), gramPostGeo = new THREE.BoxGeometry(0.22, H - 0.1, 0.22);
   function addRams(s, both, glass) {
+    s = Math.floor(s / SL) * SL + SL / 2; // in the middle of a stretch of the wall: its one pane of glass taken away
     // a real pendulum: a pair swing as one and meet in the middle; a lone glass block hangs lower and swings as wide
     const ph = rand(0, TAU), sides = both ? [-1, 1] : [Math.random() < 0.5 ? -1 : 1];
     // Tao's logs swing about a point leaned in from straight down, so they hardly swing out at the wall behind them
     const L = glass && !both ? RAM_L + 0.6 : RAM_L, c0 = glass ? 0 : 0.18, amp = glass ? (both ? rand(0.45, 0.55) : rand(0.5, 0.58)) : 0.3, w0 = Math.sqrt(G / L);
     for (let k = Math.floor(s / SL) - 2; k <= Math.floor(s / SL) + 2; k++) { const dc = getDecor(k); dc.arch = false; dc.pyr = null; }
-    for (let k = Math.floor((s - 1.4) / SL); k <= Math.floor((s + 1.4) / SL); k++) { const dc = getDecor(k); for (const sd of sides) dc[sd < 0 ? "wl" : "wr"] = dc[sd < 0 ? "wl0" : "wr0"] = false; } // room to swing out: the wall away only just where it swings through (1.1 m deep), not 10 m of it
+    { const dc = getDecor(Math.floor(s / SL)); for (const sd of sides) dc[sd < 0 ? "wl" : "wr"] = dc[sd < 0 ? "wl0" : "wr0"] = false; } // room to swing out: one pane of the wall away, the one it swings through (it hangs in its middle, 1.1 m deep in a 2 m pane)
     for (const side of sides) {
       const root = new THREE.Group(); root.matrixAutoUpdate = false;
       root.add(new THREE.Mesh(ramBeamGeo, frameMat));

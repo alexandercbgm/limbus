@@ -1439,6 +1439,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         vec2 cl = floor(sk), f = fract(sk); float up = step(f.x + f.y, 1.0);
         float e = up > 0.5 ? min(min(f.x, f.y), 1.0 - f.x - f.y) : min(min(1.0 - f.x, 1.0 - f.y), f.x + f.y - 1.0);
         float s = h3(vec3(cl, up + 2.0));
+        // about the poles, where the facets crowd together as a globe's meridians do into a muddle, rings instead: one about the pole
+        // and the rest round it, each of one of the facets' own reds (none of the palest), with the same seams
+        float th = acos(clamp(abs(n.y), 0.0, 1.0));
+        if (th < 0.44) { float rr = th / 0.075, ri = floor(rr), fr = rr - ri; s = h3(vec3(ri, n.y > 0.0 ? 3.0 : 9.0, 11.0)) * 0.84; e = th > 0.41 ? min(min(fr, 1.0 - fr), (0.44 - th) / 0.075) * 0.27 : min(fr, 1.0 - fr) * 0.27; if (ri < 0.5) e = (1.0 - fr) * 0.27; }
         vec3 deep = vec3(0.4, 0.01, 0.06), juice = vec3(0.62, 0.02, 0.09), bright = vec3(0.9, 0.07, 0.17), light = vec3(0.98, 0.26, 0.36);
         vec3 col = s < 0.3 ? mix(deep, juice, s / 0.3) : s < 0.85 ? mix(juice, bright, (s - 0.3) / 0.55) : mix(bright, light, (s - 0.85) / 0.15); // only reds: none near black, none near white
         col *= 0.88 + 0.2 * sin(t * 0.55 + s * 41.0); // each facet catches the light in its turn
@@ -2204,8 +2208,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     hex: inst(hexFrameGeo(4.9, 0.22), frameMat, 125), // Vitrum and Speculum: a hexagonal frame with a flat edge on the floor, square in section
     tribar: inst(new THREE.BoxGeometry(1, 0.26, 0.26), frameMat, 240), // Rubinus: the sides of its triangular frames
     prism: inst((() => { const g = new THREE.OctahedronGeometry(0.75, 0), n = g.attributes.position.count, b = new Float32Array(n * 3); for (let i = 0; i < n; i++) b[i * 3 + i % 3] = 1; g.setAttribute("bary", new THREE.BufferAttribute(b, 3)); return g; })(), prismMat, 260), // (bary: for Lux's gold edges)
-    gDia: inst(GEM_CUTS.gDia, rubyMat, 40), gEmer: inst(GEM_CUTS.gEmer, rubyMat, 40), // Rubinus: rubies over the abyss
-    gOval: inst(GEM_CUTS.gOval, rubyMat, 40), gPear: inst(GEM_CUTS.gPear, rubyMat, 40),
+    gDia: inst(GEM_CUTS.gDia, rubyMat, 110), gEmer: inst(GEM_CUTS.gEmer, rubyMat, 110), // Rubinus: rubies over the abyss
+    gOval: inst(GEM_CUTS.gOval, rubyMat, 110), gPear: inst(GEM_CUTS.gPear, rubyMat, 110),
     // Vitrum, out over the abyss: crystals of quartz, six-sided, pointed at both ends, 2 high and 0.64 across before they're scaled
     quartz: inst(new THREE.LatheGeometry([[0, -1], [0.32, -0.62], [0.32, 0.62], [0, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 6), quartzMat, 220),
     // and a cluster's: one point, the flat foot at the origin (2 long before it's scaled)
@@ -2430,18 +2434,25 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       decor.set(k, d); return d;
     }
-    if (STYLE.blocks === "ruby") { // Rubinus: cut rubies spread evenly, one every 6 m, the sides taking turns. Each turned any way about
-      // its upright and leaning up to 35 degrees, never on its side nor upside down; swaying a little
-      if (k % 3 === 0) {
-        // where on its side, out and up: a low-discrepancy (R2) sequence along the side, so the stones never bunch the way hashes can;
-        // the cut steps on by one or two each stone, so no two neighbours, nor two in a row on one side, share a cut
-        const m = k / 3, n = Math.floor(m / 2), h3 = (0.5 + n * 0.7548777) % 1, h2 = (0.5 + n * 0.5698403) % 1;
-        const h1 = hash(k * 31), side = m % 2 ? 1 : -1, r = 1.6 + hash(k * 29) * 2.0, la = hash(k * 41) * TAU, lt = 0.1 + hash(k * 43) * 0.5;
-        const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), hash(k * 47) * TAU);
-        const key = ["gDia", "gEmer", "gOval", "gPear"][(m + Math.floor(m / 2)) % 4];
-        const dia = key === "gDia"; // a brilliant from above or below shows only its round outline: kept about eye height and farther off, so it's seen side on
-        d.blocks.push({ key, u: side * (SW + 5 + (dia ? 6 : 0) + h3 * 15 + r), v: dia ? CAM_V - r * 0.15 + (h2 - 0.5) * 1.2 : -4 + h2 * 12, sx: r, sy: r, sz: r,
-          q: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(la), 0, Math.sin(la)), key === "gDia" ? lt * 0.4 : lt).multiply(yaw), sway: h1 * TAU }); // the brilliant leans less: up to 14 degrees
+    if (STYLE.blocks === "ruby") { // Rubinus: cut rubies out on either side, as many and as big as Vitrum's quartz: every 4 m a place, holding
+      // nothing (15 in 100), a lone stone (45) or a cluster of two or three (40). Each turned any way about its upright and leaning
+      // up to 35 degrees, never on its side nor upside down; swaying a little. (One every 6 m, smaller, had left the sky bare)
+      if (k % 2 === 0) {
+        // where on its side, out and up: a low-discrepancy (R2) sequence along the side, so the places never bunch the way hashes can;
+        // the cut steps on each place, so no two neighbours share one
+        const m = k / 2, n = Math.floor(m / 2), h3 = (0.5 + n * 0.7548777) % 1, h2 = (0.5 + n * 0.5698403) % 1, r0 = hash(k * 11 + 1);
+        const side = hash(k * 31) < 0.5 ? -1 : 1, keys = ["gDia", "gEmer", "gOval", "gPear"], k0 = (m + Math.floor(m / 3)) % 4;
+        const stone = (j, r, du, dv, ds) => {
+          const key = keys[(k0 + j) % 4], dia = key === "gDia", la = hash(k * 41 + j) * TAU, lt = 0.1 + hash(k * 43 + j) * 0.5; // a brilliant from above or below shows only its round outline: kept about eye height, seen side on
+          const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), hash(k * 47 + j) * TAU);
+          d.blocks.push({ key, u: side * (SW + 5 + (dia ? 6 : 0) + h3 * 18 + r) + du, v: (dia ? CAM_V - r * 0.15 + (h2 - 0.5) * 1.2 : -6 + h2 * 16) + dv, ds, sx: r, sy: r, sz: r,
+            q: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(Math.cos(la), 0, Math.sin(la)), dia ? lt * 0.4 : lt).multiply(yaw), sway: hash(k * 53 + j) * TAU }); // (the brilliant leans less: up to 14 degrees)
+        };
+        const r = 2.2 + hash(k * 29) * 2.6;
+        if (r0 < 0.15) { /* nothing here */ }
+        else if (r0 < 0.6) stone(0, r, 0, 0, 0);
+        else { stone(0, r, 0, 0, 0); const nn = r0 < 0.82 ? 1 : 2; // a cluster: smaller stones about the first
+          for (let j = 1; j <= nn; j++) { const a = hash(k * 61 + j) * TAU, rr = r * (0.55 + hash(k * 67 + j) * 0.25), dd = r + rr + 0.6; stone(j, rr, Math.cos(a) * dd * side, Math.sin(a) * dd * 0.7, (hash(k * 71 + j) - 0.5) * 2 * dd); } }
       }
       decor.set(k, d); return d;
     }

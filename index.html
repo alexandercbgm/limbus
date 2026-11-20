@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.512</div>
+      <div class="credit version">v1.0.513</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.512`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.513`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1000,12 +1000,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function planSpans() {
     SPANS = [];
     if (!LEVEL.spans) return;
-    const mk = (a, turns, len, r, dir) => {
+    const mk = (a, turns, len, r, dir, spiral) => {
       const tw0 = a + SPAN_LEAD, tw1 = tw0 + len, sp = { a, b: tw1 + SPAN_LEAD, tw0, tw1, turns, dir, r, piers: [], k: 0, ft: -1 }; // k: how far formed (straight till the cart is near)
+      if (spiral) { Object.assign(sp, { spiral: true, turns: 0, r: 0, piers: [tw0, tw1] }); SPANS.push(sp); return; } // a spiral bridge (Rubinus): it does not turn over, it coils round (an LTW spiral over its stretch, planLux); piers at its two ends only, the coils pass over each other
       for (let k = 0; k <= turns; k++) { let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (spanPhase(m) * turns < k) lo = m; else hi = m; } sp.piers.push(tw0 + (lo + hi) / 2 * len); }
       SPANS.push(sp);
     };
-    for (const o of LEVEL.spans) mk(Math.round(o.a !== undefined ? MAIN_LEN * o.a : MAIN_LEN * o.c - SPAN_LEAD - o.len / 2), o.turns, o.len, o.r, o.dir || (Math.random() < 0.5 ? -1 : 1));
+    for (const o of LEVEL.spans) mk(Math.round(o.a !== undefined ? MAIN_LEN * o.a : MAIN_LEN * o.c - SPAN_LEAD - o.len / 2), o.turns, o.len, o.r, o.dir || (Math.random() < 0.5 ? -1 : 1), o.spiral);
   }
   // how far through its turns a bridge is, x the way along its turning stretch: it eases into turning over the first fifth, turns
   // evenly, and eases out over the last fifth (an even turn reads as the track's own; the middle turn had come round twice as fast)
@@ -1065,6 +1066,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       m.dirNow = m.dirFrom = m.dir; m.pdirNow = m.pdirFrom = m.pdir; m.mt = 99; LTW.push(m);
     };
     if (LEVEL.id === "vitrum") add("spiral", L / 3);
+    for (const sp of SPANS) if (sp.spiral) { add("spiral", sp.tw0 + (sp.tw1 - sp.tw0) / 2, { len: sp.tw1 - sp.tw0 }); LTW[LTW.length - 1].span = sp; } // Rubinus: its second bridge a spiral, formed as the cart comes, no gantry
     if (LEVEL.id === "abyssus") { add("screw", L / 3); add("spiral", L * 2 / 3, { len: 350 }); } // Nox: the corkscrew, then the spiral (wider than Lux's: 30 m of the way in sight), formed as the cart comes, no gantry
     LOOPS = [];
     if (LEVEL.id === "initium") { add("drill", L / 3); // Initium: its drill a third of the way, two loops two thirds of the way, the first to the side the drill did not turn
@@ -3446,6 +3448,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // a pane over the rails keeps its foot clear of them (their tops are at 0.26): a short one is raised, a tall one standing on the
   // floor stops short above them, its top where it was; so one sliding across the track passes over the rails, not through them
   const RAIL_CLEAR = 0.42;
+  const FP_L = 3.4, FP_U = 2.35, FP_V = 5.6, FP_A = Math.asin((FP_U - 2.6 / 2 - 0.04) / FP_L); /* (2.6: RAM_LEN, set further on) */ // the hovering pair: as on chains 3.4 m long hung 2.35 m out, swung in till they all but touch
   const TWIN_AMP = 2.0 - 2.2 / 2 - 0.05; // twin panes 2.2 m wide about ±2 m: at their closest 10 cm apart (they swung 1 m and overlapped by 20 cm)
   // how far out from the track's middle glass may reach at height v without passing through the level's walls or glazing:
   // Vitrum's glazing is a hexagon (pointed at the sides, so narrower toward floor and roof), the rest stand between upright walls
@@ -3474,12 +3477,24 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return { lines: new THREE.BufferGeometry().setFromPoints(seg.map(v3)), light: tris([[T, LT, KT], [LT, LB, KB], [LT, KB, KT], [B, KB, LB]]), dark: tris([[T, KT, RT], [KT, KB, RB], [KT, RB, RT], [B, RB, KB]]),
       lightMat: mat(0.24), darkMat: mat(0.1) };
   })();
+  // Rubinus's: its own sign, a step-cut ruby (the glyph on the scheme), frosted the same way: the girdle's octagon, the table's and the
+  // eight steps between, those to the upper left lighter, to the lower right darker, the table clear. Made 1 m high, as the crystal
+  const ENGRAVE_RUBY = (() => {
+    const k = 1 / 15, O = [[-3.5, 7.5], [3.5, 7.5], [5.5, 5.5], [5.5, -5.5], [3.5, -7.5], [-3.5, -7.5], [-5.5, -5.5], [-5.5, 5.5]].map(([x, y]) => [x * k, y * k]),
+      In = [[-2, 4.5], [2, 4.5], [3, 3.5], [3, -3.5], [2, -4.5], [-2, -4.5], [-3, -3.5], [-3, 3.5]].map(([x, y]) => [x * k, y * k]);
+    const v3 = q => new THREE.Vector3(q[0], q[1], 0), seg = [], lt = [], dk = [];
+    for (let i = 0; i < 8; i++) { const j = (i + 1) % 8; seg.push(O[i], O[j], In[i], In[j], O[i], In[i]); const quad = [[O[i], O[j], In[j]], [O[i], In[j], In[i]]]; if (i === 0 || i === 6 || i === 7) lt.push(...quad); else if (i >= 2 && i <= 4) dk.push(...quad); } // (the two corners between, upper right and lower left, left clear)
+    const tris = list => new THREE.BufferGeometry().setFromPoints(list.flat().map(v3));
+    const mat = o => new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: o, depthWrite: false, side: THREE.DoubleSide });
+    return { lines: new THREE.BufferGeometry().setFromPoints(seg.map(v3)), light: tris(lt), dark: tris(dk), lightMat: mat(0.24), darkMat: mat(0.1) };
+  })();
   function engrave(g, o) {
     // as the logo's, never stretched, in two sizes: 0.9 m on glass under 4 m high, 1.15 m on full-height glass, each of a kind
     // just the same
     const ch = (o.h < 4 ? Math.min(0.9, o.h * 0.42) : 1.15), e = new THREE.Group();
     e.scale.setScalar(ch); e.position.z = 0.004;
-    e.add(new THREE.LineSegments(ENGRAVE.lines, edgeMat), new THREE.Mesh(ENGRAVE.light, ENGRAVE.lightMat), new THREE.Mesh(ENGRAVE.dark, ENGRAVE.darkMat)); g.add(e);
+    const E = LEVEL.id === "rubinus" ? ENGRAVE_RUBY : ENGRAVE;
+    e.add(new THREE.LineSegments(E.lines, edgeMat), new THREE.Mesh(E.light, E.lightMat), new THREE.Mesh(E.dark, E.darkMat)); g.add(e);
   }
   function addPane(o) {
     // no glass that stands clear of the floor (a hovering block, a pane gliding up and down) ever comes down into the rails: its lowest
@@ -3507,7 +3522,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     g.add(new THREE.Mesh(geo, reinf ? reinfMat : glassMat));
     g.add(new THREE.LineSegments(eg, reinf ? reinfEdgeMat : edgeMat));
     if (reinf) { const inner = new THREE.LineSegments(eg, reinfEdgeMat); inner.scale.set(0.86, 0.86, 1); g.add(inner); }
-    if (LEVEL.id === "thesaurus" && !reinf && !o.thick && !o.cross && o.rot === undefined) engrave(g, o); // (on every pane, big, tall and full-height too)
+    if ((LEVEL.id === "thesaurus" || LEVEL.id === "rubinus") && !reinf && !o.thick && !o.cross && o.rot === undefined) engrave(g, o); // (on every pane, big, tall and full-height too)
     scene.add(g);
     const pn = Object.assign({ bu: o.u, bv: o.v, hp: 1, group: g, geo, eg, alive: true, C: new THREE.Vector3(), R: new THREE.Vector3(), U: new THREE.Vector3(), T: new THREE.Vector3(), q: new THREE.Quaternion(), cracks: [] }, o, { maxhp: o.hp || 1, mat: reinf ? reinfMat : glassMat }); panes.push(pn);
     mirrorReg(g, () => pn.s); // Speculum: reflected in the mirrors
@@ -3578,7 +3593,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     gates.forEach(g => scene.remove(g.root)); gates = []; lastGateS = -1e9;
     catas.forEach(c => { scene.remove(c.root); scene.remove(c.slab); if (c.shot) scene.remove(c.ball); if (c.beam) { scene.remove(c.beam); scene.remove(c.dot); } }); catas = []; lastCataS = -1e9;
     rams.forEach(r => scene.remove(r.root)); rams = []; hmills.forEach(m => scene.remove(m.root)); hmills = []; doors.forEach(dropDoor); doors = [];
-    pgears.forEach(x => scene.remove(x.root)); pgears = []; spinners.forEach(x => scene.remove(x.root)); spinners = []; lblocks.forEach(x => scene.remove(x.root)); lblocks = []; lbars.forEach(x => x.bars.forEach(b => scene.remove(b.root))); lbars = []; prismSets.forEach(x => scene.remove(x.root)); prismSets = []; gears.forEach(x => x.gears.forEach(g => { scene.remove(g.root); scene.remove(g.pin.root); })); gears = []; barBits.forEach(x => scene.remove(x.root)); barBits = [];
+    pgears.forEach(x => scene.remove(x.root)); pgears = []; spinners.forEach(x => scene.remove(x.root)); spinners = []; lblocks.forEach(x => scene.remove(x.root)); lblocks = []; lbars.forEach(x => x.bars.forEach(b => scene.remove(b.root))); lbars = []; prismSets.forEach(x => scene.remove(x.root)); prismSets = []; rubeams.forEach(x => scene.remove(x.root)); rubeams = []; bursts.forEach(dropBurst); bursts = []; gears.forEach(x => x.gears.forEach(g => { scene.remove(g.root); scene.remove(g.pin.root); })); gears = []; barBits.forEach(x => scene.remove(x.root)); barBits = [];
     wheels.forEach(w => scene.remove(w.ring)); wheels = [];
     pendingHits = [];
     beamMat.opacity = 0; needle.t0 = -9; needleHead.visible = false; trails.forEach(t => { t.visible = false; }); gasBirth.fill(-99); gasGeo.attributes.birth.needsUpdate = true;
@@ -3612,7 +3627,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     sigils = off(sigils, c => scene.remove(c.group)); drops = off(drops, c => scene.remove(c.group)); thorns = off(thorns, c => scene.remove(c.group));
     hangers = off(hangers, h => { scene.remove(h.root); scene.remove(h.body); }); hmills = off(hmills, m => scene.remove(m.root));
     spinners = off(spinners, x => scene.remove(x.root)); rams = off(rams, x => scene.remove(x.root)); lblocks = off(lblocks, x => scene.remove(x.root));
-    lbars = off(lbars, x => x.bars.forEach(b => scene.remove(b.root))); prismSets = off(prismSets, x => scene.remove(x.root));
+    lbars = off(lbars, x => x.bars.forEach(b => scene.remove(b.root))); prismSets = off(prismSets, x => scene.remove(x.root)); rubeams = off(rubeams, x => scene.remove(x.root));
   }
   // no crystal inside anything solid: a prism gear's disc and teeth (one had sat in a gear's hole), a catapult or crossbow and its
   // glass, a block on a chain and its swing, a gate, a gantry; whatever came first
@@ -3643,7 +3658,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function spawnGroupAt(s) {
     if (tut && s < TUT_END) return; // Initium's first ride: only what the lesson sets down, till it is over
     // Carcer's doors come up as the track reaches them, and nothing else is set down right at one
-    while (doorPlan.length && doorPlan[0].s < s + 12) spawnDoor(doorPlan.shift());
+    while (doorPlan.length && doorPlan[0].s < s + 12) { const q = doorPlan.shift(); if (q.kind === "own") addGate(q.s, "h"); else spawnDoor(q); } // (Rubinus's bridges: its own gates, the doors on anchor chains)
     while (pgPlan.length && pgPlan[0] < s + 12) { addPrismGear(pgPlan.shift()); crystalsClear(); }
     while (luxPlan.length && luxPlan[0].s < s + 12) { const q = luxPlan.shift(); if (q.k === "iris") addGate(q.s, "iris"); else addSwitch(q.m); }
     if (!LEVEL.coaster && LTW.some(m => s > m.sw - 24 && s < m.sw + 16)) return; // nothing at a manoeuvre's gantry (the coaster has none), nor nearer before it than one group to the next
@@ -3665,7 +3680,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const spn = !spawnGroupKind && spanAt(s);
     if (spn) { // on Speculum's bridges only glass that stands on the deck or turns over it: nothing on chains, nothing off the walls
       if (s < spn.a + 16 || s > spn.b - 8) return;
-      const opts = LEVEL.spanPats || ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
+      if (spn.spiral) { if (pat === "doors" || pat === "gate") pat = Math.random() < 0.5 ? "center" : "fpend"; if (Math.random() < 0.22) pat = Math.random() < 0.6 ? "rbeam" : "rbeam2"; } // and now and then a ruby's beam // a spiral bridge: the level's own mix, all but its gates
+      else { const opts = LEVEL.spanPats || ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; }
     }
     if (!spawnGroupKind && LEVEL.id === "lux") { // Lux: its big obstacles evenly spread, never two within 55 m (they had heaped up: two pairs of gears and a
       // catapult, none to be shot down in time, and then hundreds of metres with none); past 150 m without one, the next group is one
@@ -3676,7 +3692,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       else if (!BIG.includes(pat) && !near && s - last > 150) pat = BIG[Math.floor(Math.random() * BIG.length)];
     }
     if (!spawnGroupKind && pat === "catapult" && LTW.some(m => LEVEL.id === "lux" ? s > m.sw - 200 && s < m.tw1 + 20 : s > m.sw - 60 && s < m.sw + 30)) pat = "center"; // (its glass flies far: none toward a gantry; elsewhere none just before one)
-    const onM = !spawnGroupKind && (LTW.find(m => s > m.sw && s < m.tw1 + 14) || LOOPS.find(l => s > l.s0 - 10 && s < l.s0 + l.len + 10)); // (from the gantry on: nothing big just past it, hiding its targets; on Initium's loops glass only)
+    const onM = !spawnGroupKind && (LTW.find(m => !m.span && s > m.sw && s < m.tw1 + 14) || LOOPS.find(l => s > l.s0 - 10 && s < l.s0 + l.len + 10)); // (from the gantry on: nothing big just past it, hiding its targets; on Initium's loops glass only)
     if (onM && LEVEL.id === "vitrum") { // Vitrum: its own mix on its manoeuvres as anywhere (they have room: all had been made plain glass, the level gone
       // poor), but nothing on chains where it would not hang (on the loop once it has begun to climb, on the ring), nor a gate up the loop
       const lpA = LOOPS.find(l => l.kind === "v" && s > l.s0 - 10 && s < l.s0 + l.len + 10), onRing = LOOPS.some(l => l.kind === "h" && s > l.s0 - 10 && s < l.s0 + l.len + 10);
@@ -3781,6 +3797,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "fblocks": { // glass blocks hovering over the bridge, no chains: one, or two at different heights, gliding; one hit breaks one
         const n = Math.random() < 0.55 ? 1 : 2;
         for (let i = 0; i < n; i++) { const ax = Math.random() < 0.5 ? "u" : "v"; addPane({ s: s - i * 5, u: rand(-0.8, 0.8), v: i ? rand(3.4, 3.9) : ax === "v" ? rand(1.75, 2.2) : rand(1.35, 1.9), w: RAM_LEN, h: 2 * RAM_R, thick: 1.1, move: ax === "u" ? { axis: "u", amp: 1.4, freq: rand(0.7, 1.1), phase: rand(0, TAU) } : { axis: "v", amp: 0.5, freq: rand(0.8, 1.2), phase: rand(0, TAU) } }); }
+        break;
+      }
+      case "rbeam": if (!addRubyBeam(s, false)) addRubyBeam(s, true); break; // Rubinus's bridges: a ruby's beam sweeping, or a pair's gliding
+      case "rbeam2": addRubyBeam(s, true); break;
+      case "fpend": { // Rubinus's bridges: two glass blocks hovering either side, swinging in as on chains, with none: they meet over the rails
+        const freq = Math.sqrt(G / FP_L) * rand(0.95, 1.1), phase = rand(0, TAU);
+        [-1, 1].forEach(k => addPane({ s, u: k * FP_U, v: FP_V - FP_L, w: RAM_LEN, h: 2 * RAM_R, thick: 1.1, rot: 0, spin: 0, move: { axis: "arc", k, amp: FP_A, freq, phase } }));
         break;
       }
       case "prisms": if (!addPrisms(s)) addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break; // Speculum: light through prisms off mirrors
@@ -3969,6 +3992,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (p.maxhp > 1 && !p.cross) { crumblePane(p, lx, ly); return; } // armoured glass crumbles into chunks, as a slab on a chain does
     if (p.thick) { chunkPane(p, lx, ly, impL); return; }
     removePane(p);
+    if (!p.cross && p.mat === glassMat && p.w * p.h > 10 && !STYLE.mirror) { burstPane(p, lx, ly, impL); return; } // a big pane: its burst on the GPU
     if (p.cross) { // a cross breaks as its two bars
       const { w, h } = p;
       shatterRect(p, lx, ly, impL);
@@ -3976,6 +4000,115 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return;
     }
     shatterRect(p, lx, ly, impL);
+  }
+  // ---------- a big pane's burst, worked out on the GPU ----------
+  // a pane of more than 10 m² (a wall of glass, a maze's partition, a tall pane) had broken as a small one does: 20 spokes, 60
+  // pieces, the outer ones metres long, each piece two draws of its own (its body and its lit edges) moved by the CPU every frame;
+  // a few at once made a phone stutter. Now it breaks into pieces of a small pane's size (the spokes split in two outward, so they
+  // stay that size out to the edge), a few hundred, all in one mesh and one set of edges: where each piece is, how it flies, turns,
+  // lands on the deck and settles flat on its face is worked out in the vertex shader from how it set off, so a burst costs two
+  // draws and nothing on the CPU after it is made. The crack runs out from the blow (40 m/s), each piece breaking away as it reaches it.
+  // Pieces off the deck fall away and shrink out; those on it lie till passed
+  let bursts = [];
+  const burstU = { value: 0 };
+  const BURST_HEAD = `attribute vec3 aP; attribute vec3 aC; attribute vec3 aV; attribute vec3 aW; attribute vec4 aQ; attribute vec4 aT; attribute vec3 aG;
+uniform float uBurstT;
+vec3 bQr(vec4 q, vec3 v) { return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v); }
+vec3 bAr(vec3 w, float t, vec3 v) { float l = length(w), a = l * t; if (a < 1e-5) return v; vec3 k = w / l; return v * cos(a) + cross(k, v) * sin(a) + k * dot(k, v) * (1.0 - cos(a)); }
+vec3 bFl(vec3 v, float y) { float c = cos(y), s = sin(y); return vec3(v.x * c - v.y * s, v.z, v.x * s + v.y * c); }
+vec3 bPos() { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y), st = clamp((age - aT.y) / 0.16, 0.0, 1.0);
+  vec3 off = mix(bAr(aW, te, bQr(aQ, aP)), bFl(aP, aT.w), st);
+  float sh = age < aT.y ? 1.0 - smoothstep(aT.z, aT.z + 0.6, age) : 1.0;
+  return aC + aV * te + 0.5 * aG * te * te + off * sh; }
+vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); return normalize(mix(bAr(aW, te, bQr(aQ, n)), bFl(n, aT.w), clamp((age - aT.y) / 0.16, 0.0, 1.0))); }
+`;
+  const burstify = (mat, key, normals) => { mat.onBeforeCompile = function (sh, r) { THREE.Material.prototype.onBeforeCompile.call(this, sh, r); sh.uniforms.uBurstT = burstU;
+    sh.vertexShader = BURST_HEAD + sh.vertexShader.replace("#include <begin_vertex>", "vec3 transformed = bPos();");
+    if (normals) sh.vertexShader = sh.vertexShader.replace("#include <beginnormal_vertex>", "vec3 objectNormal = bNor(vec3(normal));"); };
+    mat.customProgramCacheKey = () => key; return mat; };
+  const burstMat = burstify(glassMat.clone(), "burst", true), burstEdgeMat = burstify(edgeMat.clone(), "burstEdge", false);
+  // the pieces of a w × h pane struck at (lx, ly): rings out from the blow ever farther apart, spokes between them that split in two
+  // where a piece would grow wider than a small pane's; each piece a convex polygon, clipped to the pane
+  function burstPieces(hw, hh, lx, ly) {
+    const maxR = Math.max(...[[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(([x, y]) => Math.hypot(x - lx, y - ly)));
+    const rings = [0]; for (let r = rand(0.16, 0.26); rings[rings.length - 1] < maxR; r += clamp(0.3 + 0.24 * r, 0.3, 0.95) * rand(0.8, 1.2)) rings.push(r);
+    let angs = []; const n0 = 16, base = rand(0, TAU); for (let i = 0; i < n0; i++) angs.push(base + (i + rand(-0.3, 0.3)) * TAU / n0);
+    const P = (a, r) => [lx + Math.cos(a) * r, ly + Math.sin(a) * r], out = [];
+    const clip = (poly, ax, sg, lim) => { const res = []; for (let i = 0; i < poly.length; i++) { const A = poly[i], B = poly[(i + 1) % poly.length], ia = sg * A[ax] <= lim, ib = sg * B[ax] <= lim;
+      if (ia) res.push(A); if (ia !== ib) { const k = (lim - sg * A[ax]) / (sg * B[ax] - sg * A[ax]); res.push([A[0] + (B[0] - A[0]) * k, A[1] + (B[1] - A[1]) * k]); } } return res; };
+    for (let k = 0; k + 1 < rings.length; k++) {
+      const r0 = rings[k], r1 = rings[k + 1], fine = [];
+      for (let i = 0; i < angs.length; i++) { const a0 = angs[i], a1 = i + 1 < angs.length ? angs[i + 1] : angs[0] + TAU; fine.push(a0); if ((a1 - a0) * r1 > 1.05) fine.push(a0 + (a1 - a0) * rand(0.4, 0.6)); }
+      for (let i = 0; i < angs.length; i++) {
+        const a0 = angs[i], a1 = i + 1 < angs.length ? angs[i + 1] : angs[0] + TAU, mids = fine.filter(a => a > a0 + 1e-6 && a < a1 - 1e-6);
+        let poly = [...(r0 ? [P(a0, r0)] : [[lx, ly]]), P(a0, r1), ...mids.map(a => P(a, r1)), P(a1, r1), ...(r0 ? [P(a1, r0)] : [])];
+        poly = clip(clip(clip(clip(poly, 0, 1, hw), 0, -1, hw), 1, 1, hh), 1, -1, hh);
+        if (poly.length < 3) continue;
+        let ar = 0; for (let j = 0; j < poly.length; j++) { const [x1, y1] = poly[j], [x2, y2] = poly[(j + 1) % poly.length]; ar += x1 * y2 - x2 * y1; }
+        if (Math.abs(ar) > 2e-3) out.push(poly);
+      }
+      angs = fine;
+    }
+    return out;
+  }
+  function burstPane(p, lx, ly, impL) {
+    const hw = p.w / 2, hh = p.h / 2; lx = clamp(lx, -hw + 0.03, hw - 0.03); ly = clamp(ly, -hh + 0.03, hh - 0.03);
+    const polys = burstPieces(hw, hh, lx, ly), H = SHARD_T / 2;
+    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), burstMat), lines = new THREE.LineSegments(new THREE.BufferGeometry(), burstEdgeMat);
+    mesh.matrixAutoUpdate = lines.matrixAutoUpdate = false; mesh.frustumCulled = lines.frustumCulled = false;
+    setObj(mesh, p.s, 0, 0); const fP = _P.clone(), fR = _R.clone(), fU = _U.clone(), fT = _T.clone(); // the track's frame at the pane: x across, y up, z back toward the cart
+    const qf = new THREE.Quaternion().setFromRotationMatrix(mesh.matrix), Q = qf.clone().invert().multiply(p.q); // the pane's turn within that frame
+    const toF = (w, o) => o.set(w.dot(fR), w.dot(fU), -w.dot(fT));
+    const g = toF(new THREE.Vector3(0, -G, 0), new THREE.Vector3()), fw = (openAt(p.s) || iniOpen(p.s) ? BRIDGE_W : spanAt(p.s) ? SW : LEVEL.halls ? HALL_W : STYLE.floorW || SW) + 0.1;
+    const prevM = p.pm && p.pdt > 0 ? p.pm : null, inv = new THREE.Matrix4().copy(p.group.matrix).invert();
+    // typed arrays sized up front, filled in place (with arrays grown by push a big pane took 15 ms to break, a hitch)
+    let nv = 0, nl = 0; for (const q of polys) { nv += 6 * (q.length - 2); nl += 2 * q.length; } // (no sides: 4 cm of glass edge-on is its lit outline)
+    const mk = (n, w) => new Float32Array(n * w), KS = [["aP", 3], ["aC", 3], ["aV", 3], ["aW", 3], ["aQ", 4], ["aT", 4], ["aG", 3]];
+    const A = { position: mk(nv, 3), normal: mk(nv, 3) }, L = { position: mk(nl, 3) }; for (const [k, w] of KS) { A[k] = mk(nv, w); L[k] = mk(nl, w); }
+    let ia = 0, il = 0; const per = { aC: [0, 0, 0], aV: [0, 0, 0], aW: [0, 0, 0], aQ: [Q.x, Q.y, Q.z, Q.w], aT: [0, 0, 0, 0], aG: [g.x, g.y, g.z] };
+    const vert = (B, i, x, y, z, nx, ny, nz) => { B.aP[i * 3] = x; B.aP[i * 3 + 1] = y; B.aP[i * 3 + 2] = z; if (B.normal) { B.normal[i * 3] = nx; B.normal[i * 3 + 1] = ny; B.normal[i * 3 + 2] = nz; } };
+    const spread = (B, a, b) => { for (const [k, w] of KS) if (k !== "aP") { const src = per[k], dst = B[k]; for (let i = a; i < b; i++) for (let j = 0; j < w; j++) dst[i * w + j] = src[j]; } }; // what the piece's every corner shares
+    const Wc = new THREE.Vector3(), was = new THREE.Vector3(), V = new THREE.Vector3(), C = new THREE.Vector3(), Vl = new THREE.Vector3();
+    for (const poly of polys) {
+      let cx = 0, cy = 0; poly.forEach(([x, y]) => { cx += x; cy += y; }); cx /= poly.length; cy /= poly.length;
+      const pl = poly.map(([x, y]) => [x - cx, y - cy]); let size = 0; pl.forEach(([x, y]) => { size = Math.max(size, Math.hypot(x, y)); });
+      Wc.copy(p.C).addScaledVector(p.R, cx).addScaledVector(p.U, cy);
+      let dx = cx - lx, dy = cy - ly; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+      const spd = Math.max(0.9, (2.2 + Math.random() * 3) / (0.7 + d * 0.55)); // (the far ones too, so the whole sheet comes down, not hangs)
+      V.set(0, 0, 0).addScaledVector(p.R, dx * spd + impL.x * 0.06).addScaledVector(p.U, dy * spd + impL.y * 0.06 + 0.6).addScaledVector(p.T, Math.min(impL.z * (0.15 + Math.random() * 0.25), SHARD_FWD_THIN * (0.2 + 0.8 * Math.random()) / (0.8 + d * 0.35)));
+      if (prevM) { was.copy(Wc).applyMatrix4(inv).applyMatrix4(prevM); was.subVectors(Wc, was).divideScalar(p.pdt); if (was.lengthSq() < 900) V.add(was); } // the pane's own motion
+      toF(C.copy(Wc).sub(fP), C); toF(V, Vl);
+      const ks = 1 / (1 + size * 1.2); per.aW[0] = (Math.random() - 0.5) * 10 * ks; per.aW[1] = (Math.random() - 0.5) * 10 * ks; per.aW[2] = (Math.random() - 0.5) * 6 * ks + (p.rot !== undefined ? p.spin : 0);
+      // where it comes down on the deck (its middle a thickness over it), if it does: before that it flies and turns, then lies flat
+      let tl = 1e6; const y0 = C.y - 0.05, disc = Vl.y * Vl.y - 2 * g.y * y0;
+      if (g.y < -1 && y0 > 0 && disc > 0) { const tt = (-Vl.y - Math.sqrt(disc)) / g.y, xl = C.x + Vl.x * tt + 0.5 * g.x * tt * tt; if (Math.abs(xl) < fw) tl = tt; }
+      const lag = d * 0.025; // the crack reaches it
+      per.aC[0] = C.x; per.aC[1] = C.y; per.aC[2] = C.z; per.aV[0] = Vl.x; per.aV[1] = Vl.y; per.aV[2] = Vl.z;
+      per.aT[0] = time + lag; per.aT[1] = tl; per.aT[2] = rand(2.4, 3.6); per.aT[3] = rand(0, TAU);
+      const ia0 = ia, il0 = il;
+      for (let j = 1; j + 1 < pl.length; j++) { // faces: front and back, fanned
+        vert(A, ia++, pl[0][0], pl[0][1], H, 0, 0, 1); vert(A, ia++, pl[j][0], pl[j][1], H, 0, 0, 1); vert(A, ia++, pl[j + 1][0], pl[j + 1][1], H, 0, 0, 1);
+        vert(A, ia++, pl[0][0], pl[0][1], -H, 0, 0, -1); vert(A, ia++, pl[j + 1][0], pl[j + 1][1], -H, 0, 0, -1); vert(A, ia++, pl[j][0], pl[j][1], -H, 0, 0, -1);
+      }
+      for (let j = 0; j < pl.length; j++) { const [x1, y1] = pl[j], [x2, y2] = pl[(j + 1) % pl.length];
+        vert(L, il++, x1, y1, H); vert(L, il++, x2, y2, H); }
+      spread(A, ia0, ia); spread(L, il0, il);
+    }
+    for (const k in A) mesh.geometry.setAttribute(k, new THREE.BufferAttribute(A[k], k === "aQ" || k === "aT" ? 4 : 3));
+    for (const k in L) lines.geometry.setAttribute(k, new THREE.BufferAttribute(L[k], k === "aQ" || k === "aT" ? 4 : 3));
+    lines.matrix.copy(mesh.matrix);
+    scene.add(mesh); scene.add(lines);
+    bursts.push({ s: p.s, mesh, lines, t: time });
+    while (bursts.length > 5) dropBurst(bursts.shift()); // (never more than a handful about)
+    Sound.shatter(clamp(p.w * p.h / 9, 0.6, 1.6));
+  }
+  function dropBurst(b) { scene.remove(b.mesh); scene.remove(b.lines); b.mesh.geometry.dispose(); b.lines.geometry.dispose(); }
+  function updateBursts() {
+    burstU.value = time;
+    burstMat.color.copy(glassMat.color); burstMat.emissive.copy(glassMat.emissive); burstMat.opacity = glassMat.opacity; burstMat.emissiveIntensity = glassMat.emissiveIntensity;
+    burstEdgeMat.color.copy(edgeMat.color); burstEdgeMat.opacity = edgeMat.opacity;
+    for (const b of bursts) { if (b.s < sC - 12 || time - b.t > 12) { b.dead = true; dropBurst(b); continue; } setObj(b.mesh, b.s, 0, 0); b.lines.matrix.copy(b.mesh.matrix); b.lines.matrixWorldNeedsUpdate = true; } // the floor under the pieces the track's as it is now (the karma bends it)
+    bursts = bursts.filter(b => !b.dead);
   }
   function shatterRect(p, lx, ly, impL) {
     const hw = p.w / 2, hh = p.h / 2;
@@ -5040,6 +5173,86 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     prismSets = prismSets.filter(x => !x.dead);
   }
+  // ---------- Rubinus: ruby lasers on its bridges ----------
+  // a cut ruby lying on its side, a six-sided point under a low crown (it hovers 35° and more up the ring: lower, on a narrow phone it was out of sight till too late), its light out of the point: red as a prism's light, not
+  // Nox's lasers. Alone it hovers somewhere on the half ring over the track (beside it, over it, aslant) and its beam sweeps half
+  // a turn in 2 s, slowing to a stop at either end and back, laid out so it never shines onto the rails yet crosses the cart's
+  // way. Or two face each other across the track, the beam between them, gliding up and down together; both must be shot (with
+  // one gone the other shines on out). A beam runs on till it meets something: off the open bridge, out of sight. Through the
+  // cart: −3 balls, once
+  let rubeams = [];
+  const RB_R = 4.4, RB_CV = 2.2, RB_HIT = 0.6, RB_TIP = 0.78, RB_PU = 3.7;
+  const rbPavGeo = new THREE.ConeGeometry(0.38, RB_TIP, 6).translate(0, RB_TIP / 2, 0), rbCrownGeo = new THREE.CylinderGeometry(0.26, 0.38, 0.2, 6).translate(0, -0.1, 0);
+  const rbPavEdge = new THREE.EdgesGeometry(rbPavGeo), rbCrownEdge = new THREE.EdgesGeometry(rbCrownGeo);
+  const rbMat = new THREE.MeshStandardMaterial({ color: 0xd0122e, emissive: 0x6a0012, roughness: 0.1, metalness: 0.2, flatShading: true });
+  const rbEdgeMat = new THREE.LineBasicMaterial({ color: 0xff9aa8 });
+  const rbCoreMat = new THREE.MeshBasicMaterial({ color: 0xffe2e8, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
+  const rbHaloMat = new THREE.MeshBasicMaterial({ color: 0xff2a55, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide });
+  const rbGlowMat = new THREE.MeshBasicMaterial({ color: 0xff0a3c, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide });
+  const rbSpotMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xff4060, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
+  const rbGlowSp = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2040, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending });
+  function rubyBeam() { // as a prism's light: a hot core in two sheaths that stop short of its ends
+    const g = new THREE.Group();
+    for (const [geo, mat, tr, k] of [[beamGeo, rbCoreMat, 0, 2.6], [beamHaloGeo, rbHaloMat, 0.12, 1.7], [beamGlowGeo, rbGlowMat, 0.2, 1.15]]) { const m = new THREE.Mesh(geo, mat); m.scale.set(k, 1, k); m.userData.trim = tr; g.add(m); }
+    const spot = new THREE.Sprite(rbSpotMat); spot.scale.setScalar(0.8); g.add(spot); g.userData.spot = spot; return g;
+  }
+  function rubyGem(root) {
+    const g = new THREE.Group(); root.add(g);
+    g.add(new THREE.Mesh(rbPavGeo, rbMat), new THREE.Mesh(rbCrownGeo, rbMat), new THREE.LineSegments(rbPavEdge, rbEdgeMat), new THREE.LineSegments(rbCrownEdge, rbEdgeMat));
+    const glow = new THREE.Sprite(rbGlowSp); glow.scale.setScalar(1.6); glow.position.y = 0.18; g.add(glow);
+    return { g, u: 0, v: 0, du: 0, dv: 1, alive: true, wp: new THREE.Vector3() };
+  }
+  const RAILS_PTS = [[-0.72, 0.22], [0, 0.22], [0.72, 0.22]];
+  const rbRay = (u, v, du, dv, s) => { const ox = u + du * RB_TIP, oy = v + dv * RB_TIP, L = beamReach(ox, oy, du, dv, 60, s), l = Math.min(L, 40); return [ox, oy, ox + du * l, oy + dv * l, L]; };
+  function addRubyBeam(s, pair) {
+    const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
+    const o = { s, pair, root, gems: [], beams: [], passed: false, ph: rand(0, TAU) };
+    if (pair) {
+      o.gems = [-1, 1].map(k => { const gm = rubyGem(root); gm.u = k * RB_PU; gm.du = -k; gm.dv = 0; gm.g.rotation.z = k * Math.PI / 2; return gm; }); // each facing the other
+      o.beams = [rubyBeam(), rubyBeam()]; o.beams.forEach(b => root.add(b));
+      o.vc = 2.05; o.amp = 1.35; o.w = TAU / 3.6; // up and down, 1.8 s each way: low over the rails' tops to high over the cart
+    } else {
+      let best = null;
+      for (let tr = 0; tr < 30 && !best; tr++) {
+        const ph = rand(0.6, Math.PI - 0.6), u = RB_R * Math.cos(ph), v = RB_CV + RB_R * Math.sin(ph), ok = [];
+        for (let i = 0; i < 72; i++) { const c = i * TAU / 72; let rails = false, cart = false;
+          for (let j = 0; j <= 24 && !rails; j++) { const a = c + Math.PI * (j / 24 - 0.5), [x0, y0, x1, y1] = rbRay(u, v, Math.cos(a), Math.sin(a), s);
+            if (RAILS_PTS.some(([pu, pv]) => segDist2(pu, pv, x0, y0, x1, y1) < 0.4)) rails = true; else if (beamHitsCart(x0, y0, x1, y1)) cart = true; }
+          if (!rails && cart) ok.push(c); }
+        if (ok.length) best = { u, v, c: ok[Math.floor(Math.random() * ok.length)] };
+      }
+      if (!best) { scene.remove(root); return false; }
+      const gm = rubyGem(root); gm.u = best.u; gm.v = best.v; o.gems = [gm]; o.c = best.c;
+      o.beams = [rubyBeam()]; root.add(o.beams[0]);
+    }
+    for (let k = Math.floor((s - 4) / SL); k <= Math.floor((s + 4) / SL); k++) { const d = getDecor(k); if (d.blocks) d.blocks = d.blocks.filter(bl => Math.abs(k * SL + SL / 2 - s) > bl.sz / 2 + 0.9); } // nothing of the level's in the way
+    rubeams.push(o); return true;
+  }
+  function breakRuby(o, gm) { gm.alive = false; gm.g.visible = false; Sound.shatter(0.9); Sound.tone(1100, 0.2, 0.08, "sine", 0, 420); chips(gm.wp.clone(), rbMat, 16, tmpV2.set(0, 1, 0)); addScore(20); karmaGain(0.03); pop(T("рубин разбит", "ruby broken"), "info"); }
+  function updateRubyBeams() {
+    for (const o of rubeams) {
+      setObj(o.root, o.s, 0, 0); o.root.updateMatrixWorld(true);
+      const segs = [];
+      if (o.pair) {
+        const v = o.vc + o.amp * Math.sin(time * o.w + o.ph), [a, b] = o.gems;
+        for (const gm of o.gems) gm.v = v;
+        if (a.alive && b.alive) segs.push([a.u + RB_TIP, v, b.u - RB_TIP, v]); // the one beam between them
+        else for (const gm of o.gems) if (gm.alive) { const [x0, y0, , , L] = rbRay(gm.u, v, gm.du, 0, o.s); segs.push([x0, y0, x0 + gm.du * L, y0]); }
+      } else {
+        const gm = o.gems[0], a = o.c + Math.PI / 2 * Math.sin(time * Math.PI / 2 + o.ph); // half a turn in 2 s, easing to a stop at each end
+        gm.du = Math.cos(a); gm.dv = Math.sin(a); gm.g.rotation.z = Math.atan2(-gm.du, gm.dv);
+        if (gm.alive) { const [x0, y0, , , L] = rbRay(gm.u, gm.v, gm.du, gm.dv, o.s); segs.push([x0, y0, x0 + gm.du * L, y0 + gm.dv * L]); }
+      }
+      for (const gm of o.gems) { gm.g.position.set(gm.u, gm.v, 0); gm.wp.set(gm.u, gm.v, 0).applyMatrix4(o.root.matrixWorld); }
+      o.beams.forEach((b, i) => { const sg = segs[i]; if (!sg) { b.visible = false; return; } const [x0, y0, x1, y1] = sg; b.position.set(x0, y0, 0); b.rotation.z = Math.atan2(-(x1 - x0), y1 - y0); setBeamLen(b, Math.hypot(x1 - x0, y1 - y0)); });
+      if (state === "play" && !o.passed && onCart(o.s, 0)) {
+        if (o.s < sC - CART_TAIL + 0.1) o.passed = true;
+        if (segs.some(([x0, y0, x1, y1]) => beamHitsCart(x0, y0, x1, y1))) { o.passed = true; laserHit(); }
+      }
+      if (o.s < sC - 6) { o.dead = true; scene.remove(o.root); }
+    }
+    rubeams = rubeams.filter(x => !x.dead);
+  }
   function hitLaserBlock(lb) { lb.alive = false; scene.remove(lb.root); laserOut(lb.wp, orbMat); }
   function updateLasers(dt) {
     for (const sp of spinners) {
@@ -5085,7 +5298,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (lb.s < sC - 6) { lb.alive = false; scene.remove(lb.root); }
     }
     lblocks = lblocks.filter(x => x.alive);
-    updateBars(dt); updatePrisms();
+    updateBars(dt); updatePrisms(); if (rubeams.length) updateRubyBeams(); if (bursts.length) updateBursts();
   }
 
   // ---------- Tao: rams and hammer mills ----------
@@ -6648,10 +6861,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       feats: ["Три развилки: ветку выбирают выстрелом в стрелку под табло", "Вращающиеся стеклянные крестовины", "Финал Portae: стеклянные врата с ключами"],
       req: { after: "vitrum" }, map: { x: 410, y: 190, label: "t" } },
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
-      // two ruby bridges out of the tunnel, through a tall gate each way: a third of the way a corkscrew twice round, wide; two thirds
-      // a longer one three times round, each turning either way. On them its own glass that stands on the deck or turns over it
-      spans: [{ c: 1 / 3, turns: 2, len: 190, r: 11 }, { c: 2 / 3, turns: 3, len: 260, r: 9 }],
-      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "rotor2", "lift", "imps", "zigzag", "shutter"],
+      // two ruby bridges out of the tunnel, through its own anchor gates each way: a third of the way a corkscrew twice round, wide (on
+      // it glass on the deck or turning over it, hovering blocks swinging in pairs, rubies' beams); two thirds a spiral, its usual mix
+      spans: [{ c: 1 / 3, turns: 2, len: 190, r: 11 }, { c: 2 / 3, spiral: true, len: 350 }],
+      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "rotor2", "lift", "imps", "zigzag", "shutter", "fpend", "fpend", "rbeam", "rbeam", "rbeam2"], spanGates: "own",
       style: { arch: "tri", blocks: "ruby", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0xa00a24, gateIron: true,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
         shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0],
@@ -6659,7 +6872,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       turns: [[100, 60, 50], [230, 60, -60], [360, 50, 45], [470, 80, -80], [620, 50, 50], [730, 60, -55], [850, 50, 45],
         [960, 70, -70], [1100, 50, 50], [1200, 60, -50], [1320, 50, 40], [1410, 50, -35]],
       desc: "Нижний путь от Vitrum к Speculum сквозь огранённый рубин. Профиль тоннеля — треугольник вершиной вниз: по ходу он поворачивается и меняется, из равностороннего становясь равнобедренным и разносторонним. Ворота с дверцами держат якоря на цепях: попадите в оранжевую мишень над клюзом, цепь втянется, и дверца распахнётся. Поперёк пути вращаются массивные стеклянные кресты и качаются на цепях стеклянные блоки.",
-      feats: ["Треугольный профиль, который поворачивается и меняется", "Два рубиновых моста-штопора над пустотой", "Ворота с дверцами на якорных цепях", "Финал Tessera: мозаика из рубинов"],
+      feats: ["Треугольный профиль, который поворачивается и меняется", "Рубиновые мосты над пустотой: штопор и спираль, на них лучи рубинов", "Ворота с дверцами на якорных цепях", "Финал Tessera: мозаика из рубинов"],
       req: { after: "vitrum" }, map: { x: 500, y: 320, label: "t" } }, // midway between Vitrum and Abyssus
     { id: "tao", num: "V", latin: "Tao", ru: "Дао", playable: true, music: "translucent_corridor", len: 1500, pal: PAL_TAO, finale: "taiji",
       // two bridges, yin and yang: out of the halls by a tall gate, the track turns twice round one way a third of the way, and twice
@@ -6740,7 +6953,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       labyrinthus: { ru: "Labyrinth", desc: "Closed emerald corridors. Before each fork hang two boards, an arrow under each. Hit an arrow and the rails turn into its branch; you choose once. Choose none and you take the rich branch. The rich branch with turquoise crystals gives twice the crystals but holds crosses and blocks. The quiet branch with a white sun has plain glass only and draws you to the Light. Solid glass crosses turn in the corridors. In the open halls glass blocks swing on chains.",
         feats: ["Three forks: pick the branch by shooting the arrow under its board", "Spinning glass crosses", "Finale Portae: glass gates with keys"] },
       rubinus: { ru: "Ruby", desc: "The lower way from Vitrum to Speculum through a cut ruby. The tunnel is a triangle standing on its point: along the way it turns and changes, from equilateral to isosceles to scalene. Gates with doors are held by anchors on chains: hit the orange target over the hawse, the chain hauls in and its door swings open. Solid glass crosses turn across the way and glass blocks swing on chains.",
-        feats: ["A triangular profile that turns and changes", "Two ruby corkscrew bridges over the void", "Gates with doors on anchor chains", "Finale Tessera: a ruby mosaic"] },
+        feats: ["A triangular profile that turns and changes", "Ruby bridges over the void, a corkscrew and a spiral, swept by rubies' beams", "Gates with doors on anchor chains", "Finale Tessera: a ruby mosaic"] },
       tao: { ru: "The Way", desc: "The top of the upper line, from where the Way of Tao runs through Nox to Lux. Round moon gates. Ink and rice paper: in the Light white with a scarlet seal, in the Dark black ink with a jade glow. Mist drifts over the track and a yin-yang sign slowly turns.",
         feats: ["Yin-yang gates: buttons part the halves", "Bridges of yin and yang: a corkscrew one way, then the other", "Rams on chains beside the track and hammer mills", "Finale Taiji: yin and yang in turn"] },
       speculum: { ru: "Mirror", desc: "Mirror halls. Behind the glass walls the corridor repeats, and beside each real crystal its reflection may hang. A reflection gives no balls, and a shot at it costs a ball. Across the way prisms gather light into beams that hovering mirrors bounce into a web: break a prism or a mirror to get through. Tall gates in drifting steam open to hits on the targets running up and down their leaves; monoliths hang on chains.",
@@ -6940,10 +7153,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     MAIN_LEN = lv.len; SUPER_LEN = lv.superLen || 260; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
-    planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.filter(() => LEVEL.id !== "initium" && LEVEL.id !== "abyssus" && !LEVEL.coaster).map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
+    planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.filter(m => LEVEL.id !== "initium" && LEVEL.id !== "abyssus" && !LEVEL.coaster && !m.span).map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
     pgPlan = SPANS.length && LEVEL.id === "speculum" ? [SPANS[0].a - 120, ...SPANS.map(sp => sp.b + 75)] : []; // Speculum's prism gears: in the first halls, before the first bridge, and past each corkscrew
     if (LEVEL.id === "lux") pgPlan = [0.1, ...LTW.map(m => (m.tw1 + 110) / MAIN_LEN)].map(f => Math.round(f * MAIN_LEN + rand(-10, 15))).filter(x => x < MAIN_LEN - 60 && !LTW.some(m => x > m.sw - 70 && x < m.tw1 + 95)); // Lux: prism gears out on the bridge, between its manoeuvres
-    if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); if (LEVEL.spanGates !== false) doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind: "tall" }, { s: sp.b, kind: "tall" }]); }
+    if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); if (LEVEL.spanGates !== false) { const kind = LEVEL.spanGates === "own" ? "own" : "tall"; doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind }, { s: sp.b, kind }]); } }
     buildStation();
   }
 
@@ -7497,6 +7710,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (pr.alive) { tmpV.copy(pr.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < PRISM_HIT ** 2) hits.push({ d, kind: "prism", x: set, p: pr }); }
       for (const m of pr.mirrors) if (m.alive) { const t = rayBox(o, dir, m.inv, m.len / 2, 0.12, MIR_D / 2); if (t >= 0) hits.push({ d: t, kind: "mirror", x: set, m }); }
     }
+    for (const rb of rubeams) for (const gm of rb.gems) if (gm.alive) { tmpV.copy(gm.wp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < RB_HIT ** 2) hits.push({ d, kind: "ruby", x: rb, gm }); }
     for (const set of lbars) if (Math.abs(set.s - sC) < 130) for (const b of set.bars) if (b.alive) { const t = rayBox(o, dir, b.inv, b.len / 2, BAR_T / 2 + 0.2, BAR_T / 2 + 0.05); if (t >= 0) hits.push({ d: t, kind: "lbar", x: b }); }
     for (const g of gates) if (g.weights) for (const lf of g.leaves) { const w = lf.wt; if (w.pulled) continue; tmpV.copy(w.tp).sub(o); const d = tmpV.dot(dir); if (d > 0 && d < LASER_LEN && tmpV.lengthSq() - d * d < 0.5) hits.push({ d, kind: "weight", x: g, lf }); }
     for (const g of gates) for (const bt of g.buttons) {
@@ -7552,6 +7766,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       else if (h.kind === "hub") { end = h.d; break; }
       else if (h.kind === "lblock" && h.x.alive) { hitLaserBlock(h.x); end = h.d; break; }
       else if (h.kind === "tooth" && h.t.alive) { breakTooth(h.x, h.t, o.clone().addScaledVector(dir, h.d)); end = h.d; break; }
+      else if (h.kind === "ruby" && h.gm.alive) { breakRuby(h.x, h.gm); end = h.d; break; }
       else if (h.kind === "prism" && h.p.alive) { breakPrism(h.x, h.p, h.p.wp.clone()); end = h.d; break; }
       else if (h.kind === "mirror" && h.m.alive) { breakMirror(h.x, h.m, o.clone().addScaledVector(dir, h.d)); end = h.d; break; }
       else if (h.kind === "lbar" && h.x.alive) { breakBar(h.x, o.clone().addScaledVector(dir, h.d)); end = h.d; break; }
@@ -7689,7 +7904,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         r.s = ss; r.m = c; impObs.push(r);
       });
     };
-    const lists = [panes, hangers, mounts, spinners, lblocks, lbars, prismSets, rams, hmills, doors, gears, pgears, switches, gates, catas, boughs, thorns];
+    const lists = [panes, hangers, mounts, spinners, lblocks, lbars, prismSets, rubeams, rams, hmills, doors, gears, pgears, switches, gates, catas, boughs, thorns];
     for (const L of lists) for (const x of L) {
       if (x.s === undefined || x.s < s0 || x.s > s1 || x.alive === false || x.falling || x.broken || x.dead) continue;
       take(x.root, x.s); take(x.group, x.s); take(x.slab, x.s); take(x.beam, x.s); take(x.g, x.s);
@@ -8001,6 +8216,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const sn = Math.sin(time * p.move.freq + p.move.phase);
         if (p.move.axis === "u") p.u = p.bu + p.move.amp * sn;
         else if (p.move.axis === "v") p.v = p.bv + p.move.amp * sn;
+        else if (p.move.axis === "arc") { const th = p.move.amp * sn, k = p.move.k; p.u = k * (FP_U - FP_L * Math.sin(th)); p.v = FP_V - FP_L * Math.cos(th); p.rot = -k * th; } // swung in by th, tilted as on its chains
         else p.u = p.move.sign * (p.w / 2 + 0.05 + (1 + sn) / 2 * Math.max(0, (p.room ?? SW - 0.12) - p.w)); // a shutter half: from the middle to its wall, never into it
       }
       if (p.rise !== undefined) { // up out of the abyss beside the bridge, never through its deck, then in over it as the cart nears
@@ -8278,6 +8494,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           } }
         if (dead) break;
       }
+      if (!dead) for (const rb of rubeams) { const gm = rb.gems.find(q => q.alive && pathDist(q.wp) < RB_HIT + R_BALL); if (gm) { mark(); breakRuby(rb, gm); dead = true; break; } }
       if (!dead) for (const set of prismSets) {
         if (Math.abs(set.s - sC) > 130) continue;
         const pr = set.prisms.find(p => p.alive && pathDist(p.wp) < PRISM_HIT + R_BALL);

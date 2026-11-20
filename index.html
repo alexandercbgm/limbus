@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.525</div>
+      <div class="credit version">v1.0.526</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.525`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.526`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3684,7 +3684,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const spn = !spawnGroupKind && spanAt(s);
     if (spn) { // on Speculum's bridges only glass that stands on the deck or turns over it: nothing on chains, nothing off the walls
       if (s < spn.a + 16 || s > spn.b - 8) return;
-      if (spn.spiral) { if (pat === "doors" || pat === "gate") pat = Math.random() < 0.5 ? "center" : "slider"; if (Math.random() < 0.22) pat = Math.random() < 0.6 ? "rbeam" : "rbeam2"; } // and now and then a ruby's beam // a spiral bridge: the level's own mix, all but its gates
+      if (spn.spiral) { if (pat === "doors" || pat === "gate") pat = Math.random() < 0.5 ? "center" : "slider"; if (Math.random() < 0.22) pat = "rbeam"; } // and now and then a ruby's beam // a spiral bridge: the level's own mix, all but its gates
       else { const opts = LEVEL.spanPats || ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; }
     }
     if (!spawnGroupKind && LEVEL.id === "lux") { // Lux: its big obstacles evenly spread, never two within 55 m (they had heaped up: two pairs of gears and a
@@ -3803,8 +3803,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         for (let i = 0; i < n; i++) { const ax = Math.random() < 0.5 ? "u" : "v"; addPane({ s: s - i * 5, u: rand(-0.8, 0.8), v: i ? rand(3.4, 3.9) : ax === "v" ? rand(1.75, 2.2) : rand(1.35, 1.9), w: RAM_LEN, h: 2 * RAM_R, thick: 1.1, move: ax === "u" ? { axis: "u", amp: 1.4, freq: rand(0.7, 1.1), phase: rand(0, TAU) } : { axis: "v", amp: 0.5, freq: rand(0.8, 1.2), phase: rand(0, TAU) } }); }
         break;
       }
-      case "rbeam": if (!addRubyBeam(s, false)) addRubyBeam(s, true); break; // Rubinus's bridges: a ruby's beam sweeping, or a pair's gliding
-      case "rbeam2": addRubyBeam(s, true); break;
+      case "rbeam": addRubyBeam(s, ["h", "top", "side"][Math.floor(Math.random() * 3)]); break; // Rubinus's bridges: a ruby's beam, of three kinds alike often
       case "prisms": if (!addPrisms(s)) addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break; // Speculum: light through prisms off mirrors
       case "twins": { // two panes mirrored about the track that close and part like doors
         const freq = rand(0.9, 1.3) * (1 + 0.3 * d), phase = rand(0, TAU);
@@ -5249,12 +5248,10 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     prismSets = prismSets.filter(x => !x.dead);
   }
   // ---------- Rubinus: ruby lasers on its bridges ----------
-  // a cut ruby lying on its side, a six-sided point under a low crown (it hovers 35° and more up the ring: lower, on a narrow phone it was out of sight till too late), its light out of the point: red as a prism's light, not
-  // Nox's lasers. Alone it hovers somewhere on the half ring over the track (beside it, over it, aslant) and its beam sweeps half
-  // a turn in 2 s, slowing to a stop at either end and back, laid out so it never shines onto the rails yet crosses the cart's
-  // way. Or two face each other across the track, the beam between them, gliding up and down together; both must be shot (with
-  // one gone the other shines on out). A beam runs on till it meets something: off the open bridge, out of sight. Through the
-  // cart: −3 balls, once
+  // a cut ruby lying on its side, a six-sided point under a low crown, its point cut flat as wide as its beam, the light out of it: red as
+  // a prism's light, not Nox's lasers. It hovers on the half ring over the track (35° and more up it: lower, on a narrow phone it
+  // was out of sight till too late), of three kinds (addRubyBeam). Its beam runs on till it meets something: a wall, the deck,
+  // the deck's coils elsewhere (deckBlock), or off the open bridge out of sight. Through the cart: −3 balls, once
   let rubeams = [];
   const RB_R = 4.4, RB_CV = 2.2, RB_HIT = 0.72, RB_TIP = 0.95, RB_PU = 3.7, RB_CUT = 0.08; // its point cut off flat, as wide as the beam
   const rbPavGeo = new THREE.CylinderGeometry(RB_CUT, 0.46, RB_TIP, 6).translate(0, RB_TIP / 2, 0), rbCrownGeo = new THREE.CylinderGeometry(0.32, 0.46, 0.24, 6).translate(0, -0.12, 0);
@@ -5279,45 +5276,52 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   }
   const RAILS_PTS = [[-0.72, 0.22], [0, 0.22], [0.72, 0.22]];
   const rbRay = (u, v, du, dv, s) => { const ox = u + du * RB_TIP, oy = v + dv * RB_TIP, L = beamReach(ox, oy, du, dv, 60, s), l = Math.min(L, 40); return [ox, oy, ox + du * l, oy + dv * l, L]; };
-  function addRubyBeam(s, pair) {
+  // three kinds, alike often: "h" a ruby beside the track, its beam straight across, gliding up and down with it (1.8 s each way);
+  // "top" one over the middle of the track, its beam down, swinging from side to side like a pendulum, 2 s each way, easing to
+  // a stop at either end; "side" one high to a side, its beam aslant across the track to low on the far side, its far end
+  // sweeping up and down. The swinging ones never rest on the rails: a "side" one's sweep is held short of them
+  function addRubyBeam(s, kind) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
-    const o = { s, pair, root, gems: [], beams: [], passed: false, ph: rand(0, TAU) };
-    if (pair) {
-      o.gems = [-1, 1].map(k => { const gm = rubyGem(root); gm.u = k * RB_PU; gm.du = -k; gm.dv = 0; gm.g.rotation.z = k * Math.PI / 2; return gm; }); // each facing the other
-      o.beams = [rubyBeam(), rubyBeam()]; o.beams.forEach(b => root.add(b));
-      o.vc = 2.05; o.amp = 1.35; o.w = TAU / 3.6; // up and down, 1.8 s each way: low over the rails' tops to high over the cart
-    } else {
-      let best = null;
-      for (let tr = 0; tr < 30 && !best; tr++) {
-        const ph = rand(0.6, Math.PI - 0.6), u = RB_R * Math.cos(ph), v = RB_CV + RB_R * Math.sin(ph), ok = [];
-        for (let i = 0; i < 72; i++) { const c = i * TAU / 72; let rails = false, cart = false;
-          for (let j = 0; j <= 24 && !rails; j++) { const a = c + Math.PI * (j / 24 - 0.5), [x0, y0, x1, y1] = rbRay(u, v, Math.cos(a), Math.sin(a), s);
-            if (RAILS_PTS.some(([pu, pv]) => segDist2(pu, pv, x0, y0, x1, y1) < 0.4)) rails = true; else if (beamHitsCart(x0, y0, x1, y1)) cart = true; }
-          if (!rails && cart) ok.push(c); }
-        if (ok.length) best = { u, v, c: ok[Math.floor(Math.random() * ok.length)] };
-      }
-      if (!best) { scene.remove(root); return false; }
-      const gm = rubyGem(root); gm.u = best.u; gm.v = best.v; o.gems = [gm]; o.c = best.c;
-      o.beams = [rubyBeam()]; root.add(o.beams[0]);
+    const side = Math.random() < 0.5 ? -1 : 1, gm = rubyGem(root), o = { s, kind, root, gems: [gm], beams: [rubyBeam()], passed: false, ph: rand(0, TAU) };
+    root.add(o.beams[0]);
+    if (kind === "h") { gm.u = side * RB_PU; gm.du = -side; gm.dv = 0; gm.g.rotation.z = side * Math.PI / 2; o.vc = 2.05; o.amp = 1.35; o.w = TAU / 3.6; }
+    else if (kind === "top") { gm.u = 0; gm.v = RB_CV + RB_R; o.c = -Math.PI / 2; o.A = 1.2; } // ±70° about straight down
+    else {
+      const ph = Math.PI / 2 - side * rand(0.55, 0.85); gm.u = RB_R * Math.cos(ph); gm.v = RB_CV + RB_R * Math.sin(ph);
+      o.c = Math.atan2(1.3 - gm.v, 0 - gm.u); o.A = 0.35; // aimed through the cart's middle, its far end up and down
+      const rails = a => { const [x0, y0, x1, y1] = rbRay(gm.u, gm.v, Math.cos(a), Math.sin(a), s); return RAILS_PTS.some(([pu, pv]) => segDist2(pu, pv, x0, y0, x1, y1) < 0.4); };
+      for (let k = 0; k < 8 && (rails(o.c - o.A) || rails(o.c + o.A)); k++) { o.A *= 0.85; if (rails(o.c - o.A) || rails(o.c + o.A)) o.c += 0.03 * (gm.u > 0 ? -1 : 1); } // (narrower, and aimed a little higher, till it clears them)
     }
     for (let k = Math.floor((s - 4) / SL); k <= Math.floor((s + 4) / SL); k++) { const d = getDecor(k); if (d.blocks) d.blocks = d.blocks.filter(bl => Math.abs(k * SL + SL / 2 - s) > bl.sz / 2 + 0.9); } // nothing of the level's in the way
     rubeams.push(o); return true;
+  }
+  // how far a beam out of the ruby's cross-section runs before it meets the track's deck elsewhere: the beam lies across the track
+  // where the ruby is, but a spiral's coils (and a corkscrew's deck turning over) come round through that plane, and the beam had
+  // shone on through them. The deck's slices along the track (1 m apart, 2 m from here on), each a plane as wide as the deck
+  const RBO = new THREE.Vector3(), RBD = new THREE.Vector3();
+  function deckBlock(o, x0, y0, du, dv, L) {
+    const e = o.root.matrixWorld.elements, half = SW + 0.2;
+    RBO.set(e[12] + e[0] * x0 + e[4] * y0, e[13] + e[1] * x0 + e[5] * y0, e[14] + e[2] * x0 + e[6] * y0);
+    RBD.set(e[0] * du + e[4] * dv, e[1] * du + e[5] * dv, e[2] * du + e[6] * dv);
+    for (let j = 0; j < NS; j++) {
+      const sj = sBase + j * DS; if (Math.abs(sj - o.s) < 2) continue;
+      const k = j * 3, px = PP[k] - RBO.x, py = PP[k + 1] - RBO.y, pz = PP[k + 2] - RBO.z;
+      if (px * px + py * py + pz * pz > (L + half + 2) ** 2) continue;
+      const den = RBD.x * PU[k] + RBD.y * PU[k + 1] + RBD.z * PU[k + 2]; if (Math.abs(den) < 1e-4) continue;
+      const t = (px * PU[k] + py * PU[k + 1] + pz * PU[k + 2]) / den; if (t <= 0.3 || t >= L) continue;
+      const hx = RBO.x + RBD.x * t - PP[k], hy = RBO.y + RBD.y * t - PP[k + 1], hz = RBO.z + RBD.z * t - PP[k + 2];
+      if (Math.abs(hx * PT[k] + hy * PT[k + 1] + hz * PT[k + 2]) < 0.55 * DS && Math.abs(hx * PR[k] + hy * PR[k + 1] + hz * PR[k + 2]) < half) L = t;
+    }
+    return L;
   }
   function breakRuby(o, gm) { gm.alive = false; gm.g.visible = false; Sound.shatter(0.9); Sound.tone(1100, 0.2, 0.08, "sine", 0, 420); chips(gm.wp.clone(), rbMat, 16, tmpV2.set(0, 1, 0)); addScore(20); karmaGain(0.03); pop(T("рубин разбит", "ruby broken"), "info"); }
   function updateRubyBeams() {
     for (const o of rubeams) {
       setObj(o.root, o.s, 0, 0); o.root.updateMatrixWorld(true);
-      const segs = [];
-      if (o.pair) {
-        const v = o.vc + o.amp * Math.sin(time * o.w + o.ph), [a, b] = o.gems;
-        for (const gm of o.gems) gm.v = v;
-        if (a.alive && b.alive) segs.push([a.u + RB_TIP, v, b.u - RB_TIP, v]); // the one beam between them
-        else for (const gm of o.gems) if (gm.alive) { const [x0, y0, , , L] = rbRay(gm.u, v, gm.du, 0, o.s); segs.push([x0, y0, x0 + gm.du * L, y0]); }
-      } else {
-        const gm = o.gems[0], a = o.c + Math.PI / 2 * Math.sin(time * Math.PI / 2 + o.ph); // half a turn in 2 s, easing to a stop at each end
-        gm.du = Math.cos(a); gm.dv = Math.sin(a); gm.g.rotation.z = Math.atan2(-gm.du, gm.dv);
-        if (gm.alive) { const [x0, y0, , , L] = rbRay(gm.u, gm.v, gm.du, gm.dv, o.s); segs.push([x0, y0, x0 + gm.du * L, y0 + gm.dv * L]); }
-      }
+      const segs = [], gm = o.gems[0];
+      if (o.kind === "h") gm.v = o.vc + o.amp * Math.sin(time * o.w + o.ph);
+      else { const a = o.c + o.A * Math.sin(time * Math.PI / 2 + o.ph); gm.du = Math.cos(a); gm.dv = Math.sin(a); gm.g.rotation.z = Math.atan2(-gm.du, gm.dv); } // 2 s each way, easing to a stop at either end
+      if (gm.alive) { const [x0, y0, , , L0] = rbRay(gm.u, gm.v, gm.du, gm.dv, o.s), L = deckBlock(o, x0, y0, gm.du, gm.dv, Math.min(L0, BEAM_FAR)); segs.push([x0, y0, x0 + gm.du * L, y0 + gm.dv * L]); }
       for (const gm of o.gems) { gm.g.position.set(gm.u, gm.v, 0); gm.wp.set(gm.u, gm.v, 0).applyMatrix4(o.root.matrixWorld); }
       o.beams.forEach((b, i) => { const sg = segs[i]; if (!sg) { b.visible = false; return; } const [x0, y0, x1, y1] = sg; b.position.set(x0, y0, 0); b.rotation.z = Math.atan2(-(x1 - x0), y1 - y0); setBeamLen(b, Math.hypot(x1 - x0, y1 - y0)); });
       if (state === "play" && !o.passed && onCart(o.s, 0)) {
@@ -6939,7 +6943,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       // two ruby bridges out of the tunnel, through its own anchor gates each way: a third of the way a corkscrew twice round, wide (on
       // it glass on the deck or turning over it, solid crosses only, rubies' beams); two thirds a spiral, its usual mix
       spans: [{ c: 1 / 3, turns: 2, len: 190, r: 11 }, { c: 2 / 3, spiral: true, len: 350 }],
-      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "rotor", "lift", "imps", "zigzag", "shutter", "rbeam", "rbeam", "rbeam2"], spanGates: "own", paneStd: [2.6, 2.9, 2.1], // one size of glass, 2.6 × 2.9 m; beside the track, a pair 2.1 × 3.6 m; no small glass
+      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "rotor", "lift", "imps", "zigzag", "shutter", "rbeam", "rbeam", "rbeam"], spanGates: "own", paneStd: [2.6, 2.9, 2.1], // one size of glass, 2.6 × 2.9 m; beside the track, a pair 2.1 × 3.6 m; no small glass
       style: { arch: "tri", blocks: "ruby", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0xa00a24, gateIron: true,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
         shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], 

@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.506</div>
+      <div class="credit version">v1.0.507</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.506`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.507`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6708,7 +6708,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // not a level: the crystal shop, for whoever would rather not save up: crystals for Armamentarium, in Telegram's Stars
     // (outside Telegram, one pack through the bot and a code); a gold branch off Initium, as long as the arc and parallel to it
     { id: "emptio", num: "", latin: "Emptio", ru: "Купить", line: "gift", gift: true, playable: false,
-      desc: "Полная версия: все станции от Initium до Lux.",
+      desc: "Все станции от Initium до Lux.",
       feats: [], req: {}, map: { x: 230, y: 190, label: "t" } },
   ];
   // ---------- English: the level, cannon and finale texts; Russian is what the tables above hold ----------
@@ -6734,7 +6734,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         feats: ["Dark glass gates: open them with the anemometers", "Glass and shades rise from the abyss", "Finale Rota: wheels of crystals"] },
       carcer: { ru: "Dungeon", desc: "A dead end deep in the Dark: a medieval dungeon rebuilt as a prison for the most dangerous. Short rusted corridors lead from hall to hall. In the halls hang steel grates on chains, floating laser bars and grids, and mills of axes. The doors into the halls must be opened: shoot the chains of a drop flap or break the bolt. At the end lies a cannon the depot doesn't sell.",
         feats: ["Halls of grates on chains, lasers and axes", "Doors: drop flaps on chains and barred double leaves", "Reward: the Ferrum cannon; finale Effugium: a run of barred cells"] },
-      emptio: { ru: "Buy", desc: "The full version: every station from Initium to Lux.", feats: [] },
+      emptio: { ru: "Buy", desc: "Every station from Initium to Lux.", feats: [] },
       lux: { ru: "Light", desc: "The terminus, and the longest ride: a bridge over the abyss under a supernova. Three manoeuvres in a new order each time, the drill, the corkscrew and the spiral; targets on a gantry before each decide which way it turns, and the track reshapes before your eyes. On the bridge laser mills and bars, gates with spinners, gears, monoliths on chains under arches, catapults and crossbows, walls of glass. A beam across the cart costs 3 balls. The climb to the Light is hardest here.",
         feats: ["Three manoeuvres: the drill, the corkscrew, the spiral; targets choose the way", "A bridge over the abyss under a supernova", "Finale Triumphus: the finales of the stations you've finished, in turn"] },
     },

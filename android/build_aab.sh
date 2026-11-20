@@ -18,6 +18,13 @@ python3 "$root/build.py" >/dev/null # index.html back as the repository keeps it
 cp "$here/three.min.js" "$out/assets/"; cp "$root"/music/*.mp3 "$out/assets/music/"
 # the APK's manifest without the package, versions and SDK levels, which Gradle takes from play-gradle/build.gradle
 sed -e 's/ package="[^"]*"//' -e 's/ android:versionCode="[^"]*"//' -e 's/ android:versionName="[^"]*"//' -e '/<uses-sdk/d' "$here/AndroidManifest.xml" > "$out/AndroidManifest.xml"
+# and the Play build's own: the week's free level told in the notification shade (play-src/Unlocks.java), its alarm set again after a restart
+python3 - "$out/AndroidManifest.xml" <<'PY'
+import sys; p = sys.argv[1]; s = open(p).read()
+s = s.replace('<application ', '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />\n  <application ', 1)
+s = s.replace('</application>', '  <receiver android:name="com.limbus.game.Unlocks" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /></intent-filter></receiver>\n  </application>', 1)
+open(p, "w").write(s)
+PY
 props="$here/upload.properties"; ks="$here/upload.jks"
 if [ ! -f "$ks" ]; then
   pass="$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')"

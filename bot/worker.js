@@ -19,8 +19,10 @@
 //   POST /way         the game, opened in Telegram, says which station the player is up to on the way from Initium to Lux:
 //                     /start offers that one
 //   monthly           a player who has not been seen for a month (no game opened, nothing written) gets their /play card
-//                     once, the station they are up to with its Start button; once a day the cron goes round, unless
-//                     a broadcast is on
+//                     once, the station they are up to with its Start button; every 15 minutes the cron goes round,
+//                     unless a broadcast is on
+//   POST /unlock      the game, opened in Telegram, says which level opens free this week and when; then the bot sends
+//                     that level's card, as /play, saying it is open (the cron, each minute)
 //   POST /invoice     the game asks for a pack's Stars invoice link, to show with Telegram.WebApp.openInvoice
 //   POST /redeem      the APK or the page trades a code for its crystals, once
 //   GET  /bot         the bot's username, for the Emptio station outside Telegram
@@ -61,6 +63,7 @@ export default {
     }
     if (url.pathname === "/hello" && req.method === "POST") return cors(await hello(req, env));
     if (url.pathname === "/way" && req.method === "POST") return cors(await way(req, env));
+    if (url.pathname === "/unlock" && req.method === "POST") return cors(await unlockAt(req, env));
     if (url.pathname === "/invoice" && req.method === "POST") return cors(await invoice(req, env));
     if (url.pathname === "/redeem" && req.method === "POST") return cors(await redeem(req, env));
     if (url.pathname === "/setup") return setup(url, env);
@@ -68,7 +71,7 @@ export default {
     return new Response("Limbus bot");
   },
   // the cron trigger carries a broadcast on, a batch a minute
-  async scheduled(ev, env, ctx) { ctx.waitUntil(runCommands(env).then(busy => busy || runBroadcast(env).then(() => runReminders(env)))); }, // the commands first, a run to themselves
+  async scheduled(ev, env, ctx) { ctx.waitUntil(runCommands(env).then(busy => busy || runUnlocks(env).then(() => runBroadcast(env)).then(() => runReminders(env)))); }, // the commands first, a run to themselves
 };
 
 // ---------- Telegram ----------
@@ -377,6 +380,29 @@ async function way(req, env) {
   if (await env.USERS.get("w:" + user.id) !== level) { await env.USERS.put("w:" + user.id, level); await freshCard(env, user, level); }
   return Response.json({ ok: true });
 }
+// the week's free level: the game says which of its levels opens free and when (or none: level null), and at that time the bot
+// sends the player its card, as /play does, saying it is open. All kept in one list ("unlocks"), read each minute by the cron
+async function unlockAt(req, env) {
+  const { initData, level, at } = await req.json().catch(() => ({}));
+  const user = await checkInitData(initData || "", env.BOT_TOKEN);
+  if (!user || (level && (!LEVEL_IDS[level] || !(at > 0)))) return Response.json({ ok: false }, { status: 400 });
+  const list = JSON.parse(await env.USERS.get("unlocks") || "[]").filter(e => e.u !== String(user.id));
+  if (level && user.allows_write_to_pm !== false) list.push({ u: String(user.id), level, at: +at, lang: user.language_code });
+  await env.USERS.put("unlocks", JSON.stringify(list));
+  return Response.json({ ok: true });
+}
+async function runUnlocks(env) {
+  const list = JSON.parse(await env.USERS.get("unlocks") || "[]"), now = Date.now(), due = list.filter(e => e.at <= now).slice(0, 10);
+  if (!due.length) return;
+  for (const e of due) {
+    const rec = JSON.parse(await env.USERS.get("u:" + e.u) || "null"), from = { id: e.u, language_code: rec ? rec.choice || rec.lang : e.lang }, lv = LEVEL_INFO[e.level];
+    const caption = T(from, `🔓 ${lv.latin} открыт бесплатно!`, `🔓 ${lv.latin} is open, free!`) + "\n\n" + cardText(from, e.level);
+    const r = await sendClip(env, { chat_id: e.u, reply_markup: playKb(env, from, e.level), caption }, e.level);
+    if (r.ok) await env.USERS.put("k:" + e.u, JSON.stringify({ id: r.result.message_id, level: e.level }));
+    else if (r.error_code !== 403) await tg(env, "sendMessage", { chat_id: e.u, text: caption, reply_markup: playKb(env, from, e.level) });
+  }
+  await env.USERS.put("unlocks", JSON.stringify(list.filter(e => !due.includes(e))));
+}
 // Telegram signs the Mini App's initData with a key made from the bot's token: anything else is refused
 async function checkInitData(initData, token) {
   const p = new URLSearchParams(initData), hash = p.get("hash"); if (!hash) return null;
@@ -401,15 +427,16 @@ async function startBroadcast(env, chat, arg) {
   await tg(env, "sendMessage", { chat_id: chat, text: `Рассылка началась: по ${PER_RUN} сообщений в минуту. /stats — ход, /cancel — остановить.` });
   return runBroadcast(env);
 }
-// once a day, in the afternoon (UTC), a round of everyone: a month unseen and a month since the last reminder, their /play card
+// every 15 minutes a round of everyone: a month unseen and a month since the last reminder, their /play card, at about the time
+// of day they last came in
 const MONTH = 30 * DAY;
 async function runReminders(env) {
   if (await env.USERS.get("job")) return; // a broadcast first
   let job = JSON.parse(await env.USERS.get("remind") || "null");
   if (!job) {
-    const today = new Date().toISOString().slice(0, 10);
-    if (new Date().getUTCHours() < 15 || await env.USERS.get("remind:day") === today) return;
-    await env.USERS.put("remind:day", today);
+    const last = +(await env.USERS.get("remind:at") || 0);
+    if (Date.now() - last < 15 * 60 * 1000) return;
+    await env.USERS.put("remind:at", String(Date.now()));
     job = { cursor: null, keys: [], sent: 0 };
   }
   let budget = PER_RUN - 5;
@@ -423,6 +450,8 @@ async function runReminders(env) {
     const key = job.keys.shift(), id = key.slice(2), now = Date.now();
     const u = JSON.parse(await env.USERS.get(key) || "null"); budget--;
     if (!u || !u.sub || now - Math.max(u.seen || u.t || 0, u.reminded || 0) < MONTH) continue;
+    // and only at about the time of day they used to come in (within 15 minutes of it), so it never wakes them
+    const last = u.seen || u.t || 0, off = Math.abs((now % DAY) - (last % DAY)); if (Math.min(off, DAY - off) > 15 * 60 * 1000) continue;
     const from = { id, language_code: u.choice || u.lang }, level = await env.USERS.get("w:" + id) || "initium"; budget--;
     const r = await sendClip(env, { chat_id: id, reply_markup: playKb(env, from, level), caption: cardText(from, level) }, level); budget -= 2;
     if (r.ok) { job.sent++; await env.USERS.put(key, JSON.stringify({ ...u, reminded: now })); await env.USERS.put("k:" + id, JSON.stringify({ id: r.result.message_id, level })); budget -= 2; }

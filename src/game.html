@@ -6732,6 +6732,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     wkDue(); if (progress.full) { progress.wk = null; return; }
     if (progress.wk && wkTarget() !== byId(progress.wk.id)) progress.wk = null; // (bought, or the order changed under it)
     if (!progress.wk) { const t = wkTarget(); if (t) { progress.wk = { id: t.id, at: Date.now() + WEEK }; saveProgress(); } }
+    wkTell();
+  }
+  // and where the game can say so, a word when it opens: in Telegram the bot sends the level's card then; on Google Play the phone
+  // shows a notification then (LimbusPlay.notifyAt; a time of 0 takes one back)
+  let wkTold = "";
+  function wkTell() {
+    const w = progress.full ? null : progress.wk, key = w ? w.id + "@" + w.at : "none"; if (key === wkTold) return; wkTold = key;
+    if (BOT_API && TG && TG.initData) fetch(BOT_API + "/unlock", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ initData: TG.initData, level: w ? w.id : null, at: w ? w.at : 0 }) }).catch(() => { wkTold = ""; });
+    if (window.LimbusPlay && window.LimbusPlay.notifyAt) try { const lv = w && byId(w.id);
+      window.LimbusPlay.notifyAt(w ? w.at : 0, w ? T(`${lv.latin} открыт бесплатно`, `${lv.latin} is open, free`) : "", w ? T("Заходите поиграть!", "Come and ride it!") : ""); } catch (e) { /* an older app */ }
   }
   setInterval(() => { if (!progress.wk || progress.full) return; if (wkDue()) return;
     if (state === "menu" && !$("menu").hidden) document.querySelectorAll("#map .wk-tag").forEach(e => { e.textContent = wkText().toUpperCase(); }); }, 1000); // free to play; the rest once the game is bought
@@ -8828,7 +8839,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     window.__playPrice = p => { playPrice = p; if (shopOpen()) openSheet(byId("emptio"), true); };
     window.__playPaid = (id, token) => {
       if (!progress.play.includes(token)) {
-        progress.full = true; progress.play.push(token); saveProgress(); renderMap(); renderArms(); // (the game bought: every level open)
+        progress.full = true; progress.play.push(token); saveProgress(); wkTell(); renderMap(); renderArms(); // (the game bought: every level open)
         if (shopOpen()) closeSheet();
         pop(T("Все уровни открыты — спасибо!", "Every level is open: thank you!"), "info");
       }
@@ -8891,7 +8902,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       for (const to of tos) button(row, "cta go", `${to.latin} →`, () => openSheet(to, false, true)).setAttribute("aria-label", T(`К станции ${to.latin}`, `To ${to.latin}`));
     };
     if (lv.gift) { // the shop: the full game, one purchase, the same everywhere; how it is paid depends on where the game runs
-      const unlock = () => { progress.full = true; saveProgress(); renderMap(); renderArms(); closeSheet(); renderMap(); pop(T("Все уровни открыты — спасибо!", "Every level is open: thank you!"), "info"); };
+      const unlock = () => { progress.full = true; saveProgress(); wkTell(); renderMap(); renderArms(); closeSheet(); renderMap(); pop(T("Все уровни открыты — спасибо!", "Every level is open: thank you!"), "info"); };
       const inTg = TG && BOT_API && TG.isVersionAtLeast("6.1"), c = document.createElement("div"); c.className = "wcard pack";
       const price = window.LimbusPlay ? playPrice || "" : "$3";
       c.innerHTML = `<h3><svg class="pk-ico" viewBox="-12 -12 34 24" aria-hidden="true"><path d="${PK_GEM}" transform="translate(5 0)"/></svg>${esc(T("Полная версия", "The full version"))}${price ? `<small>${esc(price)}</small>` : ""}</h3><p>${esc(T("Разблокировать все уровни.", "Unlock every level."))}</p>`;

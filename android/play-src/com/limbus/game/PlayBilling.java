@@ -68,6 +68,9 @@ public class PlayBilling implements PurchasesUpdatedListener {
     });
   }
 
+  // the week's free level: a notification in the shade when it opens (Unlocks); at <= 0 takes it back
+  @JavascriptInterface public void notifyAt(double at, String title, String text) { act.runOnUiThread(() -> Unlocks.set(act, (long) at, title, text)); }
+
   @JavascriptInterface public void ready() { act.runOnUiThread(() -> { ready = true; for (String js : waiting) web.evaluateJavascript(js, null); waiting.clear(); }); }
 
   @JavascriptInterface public void buy() {

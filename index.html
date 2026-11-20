@@ -768,7 +768,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.496</div>
+      <div class="credit version">v1.0.497</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -969,7 +969,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.496`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.497`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6954,6 +6954,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!progress.rode) { progress.rode = true; saveProgress(); } // the first ride: Initium's rings on the scheme are done with
     setLevel(lv);
     state = "play";
+    if (tipEl && !tipStage) { tipEl.remove(); tipEl = null; } // (a scheme's tip left open goes with the scheme: it comes back next time there)
     tutStart(lv); // (before the first groups are set down: in the lesson only its own)
     resetWorld(true);
     zoneShown = ""; balls = START_BALLS + 10 * upLevel("copia"); secondWind = upLevel("spiritus") > 0; score = 0; shakeT = 0; throwCD = 0; runTime = 0; arrivedT = 0; recoil = 0;
@@ -7149,10 +7150,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       $("giftNote").textContent = "\u00a0"; // (no words: the line kept for its room)
     } else {
       const u = UPGRADES[g.u];
-      $("giftTitle").textContent = T("Улучшение!", "An upgrade!");
+      $("giftTitle").textContent = g.max ? T("Уже на максимуме", "Already at its best") : T("Улучшение!", "An upgrade!");
       $("giftPic").innerHTML = `<svg viewBox="-12 -12 24 24" aria-hidden="true"><path d="${PK_GEM}"/></svg>`;
       $("giftName").textContent = `${u.name} · ${T(u.ru, u.en)}`;
-      $("giftDesc").textContent = u.at(g.lvl); // (what this level gives in all)
+      $("giftDesc").textContent = g.max ? T("Этот подарок — уровень улучшения, а у вас уже все три. ", "This gift is a level of the upgrade, and you have all three already. ") + u.at(3) : u.at(g.lvl); // (what this level gives in all)
       $("giftPips").hidden = false; $("giftPips").innerHTML = [1, 2, 3].map(i => `<i class="${i <= g.lvl ? "on" : ""}"></i>`).join("") + `<span>${T(`уровень ${g.lvl} из 3`, `level ${g.lvl} of 3`)}</span>`;
       $("giftNote").textContent = "\u00a0"; // (no words: the line kept for its room)
     }
@@ -7172,7 +7173,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // the station's gift, once: its cannon (mounted at once) or a level of its upgrade
       let gift = null; const wid = weaponFrom(LEVEL.id), uid = UP_FROM[LEVEL.id];
       if (wid && !progress.weapons[wid]) { progress.weapons[wid] = true; progress.weapon = wid; setWeaponVisual(wid); gift = { w: wid }; }
-      if (uid && !progress.gifts[LEVEL.id] && upLevel(uid) < 3) { progress.up[uid] = upLevel(uid) + 1; gift = { u: uid, lvl: progress.up[uid] }; }
+      if (uid && !progress.gifts[LEVEL.id]) { // the next level of its upgrade over what the player has; or, all three had already, a word that it is so
+        if (upLevel(uid) < 3) { progress.up[uid] = upLevel(uid) + 1; gift = { u: uid, lvl: progress.up[uid] }; } else gift = { u: uid, lvl: 3, max: true }; }
       if (wid || uid) progress.gifts[LEVEL.id] = true;
       saveProgress();
       const titles = T(["Вы въехали в Свет", "Вы доехали до Небес", "Вы застряли в Чистилище", "Вы доехали в Сумерках", "Рельсы привели во Тьму"],
@@ -8912,7 +8914,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     $("shFeats").innerHTML = lv.depot && progress.open[lv.id] ? "" : lv.feats.map(f => `<li>${esc(f)}</li>`).join(""); // an open depot shows its wares instead
     { const wid = weaponFrom(lv.id), uid = UP_FROM[lv.id]; // its gift, while not yet given
       const gift = wid && !progress.weapons[wid] ? T(`Подарок за прохождение: пушка ${WEAPONS[wid].name}`, `Its gift once finished: the ${WEAPONS[wid].name} cannon`)
-        : uid && !progress.gifts[lv.id] && upLevel(uid) < 3 ? T(`Подарок за прохождение: уровень улучшения ${UPGRADES[uid].name} (${UPGRADES[uid].ru})`, `Its gift once finished: a level of the ${UPGRADES[uid].name} upgrade (${UPGRADES[uid].en})`) : "";
+        : uid && !progress.gifts[lv.id] ? (upLevel(uid) < 3 ? T(`Подарок за прохождение: уровень улучшения ${UPGRADES[uid].name} (${UPGRADES[uid].ru})`, `Its gift once finished: a level of the ${UPGRADES[uid].name} upgrade (${UPGRADES[uid].en})`)
+          : T(`Подарок за прохождение: улучшение ${UPGRADES[uid].name} (${UPGRADES[uid].ru}) — у вас уже максимальный уровень`, `Its gift once finished: the ${UPGRADES[uid].name} upgrade (${UPGRADES[uid].en}), which you have at its best already`)) : "";
       if (gift) $("shFeats").insertAdjacentHTML("afterbegin", `<li class="gift-li"><b>${esc(gift)}</b></li>`); }
     const reqs = [];
     if (!lv.gift && !isOpen(lv)) { // what opens it, while it is closed (once open, the line says nothing new)

@@ -3867,17 +3867,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         pieces.push([[ix, iy], edgeAt(a0), ...mid, edgeAt(a1)]);
       }
     }
+    const out = [];
     for (const [poly, zo] of pieces.flatMap(q => p.cross ? [[q, 0]] : [[q, -0.25], [q, 0.25]])) { // a block's shards split through its depth too
       let x = 0, y = 0; poly.forEach(([u, v]) => { x += u; y += v; }); x /= poly.length; y /= poly.length;
-      const depth = p.thick * (p.cross ? 1 : 0.5) * rand(0.7, 1), pl = poly.map(([u, v]) => [u - x, v - y]), geo = prismGeo(pl, depth);
-      const m = new THREE.Mesh(geo, p.mat); m.add(new THREE.LineSegments(prismEdges(pl, depth), edgeMat));
-      m.position.copy(p.C).addScaledVector(p.R, x).addScaledVector(p.U, y).addScaledVector(p.T, zo * p.thick); m.quaternion.copy(p.q); scene.add(m);
+      const depth = p.thick * (p.cross ? 1 : 0.5) * rand(0.7, 1), pl = poly.map(([u, v]) => [u - x, v - y]);
+      const c = p.C.clone().addScaledVector(p.R, x).addScaledVector(p.U, y).addScaledVector(p.T, zo * p.thick);
       let dx = x - lx, dy = y - ly; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
       const spd = rand(1.5, 3.2) / (0.8 + d * 0.3);
       const v = new THREE.Vector3().addScaledVector(p.R, dx * spd + impL.x * 0.05).addScaledVector(p.U, dy * spd + impL.y * 0.05 + 1).addScaledVector(p.T, impL.z * rand(0.1, 0.25));
-      shards.push({ mesh: m, life: rand(2.6, 3.4), v, fs: p.s, fo: p.thick / 2, w: new THREE.Vector3(rand(-4, 4), rand(-4, 4), rand(-3, 3)) });
+      out.push({ pl, d: depth, c, v, w: [rand(-4, 4), rand(-4, 4), rand(-3, 3)], life: rand(2.6, 3.4) });
     }
-    capShards();
+    gpuBurst(p.s, p.q, p.mat, edgeMat, out); // all one mesh, moved on the GPU
     Sound.shatter(1.4); Sound.crash();
   }
   function shatter(p, lx, ly, impL) {
@@ -3936,7 +3936,16 @@ vec3 bNor(vec3 n) { vec3 P; float tr, st, sh; bAt(P, tr, st, sh); return normali
     sh.vertexShader = BURST_HEAD + sh.vertexShader.replace("#include <begin_vertex>", "vec3 transformed = bPos();");
     if (normals) sh.vertexShader = sh.vertexShader.replace("#include <beginnormal_vertex>", "vec3 objectNormal = bNor(vec3(normal));"); };
     mat.customProgramCacheKey = () => key; return mat; };
-  const burstMat = burstify(glassMat.clone(), "burst", true), burstEdgeMat = burstify(edgeMat.clone(), "burstEdge", false);
+  // one copy of each material pieces are made of (a pane's glass, armoured glass, a monolith's, a slab's lens, their edges), the
+  // copy kept in step with it every frame (the palette moves the colours); a lens (its own shader) shares its uniforms
+  const burstMats = new Map();
+  function burstMatOf(m) {
+    let b = burstMats.get(m); if (b) return b;
+    if (m.isShaderMaterial) b = new THREE.ShaderMaterial({ uniforms: Object.assign({ uBurstT: burstU }, m.uniforms), transparent: m.transparent, depthWrite: m.depthWrite, side: m.side, fragmentShader: m.fragmentShader,
+      vertexShader: BURST_HEAD + m.vertexShader.replace("vec4 mv = modelViewMatrix * vec4(position, 1.0);", "vec4 mv = modelViewMatrix * vec4(bPos(), 1.0);").replace("normalMatrix * normal", "normalMatrix * bNor(normal)") });
+    else b = burstify(m.clone(), "burst" + (m.isLineBasicMaterial ? "L" : "M"), !m.isLineBasicMaterial);
+    burstMats.set(m, b); return b;
+  }
   // the pieces of a w × h pane struck at (lx, ly), as a pane has always broken: spokes from the blow out to the edge (as many on a
   // small pane as on a big one, so a small one breaks the same way, scaled down; Speculum too, now that a burst is two draws), each cut twice across: a
   // splinter at the blow, a band, and the long piece out to the edge. Every piece convex (a wedge of the pane cut by a chord)
@@ -3957,63 +3966,71 @@ vec3 bNor(vec3 n) { vec3 P; float tr, st, sh; bAt(P, tr, st, sh); return normali
     }
     return out;
   }
+  // a thin pane's pieces: as they always flew (from the blow, with the ball's push and the pane's own motion), as thin as glass
   function burstPane(p, lx, ly, impL) {
     const hw = p.w / 2, hh = p.h / 2; lx = clamp(lx, -hw + 0.03, hw - 0.03); ly = clamp(ly, -hh + 0.03, hh - 0.03);
-    const polys = p.cross ? [...burstPieces(hw, hh, lx, ly), ...burstPieces(hh, hw, lx, ly)] : burstPieces(hw, hh, lx, ly), H = SHARD_T / 2, lit = true; // (a cross: its two bars)
-    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), burstMat), lines = new THREE.LineSegments(new THREE.BufferGeometry(), burstEdgeMat);
-    mesh.matrixAutoUpdate = lines.matrixAutoUpdate = false; mesh.frustumCulled = lines.frustumCulled = false;
-    setObj(mesh, p.s, 0, 0); const fP = _P.clone(), fR = _R.clone(), fU = _U.clone(), fT = _T.clone(); // the track's frame at the pane: x across, y up, z back toward the cart
-    const qf = new THREE.Quaternion().setFromRotationMatrix(mesh.matrix), Q = qf.clone().invert().multiply(p.q); // the pane's turn within that frame
+    const polys = p.cross ? [...burstPieces(hw, hh, lx, ly), ...burstPieces(hh, hw, lx, ly)] : burstPieces(hw, hh, lx, ly); // (a cross: its two bars)
+    const prevM = p.pm && p.pdt > 0 ? p.pm : null, inv = new THREE.Matrix4().copy(p.group.matrix).invert(), was = new THREE.Vector3(), pieces = [];
+    for (const poly of polys) {
+      let cx = 0, cy = 0; poly.forEach(([x, y]) => { cx += x; cy += y; }); cx /= poly.length; cy /= poly.length;
+      const pl = poly.map(([x, y]) => [x - cx, y - cy]); let size = 0; pl.forEach(([x, y]) => { size = Math.max(size, Math.hypot(x, y)); });
+      const c = p.C.clone().addScaledVector(p.R, cx).addScaledVector(p.U, cy);
+      let dx = cx - lx, dy = cy - ly; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+      const spd = (2.2 + Math.random() * 3) / (0.7 + d * 0.55);
+      const v = new THREE.Vector3().addScaledVector(p.R, dx * spd + impL.x * 0.06).addScaledVector(p.U, dy * spd + impL.y * 0.06 + 0.6).addScaledVector(p.T, Math.min(impL.z * (0.15 + Math.random() * 0.25), SHARD_FWD_THIN * (0.2 + 0.8 * Math.random()) / (0.8 + d * 0.35)));
+      if (prevM) { was.copy(c).applyMatrix4(inv).applyMatrix4(prevM); was.subVectors(c, was).divideScalar(p.pdt); if (was.lengthSq() < 900) v.add(was); } // the pane's own motion
+      const ks = 1 / (1 + size * 1.2); // a big piece turns slowly, heavy
+      pieces.push({ pl, d: SHARD_T, c, v, w: [(Math.random() - 0.5) * 10 * ks, (Math.random() - 0.5) * 10 * ks, (Math.random() - 0.5) * 6 * ks + (p.rot !== undefined ? p.spin : 0)], life: rand(2.4, 3.6), fwd: SHARD_FWD_THIN });
+    }
+    gpuBurst(p.s, p.q, p.mat, p.mat === glassMat ? edgeMat : reinfEdgeMat, pieces);
+    Sound.shatter(clamp(p.w * p.h / 9, 0.6, 1.6));
+  }
+  // any glass's pieces as one mesh and one set of edges: each piece a convex polygon pl about its middle c (world), d thick, turned
+  // as q (world), setting off at v (world) turning at w (its own axes), shrinking out after life unless it lies on the deck
+  function gpuBurst(s, q, mat, edgeM, pieces) {
+    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), burstMatOf(mat)), lines = edgeM && new THREE.LineSegments(new THREE.BufferGeometry(), burstMatOf(edgeM));
+    mesh.matrixAutoUpdate = false; mesh.frustumCulled = false; if (lines) { lines.matrixAutoUpdate = false; lines.frustumCulled = false; }
+    setObj(mesh, s, 0, 0); const fP = _P.clone(), fR = _R.clone(), fU = _U.clone(), fT = _T.clone(); // the track's frame there: x across, y up, z back toward the cart
+    const Q = new THREE.Quaternion().setFromRotationMatrix(mesh.matrix).invert().multiply(q); // the glass's turn within that frame
     const toF = (w, o) => o.set(w.dot(fR), w.dot(fU), -w.dot(fT));
-    const g = toF(new THREE.Vector3(0, -G, 0), new THREE.Vector3()), fw = (openAt(p.s) || iniOpen(p.s) ? BRIDGE_W : spanAt(p.s) ? SW : LEVEL.halls ? HALL_W : STYLE.floorW || SW) + 0.1;
-    const prevM = p.pm && p.pdt > 0 ? p.pm : null, inv = new THREE.Matrix4().copy(p.group.matrix).invert();
-    // typed arrays sized up front, filled in place (with arrays grown by push a big pane took 15 ms to break, a hitch)
-    let nv = 0, nl = 0; for (const q of polys) { nv += 6 * (q.length - 2) + 6 * q.length; if (lit) nl += 6 * q.length; } // faces, the sides, and the outline round both faces and across
+    const g = toF(new THREE.Vector3(0, -G, 0), new THREE.Vector3()), fw = (openAt(s) || iniOpen(s) ? BRIDGE_W : spanAt(s) ? SW : LEVEL.halls ? HALL_W : STYLE.floorW || SW) + 0.2;
+    // typed arrays sized up front, filled in place (arrays grown by push made a big pane's break a hitch)
+    let nv = 0, nl = 0; for (const pc of pieces) { const n = pc.pl.length; nv += 6 * (n - 2) + 6 * n; if (lines) nl += 6 * n; } // faces, sides, the outline round both faces and across
     const mk = (n, w) => new Float32Array(n * w), KS = [["aP", 3], ["aC", 3], ["aV", 3], ["aW", 3], ["aQ", 4], ["aT", 4], ["aG", 3]];
     const A = { position: mk(nv, 3), normal: mk(nv, 3) }, L = { position: mk(nl, 3) }; for (const [k, w] of KS) { A[k] = mk(nv, w); L[k] = mk(nl, w); }
     let ia = 0, il = 0; const per = { aC: [0, 0, 0], aV: [0, 0, 0], aW: [0, 0, 0], aQ: [Q.x, Q.y, Q.z, Q.w], aT: [0, 0, 0, 0], aG: [g.x, g.y, g.z] };
     const vert = (B, i, x, y, z, nx, ny, nz) => { B.aP[i * 3] = x; B.aP[i * 3 + 1] = y; B.aP[i * 3 + 2] = z; if (B.normal) { B.normal[i * 3] = nx; B.normal[i * 3 + 1] = ny; B.normal[i * 3 + 2] = nz; } };
     const spread = (B, a, b) => { for (const [k, w] of KS) if (k !== "aP") { const src = per[k], dst = B[k]; for (let i = a; i < b; i++) for (let j = 0; j < w; j++) dst[i * w + j] = src[j]; } }; // what the piece's every corner shares
-    const Wc = new THREE.Vector3(), was = new THREE.Vector3(), V = new THREE.Vector3(), C = new THREE.Vector3(), Vl = new THREE.Vector3();
-    for (const poly of polys) {
-      let cx = 0, cy = 0; poly.forEach(([x, y]) => { cx += x; cy += y; }); cx /= poly.length; cy /= poly.length;
-      const pl = poly.map(([x, y]) => [x - cx, y - cy]); let size = 0; pl.forEach(([x, y]) => { size = Math.max(size, Math.hypot(x, y)); });
-      Wc.copy(p.C).addScaledVector(p.R, cx).addScaledVector(p.U, cy);
-      let dx = cx - lx, dy = cy - ly; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
-      const spd = (2.2 + Math.random() * 3) / (0.7 + d * 0.55);
-      V.set(0, 0, 0).addScaledVector(p.R, dx * spd + impL.x * 0.06).addScaledVector(p.U, dy * spd + impL.y * 0.06 + 0.6).addScaledVector(p.T, Math.min(impL.z * (0.15 + Math.random() * 0.25), SHARD_FWD_THIN * (0.2 + 0.8 * Math.random()) / (0.8 + d * 0.35)));
-      if (prevM) { was.copy(Wc).applyMatrix4(inv).applyMatrix4(prevM); was.subVectors(Wc, was).divideScalar(p.pdt); if (was.lengthSq() < 900) V.add(was); } // the pane's own motion
-      toF(C.copy(Wc).sub(fP), C); toF(V, Vl);
-      const ks = 1 / (1 + size * 1.2); per.aW[0] = (Math.random() - 0.5) * 10 * ks; per.aW[1] = (Math.random() - 0.5) * 10 * ks; per.aW[2] = (Math.random() - 0.5) * 6 * ks + (p.rot !== undefined ? p.spin : 0);
-      // where it comes down on the deck (its middle a thickness over it), if it does: before that it flies and turns, then lies flat
-      let tl = 1e6; const y0 = C.y - 0.05, disc = Vl.y * Vl.y - 2 * g.y * y0;
+    const C = new THREE.Vector3(), Vl = new THREE.Vector3(); frameAt(sC); const Tc = _T.clone();
+    for (const pc of pieces) {
+      const f = pc.v.dot(Tc), cap = pc.fwd || SHARD_FWD; if (f > cap) pc.v.addScaledVector(Tc, cap - f); // never on along the track faster than the cart, nor far ahead of it
+      toF(C.copy(pc.c).sub(fP), C); toF(pc.v, Vl);
+      // where it comes down on the deck (its middle half its thickness over it), if it does: till then it flies and turns
+      let tl = 1e6; const y0 = C.y - pc.d / 2 - 0.03, disc = Vl.y * Vl.y - 2 * g.y * y0;
       if (g.y < -1 && y0 > 0 && disc > 0) { const tt = (-Vl.y - Math.sqrt(disc)) / g.y, xl = C.x + Vl.x * tt + 0.5 * g.x * tt * tt; if (Math.abs(xl) < fw) tl = tt; }
-      per.aC[0] = C.x; per.aC[1] = C.y; per.aC[2] = C.z; per.aV[0] = Vl.x; per.aV[1] = Vl.y; per.aV[2] = Vl.z;
-      per.aT[0] = time; per.aT[1] = tl; per.aT[2] = rand(2.4, 3.6); per.aT[3] = rand(0, TAU);
-      const ia0 = ia, il0 = il;
+      per.aC[0] = C.x; per.aC[1] = C.y; per.aC[2] = C.z; per.aV[0] = Vl.x; per.aV[1] = Vl.y; per.aV[2] = Vl.z; per.aW[0] = pc.w[0]; per.aW[1] = pc.w[1]; per.aW[2] = pc.w[2];
+      per.aT[0] = time; per.aT[1] = tl; per.aT[2] = pc.life; per.aT[3] = rand(0, TAU);
+      const pl = pc.pl, H = pc.d / 2, ia0 = ia, il0 = il;
       for (let j = 1; j + 1 < pl.length; j++) { // faces: front and back, fanned
         vert(A, ia++, pl[0][0], pl[0][1], H, 0, 0, 1); vert(A, ia++, pl[j][0], pl[j][1], H, 0, 0, 1); vert(A, ia++, pl[j + 1][0], pl[j + 1][1], H, 0, 0, 1);
         vert(A, ia++, pl[0][0], pl[0][1], -H, 0, 0, -1); vert(A, ia++, pl[j + 1][0], pl[j + 1][1], -H, 0, 0, -1); vert(A, ia++, pl[j][0], pl[j][1], -H, 0, 0, -1);
       }
       for (let j = 0; j < pl.length; j++) { const [x1, y1] = pl[j], [x2, y2] = pl[(j + 1) % pl.length], l = Math.hypot(x2 - x1, y2 - y1) || 1, nx = (y2 - y1) / l, ny = -(x2 - x1) / l;
         vert(A, ia++, x1, y1, -H, nx, ny, 0); vert(A, ia++, x2, y2, -H, nx, ny, 0); vert(A, ia++, x2, y2, H, nx, ny, 0); vert(A, ia++, x1, y1, -H, nx, ny, 0); vert(A, ia++, x2, y2, H, nx, ny, 0); vert(A, ia++, x1, y1, H, nx, ny, 0);
-        if (lit) { vert(L, il++, x1, y1, H); vert(L, il++, x2, y2, H); vert(L, il++, x1, y1, -H); vert(L, il++, x2, y2, -H); vert(L, il++, x1, y1, -H); vert(L, il++, x1, y1, H); } }
-      spread(A, ia0, ia); spread(L, il0, il);
+        if (lines) { vert(L, il++, x1, y1, H); vert(L, il++, x2, y2, H); vert(L, il++, x1, y1, -H); vert(L, il++, x2, y2, -H); vert(L, il++, x1, y1, -H); vert(L, il++, x1, y1, H); } }
+      spread(A, ia0, ia); if (lines) spread(L, il0, il);
     }
     for (const k in A) mesh.geometry.setAttribute(k, new THREE.BufferAttribute(A[k], k === "aQ" || k === "aT" ? 4 : 3));
-    for (const k in L) lines.geometry.setAttribute(k, new THREE.BufferAttribute(L[k], k === "aQ" || k === "aT" ? 4 : 3));
-    lines.matrix.copy(mesh.matrix);
-    scene.add(mesh); scene.add(lines);
-    bursts.push({ s: p.s, mesh, lines, t: time });
-    while (bursts.length > 10) dropBurst(bursts.shift()); // (never more than ten panes' pieces about)
-    Sound.shatter(clamp(p.w * p.h / 9, 0.6, 1.6));
+    scene.add(mesh);
+    if (lines) { for (const k in L) lines.geometry.setAttribute(k, new THREE.BufferAttribute(L[k], k === "aQ" || k === "aT" ? 4 : 3)); lines.matrix.copy(mesh.matrix); scene.add(lines); }
+    bursts.push({ s, mesh, lines, t: time });
+    while (bursts.length > 12) dropBurst(bursts.shift()); // (never more than a dozen breaks' pieces about)
   }
-  function dropBurst(b) { scene.remove(b.mesh); scene.remove(b.lines); b.mesh.geometry.dispose(); b.lines.geometry.dispose(); }
+  function dropBurst(b) { scene.remove(b.mesh); b.mesh.geometry.dispose(); if (b.lines) { scene.remove(b.lines); b.lines.geometry.dispose(); } }
   function updateBursts() {
     burstU.value = time;
-    burstMat.color.copy(glassMat.color); burstMat.emissive.copy(glassMat.emissive); burstMat.opacity = glassMat.opacity; burstMat.emissiveIntensity = glassMat.emissiveIntensity;
-    burstEdgeMat.color.copy(edgeMat.color); burstEdgeMat.opacity = edgeMat.opacity;
-    for (const b of bursts) { if (b.s < sC - 12 || time - b.t > 12) { b.dead = true; dropBurst(b); continue; } setObj(b.mesh, b.s, 0, 0); b.lines.matrix.copy(b.mesh.matrix); b.lines.matrixWorldNeedsUpdate = true; } // the floor under the pieces the track's as it is now (the karma bends it)
+    for (const [m, b] of burstMats) if (!m.isShaderMaterial) { b.color.copy(m.color); b.opacity = m.opacity; if (m.emissive) { b.emissive.copy(m.emissive); b.emissiveIntensity = m.emissiveIntensity; } }
+    for (const b of bursts) { if (b.s < sC - 12 || time - b.t > 12) { b.dead = true; dropBurst(b); continue; } setObj(b.mesh, b.s, 0, 0); if (b.lines) { b.lines.matrix.copy(b.mesh.matrix); b.lines.matrixWorldNeedsUpdate = true; } } // the floor under the pieces the track's as it is now (the karma bends it)
     bursts = bursts.filter(b => !b.dead);
   }
   function shatterRect(p, lx, ly, impL) {
@@ -4060,7 +4077,7 @@ vec3 bNor(vec3 n) { vec3 P; float tr, st, sh; bAt(P, tr, st, sh); return normali
         const t = ((x1 - ix) * ey - (y1 - iy) * ex) / den, u = ((x1 - ix) * dy - (y1 - iy) * dx) / den; if (t > 0 && u >= 0 && u <= 1) best = Math.min(best, t); }
       return [ix + dx * best, iy + dy * best]; };
     const vAng = P.map(([x, y]) => Math.atan2(y - iy, x - ix)), q = new THREE.Quaternion().setFromRotationMatrix(M), ctr = new THREE.Vector3(ix, iy, 0).applyMatrix4(M);
-    frameAt(s);
+    frameAt(s); const out = [];
     for (let i = 0; i < n; i++) {
       const s0 = a0 + i * TAU / n + rand(-0.12, 0.12), s1 = a0 + (i + 1) * TAU / n + rand(-0.12, 0.12) * (i + 1 < n ? 1 : 0);
       const mid = P.filter((c, k) => { const r = ((vAng[k] - s0) % TAU + TAU) % TAU; return r > 1e-6 && r < s1 - s0 - 1e-6; })
@@ -4068,14 +4085,12 @@ vec3 bNor(vec3 n) { vec3 P; float tr, st, sh; bAt(P, tr, st, sh); return normali
       const rim = [edgeAt(s0), ...mid, edgeAt(s1)], cut = rand(0.38, 0.55), inner = rim.map(([x, y]) => [ix + (x - ix) * cut, iy + (y - iy) * cut]);
       for (const pg of [[[ix, iy], ...inner], [...rim, ...inner.slice().reverse()]]) {
         let cx = 0, cy = 0; pg.forEach(([x, y]) => { cx += x; cy += y; }); cx /= pg.length; cy /= pg.length;
-        const dd = depth * rand(0.75, 1), pl = pg.map(([x, y]) => [x - cx, y - cy]), geo = prismGeo(pl, dd);
-        const m = new THREE.Mesh(geo, mat); m.add(new THREE.LineSegments(prismEdges(pl, dd), edgeM));
-        m.position.set(cx, cy, 0).applyMatrix4(M); m.quaternion.copy(q); scene.add(m);
-        const v = m.position.clone().sub(ctr).multiplyScalar(rand(0.5, 1.1) * push); v.addScaledVector(_T, rand(1, 3)).y += rand(0.3, 2);
-        shards.push({ mesh: m, life: rand(2.2, 3.0), v, w: new THREE.Vector3(rand(-3, 3), rand(-3, 3), rand(-3, 3)), fs: s, fo: depth / 2 });
+        const dd = depth * rand(0.75, 1), pl = pg.map(([x, y]) => [x - cx, y - cy]), c = new THREE.Vector3(cx, cy, 0).applyMatrix4(M);
+        const v = c.clone().sub(ctr).multiplyScalar(rand(0.5, 1.1) * push); v.addScaledVector(_T, rand(1, 3)).y += rand(0.3, 2);
+        out.push({ pl, d: dd, c, v, w: [rand(-3, 3), rand(-3, 3), rand(-3, 3)], life: rand(2.2, 3.0) });
       }
     }
-    capShards();
+    gpuBurst(s, q, mat, edgeM, out); // all one mesh, moved on the GPU
   }
   // armoured glass: bursts as a solid slab, from where it was struck
   function crumblePane(p, lx, ly) {
@@ -6222,7 +6237,7 @@ vec3 bNor(vec3 n) { vec3 P; float tr, st, sh; bAt(P, tr, st, sh); return normali
         const t = ((x1 - ix) * ey - (y1 - iy) * ex) / den, u = ((x1 - ix) * dy - (y1 - iy) * dx) / den; if (t > 0 && u >= 0 && u <= 1) best = Math.min(best, t); }
       return [ix + dx * best, iy + dy * best]; };
     const vAng = PTS.map(([x, y]) => Math.atan2(y - iy, x - ix));
-    const out = new THREE.Vector3(), ctr = new THREE.Vector3(0, HEX_V + c.cy, 0).applyMatrix4(c.slab.matrixWorld);
+    const out = new THREE.Vector3(), ctr = new THREE.Vector3(0, HEX_V + c.cy, 0).applyMatrix4(c.slab.matrixWorld), qs = new THREE.Quaternion().setFromRotationMatrix(c.slab.matrixWorld), list = [];
     for (let i = 0; i < n; i++) {
       const s0 = a0 + i * TAU / n + rand(-0.12, 0.12), s1 = a0 + (i + 1) * TAU / n + rand(-0.12, 0.12) * (i + 1 < n ? 1 : 0);
       const mid = PTS.filter((p, k) => { const r = ((vAng[k] - s0) % TAU + TAU) % TAU; return r > 1e-6 && r < s1 - s0 - 1e-6; })
@@ -6230,14 +6245,12 @@ vec3 bNor(vec3 n) { vec3 P; float tr, st, sh; bAt(P, tr, st, sh); return normali
       const rim = [edgeAt(s0), ...mid, edgeAt(s1)], cut = rand(0.38, 0.55), inner = rim.map(([x, y]) => [ix + (x - ix) * cut, iy + (y - iy) * cut]);
       for (const poly of [[[ix, iy], ...inner], [...rim, ...inner.slice().reverse()]]) {
         let cx = 0, cy = 0; poly.forEach(([x, y]) => { cx += x; cy += y; }); cx /= poly.length; cy /= poly.length;
-        const pl = poly.map(([x, y]) => [x - cx, y - cy]), geo = prismGeo(pl, 0.6);
-        const m = new THREE.Mesh(geo, slabGlass); m.add(new THREE.LineSegments(prismEdges(pl, 0.6), glassEdge));
-        m.position.set(cx, HEX_V + cy, 0).applyMatrix4(c.slab.matrixWorld); m.quaternion.setFromRotationMatrix(c.slab.matrixWorld); scene.add(m);
-        const v = out.copy(m.position).sub(ctr).multiplyScalar(rand(0.5, 1.1)).clone(); frameAt(c.s); v.addScaledVector(_T, rand(3, 6)).y += rand(0.5, 2.5); // out from the blow, on along the track
-        shards.push({ mesh: m, life: rand(2.2, 3.0), v, w: new THREE.Vector3(rand(-3, 3), rand(-3, 3), rand(-3, 3)), fs: c.s, fo: 0.3 });
+        const pl = poly.map(([x, y]) => [x - cx, y - cy]), cw = new THREE.Vector3(cx, HEX_V + cy, 0).applyMatrix4(c.slab.matrixWorld);
+        const v = out.copy(cw).sub(ctr).multiplyScalar(rand(0.5, 1.1)).clone(); frameAt(c.s); v.addScaledVector(_T, rand(3, 6)).y += rand(0.5, 2.5); // out from the blow, on along the track
+        list.push({ pl, d: 0.6, c: cw, v, w: [rand(-3, 3), rand(-3, 3), rand(-3, 3)], life: rand(2.2, 3.0) });
       }
     }
-    capShards();
+    gpuBurst(c.s, qs, slabGlass, glassEdge, list); // all one mesh, moved on the GPU
     scene.remove(c.slab); Sound.thickGlass(); Sound.shatter(1.4);
     if (byCart) {
       balls = Math.max(0, balls - CATA_COST); updateCount(); karmaLoss(0.15);

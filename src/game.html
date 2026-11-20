@@ -180,7 +180,9 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 @keyframes ringout { from { transform: var(--tilt) scale(1); opacity: 0.8; } to { transform: var(--tilt) scale(1.818); opacity: 0; } } /* r 22 to 40 */
 @keyframes ringpulse { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.35); opacity: 0; } } /* r 20 to 27 and back */ /* under the pointer, on the station's circle itself (set from the script: a finger has no hover) */
 /* Play, on the top bar between the logo and Emptio: a chip as the others there, its triangle and word turquoise */
-.m-head.c1 #depotBtn span, .m-head.c2 #emptioBtn span, .m-head.c3 #playBtn span { display: none; } .m-head.c1 #depotBtn, .m-head.c2 #emptioBtn, .m-head.c3 #playBtn { padding: 0 9px; } /* the bar in one row: words dropped, the icons kept, as needed (fitHead) */
+#depotBtn .sw { display: none; } .m-head.c1 #depotBtn .lw { display: none; } .m-head.c1 #depotBtn .sw { display: inline; }
+.m-head.c2 #emptioBtn span, .m-head.c3 #playBtn span, .m-head.c4 #depotBtn span { display: none !important; } .m-head.c2 #emptioBtn, .m-head.c3 #playBtn, .m-head.c4 #depotBtn { padding: 0 9px; }
+/* the bar in one row, as room allows (fitHead): Armamentarium shortened to Arma, then Emptio's word dropped, then Play's, then Arma's: their icons kept */
 .depot.playbtn { color: #0c8fb0; box-shadow: inset 0 1px 0 #ffffff, 0 0 0 1px rgba(16, 36, 46, 0.07), 0 0 12px 2px rgba(20, 170, 200, 0.4); } /* a steady turquoise glow */
 .night .depot.playbtn { box-shadow: inset 0 1px 0 rgba(160, 230, 255, 0.16), 0 0 0 1px rgba(120, 200, 255, 0.2), 0 0 14px 3px rgba(60, 214, 240, 0.45); }
 .depot.playbtn { animation: playGlow 2.4s ease-in-out infinite; } .night .depot.playbtn { animation-name: playGlowN; } /* breathing, as Emptio's */
@@ -648,7 +650,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       <div class="m-side">
         <div class="bank" aria-label="Кристаллы в запасе" data-en-aria="Crystals in the bank">◆ <b id="bank">0</b></div>
         <div class="arms" id="arms" role="group" aria-label="Пушка на вагонетке" data-en-aria="The cart's cannon"></div>
-        <button class="depot" id="depotBtn" type="button" aria-label="Armamentarium"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l8 3.1v6.1c0 4.6-3.3 8.1-8 9.6-4.7-1.5-8-5-8-9.6V5.7z"/><path d="M8.2 12.6L12 8.8l3.8 3.8M8.2 16.4L12 12.6l3.8 3.8"/></svg><span>Armamentarium</span></button>
+        <button class="depot" id="depotBtn" type="button" aria-label="Armamentarium"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l8 3.1v6.1c0 4.6-3.3 8.1-8 9.6-4.7-1.5-8-5-8-9.6V5.7z"/><path d="M8.2 12.6L12 8.8l3.8 3.8M8.2 16.4L12 12.6l3.8 3.8"/></svg><span class="lw">Armamentarium</span><span class="sw">Arma</span></button>
       </div>
     </header>
     <div class="map-card">
@@ -8506,8 +8508,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the top bar kept on one row where it was (a wide screen): the words on its buttons dropped one by one till it fits
   function fitHead() {
     const h = document.querySelector(".m-head"), side = document.querySelector(".m-side"), brand = document.querySelector(".m-brand"); if (!h || !side || !brand) return;
-    h.classList.remove("c1", "c2", "c3"); if (innerWidth < innerHeight) return; // (a phone held upright has its two rows anyway)
-    for (const c of ["c1", "c2", "c3"]) { const r = h.getBoundingClientRect(); if (side.offsetTop < brand.offsetTop + brand.offsetHeight - 4 && side.getBoundingClientRect().right <= r.right + 1) return; /* (on brand's row, and within it) */ h.classList.add(c); }
+    h.classList.remove("c1", "c2", "c3", "c4"); if (innerWidth < innerHeight) return; // (a phone held upright has its two rows anyway)
+    for (const c of ["c1", "c2", "c3", "c4"]) { const r = h.getBoundingClientRect(); if (side.offsetTop < brand.offsetTop + brand.offsetHeight - 4 && side.getBoundingClientRect().right <= r.right + 1) return; /* (on brand's row, and within it) */ h.classList.add(c); }
   }
   addEventListener("resize", () => requestAnimationFrame(fitHead));
   function renderEmptio() { requestAnimationFrame(fitHead); $("emptioBtn").hidden = !!progress.full; $("emptioBtn").classList.toggle("glow", !!progress.done.vitrum); } // (there from the start till the game is bought)

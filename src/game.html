@@ -3509,8 +3509,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   const CRYSTAL_VAL = 4, CRYSTAL_DARK = 7; // balls a hit, by the light and in the dark
   let crystalTally = 0;
-  function addCrystal(s, u, v, val, decoyKind) {
-    for (let k = 0; k < 4; k++) { if (!crystals.some(c => c.alive && Math.hypot(c.s - s, c.u - u, c.v - v) < 2.6)) break; s += 2.8; } // never right against another
+  function addCrystal(s, u, v, val, decoyKind, pick) {
+    // never right against another; and one set down loose (pick: where else it may hang) never nearly in line with another within 10 m
+    // along the track either: one behind the other, seen down the track, the two had run together into one
+    const near = (s, u, v) => crystals.some(c => c.alive && (Math.hypot(c.s - s, c.u - u, c.v - v) < 2.6 || (pick && Math.abs(c.s - s) < 10 && Math.hypot(c.u - u, c.v - v) < 1.5)));
+    if (pick) for (let k = 0; k < 8 && near(s, u, v); k++) [u, v] = pick();
+    for (let k = 0; k < 4; k++) { if (!near(s, u, v)) break; s += pick ? 5 : 2.8; }
     if (!decoyKind) crystalTally += val >= CRYSTAL_DARK ? 2 : 1; // what the ride has set out for the bank, for tests
     const g = new THREE.Group(); g.matrixAutoUpdate = false;
     const m = new THREE.Mesh(crystalGeo, decoyKind ? decoyMat : crystalMat); g.add(m);
@@ -3585,7 +3589,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function clearDoorZone(dr) { clearZone(dr.s - 0.6, dr.s + (dr.kind === "flap" ? FLAP_H + 1.2 : DOOR_W + 0.8)); }
   function clearZone(a, b) { // take away whatever stands between a and b along the track
     const inZ = x => x.s > a && x.s < b, off = (list, rm) => list.filter(x => inZ(x) ? (rm(x), false) : true);
-    panes = off(panes, removePane); crystals = off(crystals, c => scene.remove(c.group)); imps = off(imps, c => scene.remove(c.group));
+    panes = off(panes, removePane); crystals = off(crystals, c => scene.remove(c.group)); imps = imps.filter(c => inZ(c) && c.cu === undefined ? (scene.remove(c.group), false) : true); // (an imp already on its way is left be: flying on toward the cart into the clear run past a gate ahead, it had vanished before the eyes)
     sigils = off(sigils, c => scene.remove(c.group)); drops = off(drops, c => scene.remove(c.group)); thorns = off(thorns, c => scene.remove(c.group));
     hangers = off(hangers, h => { scene.remove(h.root); scene.remove(h.body); }); hmills = off(hmills, m => scene.remove(m.root));
     spinners = off(spinners, x => scene.remove(x.root)); rams = off(rams, x => scene.remove(x.root)); lblocks = off(lblocks, x => scene.remove(x.root));
@@ -3845,17 +3849,18 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // there down 7, and it banks two crystals instead of one, so the risk of the dark pays (CRYSTAL_DARK)
     const cs = s - spacing(d) * 0.5;
     const br = branchAt(s), cm = (LEVEL.crystalMul || 1) * (br === "rich" ? 2.2 : br === "calm" ? 0.2 : 1);
-    if (cm > 1 && Math.random() < (cm - 1) * 0.5) addCrystal(clearOfArch(cs + 4), rand(-2.8, 2.8), rand(1.1, 4.6), d < 0.65 ? CRYSTAL_VAL : CRYSTAL_DARK);
+    const LOOSE = () => [rand(-2.8, 2.8), rand(1.1, 4.6)];
+    if (cm > 1 && Math.random() < (cm - 1) * 0.5) addCrystal(clearOfArch(cs + 4), rand(-2.8, 2.8), rand(1.1, 4.6), d < 0.65 ? CRYSTAL_VAL : CRYSTAL_DARK, undefined, LOOSE);
     if (Math.random() < Math.min(0.95, lerp(0.85, 0.3, d) * cm)) {
       const val = d < 0.65 ? CRYSTAL_VAL : CRYSTAL_DARK;
       // in the mirror halls a crystal may hang beside its reflection, the two mirrored about the track
       const twin = LEVEL.mirages && !spanAt(cs) && Math.random() < LEVEL.mirages, cu = twin ? (Math.random() < 0.5 ? -1 : 1) * rand(1.2, 2.8) : rand(-2.8, 2.8), cv = rand(1.1, 4.6);
       const c0 = clearOfArch(cs);
-      addCrystal(c0, cu, cv, val);
+      addCrystal(c0, cu, cv, val, undefined, twin ? null : LOOSE);
       if (twin) addMirage(c0, -cu, cv, val);
-      if (d < 0.3 && Math.random() < 0.35) addCrystal(clearOfArch(cs - 3), rand(-2.8, 2.8), rand(1.1, 4.6), val);
+      if (d < 0.3 && Math.random() < 0.35) addCrystal(clearOfArch(cs - 3), rand(-2.8, 2.8), rand(1.1, 4.6), val, undefined, LOOSE);
     }
-    if (d > 0.55 && Math.random() < (d - 0.55) * 1.4 * (LEVEL.decoyMul || 1)) addCrystal(clearOfArch(cs + 2), rand(-1.2, 1.2), rand(1.4, 3), 0, true);
+    if (d > 0.55 && Math.random() < (d - 0.55) * 1.4 * (LEVEL.decoyMul || 1)) addCrystal(clearOfArch(cs + 2), rand(-1.2, 1.2), rand(1.4, 3), 0, true, () => [rand(-1.2, 1.2), rand(1.4, 3)]);
   }
   // a crystal never hangs inside one of the tunnel's frames: it keeps a metre off an arch
   function clearOfArch(s) {

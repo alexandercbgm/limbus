@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.515</div>
+      <div class="credit version">v1.0.516</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.515`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.516`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3448,7 +3448,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // a pane over the rails keeps its foot clear of them (their tops are at 0.26): a short one is raised, a tall one standing on the
   // floor stops short above them, its top where it was; so one sliding across the track passes over the rails, not through them
   const RAIL_CLEAR = 0.42;
-  const FP_L = 3.4, FP_U = 2.35, FP_V = 5.6, FP_A = Math.asin((FP_U - 2.6 / 2 - 0.04) / FP_L); /* (2.6: RAM_LEN, set further on) */ // the hovering pair: as on chains 3.4 m long hung 2.35 m out, swung in till they all but touch
   const TWIN_AMP = 2.0 - 2.2 / 2 - 0.05; // twin panes 2.2 m wide about ±2 m: at their closest 10 cm apart (they swung 1 m and overlapped by 20 cm)
   // how far out from the track's middle glass may reach at height v without passing through the level's walls or glazing:
   // Vitrum's glazing is a hexagon (pointed at the sides, so narrower toward floor and roof), the rest stand between upright walls
@@ -3680,7 +3679,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const spn = !spawnGroupKind && spanAt(s);
     if (spn) { // on Speculum's bridges only glass that stands on the deck or turns over it: nothing on chains, nothing off the walls
       if (s < spn.a + 16 || s > spn.b - 8) return;
-      if (spn.spiral) { if (pat === "doors" || pat === "gate") pat = Math.random() < 0.5 ? "center" : "fpend"; if (Math.random() < 0.22) pat = Math.random() < 0.6 ? "rbeam" : "rbeam2"; } // and now and then a ruby's beam // a spiral bridge: the level's own mix, all but its gates
+      if (spn.spiral) { if (pat === "doors" || pat === "gate") pat = Math.random() < 0.5 ? "center" : "slider"; if (Math.random() < 0.22) pat = Math.random() < 0.6 ? "rbeam" : "rbeam2"; } // and now and then a ruby's beam // a spiral bridge: the level's own mix, all but its gates
       else { const opts = LEVEL.spanPats || ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; }
     }
     if (!spawnGroupKind && LEVEL.id === "lux") { // Lux: its big obstacles evenly spread, never two within 55 m (they had heaped up: two pairs of gears and a
@@ -3761,7 +3760,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (s - lastCataS > CATA_GAP) addCatapult(s); else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) });
         break;
       case "doors": // never two gates close together: there would be no time to open the second
-        if (s - lastGateS > GATE_GAP) addGate(s); else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.0), h: rand(2.4, 2.9) });
+        if (s - lastGateS > GATE_GAP && !nearSpanGate(s)) addGate(s); else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.0), h: rand(2.4, 2.9) });
         break;
       case "rise": { // a pane comes up out of the abyss beside the bridge, then slides in over the deck and stops in the way
         if (s < sC + 75) { addPane({ s, u: rand(-0.5, 0.5), v: glassV, w: rand(2.4, 3.0), h: rand(2.4, 2.9) }); break; } // too near to be seen rising: it stands there
@@ -3801,11 +3800,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       case "rbeam": if (!addRubyBeam(s, false)) addRubyBeam(s, true); break; // Rubinus's bridges: a ruby's beam sweeping, or a pair's gliding
       case "rbeam2": addRubyBeam(s, true); break;
-      case "fpend": { // Rubinus's bridges: two glass blocks hovering either side, swinging in as on chains, with none: they meet over the rails
-        const freq = Math.sqrt(G / FP_L) * rand(0.95, 1.1), phase = rand(0, TAU);
-        [-1, 1].forEach(k => addPane({ s, u: k * FP_U, v: FP_V - FP_L, w: RAM_LEN, h: 2 * RAM_R, thick: 1.1, rot: 0, spin: 0, move: { axis: "arc", k, amp: FP_A, freq, phase } }));
-        break;
-      }
       case "prisms": if (!addPrisms(s)) addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break; // Speculum: light through prisms off mirrors
       case "twins": { // two panes mirrored about the track that close and part like doors
         const freq = rand(0.9, 1.3) * (1 + 0.3 * d), phase = rand(0, TAU);
@@ -3871,7 +3865,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         break;
       }
       case "gate": case "pendulum":
-        if (s - lastHangerS > (LEVEL.id === "lux" ? 45 : 70)) { addHanger(s, pat); lastHangerS = s; } // keep monoliths at least 70 m apart (on Lux's long bridge 45)
+        if (s - lastHangerS > (LEVEL.id === "lux" ? 45 : 70) && !(pat === "gate" && nearSpanGate(s))) { addHanger(s, pat); lastHangerS = s; } // keep monoliths at least 70 m apart (on Lux's long bridge 45)
         else addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) });
         break;
       case "imps": { const n = d > 0.8 ? 4 : 3; for (let i = 0; i < n; i++) addImp(s + i * 5, rand(-2.4, 2.4), rand(1.3, 4.2)); break; }
@@ -5181,8 +5175,8 @@ vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); r
   // one gone the other shines on out). A beam runs on till it meets something: off the open bridge, out of sight. Through the
   // cart: −3 balls, once
   let rubeams = [];
-  const RB_R = 4.4, RB_CV = 2.2, RB_HIT = 0.6, RB_TIP = 0.78, RB_PU = 3.7;
-  const rbPavGeo = new THREE.ConeGeometry(0.38, RB_TIP, 6).translate(0, RB_TIP / 2, 0), rbCrownGeo = new THREE.CylinderGeometry(0.26, 0.38, 0.2, 6).translate(0, -0.1, 0);
+  const RB_R = 4.4, RB_CV = 2.2, RB_HIT = 0.72, RB_TIP = 0.95, RB_PU = 3.7, RB_CUT = 0.08; // its point cut off flat, as wide as the beam
+  const rbPavGeo = new THREE.CylinderGeometry(RB_CUT, 0.46, RB_TIP, 6).translate(0, RB_TIP / 2, 0), rbCrownGeo = new THREE.CylinderGeometry(0.32, 0.46, 0.24, 6).translate(0, -0.12, 0);
   const rbPavEdge = new THREE.EdgesGeometry(rbPavGeo), rbCrownEdge = new THREE.EdgesGeometry(rbCrownGeo);
   const rbMat = new THREE.MeshStandardMaterial({ color: 0xd0122e, emissive: 0x6a0012, roughness: 0.1, metalness: 0.2, flatShading: true });
   const rbEdgeMat = new THREE.LineBasicMaterial({ color: 0xff9aa8 });
@@ -5193,13 +5187,13 @@ vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); r
   const rbGlowSp = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2040, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending });
   function rubyBeam() { // as a prism's light: a hot core in two sheaths that stop short of its ends
     const g = new THREE.Group();
-    for (const [geo, mat, tr, k] of [[beamGeo, rbCoreMat, 0, 2.6], [beamHaloGeo, rbHaloMat, 0.12, 1.7], [beamGlowGeo, rbGlowMat, 0.2, 1.15]]) { const m = new THREE.Mesh(geo, mat); m.scale.set(k, 1, k); m.userData.trim = tr; g.add(m); }
+    for (const [geo, mat, tr, k] of [[beamGeo, rbCoreMat, 0, 3.4], [beamHaloGeo, rbHaloMat, 0.12, 2.1], [beamGlowGeo, rbGlowMat, 0.2, 1.4]]) { const m = new THREE.Mesh(geo, mat); m.scale.set(k, 1, k); m.userData.trim = tr; g.add(m); }
     const spot = new THREE.Sprite(rbSpotMat); spot.scale.setScalar(0.8); g.add(spot); g.userData.spot = spot; return g;
   }
   function rubyGem(root) {
     const g = new THREE.Group(); root.add(g);
     g.add(new THREE.Mesh(rbPavGeo, rbMat), new THREE.Mesh(rbCrownGeo, rbMat), new THREE.LineSegments(rbPavEdge, rbEdgeMat), new THREE.LineSegments(rbCrownEdge, rbEdgeMat));
-    const glow = new THREE.Sprite(rbGlowSp); glow.scale.setScalar(1.6); glow.position.y = 0.18; g.add(glow);
+    const glow = new THREE.Sprite(rbGlowSp); glow.scale.setScalar(1.9); glow.position.y = 0.22; g.add(glow);
     return { g, u: 0, v: 0, du: 0, dv: 1, alive: true, wp: new THREE.Vector3() };
   }
   const RAILS_PTS = [[-0.72, 0.22], [0, 0.22], [0.72, 0.22]];
@@ -5955,6 +5949,7 @@ vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); r
   // Leaves are dark glass: enough balls shatter one, but it takes more than hitting the buttons does.
   let lastGateS = -1e9;
   const GATE_CALM = 55, GATE_CALM_PATS = ["prisms", "tallgate", "doors", "gate", "pendulum", "bars", "rotor", "rotor2", "double", "twins", "grams", "lhang", "catapult", "gears", "rams", "grate1", "grate2", "grate3"];
+  const nearSpanGate = s => SPANS.some(sp => Math.abs(sp.a - s) < GATE_GAP || Math.abs(sp.b - s) < GATE_GAP); // a bridge's own gates: no other gate near them, before or after (two in a row)
   const GATE_H = 4.0, IRIS_R = 2.3, IRIS_V = 2.0, GATE_D = 0.06, GATE_COST = 5, GATE_GAP = 80, SLOT_W = 0.36, GATE_CLEAR = 25; // GATE_CLEAR: the empty run past a gate
   const slotMat = new THREE.MeshBasicMaterial({ color: 0x020306 }), slotGeo = new THREE.BoxGeometry(1, 0.03, SLOT_W), slotLipGeo = new THREE.BoxGeometry(1, 0.06, 0.06);
   const doorMat = new THREE.MeshStandardMaterial({ color: 0x0c1420, emissive: 0x0a1830, emissiveIntensity: 0.4, roughness: 0.08, metalness: 0.4, transparent: true, opacity: 0.62, depthWrite: false, side: THREE.DoubleSide });
@@ -6862,9 +6857,9 @@ vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); r
       req: { after: "vitrum" }, map: { x: 410, y: 190, label: "t" } },
     { id: "rubinus", num: "II·b", latin: "Rubinus", ru: "Рубин", playable: true, music: "through_the_glass_maze", len: 1500, pal: PAL_RUBINUS, finale: "tessera",
       // two ruby bridges out of the tunnel, through its own anchor gates each way: a third of the way a corkscrew twice round, wide (on
-      // it glass on the deck or turning over it, hovering blocks swinging in pairs, rubies' beams); two thirds a spiral, its usual mix
+      // it glass on the deck or turning over it, solid crosses only, rubies' beams); two thirds a spiral, its usual mix
       spans: [{ c: 1 / 3, turns: 2, len: 190, r: 11 }, { c: 2 / 3, spiral: true, len: 350 }],
-      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "rotor2", "lift", "imps", "zigzag", "shutter", "fpend", "fpend", "rbeam", "rbeam", "rbeam2"], spanGates: "own",
+      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "rotor", "lift", "imps", "zigzag", "shutter", "rbeam", "rbeam", "rbeam2"], spanGates: "own",
       style: { arch: "tri", blocks: "ruby", glassWalls: true, skylight: true }, crystalMul: 1.4, armor: 1, gateKinds: ["h"], gateButton: "dome", gateOpeners: ["weights"], doorColor: 0xa00a24, gateIron: true,
       pats: { zigzag: [1.5, 2, 2], doors: [1.2, 1.5, 1.8], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], triple: [1, 1.5, 1], sides: [2, 0.8, 0], double: [0, 1, 1.5], reinf: [0, 0.8, 2],
         shutter: [0, 1, 2], slider: [1, 1.5, 1.5], lift: [0.5, 1.5, 1.5], rotor: [0.5, 1, 1.5], gate: [0.5, 0.8, 1], pendulum: [0.5, 0.8, 1], imps: [0, 0.6, 2], bonus: [2, 0.5, 0],
@@ -8216,7 +8211,6 @@ vec3 bNor(vec3 n) { float age = max(0.0, uBurstT - aT.x), te = min(age, aT.y); r
         const sn = Math.sin(time * p.move.freq + p.move.phase);
         if (p.move.axis === "u") p.u = p.bu + p.move.amp * sn;
         else if (p.move.axis === "v") p.v = p.bv + p.move.amp * sn;
-        else if (p.move.axis === "arc") { const th = p.move.amp * sn, k = p.move.k; p.u = k * (FP_U - FP_L * Math.sin(th)); p.v = FP_V - FP_L * Math.cos(th); p.rot = -k * th; } // swung in by th, tilted as on its chains
         else p.u = p.move.sign * (p.w / 2 + 0.05 + (1 + sn) / 2 * Math.max(0, (p.room ?? SW - 0.12) - p.w)); // a shutter half: from the middle to its wall, never into it
       }
       if (p.rise !== undefined) { // up out of the abyss beside the bridge, never through its deck, then in over it as the cart nears

@@ -771,7 +771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.543</div>
+      <div class="credit version">v1.0.544</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -972,7 +972,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.543`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.544`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -4268,30 +4268,20 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   }
   const SHARD_T = 0.04, SHARD_FWD = 3.5, SHARD_FWD_THIN = 9.5; // a piece's thickness; the most it flies on along the track
   // (a thin pane's pieces fly on nearly as fast as the cart, so the burst stays in view, but never overtake it)
-  // a solid piece of glass bursts as Vitrum's crossbow slabs do: eight wedges fanned from the point struck to its edge, each cut
-  // again across, each as thick as the glass and edged; the pieces fly out from the blow. M places the glass: its face in x, y,
+  // a solid piece of glass bursts as Vitrum's crossbow slabs do: as a thin pane breaks, from the point struck, each piece as thick
+  // as the glass and edged; the pieces fly out from the blow. M places the glass: its face in x, y,
   // its depth along z, its outline a w by h rectangle about the origin
   function burstSolid(M, w, h, depth, ix, iy, mat, edgeM, s, push = 1, mo = null) {
-    const P = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]], n = 8, a0 = rand(0, TAU);
     ix = clamp(ix, -w / 2 + 0.05, w / 2 - 0.05); iy = clamp(iy, -h / 2 + 0.05, h / 2 - 0.05);
-    const edgeAt = a => { const dx = Math.cos(a), dy = Math.sin(a); let best = 1e9;
-      for (let i = 0; i < 4; i++) { const [x1, y1] = P[i], [x2, y2] = P[(i + 1) % 4], ex = x2 - x1, ey = y2 - y1, den = dx * ey - dy * ex; if (Math.abs(den) < 1e-9) continue;
-        const t = ((x1 - ix) * ey - (y1 - iy) * ex) / den, u = ((x1 - ix) * dy - (y1 - iy) * dx) / den; if (t > 0 && u >= 0 && u <= 1) best = Math.min(best, t); }
-      return [ix + dx * best, iy + dy * best]; };
-    const vAng = P.map(([x, y]) => Math.atan2(y - iy, x - ix)), q = new THREE.Quaternion().setFromRotationMatrix(M), ctr = new THREE.Vector3(ix, iy, 0).applyMatrix4(M);
-    const SA = spokeAngles(n, a => { const [x, y] = edgeAt(a); return Math.hypot(x - ix, y - iy); }, 0.3); // (as much glass in every wedge, wherever it was struck)
+    const q = new THREE.Quaternion().setFromRotationMatrix(M), ctr = new THREE.Vector3(ix, iy, 0).applyMatrix4(M);
     frameAt(s); const out = [];
-    for (let i = 0; i < SA.length; i++) {
-      const s0 = SA[i], s1 = i + 1 < SA.length ? SA[i + 1] : SA[0] + TAU;
-      const mid = P.filter((c, k) => { const r = ((vAng[k] - s0) % TAU + TAU) % TAU; return r > 1e-6 && r < s1 - s0 - 1e-6; })
-        .sort((a, b) => (((Math.atan2(a[1] - iy, a[0] - ix) - s0) % TAU + TAU) % TAU) - (((Math.atan2(b[1] - iy, b[0] - ix) - s0) % TAU + TAU) % TAU));
-      const rim = [edgeAt(s0), ...mid, edgeAt(s1)], cut = rand(0.38, 0.55), inner = rim.map(([x, y]) => [ix + (x - ix) * cut, iy + (y - iy) * cut]);
-      for (const pg of [[[ix, iy], ...inner], [...rim, ...inner.slice().reverse()]]) {
-        let cx = 0, cy = 0; pg.forEach(([x, y]) => { cx += x; cy += y; }); cx /= pg.length; cy /= pg.length;
-        const dd = depth * rand(0.75, 1), pl = pg.map(([x, y]) => [x - cx, y - cy]), c = new THREE.Vector3(cx, cy, 0).applyMatrix4(M);
-        const v = c.clone().sub(ctr).multiplyScalar(rand(0.5, 1.1) * push); v.addScaledVector(_T, rand(1, 3)).y += rand(0.3, 2);
-        out.push({ pl, d: dd, c, v, w: [rand(-3, 3), rand(-3, 3), rand(-3, 3)], life: rand(2.2, 3.0) });
-      }
+    // cut as a thin pane is (burstPieces: spokes by the glass round the blow, bands across, wide wedges split), each piece as thick as
+    // the glass: eight wedges cut once across had left long ones out from a blow near a corner
+    for (const pg of burstPieces(w / 2, h / 2, ix, iy)) {
+      let cx = 0, cy = 0; pg.forEach(([x, y]) => { cx += x; cy += y; }); cx /= pg.length; cy /= pg.length;
+      const dd = depth * rand(0.75, 1), pl = pg.map(([x, y]) => [x - cx, y - cy]), c = new THREE.Vector3(cx, cy, 0).applyMatrix4(M);
+      const v = c.clone().sub(ctr).multiplyScalar(rand(0.5, 1.1) * push); v.addScaledVector(_T, rand(1, 3)).y += rand(0.3, 2);
+      out.push({ pl, d: dd, c, v, w: [rand(-3, 3), rand(-3, 3), rand(-3, 3)], life: rand(2.2, 3.0) });
     }
     gpuBurst(s, q, mat, edgeM, out, mo); // all one mesh, moved on the GPU
   }

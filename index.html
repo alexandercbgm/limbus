@@ -771,7 +771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.552</div>
+      <div class="credit version">v1.0.553</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -972,7 +972,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.552`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.553`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5514,7 +5514,8 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   const gramGeo = new THREE.BoxGeometry(RAM_LEN, 2 * RAM_R, 1.1), gramEdge = new THREE.EdgesGeometry(gramGeo), gramPostGeo = new THREE.BoxGeometry(0.22, H - 0.1, 0.22);
   function addRams(s, both, glass) {
     s = Math.floor(s / SL) * SL + SL / 2; // in the middle of a stretch of the wall: its one pane of glass taken away
-    if (glass && LEVEL.id === "rubinus") for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) getDecor(k).ceil = true; // a roof over them (Rubinus is open above)
+    const hallOpen = openHallAround(s); // (Labyrinthus's open halls: no roof, no walls; a frame of their own holds them)
+    if (!hallOpen) for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) { const dc = getDecor(k); dc.ceil = true; dc.wl = dc.wr = true; } // a roof over them, always, on walls (Rubinus is open above, a corridor's roof and walls come and go: the beam had hung in the air, and then the roof over it, Tao's); the one pane each swings through is taken away below
     // a real pendulum: a pair swing as one and meet in the middle; a lone glass block hangs lower and swings as wide
     const ph = rand(0, TAU), sides = both ? [-1, 1] : [Math.random() < 0.5 ? -1 : 1];
     // Tao's logs swing about a point leaned in from straight down, so they hardly swing out at the wall behind them
@@ -5532,7 +5533,12 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       if (glass) {
         body.add(new THREE.Mesh(gramGeo, glassMat)); body.add(new THREE.LineSegments(gramEdge, edgeMat));
         const inner = new THREE.LineSegments(gramEdge, edgeMat); inner.scale.setScalar(0.82); body.add(inner); // a second outline inside, so it shows against the pale hall
-        if (LEVEL.id === "labyrinthus") for (const z of [-0.85, 0.85]) { const post = new THREE.Mesh(gramPostGeo, frameMat); post.position.set(side * (RAM_LEN / 2 + 0.3), -(H - 0.1) / 2, z); root.add(post); } // either side of the swing
+        if (hallOpen) { // an open hall: a frame as Nox's and Lux's, by the outer end of the beam: a post either side of the swing (it swings between them)
+          // from a bar under the floor up to a bar across their tops that the beam's end rests on, each post braced to the floor's edge
+          const px = side * (RAM_LEN / 2 + 0.3), y0 = -(H - 0.1), FOOT = y0 - 0.82, mk = (w, h, d, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat); m.position.set(x, y, z); root.add(m); };
+          for (const z of [-0.85, 0.85]) { mk(0.22, 0.15 - FOOT, 0.22, px, (0.15 + FOOT) / 2, z); const ex = side * (SW - RAM_U); mk(Math.abs(px - ex) + 0.1, 0.12, 0.3, (px + ex) / 2, y0 - 0.12, z); }
+          mk(0.3, 0.3, 2.0, px, 0, 0); mk(0.3, 0.3, 2.0, px, FOOT + 0.15, 0);
+        }
       } else {
         body.add(new THREE.Mesh(ramGeo, ramMat));
         for (const k of [-1, 1]) { const cap = new THREE.Mesh(ramCapGeo, frameMat); cap.position.x = k * RAM_LEN / 2; body.add(cap); }

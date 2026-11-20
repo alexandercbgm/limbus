@@ -771,7 +771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.554</div>
+      <div class="credit version">v1.0.555</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -972,7 +972,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.554`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.555`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -8793,6 +8793,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       if (dead || b.life > 3) { scene.remove(b.mesh); if (b.cs) scene.remove(b.cs.g.mesh); ballsArr.splice(i, 1); }
     }
 
+    const SHM1 = new THREE.Matrix4(), SHM2 = new THREE.Matrix4(), SHQ = new THREE.Quaternion();
     const floorHW = fs => openAt(fs) || iniOpen(fs) ? BRIDGE_W : spanAt(fs) ? SW * deckK(fs) : LEVEL.halls ? HALL_W : STYLE.floorW || SW; // the floor's half width, as drawn
     for (let i = shards.length - 1; i >= 0; i--) {
       const s = shards[i], pos = s.mesh.position;
@@ -8800,6 +8801,16 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       // corridor faster than the cart and kept ahead of it (the ball carries 45-60 m/s); one rule for every kind of piece
       if (!s.capped) { s.capped = true; frameAt(sC); const f = s.v.dot(_T), cap = s.fwd || SHARD_FWD; if (f > cap) s.v.addScaledVector(_T, cap - f); }
       if (s.under && s.v.y > 0) s.v.y = 0; // a piece born under the deck falls away below it: rising, it came up through the floor
+      // the swing of the light and the dark bends the track; a piece goes with the track where it is, as if fixed to it (its place, its
+      // flight, its turn), so the karma moves only the tunnel and the view, never the pieces against the floor: a rising floor had met
+      // pieces in the air and thrown them up, a sinking one left them hanging
+      if (s.fs !== undefined && s.lf) { frameAt(s.fs); const o = s.lf;
+        if (o[0].distanceToSquared(_P) > 1e-8 || o[2].dot(_U) < 1 - 1e-9) {
+          tmpV.copy(pos).sub(o[0]); const lx = tmpV.dot(o[1]), ly = tmpV.dot(o[2]), lz = tmpV.dot(o[3]);
+          pos.copy(_P).addScaledVector(_R, lx).addScaledVector(_U, ly).addScaledVector(_T, lz);
+          const vx = s.v.dot(o[1]), vy = s.v.dot(o[2]), vz = s.v.dot(o[3]); s.v.set(0, 0, 0).addScaledVector(_R, vx).addScaledVector(_U, vy).addScaledVector(_T, vz);
+          SHM1.makeBasis(o[1], o[2], o[3]); SHM2.makeBasis(_R, _U, _T); SHQ.setFromRotationMatrix(SHM2.multiply(SHM1.transpose()));
+          s.mesh.quaternion.premultiply(SHQ); if (s.restQ) s.restQ.premultiply(SHQ); } }
       if (!s.rest) {
         s.v.y -= G * dt;
         pos.addScaledVector(s.v, dt);
@@ -8826,7 +8837,8 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
             }
           }
         } else if (s.rest && h > 0) pos.addScaledVector(_U, -h); // and stays on the floor as the track under it shifts
-        if (s.fs !== undefined) { frameAt(s.fs); s.ph = tmpV.copy(pos).sub(_P).dot(_U) - s.fo - 0.03; } // where it was against the floor, for the next frame
+        if (s.fs !== undefined) { frameAt(s.fs); s.ph = tmpV.copy(pos).sub(_P).dot(_U) - s.fo - 0.03; // where it was against the floor, for the next frame
+          if (!s.lf) s.lf = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]; s.lf[0].copy(_P); s.lf[1].copy(_R); s.lf[2].copy(_U); s.lf[3].copy(_T); } // and the track's frame there, to follow it as it bends
       }
       // a piece lying on the deck ahead stays till the cart has passed it; then, or when its time is up, or when there are too many,
       // it draws into a point over SHARD_SHRINK (they had blinked out, lying in full view)

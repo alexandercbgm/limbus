@@ -766,7 +766,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.492</div>
+      <div class="credit version">v1.0.493</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -967,7 +967,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.492`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.493`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -6829,7 +6829,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   } catch (e) { /* the cloud is out of reach */ }
   // a station opens once the one before it is done; with req.or there is a second way in (Abyssus: from Crystallum)
   // the order the Play button goes by: the first level open and not yet finished, else the last open one
-  const PLAY_ORDER = ["initium", "thesaurus", "vitrum", "labyrinthus", "rubinus", "speculum", "carcer", "tao", "abyssus", "lux"];
+  const PLAY_ORDER = ["initium", "vitrum", "thesaurus", "labyrinthus", "rubinus", "speculum", "carcer", "tao", "abyssus", "lux"];
   const WAY = ["initium", "vitrum", "labyrinthus", "rubinus", "speculum", "tao", "abyssus", "lux"]; // the way from the Beginning to the Light, in its order
   const unlockAll = location.hash === "#all"; // for testing: open every built station
   // a station opens once the one before it on its line is finished (or the other way in, where two lines lead to it)

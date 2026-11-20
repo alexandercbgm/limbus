@@ -770,7 +770,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.532</div>
+      <div class="credit version">v1.0.533</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -971,7 +971,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.532`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.533`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5313,15 +5313,15 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   const RAILS_PTS = [[-0.72, 0.22], [0, 0.22], [0.72, 0.22]];
   const rbRay = (u, v, du, dv, s) => { const ox = u + du * RB_TIP, oy = v + dv * RB_TIP, L = beamReach(ox, oy, du, dv, 60, s), l = Math.min(L, 40); return [ox, oy, ox + du * l, oy + dv * l, L]; };
   // three kinds, alike often: "h" a ruby beside the track, its beam straight across, gliding up and down with it (1.8 s each way);
-  // "top" one beside the track at the cart's height, its beam swinging a half circle, from straight across the track up over the
-  // top and out the other way and back, 2 s each way, easing to a stop at either end; "side" one high to a side, 45° up from the
+  // "top" one travelling a half circle over the cart, from beside it at its height over the top to its other side and back, 2 s
+  // each way, easing to a stop at either end, its beam always in toward the track's middle; "side" one high to a side, 45° up from the
   // cart, its beam a searchlight round a cone, once in 2 s. All 15% farther from the rails than at first
   function addRubyBeam(s, kind) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
     const side = Math.random() < 0.5 ? -1 : 1, gm = rubyGem(root), o = { s, kind, root, gems: [gm], beams: [rubyBeam()], passed: false, ph: rand(0, TAU) };
     root.add(o.beams[0]);
     if (kind === "h") { gm.u = side * RB_PU; gm.du = -side; gm.dv = 0; gm.g.rotation.z = side * Math.PI / 2; o.vc = 2.05; o.amp = 1.35; o.w = TAU / 3.6; }
-    else if (kind === "top") { gm.u = side * RB_PU; gm.v = CAM_V + 0.1; o.c = Math.PI / 2; o.A = Math.PI / 2; } // beside the track at the cart's height: its beam across the track, then up over the top and out the other way, a half circle, 2 s each way
+    else if (kind === "top") { gm.u = side * RB_PU; gm.v = CAM_V + 0.1; o.arc = true; } // it travels a half circle over the cart, side to side (see updateRubyBeams)
     else { // high to a side, 45° up from the cart, farther out: its beam goes round a cone (35° wide) about a line to just over the cart, once in 2 s,
       // a searchlight; out of the track's cross-section, toward the cart and away, so the cart may meet it ahead of the ruby or past it
       gm.u = side * RB_SR * Math.SQRT1_2; gm.v = CAM_V + RB_SR * Math.SQRT1_2;
@@ -5375,6 +5375,10 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       const segs = [], gm = o.gems[0];
       if (o.kind === "side") { updateRubyCone(o, gm); continue; }
       if (o.kind === "h") gm.v = o.vc + o.amp * Math.sin(time * o.w + o.ph);
+      else if (o.arc) { // round a half circle over the cart, 4.25 m out from its middle, from one side over the top to the other, 2 s each way,
+        // easing to a stop at either end; its beam always in toward the track's middle: across it beside the cart, down through it overhead
+        const th = Math.PI / 2 + Math.PI / 2 * Math.sin(time * Math.PI / 2 + o.ph), c = Math.cos(th), sn = Math.sin(th);
+        gm.u = RB_PU * c; gm.v = CAM_V + 0.1 + RB_PU * sn; gm.du = -c; gm.dv = -sn; gm.g.rotation.z = Math.atan2(-gm.du, gm.dv); }
       else { const a = o.c + o.A * Math.sin(time * Math.PI / 2 + o.ph); gm.du = Math.cos(a); gm.dv = Math.sin(a); gm.g.rotation.z = Math.atan2(-gm.du, gm.dv); } // 2 s each way, easing to a stop at either end
       if (gm.alive) { const [x0, y0, , , L0] = rbRay(gm.u, gm.v, gm.du, gm.dv, o.s), L = deckBlock(o, x0, y0, gm.du, gm.dv, Math.min(L0, BEAM_FAR)); segs.push([x0, y0, x0 + gm.du * L, y0 + gm.dv * L]); }
       for (const gm of o.gems) { gm.g.position.set(gm.u, gm.v, 0); gm.wp.set(gm.u, gm.v, 0).applyMatrix4(o.root.matrixWorld); }

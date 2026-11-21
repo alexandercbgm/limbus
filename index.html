@@ -772,7 +772,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.592</div>
+      <div class="credit version">v1.0.593</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -974,7 +974,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.592`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.593`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2515,7 +2515,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // the clover's gate on to the finale
     const encl = LEVEL.id === "speculum" && SPANS.length && (s > SPANS[SPANS.length - 1].b || SPANS.some(x => (s > x.a - (x.knot ? 170 : 40) && s < x.a) || (s > x.b && s < x.b + 40)));
     if (!station && !spn && (encl || s > MAIN_LEN - 8 && !STYLE.air && !STYLE.bridge && !LEVEL.halls && LEVEL.finale !== "ruina")) // (Vitrum's blocks fall from the sky)
-      for (const key of ["wl", "wr", "ceil", ...(k % 4 === 0 && (encl || s - SL / 2 > MAIN_LEN - 8) ? ["wl0", "wr0", "ceil0"] : [])]) Object.defineProperty(d, key, { get: () => true, set: () => {}, enumerable: true, configurable: true });
+      for (const key of ["wl", "wr", "ceil", ...(k % 4 === 0 && (encl || s - SL / 2 > MAIN_LEN - 8) ? ["wl0", "wr0", "ceil0"] : [])]) { const on = !(key.startsWith("ceil") && LEVEL.id === "speculum" && SPANS.some(x => s > x.b - 1 && s < x.b + 6)); // (no roof the first 6 m past a gate off a bridge: its tall leaves swing open in there, up through it)
+        Object.defineProperty(d, key, { get: () => on, set: () => {}, enumerable: true, configurable: true }); }
     // In Carcer's dark (only there) single pyramids stick out of the walls, placed at random so every run differs.
     // Some of the low ones are thorns: they slide out on a piston as the cart comes near.
     const th = LEVEL.thorns || { from: 0.6, mul: 1 }; // Carcer brings thorns up out of the dark
@@ -4027,7 +4028,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       case "rbeam": { let kind = Math.random() < 0.5 ? "h" : "top"; if (kind === "top" && tierPts(s).some(([x, y]) => Math.hypot(x, y - RB_AIM) < RB_PR + 3)) kind = "h"; addRubyBeam(s, kind); break; } // (round the half circle only where no other turn of the knot comes within it: the ruby would pass through its deck) // the knot: a ruby's beam, of two kinds alike often (across, gliding up and down; round an arc over the top)
       case "pgear": if (addPrismGear(s)) crystalsClear(); else { addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); if (spn && spn.knot) knotBag.push(pat); } break; // (Speculum's clover: a prism gear on its deck)
-      case "prisms": if (!addPrisms(s)) { addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); if (spn && spn.knot) knotBag.push(pat); } break; // (one that found no room on the knot comes up again next) // Speculum: light through prisms off mirrors
+      case "prisms": if (!upright(s) || !addPrisms(s)) { /* (only where the deck lies upright once formed: set on a corkscrew while still straight, they had turned over with it, the mirrors under the prisms) */ addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); if (spn && spn.knot) knotBag.push(pat); } break; // (one that found no room on the knot comes up again next) // Speculum: light through prisms off mirrors
       case "twins": { // two panes mirrored about the track that close and part like doors
         const freq = rand(0.9, 1.3) * (1 + 0.3 * d), phase = rand(0, TAU);
         const tw = LEVEL.paneStd ? LEVEL.paneStd[0] : 2.2; // (a level's one size of glass: they close 10 cm apart all the same)
@@ -6221,7 +6222,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     const targets = ways.map(([x, y]) => {
       // each hung like a door from the post beside it: a small hinge on the post's inner face, a short arm out from it, the disc on the
       // arm, whole, inside the opening
-      const hx = (m.span ? BRIDGE_W + 0.45 : GX) - 0.17 - 0.06, ARM = SW_ARM, ty = y ? SW_MID4 + y * SW_ROW : MID; // (on Speculum's wider bridge the targets where Vitrum's and Lux's hang, on a bracket from the post)
+      const ARM = SW_ARM, hx = m.span ? GX / 2 + ARM + SW_PR : GX - 0.17 - 0.06, ty = y ? SW_MID4 + y * SW_ROW : MID; // (on Speculum's wider bridge, as Vitrum's and Lux's sit in theirs: each halfway to its post, twice as far from each other as from the posts; on a bracket from the post)
       if (m.span) box(GX - hx, 0.12, 0.12, x * (GX + hx) / 2, ty); // (four: the rows' room to the beam above half that between them)
       const knuckle = new THREE.Mesh(swHingeGeo, frameMat); knuckle.position.set(x * hx, ty, 0); root.add(knuckle);
       const pv = new THREE.Group(); pv.position.set(x * hx, ty, 0); root.add(pv);

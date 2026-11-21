@@ -772,7 +772,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.595</div>
+      <div class="credit version">v1.0.596</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -974,7 +974,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.595`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.596`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3872,7 +3872,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   let spawnGroupKind = null; // a test may ask for one pattern
   // a level's signature traps must not hang on the luck of the draw: LEVEL.every names how many metres at most may pass
   // without each; past that, the next group is that trap
-  let lastPat = {}, patCount = {}, knotBag = [], knotLast = null;
+  let lastPat = {}, patCount = {}, knotBag = [], knotLast = null, knotRetry = {}; // (knotRetry: how often a kind that found no room has been put back, twice at most)
   function spawnGroupAt(s) {
     if (tut && s < TUT_END) return; // Initium's first ride: only what the lesson sets down, till it is over
     // Carcer's doors come up as the track reaches them, and nothing else is set down right at one
@@ -3936,7 +3936,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!spawnGroupKind && GATE_CALM_PATS.includes(pat) && [...gates, ...doors].some(g => s > g.s && s < g.s + GATE_CALM)) pat = Math.random() < 0.6 ? "center" : "slider";
     if (pat === "tallgate" && s < 150) pat = "center"; // (no tall gate right at the start, in front of the cart's nose)
     if (pat === "prisms" && prevPat === "prisms") pat = Math.random() < 0.5 ? "center" : "twins"; // (never two sets of prisms running)
-    if (CHAINED.includes(pat) && !upright(s, !(spn && spn.knot))) pat = Math.random() < 0.5 ? "center" : "twins"; // anything hung on chains only where the track lies upright (on its side or upside down the chains would hang against gravity), and none on or by a loop at all
+    if (CHAINED.includes(pat) && !(spn && spn.knot ? [-4, 0, 4].every(o => (frameAt(s + o), _U.y > 0.85)) : upright(s, true))) pat = Math.random() < 0.5 ? "center" : "twins"; // anything hung on chains only where the track lies upright (on its side or upside down the chains would hang against gravity), and none on or by a loop at all
     prevPat = pat; lastPat[pat] = s; patCount[pat] = (patCount[pat] || 0) + 1; // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
@@ -4034,8 +4034,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         break;
       }
       case "rbeam": { let kind = Math.random() < 0.5 ? "h" : "top"; if (kind === "top" && tierPts(s).some(([x, y]) => Math.hypot(x, y - RB_AIM) < RB_PR + 3)) kind = "h"; addRubyBeam(s, kind); break; } // (round the half circle only where no other turn of the knot comes within it: the ruby would pass through its deck) // the knot: a ruby's beam, of two kinds alike often (across, gliding up and down; round an arc over the top)
-      case "pgear": if (addPrismGear(s)) crystalsClear(); else { addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); if (spn && spn.knot) knotBag.push(pat); } break; // (Speculum's clover: a prism gear on its deck)
-      case "prisms": if (!addPrisms(s)) { addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); if (spn && spn.knot) knotBag.push(pat); } break; // (one that found no room on the knot comes up again next) // Speculum: light through prisms off mirrors
+      case "pgear": if (addPrismGear(s)) crystalsClear(); else { addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); if (spn && spn.knot && (knotRetry[pat] = (knotRetry[pat] || 0) + 1) <= 2) knotBag.push(pat); } break; // (Speculum's clover: a prism gear on its deck)
+      case "prisms": if (!addPrisms(s)) { addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); if (spn && spn.knot && (knotRetry[pat] = (knotRetry[pat] || 0) + 1) <= 2) knotBag.push(pat); } break; // (one that found no room on the knot comes up again next) // Speculum: light through prisms off mirrors
       case "twins": { // two panes mirrored about the track that close and part like doors
         const freq = rand(0.9, 1.3) * (1 + 0.3 * d), phase = rand(0, TAU);
         const tw = LEVEL.paneStd ? LEVEL.paneStd[0] : 2.2; // (a level's one size of glass: they close 10 cm apart all the same)
@@ -7301,11 +7301,11 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1750, pal: PAL_SPECULUM, finale: "reflexio",
       spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 25 + (179.67 + 10.26 + 192) * 28 / 53.8 + 35, leadOut: 10 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
-      spanPats: ["center", "slider", "twins", "double", "rotor", "rotor2", "lift", "triple", "pendulum", "prisms"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
+      spanPats: ["center", "slider", "twins", "double", "rotor", "rotor2", "lift", "triple", "pendulum", "prisms", "imps", "reinf"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
       knotPats: ["center", "twins", "slider", "double", "triple", "sides", "lift", "rotor", "rotor2", "reinf", "imps", "prisms", "pgear", "pendulum", "pendulum"], // on the clover, drawn as from a bag: much glass, crosses, imps, one set of prisms, one prism gear (two of each had made it all prisms, and slow)
-      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300 }, // prisms are sure to come: about half as many sets as at first, each a pair
+      style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300, pendulum: 260 }, // prisms are sure to come: about half as many sets as at first, each a pair
       pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [0, 0, 0], prisms: [0.52, 0.75, 0.92],
-        tallgate: [0.6, 0.9, 1.1], gate: [0, 0, 0], pendulum: [0.4, 0.6, 0.8], lift: [0.3, 0.6, 0.7], triple: [0.3, 0.6, 0.6], rotor2: [0.2, 0.5, 0.8], reinf: [0, 0.4, 0.8] }, // and tall gates, and square blocks on one chain (no slabs on two)
+        tallgate: [0.6, 0.9, 1.1], gate: [0, 0, 0], pendulum: [0.5, 0.8, 1], lift: [0.3, 0.6, 0.7], triple: [0.3, 0.6, 0.6], rotor2: [0.2, 0.5, 0.8], reinf: [0, 0.4, 0.8] }, // and tall gates, and square blocks on one chain (no slabs on two)
       turns: [[100, 50, 40], [210, 60, -55], [330, 50, 45], [450, 70, -70], [590, 50, 50], [700, 60, -45], [820, 50, 40],
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],
       desc: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар. Поперёк пути призмы собирают свет в лучи, а парящие зеркала отражают их в сетку: разбейте призму или зеркало, чтобы проехать. Высокие ворота в клубах пара открываются попаданием в бегущие по створкам мишени; висят и монолиты на цепях.",
@@ -7590,7 +7590,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   function resetWorld(spawn) {
     clearDynamic();
     sC = 0; alt = 0.35; pending = 0; altVel = 0; pitchC = 0; pitchTs = 0;
-    cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0; lastPat = {};
+    cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0; lastPat = {}; knotBag = []; knotRetry = {}; prevPat = "";
     superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0; wheelsDone = 0; triStep = 0; wavesDone = 0; tessGrids = []; tessRow = 0; yyRow = 0; lastYY = -1;
     buildForks();
     computePath();

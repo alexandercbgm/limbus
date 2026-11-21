@@ -772,7 +772,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.572</div>
+      <div class="credit version">v1.0.573</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -973,7 +973,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.572`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.573`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5075,10 +5075,10 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   // is still far back in the tunnel, hundreds of metres off, each a few draws). Only what this hid it shows again
   function cullFar() {
     const lim = scene.fog.far + 10, l2 = lim * lim, cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
-    const one = (o, x) => { if (!o) return; const e = o.matrixWorld.elements, d2 = (e[12] - cx) ** 2 + (e[13] - cy) ** 2 + (e[14] - cz) ** 2;
+    const one = (o, x, onTrack) => { if (!o) return; let d2; if (onTrack) { frameAt(x.s); d2 = (_P.x - cx) ** 2 + (_P.y - cy) ** 2 + (_P.z - cz) ** 2; } else { const e = o.matrixWorld.elements; d2 = (e[12] - cx) ** 2 + (e[13] - cy) ** 2 + (e[14] - cz) ** 2; }
       if (d2 > l2 || (x && x.s > sC + AHEAD + 2)) { if (o.visible) { o.visible = false; o.userData.far = true; } } else if (o.userData.far) { o.visible = true; o.userData.far = false; } };
     for (const x of panes) one(x.group, x); for (const x of crystals) one(x.group, x); for (const x of imps) one(x.group, x); // (and anything set down past the drawn track's end, as on the knot before it is drawn)
-    for (const x of gates) one(x.root, x); for (const x of rams) one(x.root, x); for (const x of hangers) one(x.root, x); for (const x of rubeams) one(x.root, x);
+    for (const x of gates) one(x.root, x); for (const x of rams) one(x.root, x, true); for (const x of hangers) one(x.root, x); for (const x of rubeams) one(x.root, x);
     for (const x of lbars) for (const b of x.bars) one(b.root, x); for (const x of prismSets) one(x.root, x); for (const x of pgears) one(x.root, x);
   }
   const MILL_HUB = 0.22, CONE_IN = 0.18, CONE_OUT = 0.72, MILL_L = 60;
@@ -5776,7 +5776,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       const E = 0.5 * r.thv * r.thv + r.w0 * r.w0 * (1 - Math.cos(r.th - r.c0)), E0 = r.w0 * r.w0 * (1 - Math.cos(r.amp));
       r.thv *= 1 + clamp((E0 - E) / (E0 || 1), -0.5, 0.5) * dt;
       r.th += r.thv * dt;
-      const mate = r.pair && rams.find(x => x !== r && x.s === r.s && !x.falling && !x.one);
+      const mate = r.pair && rams.find(x => x !== r && x.s === r.s && x.side === -r.side && !x.falling && !x.one && !x.dead && x.root.parent && x.root.visible); // (only a partner that is there and seen: alone, a block swings on through, no knock off nothing)
       const meet = Math.asin((RAM_U - RAM_LEN / 2 - 0.03) / r.L); if (mate && r.th > meet && r.thv > 0) { r.th = meet; r.thv = -0.9 * r.thv; if (r.side > 0) Sound.knock(); } // a pair meet end to end and bounce straight back
       const du = -r.side * r.L * Math.sin(r.th), dv = -r.L * Math.cos(r.th);
       for (const c of r.chains) if (c.mesh.visible) c.mesh.rotation.z = -r.side * r.th;

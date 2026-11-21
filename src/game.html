@@ -3807,7 +3807,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!spawnGroupKind && LEVEL.id === "labyrinthus" && openHallAround(s) && Math.random() < 0.8) pat = "grams";
     const brS = LEVEL.id === "labyrinthus" && !spawnGroupKind && branchAt(s); // the branches: crosses and blocks on the rich one, plain glass on the quiet
     if (brS) { const opts = brS === "rich" ? ["rotor", "rotor2", "grams", "grams"] : ["center", "center", "sides", "triple"]; pat = opts[Math.floor(Math.random() * opts.length)]; }
-    if (!spawnGroupKind && !brS && !hall && LEVEL.every) for (const k in LEVEL.every) if (s - (lastPat[k] ?? 0) > LEVEL.every[k] && !(k === "catapult" && LTW.some(m => LEVEL.id === "lux" ? s > m.sw - 200 && s < m.tw1 + 20 : s > m.sw - 60 && s < m.sw + 30))) { pat = k; break; } // (no catapult near a Lux gantry or on its manoeuvre: there, overdue, it had made every group plain glass)
+    if (!spawnGroupKind && !brS && !hall && LEVEL.every) for (const k in LEVEL.every) if (s - (lastPat[k] ?? everyAt[k] ?? 0) > LEVEL.every[k] * (everyJit[k] || 1) && !(k === "catapult" && LTW.some(m => LEVEL.id === "lux" ? s > m.sw - 200 && s < m.tw1 + 20 : s > m.sw - 60 && s < m.sw + 30))) { pat = k; break; } // (no catapult near a Lux gantry or on its manoeuvre: there, overdue, it had made every group plain glass)
     // just inside a hall, nothing fixed to its walls or vault: from the narrower, lower corridor the hall's end wall hides them
     // till the cart is all but on them, with no time to shoot (Carcer's laser bars and grids, wall axes, grates on chains)
     if (hall && !spawnGroupKind && s - hallStart(s) < HALL_ENTRY + (pat === "axes" ? 9 : 0) && ["lrow", "lgrid", "axes", "grate1", "grate2", "grate3"].includes(pat)) pat = Math.random() < 0.6 ? "center" : "triple";
@@ -3820,7 +3820,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (!knotBag.length) { knotBag = (LEVEL.knotPats || LEVEL.spanPats).slice().sort(() => Math.random() - 0.5); if (knotBag[knotBag.length - 1] === knotLast) knotBag.unshift(knotBag.pop()); }
         pat = knotBag.pop(); knotLast = pat;
       } else if (spn.spiral) { if (pat === "doors" || pat === "gate") pat = Math.random() < 0.5 ? "center" : "slider"; if (Math.random() < 0.22) pat = "rbeam"; } // and now and then a ruby's beam // a spiral bridge: the level's own mix, all but its gates
-      else if ((loopAt(s) || loopAt(s - 12) || loopAt(s + 12)) && !upright(s)) { const opts = ["center", "center", "twins", "rotor", "prisms"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; } // a loop (Speculum's double): little room in it, glass in the middle, a pair closing like doors, a turning cross
+      else if ((loopAt(s) || loopAt(s - 12) || loopAt(s + 12)) && !upright(s)) { const opts = LEVEL.id === "speculum" ? ["center", "center", "twins", "lift", "prisms"] : ["center", "center", "twins", "rotor", "prisms"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; } // a loop (Speculum's double): little room in it, glass in the middle, a pair closing like doors, a turning cross
       else { const opts = LEVEL.spanPats || ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
         if (pat === "pendulum" && [-12, 0, 12].some(o => Math.cos(finalTwist(s + o)) < 0.99)) { // (a block on a chain only where the deck lies flat, on its Г frame; in the corkscrew, over a pier, where the deck comes round upright)
           const pr = spn.piers.find(q => Math.abs(q - s) < 20 && q > spn.tw0 + 1 && q < spn.tw1 - 1 && q - lastHangerS > 70 && !LOOPS.some(l => q > l.s0 - 30 && q < loopEnd(l) + 30));
@@ -3842,7 +3842,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // poor), but nothing on chains where it would not hang (on the loop once it has begun to climb, on the ring), nor a gate up the loop
       const lpA = LOOPS.find(l => l.kind === "v" && s > l.s0 - 10 && s < l.s0 + l.len + 10), onRing = LOOPS.some(l => l.kind === "h" && s > l.s0 - 10 && s < l.s0 + l.len + 10);
       if ((pat === "pendulum" || pat === "gate") && ((lpA && s > lpA.s0 + 12) || onRing)) pat = pat === "pendulum" ? "catapult" : "reinf";
-    } else if (onM && !LEVEL.coaster) { // on every other manoeuvre the same: glass on the deck or turning over it, blocks on chains in their frames, laser bars, laser mills
+    } else if (onM && !LEVEL.coaster && !spanAt(s)) { // (not on a bridge: its loops take the bridge's own mix, set below; Speculum's had been all glass and flat crosses, its sure-to-come prisms turned into them) // on every other manoeuvre the same: glass on the deck or turning over it, blocks on chains in their frames, laser bars, laser mills
       const opts = LEVEL.id === "lux" || LEVEL.id === "abyssus" ? ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "abbar", "lblock", "abspin"] : ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
     }
     if (!spawnGroupKind && LUXH.some(h => s > h.b - 4 && s < h.b + 22)) pat = "center"; // and nothing big just out of a hall: its end hid it
@@ -3859,6 +3859,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (CHAINED.includes(pat) && !(spn && spn.knot ? [-4, 0, 4].every(o => (frameAt(s + o), _U.y > 0.85)) : upright(s, true))) pat = Math.random() < 0.5 ? "center" : "twins"; // anything hung on chains only where the track lies upright (on its side or upside down the chains would hang against gravity), and none on or by a loop at all
     if (CHAINED.includes(prevPat) && s - prevS < 18) return; // (a block on its chain swings: nothing set down hard by it, after it nor, below, before it)
     if (CHAINED.includes(pat) && s - prevS < 18) pat = Math.random() < 0.5 ? "center" : "slider";
+    if (LEVEL.every && LEVEL.every[pat]) everyJit[pat] = rand(0.75, 1.25);
     prevPat = pat; prevS = s; lastPat[pat] = s; patCount[pat] = (patCount[pat] || 0) + 1; // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
@@ -4551,7 +4552,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   const frameBarGeo = new THREE.BoxGeometry(1, 0.14, 0.18), spikeTipGeo = new THREE.ConeGeometry(0.08, 0.28, 6).rotateZ(Math.PI);
   // opt (Carcer's grates): look "medieval" (heavy black iron, spiked) or "modern" (thin steel bars in a plain frame; all of Carcer's grates are modern now);
   // wide: a grate across the whole track on two chains
-  let prevPat = "", prevS = -1e9;
+  let prevPat = "", prevS = -1e9, everyAt = {}, everyJit = {};
   const BIG_PATS = ["pgear", "prisms", "pendulum", "gate", "rotor", "rotor2", "fblocks", "grams", "rams", "wall", "shutter", "lhang", "bars"];
   const CHAINED = ["gate", "pendulum", "lhang", "bars", "rams", "grams", "grate1", "grate2", "grate3"];
   // a turning-over stretch's twist as it will be once formed (a corkscrew is straight till the cart is near, when things are set down on it)
@@ -7224,11 +7225,11 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1750, pal: PAL_SPECULUM, finale: "reflexio",
       spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 25 + (179.67 + 10.26 + 192) * 28 / 53.8 + 35, leadOut: 10 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
-      spanPats: ["center", "slider", "twins", "double", "rotor", "rotor2", "lift", "triple", "pendulum", "prisms", "imps", "reinf", "fblocks", "fblocks"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
-      knotPats: ["center", "twins", "slider", "double", "triple", "sides", "lift", "rotor", "rotor2", "reinf", "imps", "prisms", "pgear", "pendulum", "pendulum", "fblocks", "fblocks"], // on the clover, drawn as from a bag: much glass, crosses, imps, one set of prisms, one prism gear (two of each had made it all prisms, and slow)
+      spanPats: ["center", "slider", "twins", "double", "lift", "triple", "pendulum", "prisms", "imps", "reinf", "fblocks", "fblocks"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
+      knotPats: ["center", "twins", "slider", "double", "triple", "sides", "lift", "reinf", "imps", "prisms", "pgear", "pendulum", "pendulum", "fblocks", "fblocks"], // on the clover, drawn as from a bag: much glass, crosses, imps, one set of prisms, one prism gear (two of each had made it all prisms, and slow)
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300, pendulum: 260, fblocks: 220 }, // prisms are sure to come: about half as many sets as at first, each a pair
-      pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [0, 0, 0], prisms: [0.52, 0.75, 0.92],
-        tallgate: [0.6, 0.9, 1.1], gate: [0, 0, 0], pendulum: [0.5, 0.8, 1], lift: [0.3, 0.6, 0.7], triple: [0.3, 0.6, 0.6], rotor2: [0.2, 0.5, 0.8], reinf: [0, 0.4, 0.8], fblocks: [0.6, 0.9, 1.1] }, // (Nox's hovering glass blocks too: they hang on nothing, so anywhere) // and tall gates, and square blocks on one chain (no slabs on two)
+      pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0, 0, 0], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [0, 0, 0], prisms: [0.52, 0.75, 0.92],
+        tallgate: [0.6, 0.9, 1.1], gate: [0, 0, 0], pendulum: [0.5, 0.8, 1], lift: [0.3, 0.6, 0.7], triple: [0.3, 0.6, 0.6], rotor2: [0, 0, 0], reinf: [0, 0.4, 0.8], fblocks: [0.6, 0.9, 1.1] }, // (Nox's hovering glass blocks too: they hang on nothing, so anywhere) // and tall gates, and square blocks on one chain (no slabs on two)
       turns: [[100, 50, 40], [210, 60, -55], [330, 50, 45], [450, 70, -70], [590, 50, 50], [700, 60, -45], [820, 50, 40],
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],
       desc: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар. Поперёк пути призмы собирают свет в лучи, а парящие зеркала отражают их в сетку: разбейте призму или зеркало, чтобы проехать. Высокие ворота в клубах пара открываются попаданием в бегущие по створкам мишени; висят и монолиты на цепях.",
@@ -7514,6 +7515,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     clearDynamic();
     sC = 0; alt = 0.35; pending = 0; altVel = 0; pitchC = 0; pitchTs = 0;
     cartPos.set(0, 0, 0); nextSpawn = 60; nextClack = 0; lastPat = {}; knotBag = []; knotRetry = {}; prevPat = ""; prevS = -1e9;
+    everyAt = {}; everyJit = {}; for (const k in LEVEL.every || {}) { everyAt[k] = -rand(0, LEVEL.every[k] * 0.7); everyJit[k] = rand(0.75, 1.25); } // (a sure-to-come kind's count begun anywhere, each next one a little sooner or later: it had come at the same metres every ride)
     superOn = false; superWave = 0; combo = 1; bestCombo = 1; superGain = 0; streak = 0; finaleShown = false; gatesInRow = 0; pairsDone = 0; harvested = 0; wheelsDone = 0; triStep = 0; wavesDone = 0; tessGrids = []; tessRow = 0; yyRow = 0; lastYY = -1;
     buildForks();
     computePath();

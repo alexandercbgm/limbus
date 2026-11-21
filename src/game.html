@@ -5861,7 +5861,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     if (!mirrorCopies.length) return;
     mirrorCopies = mirrorCopies.filter(m => { if (m.obj.parent) return true; m.copies.forEach(c => scene.remove(c.c)); return false; });
     for (const m of mirrorCopies) {
-      const s = m.sOf(), on = s < MIRROR_END() && !spanAt(s) && s > sC - 4 && s < sC + 60; // near ones only: behind the frosted glass the far ones are lost in the haze
+      const s = m.sOf(), on = s < MIRROR_END() && !spanAt(s) && s > sC - 4 && s < sC + Math.min(AHEAD, scene.fog.far + 10); // (out to where the haze hides the thing itself: from 60 m on, its reflection had sprung up in the mirror unhazed) // near ones only: behind the frosted glass the far ones are lost in the haze
       m.copies.forEach(c => { c.c.visible = on && m.obj.visible; });
       if (!on || !m.obj.visible) continue;
       m.obj.updateMatrixWorld(true); frameAt(s);
@@ -9228,7 +9228,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     for (const c of ["c1", "c2", "c3", "c4"]) { const r = h.getBoundingClientRect(); if (side.offsetTop < brand.offsetTop + brand.offsetHeight - 4 && side.getBoundingClientRect().right <= r.right + 1) return; /* (on brand's row, and within it) */ h.classList.add(c); }
   }
   addEventListener("resize", () => requestAnimationFrame(fitHead));
-  function renderEmptio() { requestAnimationFrame(fitHead); $("emptioBtn").hidden = false; $("emptioBtn").classList.toggle("glow", !!progress.done.vitrum && !progress.full); } // (always there, the shop's door: once bought it shows "Bought", and no longer glows) // (there from the start till the game is bought)
+  function renderEmptio() { requestAnimationFrame(fitHead); $("emptioBtn").hidden = !!progress.full; $("emptioBtn").classList.toggle("glow", !!progress.done.vitrum); } // (there from the start till the game is bought) // (there from the start till the game is bought)
   function renderDepot() { renderEmptio(); // Armamentarium's button
     const lv = byId("armamentarium"), b = $("depotBtn"); b.classList.toggle("locked", !isOpen(lv)); b.classList.remove("fresh");
     b.removeAttribute("title"); }

@@ -5400,7 +5400,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   // was out of sight till too late), of three kinds (addRubyBeam). Its beam runs on till it meets something: a wall, the deck,
   // the deck's coils elsewhere (deckBlock), or off the open bridge out of sight. Through the cart: −3 balls, once
   let rubeams = [];
-  const RB_ARC = 4.25 * 16 / 9, RB_AIM = 1.2, RB_SR = 7.4, RB_R = 5.06, RB_CV = 2.2, RB_HIT = 0.72, RB_TIP = 0.95, RB_PU = 4.25, RB_CUT = 0.16; // its point cut off flat, as wide as the beam with its glow: the beam leaves it as from a nozzle
+  const RB_ARC = 4.25 * 16 / 9, RB_AIM = 4.25 * 16 / 9, RB_SR = 7.4, RB_R = 5.06, RB_CV = 2.2, RB_HIT = 0.72, RB_TIP = 0.95, RB_PU = 4.25, RB_CUT = 0.16; // its point cut off flat, as wide as the beam with its glow: the beam leaves it as from a nozzle
   const rbPavGeo = new THREE.CylinderGeometry(RB_CUT, 0.46, RB_TIP, 6).translate(0, RB_TIP / 2, 0), rbCrownGeo = new THREE.CylinderGeometry(0.32, 0.46, 0.24, 6).translate(0, -0.12, 0);
   const rbPavEdge = new THREE.EdgesGeometry(rbPavGeo), rbCrownEdge = new THREE.EdgesGeometry(rbCrownGeo);
   const rbMat = new THREE.MeshStandardMaterial({ color: 0xe0142f, emissive: 0xc00a24, emissiveIntensity: 1.0, roughness: 0.08, metalness: 0.25, flatShading: true }); // lit from within: it had looked dull against the ruby sky
@@ -5491,7 +5491,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       const segs = [], gm = o.gems[0];
       if (o.kind === "side") { updateRubyCone(o, gm); continue; }
       if (o.kind === "h") gm.v = o.vc + o.amp * Math.sin(time * o.w + o.ph);
-      else if (o.arc) { // a pendulum: round an arc over the deck, 7.6 m out from a point at the cart's height, 130° of it (25° short of either side),
+      else if (o.arc) { // a pendulum: round an arc over the deck, 7.6 m out from a point 7.6 m up (the middle of its beam when it is overhead), 130° of it (25° short of either side),
         // from low on one side over the top to low on the other, 2 s each way, easing to a stop at either end; its beam always on that point
         const th = Math.PI / 2 + 1.13 * Math.sin(time * Math.PI / 2 + o.ph), c = Math.cos(th), sn = Math.sin(th);
         gm.u = RB_ARC * c; gm.v = RB_AIM + RB_ARC * sn; gm.du = -c; gm.dv = -sn; gm.g.rotation.z = Math.atan2(-gm.du, gm.dv); }

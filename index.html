@@ -772,7 +772,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.599</div>
+      <div class="credit version">v1.0.600</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -973,7 +973,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = fetch("data:audio/mpeg;base64," + b64).then(r => r.arrayBuffer()).then(b => new Uint8Array(b)).catch(sync));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.599`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.600`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3936,6 +3936,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // straight after the gate has taken both (prisms with their mirrors, another gate, things on chains, crosses)
     if (!spawnGroupKind && GATE_CALM_PATS.includes(pat) && [...gates, ...doors].some(g => s > g.s && s < g.s + GATE_CALM)) pat = Math.random() < 0.6 ? "center" : "slider";
     if (pat === "tallgate" && s < 150) pat = "center"; // (no tall gate right at the start, in front of the cart's nose)
+    // nothing big in the 35 m before a gate, hiding it (a prism gear, prisms, a block on a chain, crosses, hovering blocks): plain glass there;
+    // and no tall gate set down just past something big
+    { const near = g => g > s && g - s < 35, gatesAhead = [...SPANS.flatMap(x => [x.a, x.b]), ...doors.map(d => d.s), ...gates.map(g => g.s), ...doorPlan.map(q => q.s)];
+      if (BIG_PATS.includes(pat) && gatesAhead.some(near)) pat = Math.random() < 0.5 ? "center" : "slider";
+      if (pat === "tallgate" && [...pgears, ...prismSets, ...hangers].some(o => s - o.s > 0 && s - o.s < 35)) pat = "center"; }
     if (pat === "prisms" && prevPat === "prisms") pat = Math.random() < 0.5 ? "center" : "twins"; // (never two sets of prisms running)
     if (CHAINED.includes(pat) && !(spn && spn.knot ? [-4, 0, 4].every(o => (frameAt(s + o), _U.y > 0.85)) : upright(s, true))) pat = Math.random() < 0.5 ? "center" : "twins"; // anything hung on chains only where the track lies upright (on its side or upside down the chains would hang against gravity), and none on or by a loop at all
     if (CHAINED.includes(prevPat) && s - prevS < 18) return; // (a block on its chain swings: nothing set down hard by it, after it nor, below, before it)
@@ -4633,6 +4638,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   // opt (Carcer's grates): look "medieval" (heavy black iron, spiked) or "modern" (thin steel bars in a plain frame; all of Carcer's grates are modern now);
   // wide: a grate across the whole track on two chains
   let prevPat = "", prevS = -1e9;
+  const BIG_PATS = ["pgear", "prisms", "pendulum", "gate", "rotor", "rotor2", "fblocks", "grams", "rams", "wall", "shutter", "lhang", "bars"];
   const CHAINED = ["gate", "pendulum", "lhang", "bars", "rams", "grams", "grate1", "grate2", "grate3"];
   // a turning-over stretch's twist as it will be once formed (a corkscrew is straight till the cart is near, when things are set down on it)
   const finalTwist = s => { for (const sp of SPANS) if (!sp.knot && s > sp.tw0 && s < sp.tw1) return sp.turns * TAU * spanPhase((s - sp.tw0) / (sp.tw1 - sp.tw0));

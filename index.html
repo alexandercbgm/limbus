@@ -772,7 +772,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.581</div>
+      <div class="credit version">v1.0.582</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -974,7 +974,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.581`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.582`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5574,11 +5574,10 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       const segs = [], gm = o.gems[0];
       if (o.kind === "side") { updateRubyCone(o, gm); continue; }
       if (o.kind === "h") gm.v = o.vc + o.amp * Math.sin(time * o.w + o.ph);
-      else if (o.arc) { // it floats round an arc over the deck, 7.6 m out from a point at the cart's height, 130° of it (25° short of either side), from
-        // low on one side over the top to low on the other, 2 s each way, easing to a stop at either end, bobbing a little as it goes; its
-        // beam straight down, a searchlight sweeping across the deck as it passes over (turned on the arc's middle it had swung as a metronome)
+      else if (o.arc) { // a pendulum: round an arc over the deck, 7.6 m out from a point at the cart's height, 130° of it (25° short of either side),
+        // from low on one side over the top to low on the other, 2 s each way, easing to a stop at either end; its beam always on that point
         const th = Math.PI / 2 + 1.13 * Math.sin(time * Math.PI / 2 + o.ph), c = Math.cos(th), sn = Math.sin(th);
-        gm.u = RB_ARC * c; gm.v = RB_AIM + RB_ARC * sn + 0.12 * Math.sin(time * 3.1 + o.ph); gm.du = 0; gm.dv = -1; gm.g.rotation.z = Math.PI; }
+        gm.u = RB_ARC * c; gm.v = RB_AIM + RB_ARC * sn; gm.du = -c; gm.dv = -sn; gm.g.rotation.z = Math.atan2(-gm.du, gm.dv); }
       else { const a = o.c + o.A * Math.sin(time * Math.PI / 2 + o.ph); gm.du = Math.cos(a); gm.dv = Math.sin(a); gm.g.rotation.z = Math.atan2(-gm.du, gm.dv); } // 2 s each way, easing to a stop at either end
       if (gm.alive) { const [x0, y0, , , L0] = rbRay(gm.u, gm.v, gm.du, gm.dv, o.s), L = deckBlock(o, x0, y0, gm.du, gm.dv, Math.min(L0, BEAM_FAR)); segs.push([x0, y0, x0 + gm.du * L, y0 + gm.dv * L]); }
       for (const gm of o.gems) { gm.g.position.set(gm.u, gm.v, 0); gm.wp.set(gm.u, gm.v, 0).applyMatrix4(o.root.matrixWorld); }

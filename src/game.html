@@ -861,6 +861,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const m of LTW) h = Math.max(h, smooth5((s - m.sw + 40) / 40) * smooth5((m.tw1 + 32 + 40 - s) / 40));
     for (const l of LOOPS) h = Math.max(h, smooth5((s - l.s0 + 32 + 40) / 40) * smooth5((loopEnd(l) + 32 + 40 - s) / 40));
     for (const sp of SPANS) h = Math.max(h, smooth5((s - sp.a + 40) / 40) * smooth5((sp.b + 40 - s) / 40)); // and Speculum's bridges, gate to gate
+    for (let i = 0; i + 1 < SPANS.length; i++) if (SPANS[i + 1].a - SPANS[i].b < 300 && s > SPANS[i].b && s < SPANS[i + 1].a) h = 1; // (and the short tunnel from one to the next: level all through, as when it was 120 m)
     return h;
   }
   const START_BALLS = 30, R_BALL = 0.18, G = 11, MAX_SHARDS = 520;
@@ -2854,7 +2855,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     fillStrip(floorStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length || LTW.length ? s => (spanIn(s) || fineAll(s) ? 0 : fw(s)) : floorW); // over a bridge, its deck instead
     for (const sp of SPANS) for (const e of [sp.a - 0.5, sp.b + 0.5]) if (e > sC - BEHIND && e < sC + AHEAD - 4) putS("fcap", e, 0, 0.004, 2 * fw(e), 1, 1);
     const under = !STYLE.bridge && LEVEL.id !== "initium" && (LOOPS.length > 0 || LTW.length > 0); underStrip.visible = under; // (Initium's loops have their slab)
-    if (under) fillStrip(underStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, -0.06, 0, s => loopAt(s) || LTW.some(m => s > m.tw0 - 4 && s < m.tw1 + 4) ? fw(s) : 0);
+    if (under) fillStrip(underStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, -0.06, 0, s => !spanIn(s) && (loopAt(s) || LTW.some(m => s > m.tw0 - 4 && s < m.tw1 + 4)) ? fw(s) : 0); // (not on a bridge: its deck has its own underside; the tunnel floor's, wider, had hung in the air beside it)
     { const dk = LEVEL.id === "speculum" ? 0.6 : 1; deckSurfMat.color.copy(surfMat.color).multiplyScalar(dk); if (surfMat.emissive) deckSurfMat.emissive.copy(surfMat.emissive).multiplyScalar(dk); deckSurfMat.map = surfMat.map; }
     if (SPANS.length || LTW.some(m => m.r && !STYLE.bridge)) fillDeckTop(Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, s => { const sp = spanIn(s); return sp ? SW * deckK(clamp(s, sp.a + 0.01, sp.b - 0.01)) : twM(s) ? fw(s) : 0; }); else deckTop.visible = false;
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, 0, STYLE.glassWalls ? W + 0.12 : W); else vaultStrip.visible = false; // (Speculum: the vault out to its glass)
@@ -7452,7 +7453,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     // block alone, or a pair of them swinging to meet over the rails)
     chainPlan = []; for (const sp of SPANS) if (sp.knot && LEVEL.id === "rubinus") { chainPlan.push(sp.a - 135); if (Math.random() < 0.5) chainPlan.push(sp.a - 105); chainPlan.push(sp.b + 105); if (Math.random() < 0.5) chainPlan.push(sp.b + 135); } // (well back in the tunnel either way: they swing out through the glass fence, cut away for them, and close to a gate the bare deck had shown from the knot)
     chainPlan.sort((x, y) => x - y); chainAt = chainPlan.slice();
-    if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20)); if (LEVEL.spanGates !== false) { const kind = LEVEL.spanGates === "own" ? "own" : "tall"; doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind }, { s: sp.b, kind }]); } }
+    if (SPANS.length) { TURNS = TURNS.filter(tn => !SPANS.some(sp => tn.s0 < sp.tw1 + 20 && tn.s0 + tn.len > sp.tw0 - 20) && !SPANS.some((sp, i) => SPANS[i + 1] && SPANS[i + 1].a - sp.b < 300 && tn.s0 < SPANS[i + 1].a && tn.s0 + tn.len > sp.b - 20)); /* (none in the short tunnel between two bridges either: the first's shortening had let a bend in before the clover) */ if (LEVEL.spanGates !== false) { const kind = LEVEL.spanGates === "own" ? "own" : "tall"; doorPlan = SPANS.flatMap(sp => [{ s: sp.a, kind }, { s: sp.b, kind }]); } }
     if (LEVEL.id === "abyssus") doorPlan = LTW.flatMap(m => [{ s: m.tw0 - 14, kind: "nox" }, { s: m.tw1 + 14, kind: "nox" }]); // Nox: a gate at the way into each manoeuvre and the way out
     mGates = doorPlan.filter(q => q.kind === "nox").map(q => q.s);
     buildStation();
@@ -8496,7 +8497,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     for (const sp of SPANS) { if (sp.swM) { sp.dir = -sp.swM.dir; /* (the left target turns it over to the left: its right side up) */ if (sp.ft < 0 && (sp.swM.ft >= 0 || sC > sp.swM.sw)) sp.ft = 0; } else if (sp.ft < 0 && sC > sp.tw0 - 32) sp.ft = 0; if (sp.ft >= 0) sp.ft += dt; sp.k = sp.ft < 0 ? 0 : smooth5(Math.min(1, sp.ft / 1.2)); } // Speculum's corkscrews: straight till the cart is near, then formed before its eyes
     const onKnot = SPANS.some(sp => sp.knot && sC > sp.a - 380 && sC < sp.b + 20); // the knot: drawn whole, and everything on it set down, while the cart is still far back in the tunnel (out of sight, so nothing is seen to come)
     const kSp = onKnot ? SPANS.find(sp => sp.knot) : null; // (on the knot itself, only as far as it and a little past: the tunnel 800 m on had been drawn for nothing)
-    const kGate = kSp && doors.find(d => Math.abs(d.s - kSp.a) < 1), kOpen = kSp && (kGate ? kGate.open || kGate.passed : sC > kSp.a - 5); // (the knot drawn once its gate is open: through the tunnel's frosted walls its turns had shown beside it long before)
+    const kGate = kSp && doors.find(d => Math.abs(d.s - kSp.a) < 1), kOpen = kSp && (LEVEL.id !== "speculum" || (kGate ? kGate.open || kGate.passed : sC > kSp.a - 5)); // (Rubinus's knot as before: drawn from 150 m short of its gate) // (the knot drawn once its gate is open: through the tunnel's frosted walls its turns had shown beside it long before)
     const kIn = kSp && sC < kSp.b - 60 && (sC > kSp.a || (sC > kSp.a - 150 && kOpen)), kPre = kSp && !kIn && sC < kSp.a && sC > kSp.a - 150; // (on the knot's loops: the way past its far gate not drawn yet, the level's end had shown from up there; back in the tunnel,
     // till 80 m short of its gate, the tunnel drawn as anywhere: all 800 m drawn from 380 m back had made the run up to it slow)
     SPAWN_TO = kSp && sC < kSp.b - 60 ? Math.min(AHEAD_MAX, kSp.b + 25 - sC) : 0;

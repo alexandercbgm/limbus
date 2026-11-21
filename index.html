@@ -772,7 +772,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.570</div>
+      <div class="credit version">v1.0.571</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -973,7 +973,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.570`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.571`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2477,6 +2477,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       d.wl = d.wr = d.ceil = true;
       if (inHall(s)) { d.hall = true; d.hw = HALL_W; d.hh = HALL_H; d.arch = k % 4 === 0; }
     }
+    // the finale a tunnel whole, walls and roof with no gaps (nothing cuts them there), where the level is a tunnel at all
+    if (s > MAIN_LEN - 8 && !station && !STYLE.air && !STYLE.bridge && !LEVEL.halls && LEVEL.finale !== "ruina") // (Vitrum's blocks fall from the sky)
+      for (const key of ["wl", "wr", "ceil", ...(k % 4 === 0 && s - SL / 2 > MAIN_LEN - 8 ? ["wl0", "wr0", "ceil0"] : [])]) Object.defineProperty(d, key, { get: () => true, set: () => {}, enumerable: true, configurable: true });
     // In Carcer's dark (only there) single pyramids stick out of the walls, placed at random so every run differs.
     // Some of the low ones are thorns: they slide out on a piston as the cart comes near.
     const th = LEVEL.thorns || { from: 0.6, mul: 1 }; // Carcer brings thorns up out of the dark
@@ -2760,7 +2763,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         const end = i === 0 || i === sp.piers.length - 1, top = -0.52 - archDepth(sp, ps) - 1.1;
         for (const u of [-1.7, 1.7]) I.spier.setMatrixAt(n.spier++, placeM(M, ps, u, top - PYLON_H / 2).scale(SV.set(1.7, 1, 1.7))); // two columns under the arch's springing
         I.scap.setMatrixAt(n.scap++, placeM(M, ps, 0, top + 0.4).scale(SV.set(Math.min(6, 2 * SW * deckK(ps) + 0.6), 1.2, 4.5))); // (no wider than the deck over it)
-        if (end) { // the platform: the deck widened, on four heavy columns
+        if (end && LEVEL.id !== "speculum") { // the platform: the deck widened, on four heavy columns (not on Speculum's narrow deck: before the corkscrew, end to end with the loops, it had stood out as a stretch of other bridge)
           const pc = ps + (i === 0 ? -8 : 8);
           I.scap.setMatrixAt(n.scap++, placeM(M, pc, 0, -0.62).scale(SV.set(2 * SW + 6, 0.7, 18)));
           for (const ds of [-6, 6]) for (const u of [-1, 1]) I.spier.setMatrixAt(n.spier++, placeM(M, pc + ds, u * (SW + 1.6), -0.97 - PYLON_H / 2).scale(SV.set(1.5, 1, 1.5)));
@@ -3842,7 +3845,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (!knotBag.length) { knotBag = (LEVEL.knotPats || LEVEL.spanPats).slice().sort(() => Math.random() - 0.5); if (knotBag[knotBag.length - 1] === knotLast) knotBag.unshift(knotBag.pop()); }
         pat = knotBag.pop(); knotLast = pat;
       } else if (spn.spiral) { if (pat === "doors" || pat === "gate") pat = Math.random() < 0.5 ? "center" : "slider"; if (Math.random() < 0.22) pat = "rbeam"; } // and now and then a ruby's beam // a spiral bridge: the level's own mix, all but its gates
-      else if (loopAt(s) || loopAt(s - 12) || loopAt(s + 12)) { const opts = ["center", "center", "twins", "rotor", "prisms"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; } // a loop (Speculum's double): little room in it, glass in the middle, a pair closing like doors, a turning cross
+      else if ((loopAt(s) || loopAt(s - 12) || loopAt(s + 12)) && !upright(s)) { const opts = ["center", "center", "twins", "rotor", "prisms"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; } // a loop (Speculum's double): little room in it, glass in the middle, a pair closing like doors, a turning cross
       else { const opts = LEVEL.spanPats || ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
         if (pat === "pendulum" && [-12, 0, 12].some(o => Math.cos(finalTwist(s + o)) < 0.99)) { // (a block on a chain only where the deck lies flat, on its Г frame; in the corkscrew, over a pier, where the deck comes round upright)
           const pr = spn.piers.find(q => Math.abs(q - s) < 20 && q > spn.tw0 + 1 && q < spn.tw1 - 1 && q - lastHangerS > 70 && !LOOPS.some(l => q > l.s0 - 30 && q < loopEnd(l) + 30));
@@ -3870,7 +3873,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // just past a gate (once the empty run is behind) only plain glass for a while: nothing that takes aim or time to bring down
     // straight after the gate has taken both (prisms with their mirrors, another gate, things on chains, crosses)
     if (!spawnGroupKind && GATE_CALM_PATS.includes(pat) && [...gates, ...doors].some(g => s > g.s && s < g.s + GATE_CALM)) pat = Math.random() < 0.6 ? "center" : "slider";
-    if (CHAINED.includes(pat) && (!upright(s) || LOOPS.some(l => s > l.s0 - 30 && s < loopEnd(l) + 30))) pat = Math.random() < 0.5 ? "center" : "twins"; // anything hung on chains only where the track lies upright (on its side or upside down the chains would hang against gravity), and none on or by a loop at all
+    if (CHAINED.includes(pat) && !upright(s, true)) pat = Math.random() < 0.5 ? "center" : "twins"; // anything hung on chains only where the track lies upright (on its side or upside down the chains would hang against gravity), and none on or by a loop at all
     lastPat[pat] = s; patCount[pat] = (patCount[pat] || 0) + 1; // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
@@ -4567,7 +4570,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   // a turning-over stretch's twist as it will be once formed (a corkscrew is straight till the cart is near, when things are set down on it)
   const finalTwist = s => { for (const sp of SPANS) if (!sp.knot && s > sp.tw0 && s < sp.tw1) return sp.turns * TAU * spanPhase((s - sp.tw0) / (sp.tw1 - sp.tw0));
     for (const m of LTW) if (m.r && s > m.tw0 && s < m.tw1) return m.turns * TAU * spanPhase((s - m.tw0) / m.len); return 0; };
-  const upright = s => [-8, -4, 0, 4, 8].every(o => { frameAt(s + o); return _U.y > 0.9 && Math.cos(finalTwist(s + o)) > 0.9; }); // the track's up within 25° of the world's along a chain's swing
+  const upright = (s, strict) => { const th = strict ? 0.97 : 0.9; return (strict ? [-12, -8, -4, 0, 4, 8, 12] : [-8, -4, 0, 4, 8]).every(o => { frameAt(s + o); return _U.y > th && Math.cos(finalTwist(s + o)) > th; }); }; // the track's up within 25° of the world's along a chain's swing (strict, for what hangs on chains: within 14° over 12 m either side, so on a loop only its straight run-in and run-out, never its curve)
   function addHanger(s, kind, laser = false, bars = false, opt = {}) {
     if (inCurve(s) && !opt.wide) kind = "pendulum"; // two chains are too much to hit while the track bends
     // a monolith: a square block on one chain (pendulum) or an oblong slab on two (gate)

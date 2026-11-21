@@ -955,7 +955,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // 250–330 m, so the whole knot stands clear in front of the cart as it comes out; back again just past its far gate
   const knotView = () => { for (const sp of SPANS) if (sp.knot) return smooth5((sC - (sp.a - 300)) / 170) * smooth5((sp.b + 70 - sC) / 70); return 0; };
   const knotEdgeMat = new THREE.MeshBasicMaterial({ color: 0xffe2e8 });
-  const deckK = s => { const sp = spanAt(s); return sp && sp.knot ? sp.kn.w : 1; };
+  const deckK = s => { const sp = spanAt(s); if (sp && sp.knot) return sp.kn.w; if (sp && LOOPS.length) { let d = 1e9; for (const l of LOOPS) d = Math.min(d, Math.max(0, l.s0 - s, s - loopEnd(l))); if (d < 12) return lerp(1, 0.6, smooth5(1 - d / 12)); } return 1; }; // (a bridge's loops: its deck narrowed into them over 12 m)
   // Lux: an open bridge over the void as Nox's, broken by short glazed halls (an iris at the way in), and on it three great
   // manoeuvres, in a new order each run: the drill (the track turning over four times round a line high over the rails), the
   // corkscrew (twice, wider) and the spiral (two whole turns round, climbing or diving). A gantry of targets before each sets
@@ -1010,8 +1010,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (LEVEL.id === "abyssus") { add("screw", L / 3); add("spiral", L * 2 / 3, { len: 350 }); } // Nox: the corkscrew, then the spiral (wider than Lux's: 30 m of the way in sight), formed as the cart comes, no gantry
     LOOPS = [];
     if (LEVEL.id === "speculum" && SPANS[0] && SPANS[0].tw0 - SPANS[0].a > 200) { // Speculum: a double loop on its first bridge, just past its gate, the corkscrew after it
-      const sp = SPANS[0], first = Math.random() < 0.5 ? -1 : 1, a = sp.a + 25;
-      LOOPS.push({ kind: "v", s0: a, side: first, len: LOOP_LEN, w: LOOP_SIDE }, { kind: "v", s0: a + LOOP_LEN + 10, side: -first, len: LOOP_LEN, w: LOOP_SIDE }); }
+      const sp = SPANS[0], side = Math.random() < 0.5 ? -1 : 1, a = sp.a + 25; // (both edging the same way, 13 m each, rings side by side as a chain's links: turned
+      // back, the second's top had stood in the first's, on Speculum's wide deck; the deck narrowed on them besides)
+      LOOPS.push({ kind: "v", s0: a, side, len: LOOP_LEN, w: 13 }, { kind: "v", s0: a + LOOP_LEN + 10, side, len: LOOP_LEN, w: 13 }); }
     if (LEVEL.id === "initium") { add("drill", L / 3); // Initium: its drill a third of the way, two loops two thirds of the way, the first to the side the drill did not turn
       const first = LTW[0].dir < 0 ? 1 : -1, a = Math.round(L * 2 / 3) - LOOP_LEN - 5;
       LOOPS.push({ kind: "v", s0: a, side: first, len: LOOP_LEN, w: LOOP_SIDE }, { kind: "v", s0: a + LOOP_LEN + 10, side: -first, len: LOOP_LEN, w: LOOP_SIDE }); }
@@ -2310,11 +2311,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // the top of a bridge's deck, finer than a strip: a strip's metre-long quads, twisted where the track turns over, sagged or
   // bulged by a quarter of a metre between their corners, and the bulge hid the sleepers. Half-metre rows, eight quads across
   const DECK_COLS = 8, DECK_STEP = 0.5;
+  // the bridges' deck: the floor's own, but on Speculum's bright bridges darker, so its glass shows against it (the light had washed it out)
+  const deckSurfMat = surfMat.clone();
   const deckTop = (() => { const maxSeg = (STRIP_N) * 2, nr = DECK_COLS + 1, g = new THREE.BufferGeometry(), idx = [];
     for (let i = 0; i < maxSeg; i++) for (let c = 0; c < DECK_COLS; c++) { const a = i * nr + c, b = a + 1, d = a + nr, e = d + 1; idx.push(a, b, d, b, e, d); }
     g.setIndex(idx); const nv = (maxSeg + 1) * nr;
     g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(nv * 3), 3)); g.setAttribute("normal", new THREE.BufferAttribute(new Float32Array(nv * 3), 3)); g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(nv * 2), 2));
-    const m = new THREE.Mesh(g, surfMat); m.frustumCulled = false; m.visible = false; scene.add(m); m.maxSeg = maxSeg; return m; })();
+    const m = new THREE.Mesh(g, deckSurfMat); m.frustumCulled = false; m.visible = false; scene.add(m); m.maxSeg = maxSeg; return m; })();
   function fillDeckTop(s0, s1, hwF) {
     const g = deckTop.geometry, pos = g.attributes.position.array, nor = g.attributes.normal.array, uv = g.attributes.uv.array, nr = DECK_COLS + 1;
     const seg = Math.max(0, Math.min(deckTop.maxSeg, Math.floor((s1 - s0) / DECK_STEP)));
@@ -2796,6 +2799,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     fillStrip(floorStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length || LTW.length ? s => (fineAll(s) ? 0 : fw(s)) : floorW); // over a bridge, its deck instead
     const under = !STYLE.bridge && LEVEL.id !== "initium" && (LOOPS.length > 0 || LTW.length > 0); underStrip.visible = under; // (Initium's loops have their slab)
     if (under) fillStrip(underStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, -0.06, 0, s => loopAt(s) || LTW.some(m => s > m.tw0 - 4 && s < m.tw1 + 4) ? fw(s) : 0);
+    { const dk = LEVEL.id === "speculum" ? 0.6 : 1; deckSurfMat.color.copy(surfMat.color).multiplyScalar(dk); if (surfMat.emissive) deckSurfMat.emissive.copy(surfMat.emissive).multiplyScalar(dk); deckSurfMat.map = surfMat.map; }
     if (SPANS.length || LTW.some(m => m.r && !STYLE.bridge)) fillDeckTop(Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, s => onDeck(s) ? SW * deckK(s) : twM(s) ? fw(s) : 0); else deckTop.visible = false;
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, 0, STYLE.glassWalls ? W + 0.12 : W); else vaultStrip.visible = false; // (Speculum: the vault out to its glass)
     { // where a walled and roofed corridor (Labyrinthus, Carcer) stops being drawn, far ahead, the sky showed through its open
@@ -3724,8 +3728,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (!knotBag.length) { knotBag = (LEVEL.knotPats || LEVEL.spanPats).slice().sort(() => Math.random() - 0.5); if (knotBag[knotBag.length - 1] === knotLast) knotBag.unshift(knotBag.pop()); }
         pat = knotBag.pop(); knotLast = pat;
       } else if (spn.spiral) { if (pat === "doors" || pat === "gate") pat = Math.random() < 0.5 ? "center" : "slider"; if (Math.random() < 0.22) pat = "rbeam"; } // and now and then a ruby's beam // a spiral bridge: the level's own mix, all but its gates
-      else if (loopAt(s) || loopAt(s - 12) || loopAt(s + 12)) { const opts = ["center", "center", "twins", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; } // a loop (Speculum's double): little room in it, glass in the middle, a pair closing like doors, a turning cross
-      else { const opts = LEVEL.spanPats || ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; }
+      else if (loopAt(s) || loopAt(s - 12) || loopAt(s + 12)) { const opts = ["center", "center", "twins", "rotor", "prisms"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; } // a loop (Speculum's double): little room in it, glass in the middle, a pair closing like doors, a turning cross
+      else { const opts = LEVEL.spanPats || ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
+        if (pat === "pendulum" && [-12, 0, 12].some(o => twistAt(s + o))) pat = "center"; } // (a block on a chain only where the deck lies flat, on its Г frame)
     }
     if (!spawnGroupKind && LEVEL.id === "lux") { // Lux: its big obstacles evenly spread, never two within 55 m (they had heaped up: two pairs of gears and a
       // catapult, none to be shot down in time, and then hundreds of metres with none); past 150 m without one, the next group is one
@@ -4470,19 +4475,20 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     const xs = pend ? [0] : [-(w / 2 - 0.35), w / 2 - 0.35]; // a wide grate too hangs on two chains
     const chains = xs.map(x => { const m = makeChainMesh(L); m.position.x = x; root.add(m); return { x, alive: true, mesh: m, A: new THREE.Vector3(), B: new THREE.Vector3() }; });
     xs.forEach(x => { const plate = new THREE.Mesh(mountGeo, frameMat); plate.position.set(x, 0.02, 0); plate.userData.mount = true; root.add(plate); }); // anchor plates
-    if (openAt(s)) { // over a bridge (Lux) nothing to hang from: a square frame round the deck for it, posts up past the deck's
+    const onSpan = !!spanAt(s);
+    if (openAt(s) || onSpan) { // over a bridge (Lux, Speculum's) nothing to hang from: a square frame round the deck for it, posts up past the deck's
       // edges and a crossbar under the deck that they stand on, so it is held at the foot; it stays when the thing is shot down
-      const AX = BRIDGE_W + 0.45, FOOT = -top - 0.82, uc = 0, mk = (w, h, d, x, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat); m.position.set(x, y, 0); m.userData.mount = true; root.add(m); return m; };
-      const gam = pend && LEVEL.id === "abyssus" ? (Math.random() < 0.5 ? -1 : 1) : 0, sds = gam ? [gam] : [-1, 1]; // Nox: a square block's frame a Г, its one post on either side (Lux: a П)
+      const DW = onSpan ? SW * deckK(s) : BRIDGE_W, AX = DW + 0.45, FOOT = -top - 0.82, uc = 0, mk = (w, h, d, x, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat); m.position.set(x, y, 0); m.userData.mount = true; root.add(m); return m; };
+      const gam = pend && (LEVEL.id === "abyssus" || LEVEL.id === "speculum") ? (Math.random() < 0.5 ? -1 : 1) : 0, sds = gam ? [gam] : [-1, 1]; // Nox: a square block's frame a Г, its one post on either side (Lux: a П)
       for (const sd of sds) mk(0.32, 0.22 - FOOT, 0.32, sd * AX + uc, (0.22 + FOOT) / 2); // the posts, from the crossbar under the deck to the beam
       if (gam) { const x1 = -gam * 0.55; mk(AX + 0.55 + 0.16, 0.32, 0.42, (gam * (AX + 0.16) + x1) / 2, 0.22); } // the beam from its post out past the chain
       else mk(2 * AX + 0.32, 0.32, 0.42, uc, 0.22); // the beam the chains hang from
       mk(2 * AX + 0.32, 0.3, 0.42, uc, FOOT + 0.15); // the crossbar under the deck
-      for (const sd of sds) mk(0.5, 0.12, 0.42, sd * (BRIDGE_W + 0.1) + uc, -top - 0.52 - 0.06); // brackets from the deck's edge to the posts, under its kerb
+      for (const sd of sds) mk(0.5, 0.12, 0.42, sd * (DW + 0.1) + uc, -top - 0.52 - 0.06); // brackets from the deck's edge to the posts, under its kerb
     }
     scene.add(root);
     // a monolith always hangs under a ceiling: close the vault over it
-    if (!openAt(s)) for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) getDecor(k).ceil = true; // (over a bridge its arch holds it: no roof)
+    if (!openAt(s) && !onSpan) for (let k = Math.floor(s / SL) - 3; k <= Math.floor(s / SL) + 3; k++) getDecor(k).ceil = true; // (over a bridge its arch holds it: no roof)
     // under a raised ceiling the chains are longer, but the swing keeps the tempo and sideways reach of a normal one
     const arm0 = arm - (top - (H - 0.06)), kArm = arm0 / arm;
     // a monolith pendulum swings wide, as near the walls as its corners allow; half of them swing along the track instead,
@@ -7089,7 +7095,8 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1750, pal: PAL_SPECULUM, finale: "reflexio",
       spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 320 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
-      knotPats: ["center", "twins", "slider", "double", "rotor", "rotor", "prisms", "prisms", "pgear", "pgear", "sides", "reinf"], // on the clover, drawn as from a bag: glass, crosses, prisms with their mirrors, prism gears
+      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "prisms"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
+      knotPats: ["center", "twins", "slider", "double", "triple", "sides", "lift", "rotor", "rotor", "reinf", "imps", "prisms", "pgear"], // on the clover, drawn as from a bag: much glass, crosses, imps, one set of prisms, one prism gear (two of each had made it all prisms, and slow)
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300 }, // prisms are sure to come: about half as many sets as at first, each a pair
       pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [0, 0, 0], prisms: [0.52, 0.75, 0.92],
         tallgate: [0.6, 0.9, 1.1], gate: [0, 0, 0], pendulum: [0.4, 0.6, 0.8] }, // and tall gates, and square blocks on one chain (no slabs on two)
@@ -8402,13 +8409,14 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     if (LTW.length) updateSwitches(dt);
     for (const sp of SPANS) { if (sp.ft < 0 && sC > sp.tw0 - 32) sp.ft = 0; if (sp.ft >= 0) sp.ft += dt; sp.k = sp.ft < 0 ? 0 : smooth5(Math.min(1, sp.ft / 1.2)); } // Speculum's corkscrews: straight till the cart is near, then formed before its eyes
     const onKnot = SPANS.some(sp => sp.knot && sC > sp.a - 380 && sC < sp.b + 20); // the knot: drawn whole, and everything on it set down, while the cart is still far back in the tunnel (out of sight, so nothing is seen to come)
-    const aheadTo = onKnot || LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150;
+    const kSp = onKnot ? SPANS.find(sp => sp.knot) : null; // (on the knot itself, only as far as it and a little past: the tunnel 800 m on had been drawn for nothing)
+    const aheadTo = kSp && sC > kSp.a ? clamp(kSp.b + 200 - sC, 150, AHEAD_MAX) : onKnot || LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150;
     AHEAD = aheadTo > AHEAD ? Math.min(aheadTo, AHEAD + 60) : aheadTo; // (opening out to 800 m, a little each frame: all at once, the knot's whole stretch laid in one frame, had been a hitch) // (the spiral's far side, and what is past it, set down while still far off)
     // behind the cart: the deck and all on it drawn as far back as can still be seen ahead (in a loop, its first half overhead; on
     // Vitrum's ring, the loop it threads, all of it, 430 m back); elsewhere only a little
-    BEHIND = onKnot && sC > SPANS.find(sp => sp.knot).a ? BACK : LOOPS.some(l => (l.kind === "v" || l.kind === "h") && sC > l.s0 && sC < loopEnd(l) + 40) ? BACK : LTW.some(m => m.kind === "spiral" && sC > m.tw0 - 30 && sC < m.tw1 + 250) ? Math.min(BACK, Math.max(150, sC - LTW.find(m => m.kind === "spiral" && sC > m.tw0 - 30).tw0 + 40)) : 10; // (a spiral: all of it, from its start, while its coils can be seen: its pylons had gone before the eyes)
+    BEHIND = kSp && sC > kSp.a ? clamp(sC - kSp.a + 60, 10, BACK) : LOOPS.some(l => (l.kind === "v" || l.kind === "h") && sC > l.s0 && sC < loopEnd(l) + 40) ? BACK : LTW.some(m => m.kind === "spiral" && sC > m.tw0 - 30 && sC < m.tw1 + 250) ? Math.min(BACK, Math.max(150, sC - LTW.find(m => m.kind === "spiral" && sC > m.tw0 - 30).tw0 + 40)) : 10; // (a spiral: all of it, from its start, while its coils can be seen: its pylons had gone before the eyes)
     computePath();
-    if (aheadTo < AHEAD_MAX && !STYLE.closed && !LEVEL.halls) { // the track drawn, and things set down, out to where it is past the melting by a straight line, not by its own length: round a bend its end, nearer, was cut off still showing
+    if (aheadTo < AHEAD_MAX && !(kSp && sC > kSp.a) && !STYLE.closed && !LEVEL.halls) { // the track drawn, and things set down, out to where it is past the melting by a straight line, not by its own length: round a bend its end, nearer, was cut off still showing
       const x0 = PP[BACK * 3], y0 = PP[BACK * 3 + 1], z0 = PP[BACK * 3 + 2]; let j = BACK + 146;
       while (j < BACK + 330 && Math.hypot(PP[j * 3] - x0, PP[j * 3 + 1] - y0, PP[j * 3 + 2] - z0) < 150) j += 2;
       AHEAD = j - BACK + 4;

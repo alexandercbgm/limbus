@@ -780,7 +780,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.607</div>
+      <div class="credit version">v1.0.608</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -982,7 +982,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = fetch("data:audio/mpeg;base64," + b64).then(r => r.arrayBuffer()).then(b => new Uint8Array(b)).catch(sync));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.607`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.608`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2153,7 +2153,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       scene.fog.far = lerp(Math.min(scene.fog.far, lim), scene.fog.far, k); scene.fog.near = lerp(Math.min(scene.fog.near, lim * 0.55), scene.fog.near, k); } else kVeil = 0; }
     // the haze no farther than the drawn track's far end: things come into being there, and melt in out of the haze (where it had
     // reached past it, they had appeared all at once, in sight)
-    { frameAt(sC + AHEAD - 4); const dEnd = _P.distanceTo(cartPos) - 4; if (dEnd < scene.fog.far) { scene.fog.far = Math.max(40, dEnd); scene.fog.near = Math.min(scene.fog.near, scene.fog.far * 0.3); } } // (a wide melt, as Lux's: things fade in over the last two thirds of the way to them)
+    { let dEnd = 0; for (let q = 20; q <= AHEAD - 4; q += 20) { frameAt(sC + q); dEnd = Math.max(dEnd, _P.distanceTo(cartPos)); } frameAt(sC + AHEAD - 4); dEnd = Math.max(dEnd, _P.distanceTo(cartPos)) - 4; /* (the farthest the drawn track reaches, not its end: where it curls back, through Vitrum's loops, its end close by had pulled the haze in round the loop itself and the way behind) */ if (dEnd < scene.fog.far) { scene.fog.far = Math.max(40, dEnd); scene.fog.near = Math.min(scene.fog.near, scene.fog.far * 0.3); } } // (a wide melt, as Lux's: things fade in over the last two thirds of the way to them)
     surfMat.color.copy(cur.surf); surfMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     wallMat.color.copy(cur.wall); wallMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     blockMat.color.copy(cur.block); blockMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.8);

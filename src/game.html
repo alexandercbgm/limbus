@@ -2067,7 +2067,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       scene.fog.far = lerp(Math.min(scene.fog.far, lim), scene.fog.far, k); scene.fog.near = lerp(Math.min(scene.fog.near, lim * 0.55), scene.fog.near, k); } else kVeil = 0; }
     // the haze no farther than the drawn track's far end: things come into being there, and melt in out of the haze (where it had
     // reached past it, they had appeared all at once, in sight)
-    { frameAt(sC + AHEAD - 4); const dEnd = _P.distanceTo(cartPos) - 4; if (dEnd < scene.fog.far) { scene.fog.far = Math.max(40, dEnd); scene.fog.near = Math.min(scene.fog.near, scene.fog.far * 0.3); } } // (a wide melt, as Lux's: things fade in over the last two thirds of the way to them)
+    { let dEnd = 0; for (let q = 20; q <= AHEAD - 4; q += 20) { frameAt(sC + q); dEnd = Math.max(dEnd, _P.distanceTo(cartPos)); } frameAt(sC + AHEAD - 4); dEnd = Math.max(dEnd, _P.distanceTo(cartPos)) - 4; /* (the farthest the drawn track reaches, not its end: where it curls back, through Vitrum's loops, its end close by had pulled the haze in round the loop itself and the way behind) */ if (dEnd < scene.fog.far) { scene.fog.far = Math.max(40, dEnd); scene.fog.near = Math.min(scene.fog.near, scene.fog.far * 0.3); } } // (a wide melt, as Lux's: things fade in over the last two thirds of the way to them)
     surfMat.color.copy(cur.surf); surfMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     wallMat.color.copy(cur.wall); wallMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     blockMat.color.copy(cur.block); blockMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.8);

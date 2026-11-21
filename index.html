@@ -772,7 +772,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.602</div>
+      <div class="credit version">v1.0.603</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -973,7 +973,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = fetch("data:audio/mpeg;base64," + b64).then(r => r.arrayBuffer()).then(b => new Uint8Array(b)).catch(sync));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.602`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.603`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -5401,7 +5401,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     // the prism and its mirrors sit on twelve places round a ring that fills the hexagon, none next to another, so the beam
     // draws long chords right across the way, a star rather than a heap; a pair of prisms may be mirror images
     const slot = i => [RING_R * Math.sin(i * Math.PI / 6), HEX_V - RING_R * Math.cos(i * Math.PI / 6)];
-    const free = i => { const [u, v] = slot(i); return !inCart(u, v, 0.4) && set.taken.every(([a, b]) => Math.hypot(a - u, b - v) > 1.5); };
+    const free = i => { const [u, v] = slot(i); return v > 2 && !inCart(u, v, 0.4) && /* (none of the two lowest places beside the rails, 1.4 m up: a mirror there, turned near flat, had seemed to lie on the rails and sleepers) */ set.taken.every(([a, b]) => Math.hypot(a - u, b - v) > 1.5); };
     for (let tr = 0; tr < 120; tr++) {
       const k = 1 + Math.floor(Math.random() * maxK), ids = [];
       if (set.mirror) ids.push(...set.mirror.map(i => (12 - i) % 12)); // the other prism's places, mirrored left for right

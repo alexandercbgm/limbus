@@ -5315,7 +5315,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     // the prism and its mirrors sit on twelve places round a ring that fills the hexagon, none next to another, so the beam
     // draws long chords right across the way, a star rather than a heap; a pair of prisms may be mirror images
     const slot = i => [RING_R * Math.sin(i * Math.PI / 6), HEX_V - RING_R * Math.cos(i * Math.PI / 6)];
-    const free = i => { const [u, v] = slot(i); return !inCart(u, v, 0.4) && set.taken.every(([a, b]) => Math.hypot(a - u, b - v) > 1.5); };
+    const free = i => { const [u, v] = slot(i); return v > 2 && !inCart(u, v, 0.4) && /* (none of the two lowest places beside the rails, 1.4 m up: a mirror there, turned near flat, had seemed to lie on the rails and sleepers) */ set.taken.every(([a, b]) => Math.hypot(a - u, b - v) > 1.5); };
     for (let tr = 0; tr < 120; tr++) {
       const k = 1 + Math.floor(Math.random() * maxK), ids = [];
       if (set.mirror) ids.push(...set.mirror.map(i => (12 - i) % 12)); // the other prism's places, mirrored left for right

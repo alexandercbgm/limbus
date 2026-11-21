@@ -771,7 +771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.565</div>
+      <div class="credit version">v1.0.566</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -972,7 +972,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.565`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.566`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2398,7 +2398,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // bulged by a quarter of a metre between their corners, and the bulge hid the sleepers. Half-metre rows, eight quads across
   const DECK_COLS = 8, DECK_STEP = 0.5;
   // the bridges' deck: the floor's own, but on Speculum's bright bridges darker, so its glass shows against it (the light had washed it out)
-  const deckSurfMat = surfMat.clone();
+  const deckSurfMat = surfMat.clone(); deckSurfMat.polygonOffset = true; deckSurfMat.polygonOffsetFactor = -1; deckSurfMat.polygonOffsetUnits = -2; // (drawn over the tunnel's floor where the two meet, at a bridge's gate: they had flickered through each other there)
   const deckTop = (() => { const maxSeg = (STRIP_N) * 2, nr = DECK_COLS + 1, g = new THREE.BufferGeometry(), idx = [];
     for (let i = 0; i < maxSeg; i++) for (let c = 0; c < DECK_COLS; c++) { const a = i * nr + c, b = a + 1, d = a + nr, e = d + 1; idx.push(a, b, d, b, e, d); }
     g.setIndex(idx); const nv = (maxSeg + 1) * nr;
@@ -2760,7 +2760,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const slot = gates.find(g => g.kind === "v" && Math.abs(g.s - s) < SL / 2 + 0.3);
       for (const ss of [s - 0.5, s + 0.5]) if (!slot || Math.abs(ss - slot.s) > SLOT_W / 2 + 0.18) put(dec.span ? "ssleeper" : "sleeper", ss, 0, 0.06);
       if (!slot && (SPANS.length || LTW.length) && (twistAt(s - SL) || twistAt(s + SL))) { // where the track turns over, in short pieces, so they follow it round
-        for (let q = 0; q < 4; q++) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, s - SL / 2 + (q + 0.5) * SL / 4, u, 0.19).scale(SV.set(1, 1, (SL / 4 + 0.04) / (SL + 0.04))));
+        const nq = dec.span && dec.span.knot ? 2 : 4; // (a knot banks gently: metre pieces follow it; a corkscrew turns over fast: half metres)
+        for (let q = 0; q < nq; q++) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, s - SL / 2 + (q + 0.5) * SL / nq, u, 0.19).scale(SV.set(1, 1, (SL / nq + 0.04) / (SL + 0.04))));
       }
       else if (!slot) { put("rail", s, -0.72, 0.19); put("rail", s, 0.72, 0.19); }
       else { // the two pieces of rail either side of the slot
@@ -2819,8 +2820,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       }
       if (dec.span) { // Speculum's bridges: the deck a slab (it shows as one hanging overhead), kerbs, the approaches on plain piers
         const sp = dec.span;
-        const ku = (SW + 0.2) * deckK(s) - 0.07, kn = sp.knot ? 4 : 1; // kerbs on the slab's edge, flush with its side (on the knot they hug the slab, never stand over it)
-        if (sp.knot || twistAt(s - SL) || twistAt(s + SL)) { const q4 = twistAt(s - SL) || twistAt(s + SL) ? 4 : kn; for (let q = 0; q < q4; q++) for (const u of [-ku, ku]) I.kerb.setMatrixAt(n.kerb++, placeM(M, s - SL / 2 + (q + 0.5) * SL / q4, u, sp.knot ? -0.24 : 0.1).scale(SV.set(1, sp.knot ? 2.8 : 1, (SL / q4 + 0.03) / (SL + 0.03)))); }
+        const ku = (SW + 0.2) * deckK(s) - 0.07, kn = sp.knot ? 2 : 1; // kerbs on the slab's edge, flush with its side (on the knot they hug the slab, never stand over it)
+        if (sp.knot || twistAt(s - SL) || twistAt(s + SL)) { const q4 = sp.knot ? 2 : twistAt(s - SL) || twistAt(s + SL) ? 4 : kn; for (let q = 0; q < q4; q++) for (const u of [-ku, ku]) I.kerb.setMatrixAt(n.kerb++, placeM(M, s - SL / 2 + (q + 0.5) * SL / q4, u, sp.knot ? -0.24 : 0.1).scale(SV.set(1, sp.knot ? 2.8 : 1, (SL / q4 + 0.03) / (SL + 0.03)))); }
         else { put("kerb", s, -SW * deckK(s), 0.1); put("kerb", s, SW * deckK(s), 0.1); }
         if (!sp.knot && k % 4 === 0 && (s < sp.tw0 - 18 || s > sp.tw1 + 18) && !loopAt(s) && !loopAt(s - 8) && !loopAt(s + 8)) for (const sd of [-1, 1]) put("spier", s, sd * (SW - 0.9), -0.5 - PYLON_H / 2);
         if (!sp.knot) spanArch(sp, k, s); // (the knot hangs free: an arch or piers under it would pass through its other turns)
@@ -8496,13 +8497,14 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     for (const sp of SPANS) { if (sp.ft < 0 && sC > sp.tw0 - 32) sp.ft = 0; if (sp.ft >= 0) sp.ft += dt; sp.k = sp.ft < 0 ? 0 : smooth5(Math.min(1, sp.ft / 1.2)); } // Speculum's corkscrews: straight till the cart is near, then formed before its eyes
     const onKnot = SPANS.some(sp => sp.knot && sC > sp.a - 380 && sC < sp.b + 20); // the knot: drawn whole, and everything on it set down, while the cart is still far back in the tunnel (out of sight, so nothing is seen to come)
     const kSp = onKnot ? SPANS.find(sp => sp.knot) : null; // (on the knot itself, only as far as it and a little past: the tunnel 800 m on had been drawn for nothing)
-    const aheadTo = kSp && sC > kSp.a ? clamp(kSp.b + 200 - sC, 150, AHEAD_MAX) : onKnot || LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150;
+    const kIn = kSp && sC > kSp.a && sC < kSp.b - 60; // (on the knot's loops: the way past its far gate not drawn yet, the level's end had shown from up there)
+    const aheadTo = kIn ? clamp(kSp.b + 25 - sC, 85, AHEAD_MAX) : onKnot || LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150;
     AHEAD = aheadTo > AHEAD ? Math.min(aheadTo, AHEAD + 60) : aheadTo; // (opening out to 800 m, a little each frame: all at once, the knot's whole stretch laid in one frame, had been a hitch) // (the spiral's far side, and what is past it, set down while still far off)
     // behind the cart: the deck and all on it drawn as far back as can still be seen ahead (in a loop, its first half overhead; on
     // Vitrum's ring, the loop it threads, all of it, 430 m back); elsewhere only a little
     BEHIND = kSp && sC > kSp.a ? clamp(sC - kSp.a + 60, 10, BACK) : LOOPS.some(l => (l.kind === "v" || l.kind === "h") && sC > l.s0 && sC < loopEnd(l) + 40) ? BACK : LTW.some(m => m.kind === "spiral" && sC > m.tw0 - 30 && sC < m.tw1 + 250) ? Math.min(BACK, Math.max(150, sC - LTW.find(m => m.kind === "spiral" && sC > m.tw0 - 30).tw0 + 40)) : 10; // (a spiral: all of it, from its start, while its coils can be seen: its pylons had gone before the eyes)
     computePath();
-    if (aheadTo < AHEAD_MAX && !(kSp && sC > kSp.a) && !STYLE.closed && !LEVEL.halls) { // the track drawn, and things set down, out to where it is past the melting by a straight line, not by its own length: round a bend its end, nearer, was cut off still showing
+    if (aheadTo < AHEAD_MAX && !kIn && !STYLE.closed && !LEVEL.halls) { // the track drawn, and things set down, out to where it is past the melting by a straight line, not by its own length: round a bend its end, nearer, was cut off still showing
       const x0 = PP[BACK * 3], y0 = PP[BACK * 3 + 1], z0 = PP[BACK * 3 + 2]; let j = BACK + 146;
       while (j < BACK + 330 && Math.hypot(PP[j * 3] - x0, PP[j * 3 + 1] - y0, PP[j * 3 + 2] - z0) < 150) j += 2;
       AHEAD = j - BACK + 4;

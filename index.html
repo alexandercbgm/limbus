@@ -772,7 +772,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.575</div>
+      <div class="credit version">v1.0.576</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -973,7 +973,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.575`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.576`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1105,7 +1105,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // the second 10.4 m back over its first half: at the top the first's ring passes behind the second's, low down in front of it,
       // 10 m apart, nowhere nearer than 8.8 m (end to end, the corkscrew straight after them)
       // (95 m each, round as they are, the 27 m height of the 120 m loops they replace)
-      LOOPS.push({ kind: "v", s0: a, side, len: SPEC_LOOP, w: 23, r: 0.1, fr: 0.5 }, { kind: "v", s0: a + SPEC_LOOP, side: -side, len: SPEC_LOOP, w: 10.4, r: 0.1, fr: 0.5 }); }
+      LOOPS.push({ kind: "v", s0: a, side, len: SPEC_LOOP, w: 23, r: 0.1, fr: 0.5 }, { kind: "v", s0: a + SPEC_LOOP, side: -side, len: SPEC_LOOP, w: 10.4, r: 0.1, fr: 0.5 });
+      // a switch for the corkscrew just past the loops, its gantry where it begins: its targets choose the way it turns over, and it
+      // stays straight till one is shot or the gantry passed (as Vitrum's), then winds up before the eyes
+      sp.swM = { late: true, sw: sp.tw0, dir: -sp.dir, pdir: 0, ft: -1, kind: "screw", span: sp }; }
     if (LEVEL.id === "initium") { add("drill", L / 3); // Initium: its drill a third of the way, two loops two thirds of the way, the first to the side the drill did not turn
       const first = LTW[0].dir < 0 ? 1 : -1, a = Math.round(L * 2 / 3) - LOOP_LEN - 5;
       LOOPS.push({ kind: "v", s0: a, side: first, len: LOOP_LEN, w: LOOP_SIDE }, { kind: "v", s0: a + LOOP_LEN + 10, side: -first, len: LOOP_LEN, w: LOOP_SIDE }); }
@@ -3835,7 +3838,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     while (chainPlan.length && chainPlan[0] < s + 12) addRams(chainPlan.shift(), Math.random() < 0.5, true); // (a glass block on its chains, or a pair swinging to meet)
     if (chainAt.some(c => Math.abs(c - s) < 12)) return;
     while (luxPlan.length && luxPlan[0].s < s + 12) { const q = luxPlan.shift(); if (q.k === "iris") addGate(q.s, "iris"); else addSwitch(q.m); }
-    if (!LEVEL.coaster && LTW.some(m => s > m.sw - 24 && s < m.sw + 16)) return; // nothing at a manoeuvre's gantry (the coaster has none), nor nearer before it than one group to the next
+    if ((!LEVEL.coaster && LTW.some(m => s > m.sw - 24 && s < m.sw + 16)) || SPANS.some(sp => sp.swM && s > sp.swM.sw - 24 && s < sp.swM.sw + 16)) return; // nothing at a manoeuvre's gantry (the coaster has none), nor nearer before it than one group to the next
     if (pgears.some(g => Math.abs(g.s - s) < 8)) return; // nothing under a prism gear
     if (doors.some(dr => Math.abs(dr.s - s) < 9)) return;
     if ([...gates, ...doors].some(g => s > g.s - 1 && s < g.s + GATE_CLEAR)) return; // just past a gate nothing is set down: the gate hid it till the cart was on it
@@ -6168,8 +6171,9 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   function addSwitch(m) {
     const root = new THREE.Group(); root.matrixAutoUpdate = false; scene.add(root);
     // its posts past the deck's edges, down to a crossbar under the deck that holds them, as the frames for blocks on chains
-    const GX = BRIDGE_W + 0.45, foot = -0.82, box = (w, h, d, x, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat); m.position.set(x, y, 0); root.add(m); };
-    for (const u of [-1, 1]) { box(0.34, 7.7 - foot, 0.34, u * GX, (7.7 + foot) / 2); box(0.5, 0.12, 0.42, u * (BRIDGE_W + 0.1), -0.58); }
+    const DW = m.span ? SW * deckK(m.sw) : BRIDGE_W; // (on Speculum's bridge, out past its deck)
+    const GX = DW + 0.45, foot = -0.82, box = (w, h, d, x, y) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat); m.position.set(x, y, 0); root.add(m); };
+    for (const u of [-1, 1]) { box(0.34, 7.7 - foot, 0.34, u * GX, (7.7 + foot) / 2); box(0.5, 0.12, 0.42, u * (DW + 0.1), -0.58); }
     box(2 * GX + 0.34, 0.3, 0.42, 0, foot + 0.15);
     const beam = new THREE.Mesh(swBeamGeo, frameMat); beam.scale.x = (2 * GX + 0.34) / 6.3; beam.position.y = 7.5; root.add(beam);
     const ways = m.kind === "spiral" && LEVEL.id === "lux" ? [[-1, 1], [1, 1], [-1, -1], [1, -1]] : [[-1, 0], [1, 0]]; // [left/right, up/down]
@@ -7515,7 +7519,8 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     MAIN_LEN = lv.len; SUPER_LEN = lv.superLen || 260; SUPER_END = MAIN_LEN + SUPER_LEN; END_S = SUPER_END + STATION_LEN;
     HALLS = lv.halls ? planHalls() : []; doorPlan = lv.halls ? planDoors() : []; // after the length is known
     planSpans(); // Speculum's bridges: no bend where the track turns over, a tall gate at each end
-    planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.filter(m => LEVEL.id !== "initium" && LEVEL.id !== "abyssus" && !LEVEL.coaster && !m.span).map(m => ({ s: m.sw, k: "switch", m }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
+    planLux(); luxPlan = LUXH.map(h => ({ s: h.a + 5, k: "iris" })).concat(LTW.filter(m => LEVEL.id !== "initium" && LEVEL.id !== "abyssus" && !LEVEL.coaster && !m.span).map(m => ({ s: m.sw, k: "switch", m })))
+      .concat(SPANS.filter(sp => sp.swM).map(sp => ({ s: sp.swM.sw, k: "switch", m: sp.swM }))).sort((x, y) => x.s - y.s); // Lux: its halls, its manoeuvres and their gantries
     pgPlan = SPANS.length && LEVEL.id === "speculum" ? [SPANS[0].a - 120, ...SPANS.map(sp => sp.b + 75)] : []; // Speculum's prism gears: in the first halls, before the first bridge, and past each corkscrew
     if (LEVEL.id === "lux") pgPlan = [0.1, ...LTW.map(m => (m.tw1 + 110) / MAIN_LEN)].map(f => Math.round(f * MAIN_LEN + rand(-10, 15))).filter(x => x < MAIN_LEN - 60 && !LTW.some(m => x > m.sw - 70 && x < m.tw1 + 95)); // Lux: prism gears out on the bridge, between its manoeuvres
     // Rubinus: in the tunnel just before the knot's gate and just after its far one, always one or two things on chains (a glass
@@ -8562,8 +8567,8 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   function loopsBack() { const ls = LOOPS.slice().sort((x, y) => x.s0 - y.s0); let i = ls.findIndex(l => sC > l.s0 && sC < loopEnd(l) + 40); if (i < 0) return BACK;
     while (i > 0 && ls[i - 1].kind !== undefined && loopEnd(ls[i - 1]) > ls[i].s0 - 20) i--; return clamp(sC - ls[i].s0 + 20, 10, BACK); }
   function updateWorld(dt) {
-    if (LTW.length) updateSwitches(dt);
-    for (const sp of SPANS) { if (sp.ft < 0 && sC > sp.tw0 - 32) sp.ft = 0; if (sp.ft >= 0) sp.ft += dt; sp.k = sp.ft < 0 ? 0 : smooth5(Math.min(1, sp.ft / 1.2)); } // Speculum's corkscrews: straight till the cart is near, then formed before its eyes
+    if (LTW.length || switches.length) updateSwitches(dt); // (Speculum's corkscrew switch, with no manoeuvre of its own)
+    for (const sp of SPANS) { if (sp.swM) { sp.dir = -sp.swM.dir; /* (the left target turns it over to the left: its right side up) */ if (sp.ft < 0 && (sp.swM.ft >= 0 || sC > sp.swM.sw)) sp.ft = 0; } else if (sp.ft < 0 && sC > sp.tw0 - 32) sp.ft = 0; if (sp.ft >= 0) sp.ft += dt; sp.k = sp.ft < 0 ? 0 : smooth5(Math.min(1, sp.ft / 1.2)); } // Speculum's corkscrews: straight till the cart is near, then formed before its eyes
     const onKnot = SPANS.some(sp => sp.knot && sC > sp.a - 380 && sC < sp.b + 20); // the knot: drawn whole, and everything on it set down, while the cart is still far back in the tunnel (out of sight, so nothing is seen to come)
     const kSp = onKnot ? SPANS.find(sp => sp.knot) : null; // (on the knot itself, only as far as it and a little past: the tunnel 800 m on had been drawn for nothing)
     const kGate = kSp && doors.find(d => Math.abs(d.s - kSp.a) < 1), kOpen = kSp && (kGate ? kGate.open || kGate.passed : sC > kSp.a - 5); // (the knot drawn once its gate is open: through the tunnel's frosted walls its turns had shown beside it long before)

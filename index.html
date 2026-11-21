@@ -771,7 +771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.562</div>
+      <div class="credit version">v1.0.563</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -972,7 +972,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.562`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.563`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3568,7 +3568,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return engraveFrom(ln, band, [], lo, 0.1); };
   // Vitrum's: a pane and its glints (the scheme's glyph); Carcer's: its bars
   const ENGRAVE_VIT = engraveStrokes([[[-5.8, -5.8], [5.8, -5.8], [5.8, 5.8], [-5.8, 5.8], [-5.8, -5.8]], [[0, -2], [3.8, -5.8]], [[2.3, -0.7], [5.8, -4.2]], [[-5.8, 4.2], [-2.3, 0.7]], [[-3.8, 5.8], [0, 2]]]);
-  const ENGRAVE_CAR = Object.assign(engraveStrokes([[[-7.5, -7], [7.5, -7]], [[-7.5, 7], [7.5, 7]], ...[-6, -2, 2, 6].map(x => [[x, -6.16], [x, 6.16]])]), { inkLines: true }); // (the bars stop at the rails' bands; their middle lines in ink: Carcer starts out white, and goes dark)
+  const ENGRAVE_CAR = (engraveStrokes([[[-7.5, -7], [7.5, -7]], [[-7.5, 7], [7.5, 7]], ...[-6, -2, 2, 6].map(x => [[x, -6.16], [x, 6.16]])])); // (the bars stop at the rails' bands)
   // Initium's: the start, a ring and an arrow on from it, up the glass: forward, the same on every pane; frosted white as Thesaurus's
   const ENGRAVE_INI = engraveStrokes([arcPts(0, 4.5, 1.8, 0, Math.PI * 2, 20), [[0, 1.5], [0, -6.5]], [[-3.5, -3], [0, -6.5], [3.5, -3]]]);
   const ENGRAVE_LAB = (() => {

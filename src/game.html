@@ -2226,7 +2226,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const concreteMat = new THREE.MeshStandardMaterial({ color: 0x7c8591, roughness: 0.92, metalness: 0 }); // Speculum's bridges
   const _D = new THREE.Vector3(), _E = new THREE.Vector3(), _X = new THREE.Vector3();
   const I = {
-    ceil: inst(ceilGeo, surfMat, 430), // room for the mirrored pieces too (Speculum); Vitrum's of clear glass (setLevel)
+    ceil: inst(ceilGeo, surfMat, 430),
+    fcap: inst(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), surfMat, 8), // the tunnel floor's last metre before a bridge's gate (and first past one) // room for the mirrored pieces too (Speculum); Vitrum's of clear glass (setLevel)
     sleeper: inst(new THREE.BoxGeometry(2.1, 0.12, 0.26), sleeperMat, 1000),
     rail: inst(new THREE.BoxGeometry(0.1, 0.14, SL + 0.04), railMat, 4000), // (Rubinus's knot, drawn whole: some 3000, in short pieces where it banks; grown on the way, a hitch)
     wall: inst(new THREE.BoxGeometry(0.24, H, SL + 0.03), wallMat, 570),
@@ -2826,12 +2827,17 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const onDeck = s => !!(spanAt(s) || spanAt(s - 1) || spanAt(s + 1));
     // where a manoeuvre turns a wide floor over (Initium's drill), the fine deck top too: the strip's metre quads bulged over the sleepers
     const fw = s => typeof floorW === "function" ? floorW(s) : floorW, twM = s => !STYLE.bridge && LTW.some(m => m.r && s > m.tw0 - 2 && s < m.tw1 + 2);
-    const fine = s => onDeck(s) || twM(s), fineAll = s => (spanAt(s) && spanAt(s - 1) && spanAt(s + 1)) || (twM(s) && twM(s - 1) && twM(s + 1));
-    fillStrip(floorStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length || LTW.length ? s => (fineAll(s) ? 0 : fw(s)) : floorW); // over a bridge, its deck instead
+    const fine = s => onDeck(s) || twM(s), fineAll = s => (twM(s) && twM(s - 1) && twM(s + 1));
+    // a bridge's gate the clean edge between the tunnel's floor and the deck: the floor up to the gate, the deck from it (they had
+    // overlapped a metre either side, flickering through each other, the floor's last metre narrowing in white corners past the gate);
+    // where the floor strip narrows to nothing, the metre before the gate, a plain piece of floor over it
+    const spanIn = s => SPANS.find(sp => s >= sp.a - 0.01 && s <= sp.b + 0.01);
+    fillStrip(floorStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length || LTW.length ? s => (spanIn(s) || fineAll(s) ? 0 : fw(s)) : floorW); // over a bridge, its deck instead
+    for (const sp of SPANS) for (const e of [sp.a - 0.5, sp.b + 0.5]) if (e > sC - BEHIND && e < sC + AHEAD - 4) putS("fcap", e, 0, 0.004, 2 * fw(e), 1, 1);
     const under = !STYLE.bridge && LEVEL.id !== "initium" && (LOOPS.length > 0 || LTW.length > 0); underStrip.visible = under; // (Initium's loops have their slab)
     if (under) fillStrip(underStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, -0.06, 0, s => loopAt(s) || LTW.some(m => s > m.tw0 - 4 && s < m.tw1 + 4) ? fw(s) : 0);
     { const dk = LEVEL.id === "speculum" ? 0.6 : 1; deckSurfMat.color.copy(surfMat.color).multiplyScalar(dk); if (surfMat.emissive) deckSurfMat.emissive.copy(surfMat.emissive).multiplyScalar(dk); deckSurfMat.map = surfMat.map; }
-    if (SPANS.length || LTW.some(m => m.r && !STYLE.bridge)) fillDeckTop(Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, s => onDeck(s) ? SW * deckK(s) : twM(s) ? fw(s) : 0); else deckTop.visible = false;
+    if (SPANS.length || LTW.some(m => m.r && !STYLE.bridge)) fillDeckTop(Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, s => { const sp = spanIn(s); return sp ? SW * deckK(clamp(s, sp.a + 0.01, sp.b - 0.01)) : twM(s) ? fw(s) : 0; }); else deckTop.visible = false;
     if (STYLE.closed) fillStrip(vaultStrip, Math.floor(sC) - 10, Math.floor(sC) + AHEAD - 4, frameAt, H, 0, STYLE.glassWalls ? W + 0.12 : W); else vaultStrip.visible = false; // (Speculum: the vault out to its glass)
     { // where a walled and roofed corridor (Labyrinthus, Carcer) stops being drawn, far ahead, the sky showed through its open
       // end as a window: a cap closes it there, past the fog's far edge, so it's all fog's colour

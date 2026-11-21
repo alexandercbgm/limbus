@@ -5787,7 +5787,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       r.root.updateMatrixWorld(true);
       for (const c of r.chains) { c.A.set(c.x, 0, 0); r.root.localToWorld(c.A); c.B.set(c.x + du * (1 - RAM_R / r.L), dv * (1 - RAM_R / r.L), 0); r.root.localToWorld(c.B); }
       const inner = r.side * RAM_U + du - r.side * RAM_LEN / 2, rv = r.top + dv; // the end nearest the rails
-      if (state === "play" && !r.hit && onCart(r.s, RAM_R + 0.1) && r.side * inner < 1.2 && rv - RAM_R < 2.4) { r.hit = true; crushed(T("таран", "ram")); }
+      if (state === "play" && !r.hit && r.root.visible && r.root.parent && onCart(r.s, RAM_R + 0.1) && r.side * inner < 1.2 && rv - RAM_R < 2.4) { r.hit = true; crushed(T("таран", "ram")); } // (only one that is there to be seen)
       if (r.s < sC - 8) { r.dead = true; scene.remove(r.root); }
     }
     rams = rams.filter(r => !r.dead);
@@ -7595,8 +7595,15 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       try { const bytes = await Promise.race([musicBytes(lv.music), new Promise(r => setTimeout(r, 2500))]);
         if (bytes && Sound.ctx && !Sound.buffers[lv.music]) Sound.buffers[lv.music] = await Promise.race([Sound.ctx.decodeAudioData(bytes.buffer.slice(0)), new Promise(r => setTimeout(r, 2500))]) || undefined; } catch (e) { /* played as it comes */ }
       if (tok !== loadTok) return;
-      bar(1); await frame(); await frame(); $("loading").hidden = true;
+      bar(0.85); await frame(); if (tok !== loadTok) return;
       beginRide(lv);
+      // still behind the loading screen: a few frames of the world with the cart standing at the start, so the track is laid out as far
+      // as it will be drawn, and all ahead set down (Tao's anthill and all on it, from 15 m in; Rubinus's knot), each frame's share
+      // as in the ride, then all of it drawn once (its meshes sent to the graphics card): on the way there had been a jolt now and then
+      try { for (let i = 0; i < 40; i++) { updatePlay(1e-4); updateWorld(1e-4); /* (not 0: the cart's speed is worked out per time) */ if (i % 8 === 7) { bar(0.85 + 0.15 * i / 40); await frame(); if (tok !== loadTok) return; }
+          if (i > 14 && nextSpawn >= sC + spawnAhead()) break; }
+        cullFar(); updateMirrorCopies(); renderSky(); renderer.render(scene, camera); } catch (e) { /* the ride goes on as it is */ }
+      bar(1); await frame(); if (tok !== loadTok) return; $("loading").hidden = true;
     })();
   }
   function prepLevel() {
@@ -8591,7 +8598,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   function updateWorld(dt) {
     if (LTW.length || switches.length) updateSwitches(dt); // (Speculum's corkscrew switch, with no manoeuvre of its own)
     for (const sp of SPANS) { if (sp.swM) { sp.dir = -sp.swM.dir; /* (the left target turns it over to the left: its right side up) */ if (sp.ft < 0 && (sp.swM.ft >= 0 || sC > sp.swM.sw)) sp.ft = 0; } else if (sp.ft < 0 && sC > sp.tw0 - 32) sp.ft = 0; if (sp.ft >= 0) sp.ft += dt; sp.k = sp.ft < 0 ? 0 : smooth5(Math.min(1, sp.ft / 1.2)); } // Speculum's corkscrews: straight till the cart is near, then formed before its eyes
-    const onKnot = SPANS.some(sp => sp.knot && sC > sp.a - 380 && sC < sp.b + 20); // the knot: drawn whole, and everything on it set down, while the cart is still far back in the tunnel (out of sight, so nothing is seen to come)
+    const onKnot = SPANS.some(sp => sp.knot && sC > (sp.a - 380 < 80 ? -1 : sp.a - 380) && sC < sp.b + 20); // (a knot that near the start, Tao's anthill at 395 m: drawn, and all on it set down, from the start, behind the loading screen) // the knot: drawn whole, and everything on it set down, while the cart is still far back in the tunnel (out of sight, so nothing is seen to come)
     const kSp = onKnot ? SPANS.find(sp => sp.knot) : null; // (on the knot itself, only as far as it and a little past: the tunnel 800 m on had been drawn for nothing)
     const kGate = kSp && doors.find(d => Math.abs(d.s - kSp.a) < 1), kOpen = kSp && (LEVEL.id !== "speculum" || (kGate ? kGate.open || kGate.passed || kGate.leaves.some(l => l.opening) : sC > kSp.a - 5)); // (Rubinus's knot as before: drawn from 150 m short of its gate) // (the knot drawn once its gate is open: through the tunnel's frosted walls its turns had shown beside it long before)
     const kIn = kSp && sC < kSp.b + 20 && sC > kSp.a - 150, kPre = kSp && !kIn && sC < kSp.a && sC > kSp.a - 150; // (on the knot's loops: the way past its far gate not drawn yet, the level's end had shown from up there; back in the tunnel,

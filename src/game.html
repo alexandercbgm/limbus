@@ -2786,7 +2786,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (dec.span) { // Speculum's bridges: the deck a slab (it shows as one hanging overhead), kerbs, the approaches on plain piers
         const sp = dec.span;
         const ku = (SW + 0.2) * deckK(s) - 0.07, kn = sp.knot ? 2 : 1; // kerbs on the slab's edge, flush with its side (on the knot they hug the slab, never stand over it)
-        if (sp.knot || twistAt(s - SL) || twistAt(s + SL)) { const q4 = sp.knot ? (lod ? 1 : 2) : twistAt(s - SL) || twistAt(s + SL) ? 4 : kn; for (const rk of far ? (farNow ? (nearToo ? ["kerbF", "kerb"] : ["kerbF"]) : nearToo ? ["kerb"] : []) : ["kerb"]) for (let q = 0; q < q4; q++) for (const u of [-ku, ku]) putS(rk, s - SL / 2 + (q + 0.5) * SL / q4, u, sp.knot ? -0.24 : 0.1, 1, sp.knot ? 2.8 : 1, (SL / q4 + 0.03) / (SL + 0.03)); }
+        if (sp.knot || twistAt(s - SL) || twistAt(s + SL)) { const q4 = sp.knot ? (lod ? 1 : 2) : twistAt(s - SL) || twistAt(s + SL) ? 4 : kn; for (const rk of far ? (farNow ? (nearToo ? ["kerbF", "kerb"] : ["kerbF"]) : nearToo ? ["kerb"] : []) : ["kerb"]) for (let q = 0; q < q4; q++) for (const u of [-ku, ku]) if (!(LEVEL.id === "rubinus" && sp.knot && (s - SL / 2 + (q + 0.5) * SL / q4 < sp.a + 6 || s - SL / 2 + (q + 0.5) * SL / q4 > sp.b - 6))) putS(rk, s - SL / 2 + (q + 0.5) * SL / q4, u, sp.knot ? -0.24 : 0.1, 1, sp.knot ? 2.8 : 1, (SL / q4 + 0.03) / (SL + 0.03)); }
         else { const k0 = deckK(s - SL / 2), k1 = deckK(s + SL / 2);
           if (k0 === k1) { put("kerb", s, -SW * k0, 0.1); put("kerb", s, SW * k0, 0.1); }
           else for (const sd of [-1, 1]) { const du = sd * SW * (k1 - k0); // (where the deck narrows, each piece slanted along its edge: set square they had stepped)

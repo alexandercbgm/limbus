@@ -7559,9 +7559,38 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   function leavePause() { if (Sound.ctx) Sound.ctx.resume(); if (Sound.fallback) Sound.fallback.play().catch(() => {}); }
   let secondWind = false; // Spiritus: one more go this ride
   const againText = () => LEVEL.req.fare ? T(`Ещё раз: −${LEVEL.req.fare} ◆`, `Again: −${LEVEL.req.fare} ◆`) : T("Ещё раз", "Again");
+  // a level is got ready before the ride, the cart standing under its title: one of each thing it sets down built out of sight ahead,
+  // the shaders compiled for its own light and haze, its textures sent up, a frame drawn, the samples taken away again, and its
+  // music read and decoded (3 s at most). Each of these had come mid-ride, the first time, as a stall (at the start, into a corkscrew)
+  let loadTok = 0;
   function startLevel(lv) {
     if (!progress.rode) { progress.rode = true; saveProgress(); } // the first ride: Initium's rings on the scheme are done with
     setLevel(lv);
+    hidePanels(); state = "loading"; const tok = ++loadTok;
+    showOverlay("titlecard", `<div><span class="tc-num">STATIO</span><span class="tc-name">${lv.latin.toUpperCase()}</span><span class="tc-ru">${T("загрузка…", "loading…")}</span></div>`, 60000);
+    const frame = () => new Promise(r => requestAnimationFrame(() => r()));
+    (async () => {
+      await frame(); await frame(); if (tok !== loadTok) return;
+      try { prepLevel(); } catch (e) { /* a sample that would not build: the ride goes on without it */ }
+      await frame(); if (tok !== loadTok) return;
+      try { const bytes = await Promise.race([musicBytes(lv.music), new Promise(r => setTimeout(r, 2500))]);
+        if (bytes && Sound.ctx && !Sound.buffers[lv.music]) Sound.buffers[lv.music] = await Promise.race([Sound.ctx.decodeAudioData(bytes.buffer.slice(0)), new Promise(r => setTimeout(r, 2500))]) || undefined; } catch (e) { /* played as it comes */ }
+      if (tok !== loadTok) return;
+      beginRide(lv);
+    })();
+  }
+  function prepLevel() {
+    resetWorld(false);
+    const plans = [doorPlan.slice(), pgPlan.slice(), chainPlan.slice(), luxPlan.slice()];
+    const all = Object.assign({}, PATS, LEVEL.pats || {}), kinds = new Set([...Object.keys(all).filter(k => all[k].some(x => x > 0)), ...(LEVEL.spanPats || []), ...(LEVEL.knotPats || []), ...Object.keys(LEVEL.every || {})]);
+    let x = 70; for (const k of kinds) { spawnGroupKind = k; try { spawnGroupAt(x); } catch (e) { /* not here */ } x += 3; }
+    spawnGroupKind = null;
+    if (LEVEL.id === "speculum") { try { addPrismGear(x + 5); spawnDoor({ s: x + 15, kind: "tall" }); } catch (e) { /* not here */ } }
+    for (const o of scene.children) if (o.userData.far) { o.visible = true; o.userData.far = false; }
+    warmShaders(); renderer.render(scene, camera);
+    clearDynamic(); [doorPlan, pgPlan, chainPlan, luxPlan] = plans;
+  }
+  function beginRide(lv) {
     state = "play";
     if (tipEl && !tipStage) { tipEl.remove(); tipEl = null; } // (a scheme's tip left open goes with the scheme: it comes back next time there)
     tutStart(lv); // (before the first groups are set down: in the lesson only its own)
@@ -7574,7 +7603,6 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     setWeaponVisual(progress.weapon);
     Sound.want = lv.music; Sound.init();
     showTitle(lv);
-    requestAnimationFrame(() => requestAnimationFrame(() => { if (state === "play") warmShaders(); })); // (under the title card, before anything is near)
   }
   // Initium's first ride, once (remembered in limbus-tut): before anything else is set down, the things of the game one kind at a
   // time, and as the cart nears each the world stops, all dims but it, and a callout says what it is. A tap anywhere goes on.
@@ -9119,7 +9147,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     last = now;
     // paused, or a ride's result on screen: the world stands still and is not drawn again (the canvas keeps its last frame), so
     // the panel's glass blur over it is worked out once, not every frame: the phone stays cool
-    if (state === "paused" || state === "tut" || state === "win" || state === "over") { if (window.__redraw) { window.__redraw = false; renderSky(); renderer.render(scene, camera); } return; }
+    if (state === "paused" || state === "tut" || state === "win" || state === "over" || state === "loading") { if (window.__redraw) { window.__redraw = false; renderSky(); renderer.render(scene, camera); } return; }
     if (state === "menu" && !$("menu").hidden && document.documentElement.classList.contains("videobg")) return; // behind the menu its loop plays instead: no 3D at all
     if (state === "menu" && !$("sheet").hidden) return; // and behind a station's sheet, till it is quite gone: the frame stays as it was, and the sheet's glass blur and animations have the graphics card to themselves
     time += dt;

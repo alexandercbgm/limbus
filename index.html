@@ -772,7 +772,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.590</div>
+      <div class="credit version">v1.0.591</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -974,7 +974,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.590`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.591`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1107,6 +1107,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       // scaled down to 28 m across (Vitrum's is 54 m): every length in proportion, so the ring still passes through the loop
       const sp = SPANS[0], a = sp.a + 25, k = SPEC_K;
       LOOPS.push({ kind: "v", s0: a, side: -1, len: 179.67 * k, w: 29.625 * k, r: 0.06 }, { kind: "h", s0: a + (179.67 + 10.26) * k, side: -1, th: TAU, len: 192 * k, r: 0.082, dh: 25.2 * k, c0: -7.86 * k, cf: 0.91, bank: Math.PI / 2 });
+      // (35 m straight from the ring to it: coming straight off the ring onto it, there had been no time to shoot its arrows)
       // a switch for the corkscrew just past the loops, its gantry where it begins: its targets choose the way it turns over, and it
       // stays straight till one is shot or the gantry passed (as Vitrum's), then winds up before the eyes
       sp.swM = { late: true, sw: sp.tw0, dir: -sp.dir, pdir: 0, ft: -1, kind: "screw", span: sp }; }
@@ -2781,9 +2782,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       I.skeel.setMatrixAt(n.skeel++, placeM(M, s, 0, -0.52 - dp - 0.55).multiply(M2.makeRotationX(sl)));
       if (k % 2 === 0 && dp > 0.8) for (const u of [-1.1, 1.1]) I.sstrut.setMatrixAt(n.sstrut++, placeM(M, s, u, -0.52 - dp / 2).scale(SV.set(1, dp, 1)));
     };
+    // a pier only where its columns, down from under the deck, pass no other stretch of the track (Speculum's corkscrew comes just
+    // after its loop and ring: its first pier had stood up through the ring's deck, the cart riding through it)
+    const pierClear = (ps, top) => { frameAt(ps); const px = _P.x + _U.x * top, py = _P.y + _U.y * top, pz = _P.z + _U.z * top, ux = _U.x, uy = _U.y, uz = _U.z;
+      for (let j = 0; j < NS; j++) { const sj = sBase + j * DS; if (Math.abs(sj - ps) < 15) continue; const k = j * 3, dx = PP[k] - px, dy = PP[k + 1] - py, dz = PP[k + 2] - pz, tt = -(dx * ux + dy * uy + dz * uz);
+        if (tt < -3 || tt > PYLON_H) continue; if (Math.hypot(dx + ux * tt, dy + uy * tt, dz + uz * tt) < 6) return false; }
+      return true; };
     const spanPiers = () => {
       for (const sp of SPANS) sp.piers.forEach((ps, i) => {
         if (ps < sC - 30 || ps > sC + AHEAD - 4) return;
+        if (LOOPS.length && !pierClear(ps, -0.52 - archDepth(sp, ps) - 1.1)) return;
         if (i > 0 && i < sp.piers.length - 1 && sp.k > 0 && sp.k < 1) return; // (the middle ones away while the deck turns over into its corkscrew: they would swing round under it)
         const end = i === 0 || i === sp.piers.length - 1, top = -0.52 - archDepth(sp, ps) - 1.1;
         for (const u of [-1.7, 1.7]) I.spier.setMatrixAt(n.spier++, placeM(M, ps, u, top - PYLON_H / 2).scale(SV.set(1.7, 1, 1.7))); // two columns under the arch's springing
@@ -2874,7 +2882,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           if (k0 === k1) { put("kerb", s, -SW * k0, 0.1); put("kerb", s, SW * k0, 0.1); }
           else for (const sd of [-1, 1]) { const du = sd * SW * (k1 - k0); // (where the deck narrows, each piece slanted along its edge: set square they had stepped)
             I.kerb.setMatrixAt(n.kerb++, placeM(M, s, sd * SW * (k0 + k1) / 2, 0.1).multiply(M2.makeRotationY(-Math.atan2(du, SL))).scale(SV.set(1, 1, Math.hypot(SL, du) / SL))); } }
-        if (!sp.knot && k % 4 === 0 && (s < sp.tw0 - 18 || s > sp.tw1 + 18) && !loopAt(s) && !loopAt(s - 8) && !loopAt(s + 8)) for (const sd of [-1, 1]) put("spier", s, sd * (SW * deckK(s) - 0.9), -0.5 - PYLON_H / 2);
+        if (!sp.knot && k % 4 === 0 && (s < sp.tw0 - 18 || s > sp.tw1 + 18) && !loopAt(s) && !loopAt(s - 8) && !loopAt(s + 8) && (!LOOPS.length || pierClear(s, -0.5))) for (const sd of [-1, 1]) put("spier", s, sd * (SW * deckK(s) - 0.9), -0.5 - PYLON_H / 2);
         if (!sp.knot) spanArch(sp, k, s); // (the knot hangs free: an arch or piers under it would pass through its other turns)
       }
       if (dec.pyr && dec.pyr.side !== open) put(dec.pyr.side < 0 ? "pyrL" : "pyrR", s, dec.pyr.side * (SW - 0.25), dec.pyr.v);
@@ -7272,7 +7280,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       feats: ["Ворота инь-ян: кнопки раздвигают половины", "Мосты инь и ян: штопор в одну сторону, потом в другую", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1750, pal: PAL_SPECULUM, finale: "reflexio",
-      spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 25 + (179.67 + 10.26 + 192) * 28 / 53.8, leadOut: 10 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
+      spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 25 + (179.67 + 10.26 + 192) * 28 / 53.8 + 35, leadOut: 10 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
       spanPats: ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "prisms"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
       knotPats: ["center", "twins", "slider", "double", "triple", "sides", "lift", "rotor", "rotor", "reinf", "imps", "prisms", "pgear"], // on the clover, drawn as from a bag: much glass, crosses, imps, one set of prisms, one prism gear (two of each had made it all prisms, and slow)
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300 }, // prisms are sure to come: about half as many sets as at first, each a pair
@@ -8591,8 +8599,8 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     for (const sp of SPANS) { if (sp.swM) { sp.dir = -sp.swM.dir; /* (the left target turns it over to the left: its right side up) */ if (sp.ft < 0 && (sp.swM.ft >= 0 || sC > sp.swM.sw)) sp.ft = 0; } else if (sp.ft < 0 && sC > sp.tw0 - 32) sp.ft = 0; if (sp.ft >= 0) sp.ft += dt; sp.k = sp.ft < 0 ? 0 : smooth5(Math.min(1, sp.ft / 1.2)); } // Speculum's corkscrews: straight till the cart is near, then formed before its eyes
     const onKnot = SPANS.some(sp => sp.knot && sC > sp.a - 380 && sC < sp.b + 20); // the knot: drawn whole, and everything on it set down, while the cart is still far back in the tunnel (out of sight, so nothing is seen to come)
     const kSp = onKnot ? SPANS.find(sp => sp.knot) : null; // (on the knot itself, only as far as it and a little past: the tunnel 800 m on had been drawn for nothing)
-    const kGate = kSp && doors.find(d => Math.abs(d.s - kSp.a) < 1), kOpen = kSp && (LEVEL.id !== "speculum" || (kGate ? kGate.open || kGate.passed : sC > kSp.a - 5)); // (Rubinus's knot as before: drawn from 150 m short of its gate) // (the knot drawn once its gate is open: through the tunnel's frosted walls its turns had shown beside it long before)
-    const kIn = kSp && sC < kSp.b - 60 && (sC > kSp.a || (sC > kSp.a - 150 && kOpen)), kPre = kSp && !kIn && sC < kSp.a && sC > kSp.a - 150; // (on the knot's loops: the way past its far gate not drawn yet, the level's end had shown from up there; back in the tunnel,
+    const kGate = kSp && doors.find(d => Math.abs(d.s - kSp.a) < 1), kOpen = kSp && (LEVEL.id !== "speculum" || (kGate ? kGate.open || kGate.passed || kGate.leaves.some(l => l.opening) : sC > kSp.a - 5)); // (Rubinus's knot as before: drawn from 150 m short of its gate) // (the knot drawn once its gate is open: through the tunnel's frosted walls its turns had shown beside it long before)
+    const kIn = kSp && sC < kSp.b - 60 && (sC > kSp.a || (sC > kSp.a - 150 && kOpen) || (LEVEL.id === "speculum" && kOpen && sC > kSp.a - 380)), kPre = kSp && !kIn && sC < kSp.a && sC > kSp.a - 150; // (on the knot's loops: the way past its far gate not drawn yet, the level's end had shown from up there; back in the tunnel,
     // till 80 m short of its gate, the tunnel drawn as anywhere: all 800 m drawn from 380 m back had made the run up to it slow)
     SPAWN_TO = kSp && sC < kSp.b - 60 ? Math.min(AHEAD_MAX, kSp.b + 25 - sC) : 0;
     const aheadTo = kIn ? clamp(kSp.b + 25 - sC, 85, AHEAD_MAX) : kPre ? clamp(kSp.a + 3 - sC, 20, 150) : onKnot || LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150;

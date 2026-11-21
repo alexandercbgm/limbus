@@ -3594,12 +3594,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   })();
   // strokes: each polyline a narrow frosted band (no overlap at its corners) with a bright line along it
   const engraveStrokes = (lines, hb = 0.42, lo = 0.3) => { const ln = [], band = [];
-    for (const P of lines) for (let i = 0; i + 1 < P.length; i++) { const [x0, y0] = P[i], [x1, y1] = P[i + 1], l = Math.hypot(x1 - x0, y1 - y0), dx = (x1 - x0) / l, dy = (y1 - y0) / l, nx = -dy * hb, ny = dx * hb;
-      const a = [x0 + dx * (i ? hb : -hb), y0 + dy * (i ? hb : -hb)], b = [x1 + dx * hb, y1 + dy * hb];
+    for (const P of lines) for (let i = 0; i + 1 < P.length; i++) { const h = P.hb || hb, [x0, y0] = P[i], [x1, y1] = P[i + 1], l = Math.hypot(x1 - x0, y1 - y0), dx = (x1 - x0) / l, dy = (y1 - y0) / l, nx = -dy * h, ny = dx * h; /* (a line's own half-width, P.hb: Vitrum's glint hatched finer than its pane's frame) */
+      const a = [x0 + dx * (i ? h : -h), y0 + dy * (i ? h : -h)], b = [x1 + dx * h, y1 + dy * h];
       const q = [[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]]; band.push(q[0], q[1], q[2], q[0], q[2], q[3]); ln.push(P[i], P[i + 1]); }
     return engraveFrom(ln, band, [], lo, 0.1); };
-  // Vitrum's: a pane and its glints (the scheme's glyph); Carcer's: its bars
-  const ENGRAVE_VIT = engraveStrokes([[[-5.8, -5.8], [5.8, -5.8], [5.8, 5.8], [-5.8, 5.8], [-5.8, -5.8]], [[0, -2], [3.8, -5.8]], [[2.3, -0.7], [5.8, -4.2]], [[-5.8, 4.2], [-2.3, 0.7]], [[-3.8, 5.8], [0, 2]]]);
+  // Vitrum's: a pane and its glint hatched across it, two long strokes and two short ones off them, finer than the frame (the scheme's glyph); Carcer's: its bars
+  const ENGRAVE_VIT = engraveStrokes([[[-5.8, -5.8], [5.8, -5.8], [5.8, 5.8], [-5.8, 5.8], [-5.8, -5.8]], ...[[[-4.04, -0.36], [-0.13, -4.27]], [[-3.78, 1.98], [2.34, -4.14]], [[-1.31, 3.91], [1.88, 0.72]], [[1.05, 3.75], [2.25, 2.55]]].map(P => Object.assign(P, { hb: 0.24 }))]);
   const ENGRAVE_CAR = (engraveStrokes([[[-7.5, -7], [7.5, -7]], [[-7.5, 7], [7.5, 7]], ...[-6, -2, 2, 6].map(x => [[x, -6.16], [x, 6.16]])])); // (the bars stop at the rails' bands)
   // Initium's: the start, a ring and an arrow on from it, up the glass: forward, the same on every pane; frosted white as Thesaurus's
   const ENGRAVE_INI = engraveStrokes([arcPts(0, 4.5, 1.8, 0, Math.PI * 2, 20), [[0, 1.5], [0, -6.5]], [[-3.5, -3], [0, -6.5], [3.5, -3]]]);
@@ -9201,10 +9201,12 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   const LINE_MAIN = "#1d6f8f", LINE_ARC = "#2f9a72", LINE_TR = "#b8892b", LINE_BR = "#a68bd6", INK = "#10242e", MUTED = "#8a9ba3";
   // one glyph per station, drawn in a 16-unit box around the station center
   const LOCK_GLYPH = "M-5.5 -1.5H5.5V6H-5.5ZM-3.5 -1.5V-4.5A3.5 3.5 0 0 1 3.5 -4.5V-1.5M0 1.6V3.4"; // a padlock: a level not yet bought
+  // a glyph's finer strokes, drawn thinner than its outline: Vitrum's glint, hatched across the pane (two long strokes, two short ones off them)
+  const GLYPHS_THIN = { vitrum: "M-4.04 -0.36L-0.13 -4.27M-3.78 1.98L2.34 -4.14M-1.31 3.91L1.88 0.72M1.05 3.75L2.25 2.55" };
   const GLYPHS = {
     initium: "M-6.3 0a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0M-1.5 0H6.5M3 -3.5L6.5 0L3 3.5", // the start: a point, and an arrow on from it
     thesaurus: "M0 -8L3.5 -4.75V4.75L0 8L-3.5 4.75V-4.75ZM0 -8V8M-3.5 -4.75L0 -2.96L3.5 -4.75M-3.5 4.75L0 2.96L3.5 4.75", // the crystal Emptio had (the bot's picture): the treasury's
-    vitrum: "M-5.8 -5.8H5.8V5.8H-5.8ZM0 -2L3.8 -5.8M2.3 -0.7L5.8 -4.2M-5.8 4.2L-2.3 0.7M-3.8 5.8L0 2", // a pane of glass and its glints
+    vitrum: "M-5.8 -5.8H5.8V5.8H-5.8Z", // a pane of glass (its glint in GLYPHS_THIN)
     rubinus: "M-3.5 -7.5H3.5L5.5 -5.5V5.5L3.5 7.5H-3.5L-5.5 5.5V-5.5ZM-2 -4.5H2L3 -3.5V3.5L2 4.5H-2L-3 3.5V-3.5ZM-3.5 -7.5L-2 -4.5M3.5 -7.5L2 -4.5M5.5 -5.5L3 -3.5M5.5 5.5L3 3.5M3.5 7.5L2 4.5M-3.5 7.5L-2 4.5M-5.5 5.5L-3 3.5M-5.5 -5.5L-3 -3.5", // a step-cut ruby
     tao: "M0 -7A7 7 0 1 1 0 7A7 7 0 1 1 0 -7M0 -7A3.5 3.5 0 0 1 0 0A3.5 3.5 0 0 0 0 7M0 -3.5V-3.4M0 3.4V3.5", // yin and yang
     emptio: "M0 -8L3.5 -4.75V4.75L0 8L-3.5 4.75V-4.75ZM0 -8V8M-3.5 -4.75L0 -2.96L3.5 -4.75M-3.5 4.75L0 2.96L3.5 4.75", // a crystal, as on the bot's picture
@@ -9504,6 +9506,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
         cxStations.push({ x: p.x, y: p.y, ways });
       }
       out += `<path d="${st === "buy" ? LOCK_GLYPH : GLYPHS[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+      if (st !== "buy" && GLYPHS_THIN[lv.id]) out += `<path d="${GLYPHS_THIN[lv.id]}" transform="translate(${p.x} ${p.y})" fill="none" stroke="${glyph}" stroke-width="1" stroke-linecap="round"/>`;
       out += `<text x="${L[0]}" y="${L[1]}" text-anchor="${L[2]}" font-family="Unbounded, 'Arial Black', sans-serif" font-weight="700" font-size="12.5" letter-spacing="0.6" fill="${INK}">${esc(lv.latin.toUpperCase())}</text>`;
       out += `<text x="${L[0]}" y="${L[1] + 17}" text-anchor="${L[2]}" font-family="Manrope, system-ui, sans-serif" font-size="12.5" fill="#4c6470">${esc(lv.ru)}</text>`;
       out += `<text x="${L[0]}" y="${L[1] + 32}" text-anchor="${L[2]}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="9.5" letter-spacing="1" fill="${st === "gift" ? LINE_GOLD : st === "open" || st === "opened" || st === "locked" || timed ? LINE_MAIN : "#7a8d95"}"${timed ? ' class="wk-tag"' : ""}>${tag.toUpperCase()}</text>`;
@@ -9869,7 +9872,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     g.textAlign = "left"; g.fillText(lv.pal ? T("СВЕТ", "LIGHT") : T("СТРОИТСЯ", "BEING BUILT"), 16, Hc - 20);
     if (lv.pal) { g.textAlign = "right"; g.fillText(T("ТЬМА", "DARK"), Wc - 16, Hc - 20); }
     g.save(); g.translate(Wc / 2, Hc - 20); g.scale(1.3, 1.3); g.strokeStyle = "#f4fbfc"; g.lineWidth = 1.8; g.lineCap = "round"; g.lineJoin = "round";
-    g.stroke(new Path2D(GLYPHS[lv.id])); g.restore();
+    g.stroke(new Path2D(GLYPHS[lv.id])); if (GLYPHS_THIN[lv.id]) { g.lineWidth = 1; g.stroke(new Path2D(GLYPHS_THIN[lv.id])); } g.restore();
   }
 
   // ---------- input ----------

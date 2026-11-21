@@ -7076,7 +7076,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       spans: [{ a: 0.2, turns: 3, len: 180, r: 7.5, dir: 1 }, { a: 0.56, turns: 2, len: 160, r: 11, dir: -1 }], // its two bridges (planSpans)
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300 }, // prisms are sure to come: about half as many sets as at first, each a pair
       pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [0, 0, 0], prisms: [0.52, 0.75, 0.92],
-        tallgate: [0.6, 0.9, 1.1], gate: [0.4, 0.6, 0.8], pendulum: [0.4, 0.6, 0.8] }, // and tall gates, and monoliths on chains as in Vitrum
+        tallgate: [0.6, 0.9, 1.1], gate: [0, 0, 0], pendulum: [0.4, 0.6, 0.8] }, // and tall gates, and square blocks on one chain (no slabs on two)
       turns: [[100, 50, 40], [210, 60, -55], [330, 50, 45], [450, 70, -70], [590, 50, 50], [700, 60, -45], [820, 50, 40],
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],
       desc: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар. Поперёк пути призмы собирают свет в лучи, а парящие зеркала отражают их в сетку: разбейте призму или зеркало, чтобы проехать. Высокие ворота в клубах пара открываются попаданием в бегущие по створкам мишени; висят и монолиты на цепях.",

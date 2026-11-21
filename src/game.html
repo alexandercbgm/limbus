@@ -3827,6 +3827,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           if (pr) { addHanger(pr, "pendulum"); lastHangerS = pr; return; }
           pat = "center"; } } // (a block on a chain only where the deck lies flat, on its Г frame)
     }
+    if (spn && pat === "imps" && Math.random() > clamp(d * 1.4 - 0.2, 0, 1)) pat = "center"; // (on a bridge or the knot too, imps come with the dark: none in full light, ever more toward the dark, as in the tunnels)
     if (!spawnGroupKind && LEVEL.id === "lux") { // Lux: its big obstacles evenly spread, never two within 55 m (they had heaped up: two pairs of gears and a
       // catapult, none to be shot down in time, and then hundreds of metres with none); past 150 m without one, the next group is one
       const BIG = ["gears", "abspin", "abbar", "lblock", "pendulum", "gate", "doors", "catapult", "fblocks"];

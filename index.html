@@ -780,7 +780,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.609</div>
+      <div class="credit version">v1.0.610</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -982,7 +982,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = fetch("data:audio/mpeg;base64," + b64).then(r => r.arrayBuffer()).then(b => new Uint8Array(b)).catch(sync));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.609`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.610`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -2747,12 +2747,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     return false;
   }
   // the blocks kept this frame, nearest first: one set off a stretch further on that would pass through one of them is left out
-  const KEPT = new Float32Array(4096 * 5); let nKept = 0;
+  const KEPT = new Float32Array(4096 * 5), KEPT0 = new Float32Array(4096 * 5); let nKept = 0, nKept0 = 0; // (KEPT0: last frame's, whole)
   const blockKeep = (x, y, z, r, s) => { if (nKept < 4096) { const k = nKept++ * 5; KEPT[k] = x; KEPT[k + 1] = y; KEPT[k + 2] = z; KEPT[k + 3] = r; KEPT[k + 4] = s; } };
-  function blockClash(x, y, z, r, s) {
-    for (let i = 0; i < nKept; i++) { const k = i * 5; if (Math.abs(KEPT[k + 4] - s) < 14) continue; // (its own neighbours are kept apart where they are made)
-      const dx = KEPT[k] - x, dy = KEPT[k + 1] - y, dz = KEPT[k + 2] - z, q = KEPT[k + 3] + r + 0.4; if (dx * dx + dy * dy + dz * dz < q * q) return true; }
-    return false;
+  function blockClash(x, y, z, r, s, back) {
+    const one = (A, nA, far) => { for (let i = 0; i < nA; i++) { const k = i * 5; if (Math.abs(A[k + 4] - s) < 14 || (far && A[k + 4] < s)) continue; // (its own neighbours are kept apart where they are made)
+      const dx = A[k] - x, dy = A[k + 1] - y, dz = A[k + 2] - z, q = A[k + 3] + r + 0.4; if (dx * dx + dy * dy + dz * dz < q * q) return true; } return false; };
+    return one(KEPT, nKept, false) || (back && one(KEPT0, nKept0, true)); // back: one out, coming back, tried also against those further on kept last frame (the nearer ones are tried this frame): else it came back over one further on,
+    // that one went out, came back over it in turn, and the two blinked in and out by turns (Tao's blocks beside its first stretch)
   }
   const blockRad = b => b.key === "quartz1" ? 2 * b.sy + b.sx * 0.5 : b.q ? Math.hypot(b.sx * 0.5, b.sy, b.sz * 0.5) : 0.5 * Math.hypot(b.sx, b.sy, b.sz); // (a side crystal stands up from its foot)
   const FORM_T = 1.2; // a late manoeuvre takes its shape over this (s)
@@ -2784,7 +2785,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!I.railF) for (const k of ["rail", "kerb", "ssleeper"]) { I[k + "F"] = inst(I[k].geometry, I[k].material, 1500); }
     I.kerbF.material = I.kerb.material;
     const farNow = true; layF++; // (laid every frame after all: every third, the far turns' rails and kerbs had lagged the deck as the karma bent the way to them, bumps on them)
-    const n = {}; for (const key in I) n[key] = 0; nKept = 0;
+    const n = {}; for (const key in I) n[key] = 0; KEPT0.set(KEPT.subarray(0, nKept * 5)); nKept0 = nKept; nKept = 0;
     for (const m of LTW) if (m.late && m.ft >= 0 && m.ft < FORM_T && !m.fplan) planFade(m);
     camera.getWorldDirection(CAM_FWD); // (for leaving out what is behind the eye)
     const tubeR = LTW.length || LOOPS.length || SPANS.length ? tubeFill() : 0, dtv = clamp(time - decorT, 0, 0.1); decorT = time;
@@ -2948,7 +2949,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           if (b.vis > 0 && tubeR) { const e = M.elements; if (inTube(e[12], e[13], e[14], blockRad(b) * b.vis, s, tubeR)) { b.fo = true; b.f0 = 0; b.fc = false; b.vis = b.sc = 0; if (s > b.fm.sw - 10 && s < b.fm.sw + 150) b.hold = true; } }
           if (b.vis > 0) { const e = M.elements; blockKeep(e[12], e[13], e[14], blockRad(b), s); } }
         else if (tubeR) { const e = M.elements, rad = blockRad(b); b.sc = undefined;
-          const out = inTube(e[12], e[13], e[14], rad, s, tubeR) || blockClash(e[12], e[13], e[14], rad, s); // (and none through another set off another stretch)
+          const out = inTube(e[12], e[13], e[14], rad, s, tubeR) || blockClash(e[12], e[13], e[14], rad, s, b.vis !== undefined && b.vis < 1); // (and none through another set off another stretch)
           b.vis = b.hold ? 0 : clamp((b.vis === undefined ? 1 : b.vis) + (out ? -1e9 : 3 * dtv), 0, 1); // (out at once, back slowly; one held back past a gantry stays out)
           if (b.vis > 0) blockKeep(e[12], e[13], e[14], rad, s); }
         else { b.vis = 1; b.sc = undefined; }

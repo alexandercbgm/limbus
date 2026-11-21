@@ -381,7 +381,8 @@ video.mini { background: none; object-fit: contain; }
 /* a station's gift, before its results: a cannon (its picture) or a level of an upgrade (three pips, the new ones lit) */
 .gift-pic { width: 72px; height: 72px; flex: none; display: grid; place-items: center; } .gift-pic img { width: 72px; height: 72px; object-fit: contain; }
 .gift-pic svg { width: 46px; height: 46px; fill: none; stroke: #6b4e08; stroke-width: 1.5; stroke-linecap: round; }
-.gift-pips { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 10px 0 0; font-size: 13px; letter-spacing: 0.04em; }
+#gift .gift-prize { margin-bottom: 0; } #gift .gift-pips { margin: 12px 0 0; } #gift .btns { margin-top: 12px; } /* the gift's card, its level pips and its button 12 px apart, as the card is from the title */
+.gift-pips { display: flex; gap: 8px; align-items: center; justify-content: center; margin: 12px 0 0; font-size: 13px; letter-spacing: 0.04em; }
 .gift-pips i { width: 26px; height: 8px; border-radius: 4px; background: rgba(127, 127, 127, 0.25); } .gift-pips i.on { background: #c9a02e; box-shadow: 0 0 8px rgba(201, 160, 46, 0.6); }
 /* Emptio: the crystal packs */
 .pack h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .pack h3 small { margin-left: 0; color: #a07c18; }
@@ -798,7 +799,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     <h1 id="giftTitle"></h1>
     <div class="prize gift-prize"><span class="gift-pic" id="giftPic"></span><div><b id="giftName"></b><span id="giftDesc"></span></div></div>
     <p class="gift-pips" id="giftPips" hidden></p>
-    <p id="giftNote"></p>
     <div class="btns"><button class="cta" id="giftGo" type="button" data-en="On">Дальше</button></div>
   </div>
 </section>
@@ -7646,7 +7646,6 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       $("giftName").textContent = `${w.name} · ${w.cost} ${ballsWord(w.cost)} ${T("за выстрел", "a shot")}`;
       $("giftDesc").textContent = w.desc;
       $("giftPips").hidden = true;
-      $("giftNote").textContent = "\u00a0"; // (no words: the line kept for its room)
     } else {
       const u = UPGRADES[g.u];
       $("giftTitle").textContent = g.max ? T("Уже на максимуме", "Already at its best") : T("Улучшение!", "An upgrade!");
@@ -7654,7 +7653,6 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       $("giftName").textContent = `${u.name} · ${T(u.ru, u.en)}`;
       $("giftDesc").textContent = g.max ? T("Этот подарок — уровень улучшения, а у вас уже все три. ", "This gift is a level of the upgrade, and you have all three already. ") + u.at(3) : u.at(g.lvl); // (what this level gives in all)
       $("giftPips").hidden = false; $("giftPips").innerHTML = [1, 2, 3].map(i => `<i class="${i <= g.lvl ? "on" : ""}"></i>`).join("") + `<span>${T(`уровень ${g.lvl} из 3`, `level ${g.lvl} of 3`)}</span>`;
-      $("giftNote").textContent = "\u00a0"; // (no words: the line kept for its room)
     }
     $("gift").hidden = false; Sound.crystal(6); setTimeout(() => Sound.crystal(6), 260);
     $("giftGo").onclick = () => { $("gift").hidden = true; then(); };

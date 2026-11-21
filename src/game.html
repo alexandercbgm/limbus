@@ -979,7 +979,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // loops: "v" a loop-the-loop, edging sideways by side·w as it goes round so it comes out beside where it went in (Initium's
   // two, Vitrum's first); "h" a ring lying flat, turning th (a whole turn unless said) to the side and climbing dh as it goes,
   // then down again over dl if it has one; it may climb hc over cl from pre before it starts (Vitrum's second, hung on the loop)
-  let LOOPS = []; const LOOP_LEN = 120, LOOP_SIDE = 9, SPEC_LOOP = 95;
+  let LOOPS = []; const LOOP_LEN = 120, LOOP_SIDE = 9, SPEC_LOOP = 95, SPEC_K = 28 / 53.8;
   // a turn eased in and out over r of its length and even between: the share of it made by x (0..1), from a table per r
   const PLAT = new Map();
   function plat(x, r) {
@@ -1017,9 +1017,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     LOOPS = [];
     if (LEVEL.id === "speculum" && SPANS[0] && SPANS[0].tw0 - SPANS[0].a > 200) { // Speculum: on its first bridge, just past its gate, Vitrum's loop with its
       // ring through it, the mirror image of Vitrum's (the loop edging left, the ring turning right: coming up to them, they stand to the
-      // right); the ring leaves the track 25 m up, the corkscrew and all after it running on at that height (as Vitrum's level does)
-      const sp = SPANS[0], a = sp.a + 25;
-      LOOPS.push({ kind: "v", s0: a, side: -1, len: 179.67, w: 29.625, r: 0.06 }, { kind: "h", s0: a + 179.67 + 10.26, side: -1, th: TAU, len: 192, r: 0.082, dh: 25.2, c0: -7.86, cf: 0.91, bank: Math.PI / 2 });
+      // right); the ring leaves the track 13 m up, the corkscrew and all after it running on at that height (as Vitrum's level does)
+      // scaled down to 28 m across (Vitrum's is 54 m): every length in proportion, so the ring still passes through the loop
+      const sp = SPANS[0], a = sp.a + 25, k = SPEC_K;
+      LOOPS.push({ kind: "v", s0: a, side: -1, len: 179.67 * k, w: 29.625 * k, r: 0.06 }, { kind: "h", s0: a + (179.67 + 10.26) * k, side: -1, th: TAU, len: 192 * k, r: 0.082, dh: 25.2 * k, c0: -7.86 * k, cf: 0.91, bank: Math.PI / 2 });
       // a switch for the corkscrew just past the loops, its gantry where it begins: its targets choose the way it turns over, and it
       // stays straight till one is shot or the gantry passed (as Vitrum's), then winds up before the eyes
       sp.swM = { late: true, sw: sp.tw0, dir: -sp.dir, pdir: 0, ft: -1, kind: "screw", span: sp }; }
@@ -7185,7 +7186,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       feats: ["Ворота инь-ян: кнопки раздвигают половины", "Мосты инь и ян: штопор в одну сторону, потом в другую", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1750, pal: PAL_SPECULUM, finale: "reflexio",
-      spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 25 + 179.67 + 10.26 + 192, leadOut: 10 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
+      spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 25 + (179.67 + 10.26 + 192) * 28 / 53.8, leadOut: 10 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
       spanPats: ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "prisms"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
       knotPats: ["center", "twins", "slider", "double", "triple", "sides", "lift", "rotor", "rotor", "reinf", "imps", "prisms", "pgear"], // on the clover, drawn as from a bag: much glass, crosses, imps, one set of prisms, one prism gear (two of each had made it all prisms, and slow)
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300 }, // prisms are sure to come: about half as many sets as at first, each a pair

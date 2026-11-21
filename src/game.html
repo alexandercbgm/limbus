@@ -3483,8 +3483,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // Vitrum's: a pane and its glints (the scheme's glyph); Carcer's: its bars
   const ENGRAVE_VIT = engraveStrokes([[[-5.8, -5.8], [5.8, -5.8], [5.8, 5.8], [-5.8, 5.8], [-5.8, -5.8]], [[0, -2], [3.8, -5.8]], [[2.3, -0.7], [5.8, -4.2]], [[-5.8, 4.2], [-2.3, 0.7]], [[-3.8, 5.8], [0, 2]]]);
   const ENGRAVE_CAR = Object.assign(engraveStrokes([[[-7.5, -7], [7.5, -7]], [[-7.5, 7], [7.5, 7]], ...[-6, -2, 2, 6].map(x => [[x, -6.16], [x, 6.16]])]), { inkLines: true }); // (the bars stop at the rails' bands; their middle lines in ink: Carcer starts out white, and goes dark)
-  // Initium's: the start, a ring and an arrow on from it (on glass right of the rails it is turned round, to point at them)
-  const ENGRAVE_INI = Object.assign(engraveStrokes([arcPts(-4.5, 0, 1.8, 0, Math.PI * 2, 20), [[-1.5, 0], [6.5, 0]], [[3, -3.5], [6.5, 0], [3, 3.5]]]), { inkLines: true }); // (its middle lines in ink: Initium's sky is white)
+  // Initium's: the start, a ring and an arrow on from it, up the glass: forward, the same on every pane; frosted white as Thesaurus's
+  const ENGRAVE_INI = engraveStrokes([arcPts(0, 4.5, 1.8, 0, Math.PI * 2, 20), [[0, 1.5], [0, -6.5]], [[-3.5, -3], [0, -6.5], [3.5, -3]]]);
   const ENGRAVE_LAB = (() => {
     const P = [[-7, -7], [7, -7], [7, 7], [-4, 7], [-4, -4], [4, -4], [4, 4], [-1, 4]], hb = 0.42, ln = [], band = [];
     for (let i = 0; i + 1 < P.length; i++) { const [x0, y0] = P[i], [x1, y1] = P[i + 1], l = Math.hypot(x1 - x0, y1 - y0), dx = (x1 - x0) / l, dy = (y1 - y0) / l, nx = -dy * hb, ny = dx * hb;
@@ -3509,7 +3509,6 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // just the same
     const ch = (o.h < 4 ? Math.min(0.9, o.h * 0.42) * (LEVEL.id === "thesaurus" ? 1 : 0.85) : 1.15), e = new THREE.Group(); // (Rubinus's ruby, wider than the crystal, 15% smaller on its lower glass)
     e.scale.setScalar(ch); e.position.z = 0.004;
-    if (LEVEL.id === "initium" && o.u > 0.5) e.scale.x = -ch; // (Initium's arrow, on glass right of the rails, turned to point at them)
     const E = LEVEL.id === "rubinus" ? ENGRAVE_RUBY : LEVEL.id === "speculum" ? ENGRAVE_SPEC : LEVEL.id === "tao" ? ENGRAVE_TAO : LEVEL.id === "labyrinthus" ? ENGRAVE_LAB : LEVEL.id === "vitrum" ? ENGRAVE_VIT : LEVEL.id === "carcer" ? ENGRAVE_CAR : LEVEL.id === "initium" ? ENGRAVE_INI : LEVEL.id === "abyssus" ? ENGRAVE_KUN : LEVEL.id === "lux" ? ENGRAVE_QIAN : ENGRAVE;
     e.add(new THREE.LineSegments(E.lines, E.ink || E.inkLines ? inkLineMat : edgeMat), new THREE.Mesh(engraveFill(E), E.ink ? inkEngraveMat : engraveMat)); g.add(e);
   }

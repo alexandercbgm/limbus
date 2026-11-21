@@ -3456,12 +3456,40 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     const mat = o => new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: o, depthWrite: false, side: THREE.DoubleSide });
     return { lines: new THREE.BufferGeometry().setFromPoints(seg.map(v3)), light: tris(L), dark: tris(Rt), lightMat: mat(0.24), darkMat: mat(0.1) };
   })();
-  const ENGRAVED = ["thesaurus", "rubinus", "abyssus", "lux", "speculum"];
+  // Tao's: yin and yang, its light half frosted lighter, its dark half darker, the circle and the S between them in lines;
+  // Labyrinthus's: its square maze, drawn as the glyph is, in strokes (narrow frosted bands, a bright line along each)
+  const engraveFrom = (lines, light, dark, lo = 0.24, do_ = 0.1) => {
+    const k = 1 / 15, v3 = q => new THREE.Vector3(q[0] * k, -q[1] * k, 0); // (the scheme's glyphs are drawn y down)
+    const tris = list => new THREE.BufferGeometry().setFromPoints(list.map(v3));
+    const mat = o => new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: o, depthWrite: false, side: THREE.DoubleSide });
+    return { lines: new THREE.BufferGeometry().setFromPoints(lines.map(v3)), light: tris(light), dark: tris(dark), lightMat: mat(lo), darkMat: mat(do_) };
+  };
+  const triOf = poly => { const out = []; for (const f of THREE.ShapeUtils.triangulateShape(poly.map(([x, y]) => new THREE.Vector2(x, y)), [])) out.push(poly[f[0]], poly[f[1]], poly[f[2]]); return out; };
+  const arcPts = (cx, cy, r, a0, a1, n) => [...Array(n + 1).keys()].map(i => { const a = a0 + (a1 - a0) * i / n; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
+  const ENGRAVE_TAO = (() => { // (y down: the top at -7) the right half round from the top to the bottom, back up the S: a bulge left below, right above
+    const right = arcPts(0, 0, 7, -Math.PI / 2, Math.PI / 2, 32), left = arcPts(0, 0, 7, -Math.PI / 2, -Math.PI * 1.5, 32);
+    const sBot = arcPts(0, 3.5, 3.5, Math.PI / 2, Math.PI * 1.5, 16), sTop = arcPts(0, -3.5, 3.5, Math.PI / 2, -Math.PI / 2, 16); // (up from the bottom: round the left, then round the right)
+    const S = [...sBot, ...sTop.slice(1)], light = triOf([...right, ...S.slice(1, -1)]), dark = triOf([...left, ...S.slice(1, -1)]);
+    const ln = []; const add = pts => { for (let i = 0; i + 1 < pts.length; i++) ln.push(pts[i], pts[i + 1]); };
+    add(right); add(left); add(S); add(arcPts(0, -3.5, 0.7, 0, Math.PI * 2, 12)); add(arcPts(0, 3.5, 0.7, 0, Math.PI * 2, 12)); // and the two eyes
+    const E = engraveFrom(ln, light, dark, 0.14, 0.3); E.ink = true; return E; // (in ink: the yang half paler, the yin half deeper)
+  })();
+  const ENGRAVE_LAB = (() => {
+    const P = [[-7, -7], [7, -7], [7, 7], [-4, 7], [-4, -4], [4, -4], [4, 4], [-1, 4]], hb = 0.42, ln = [], band = [];
+    for (let i = 0; i + 1 < P.length; i++) { const [x0, y0] = P[i], [x1, y1] = P[i + 1], l = Math.hypot(x1 - x0, y1 - y0), dx = (x1 - x0) / l, dy = (y1 - y0) / l, nx = -dy * hb, ny = dx * hb;
+      const a = [x0 + dx * (i ? hb : -hb), y0 + dy * (i ? hb : -hb)], b = [x1 + dx * hb, y1 + dy * hb]; // (each band from just past the last one's corner to over its own: no overlap, no double frosting)
+      const q = [[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]]; band.push(q[0], q[1], q[2], q[0], q[2], q[3]); ln.push(P[i], P[i + 1]); }
+    return engraveFrom(ln, band, [], 0.3, 0.1);
+  })();
+  const ENGRAVED = ["thesaurus", "rubinus", "abyssus", "lux", "speculum", "tao", "labyrinthus"];
   // an engraving's frosted faces, its lighter and its darker, as one mesh (two draws had been two per pane): each vertex carries the
   // opacity its face had (aA), so it looks just as before
   const engraveMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, side: THREE.DoubleSide });
   engraveMat.onBeforeCompile = sh => { sh.vertexShader = "attribute float aA;\nvarying float vA;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vA = aA;");
     sh.fragmentShader = "varying float vA;\n" + sh.fragmentShader.replace("vec4 diffuseColor = vec4( diffuse, opacity );", "vec4 diffuseColor = vec4( diffuse, opacity * vA );"); };
+  // Tao's white world: its engraving in ink, dark on the pale glass (frosted white had not shown on it)
+  const inkEngraveMat = new THREE.MeshBasicMaterial({ color: 0x15171a, transparent: true, depthWrite: false, side: THREE.DoubleSide }); inkEngraveMat.onBeforeCompile = engraveMat.onBeforeCompile;
+  const inkLineMat = new THREE.LineBasicMaterial({ color: 0x15171a, transparent: true, opacity: 0.75 });
   const engraveFill = E => { if (E.fill) return E.fill; const a = E.light.attributes.position, b = E.dark.attributes.position, pos = new Float32Array((a.count + b.count) * 3), op = new Float32Array(a.count + b.count);
     pos.set(a.array, 0); pos.set(b.array, a.count * 3); op.fill(E.lightMat.opacity, 0, a.count); op.fill(E.darkMat.opacity, a.count);
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("aA", new THREE.BufferAttribute(op, 1)); g.computeBoundingSphere(); return E.fill = g; };
@@ -3470,8 +3498,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // just the same
     const ch = (o.h < 4 ? Math.min(0.9, o.h * 0.42) * (LEVEL.id === "thesaurus" ? 1 : 0.85) : 1.15), e = new THREE.Group(); // (Rubinus's ruby, wider than the crystal, 15% smaller on its lower glass)
     e.scale.setScalar(ch); e.position.z = 0.004;
-    const E = LEVEL.id === "rubinus" ? ENGRAVE_RUBY : LEVEL.id === "speculum" ? ENGRAVE_SPEC : LEVEL.id === "abyssus" ? ENGRAVE_KUN : LEVEL.id === "lux" ? ENGRAVE_QIAN : ENGRAVE;
-    e.add(new THREE.LineSegments(E.lines, edgeMat), new THREE.Mesh(engraveFill(E), engraveMat)); g.add(e);
+    const E = LEVEL.id === "rubinus" ? ENGRAVE_RUBY : LEVEL.id === "speculum" ? ENGRAVE_SPEC : LEVEL.id === "tao" ? ENGRAVE_TAO : LEVEL.id === "labyrinthus" ? ENGRAVE_LAB : LEVEL.id === "abyssus" ? ENGRAVE_KUN : LEVEL.id === "lux" ? ENGRAVE_QIAN : ENGRAVE;
+    e.add(new THREE.LineSegments(E.lines, E.ink ? inkLineMat : edgeMat), new THREE.Mesh(engraveFill(E), E.ink ? inkEngraveMat : engraveMat)); g.add(e);
   }
   function addPane(o) {
     // a level with one size of glass (Rubinus): every pane short of full height the same, whatever the pattern (a pane in the middle,
@@ -3705,7 +3733,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "triple": [-2.75, 0, 2.75].forEach(u => addPane({ s, u, v: CAM_V + 0.2, w: 2.5, h: 3 })); break;
       case "sides":
         [-1, 1].forEach(k => addPane({ s, u: k * 2.95, v: 2.2, w: 1.8, h: 3.6 }));
-        if (d < 0.5 && LEVEL.id !== "thesaurus" && LEVEL.id !== "speculum" && !LEVEL.paneStd) addPane({ s: s - 4, u: 0, v: 4.7, w: 1.7, h: 1.1 }); // (Thesaurus, Rubinus and Speculum: no small glass)
+        if (d < 0.5 && !["thesaurus", "speculum", "tao", "labyrinthus"].includes(LEVEL.id) && !LEVEL.paneStd) addPane({ s: s - 4, u: 0, v: 4.7, w: 1.7, h: 1.1 }); // (Thesaurus, Rubinus and Speculum: no small glass)
         break;
       case "bonus":
         for (let i = 0; i < 4; i++) { const k = i % 2 ? 1 : -1; addPane({ s: s - i * 3.5, u: k * rand(2.4, 3.2), v: rand(1.6, 4.8), w: rand(1.1, 1.6), h: rand(1.1, 1.6) }); }
@@ -7002,7 +7030,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     { id: "labyrinthus", num: "III", latin: "Labyrinthus", ru: "Лабиринт", playable: true, music: "calculated_descent", len: 1500, pal: PAL_HORTUS, finale: "portae",
       style: { arch: "square", blocks: "cube", glassWalls: false, closed: true }, crystalMul: 1.2,
       forks: [330, 720, 1110],
-      pats: { rotor: [1.1, 1.5, 1.7], rotor2: [0.6, 1, 1.3], grams: [1, 1.4, 1.6], shutter: [0, 1.5, 2.5], slider: [1, 2, 2], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], sides: [1, 0.6, 0], bonus: [1, 0.3, 0], triple: [0.6, 1, 0.8] },
+      pats: { bonus: [0, 0, 0], rotor: [1.1, 1.5, 1.7], rotor2: [0.6, 1, 1.3], grams: [1, 1.4, 1.6], shutter: [0, 1.5, 2.5], slider: [1, 2, 2], center: [2, 2, 1.5], wall: [0.6, 0.6, 0.6], sides: [1, 0.6, 0], triple: [0.6, 1, 0.8] },
       turns: [[120, 50, 40], [220, 50, -40], [480, 60, 60], [600, 50, -50], [880, 60, -60], [980, 50, 50], [1250, 60, 45], [1360, 50, -45]],
       desc: "Замкнутые изумрудные коридоры. Перед каждой развилкой два табло, под каждым стрелка. Попади в стрелку — рельсы уйдут в её ветку; выбрать можно один раз. Не выбрал — поедешь по богатой ветке. Богатая ветка с бирюзовыми кристаллами даёт вдвое больше кристаллов, но в ней кресты и блоки. Тихая ветка с белым солнцем — только со стёклами, и она тянет к Свету. В коридорах вращаются массивные стеклянные кресты. В открытых залах на цепях качаются стеклянные блоки.",
       feats: ["Три развилки: ветку выбирают выстрелом в стрелку под табло", "Вращающиеся стеклянные крестовины", "Финал Portae: стеклянные врата с ключами"],
@@ -7028,8 +7056,8 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       spanPats: ["center", "center", "slider", "twins", "double", "rotor", "lift", "imps", "shutter", "reinf"],
       style: { arch: "ring", blocks: "cube", glassWalls: false }, crystalMul: 1.4, armor: 1,
       gateKinds: ["taiji"], gateButton: "dome",
-      pats: { doors: [1.2, 1.5, 1.8], rams: [1.5, 2, 2.5], hammers: [1.5, 2, 2.5], rotor: [1, 1.2, 1.2], twins: [1, 1.2, 1.2], slider: [1, 1.5, 1.5], lift: [0.8, 1, 1], shutter: [0, 0.8, 1.5],
-        center: [2, 2, 1.5], sides: [2, 0.8, 0], bonus: [2, 0.5, 0], bough: [0.8, 1, 1], double: [0, 1, 1.5], reinf: [0, 0.6, 1.5], imps: [0, 0.6, 2] },
+      pats: { bonus: [0, 0, 0], doors: [1.2, 1.5, 1.8], rams: [1.5, 2, 2.5], hammers: [1.5, 2, 2.5], rotor: [1, 1.2, 1.2], twins: [1, 1.2, 1.2], slider: [1, 1.5, 1.5], lift: [0.8, 1, 1], shutter: [0, 0.8, 1.5],
+        center: [2, 2, 1.5], sides: [2, 0.8, 0], bough: [0.8, 1, 1], double: [0, 1, 1.5], reinf: [0, 0.6, 1.5], imps: [0, 0.6, 2] },
       turns: [[100, 60, 45], [220, 60, -55], [340, 50, 45], [460, 70, -70], [600, 50, 50], [710, 60, -50], [830, 50, 45],
         [950, 70, -65], [1090, 50, 50], [1190, 60, -50], [1310, 50, 40], [1400, 50, -35]],
       desc: "Вершина верхней линии, откуда путь Дао уходит через Nox к Lux. Круглые лунные врата. Тушь и рисовая бумага: в Свете белое с алой печатью, во Тьме чёрная тушь с нефритовым свечением. Над путём плывёт туман и медленно вращается знак инь-ян.",

@@ -1593,14 +1593,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             // Deeper into the Dark all of it dims
             float dim = mix(1.0, 0.55, 1.0 - smoothstep(0.12, 0.5, lum));
             vec3 na = normalize(vec3(n.x, 0.0, n.z) + 1e-5);
-            float back = dot(na, SUN_AZ), ch = max(h, 0.0), glowK = smoothstep(-0.1, 1.0, back);
+            float back = dot(na, SUN_AZ), hw = px * 3.0, ch = 0.5 * (h + sqrt(h * h + hw * hw)) - 0.5 * hw, glowK = smoothstep(-0.1, 1.0, back); // (the height over the horizon eased round it over a few of the sky's pixels: max(h, 0), and the steep pow of it, had drawn the horizon as a stepped line)
             vec3 nightZ = vec3(0.012, 0.02, 0.055), nightH = vec3(0.05, 0.065, 0.13), duskH = vec3(0.32, 0.36, 0.6), glowH = vec3(1.0, 0.55, 0.3);
             vec3 horC = mix(nightH, duskH, smoothstep(-0.5, 0.4, back));
             horC = mix(horC, glowH, glowK * glowK * exp(-ch * 4.5)); // the afterglow low about the sun
             horC = mix(horC, vec3(0.75, 0.42, 0.55), glowK * glowK * smoothstep(0.02, 0.18, ch) * exp(-ch * 6.0) * 0.6); // rose above it
             vec3 zen = mix(nightZ, vec3(0.08, 0.13, 0.32), glowK * 0.7);
-            vec3 dusk = mix(horC, zen, pow(ch, 0.38)) + vec3(1.0, 0.75, 0.45) * pow(max(back, 0.0), 8.0) * exp(-ch * 14.0) * 0.5;
-            if (h < 0.0) { float u = min(-h * 6.0, 1.0); dusk = mix(horC, nightZ * 0.6, u / sqrt(u + px * 18.0) * sqrt(1.0 + px * 18.0)); } // under the horizon, quickly dark (not at once: a cut that sharp came out in steps)
+            vec3 dusk = mix(horC, zen, pow(max(ch, 0.0) + hw, 0.38) - pow(hw, 0.38)) + vec3(1.0, 0.75, 0.45) * pow(max(back, 0.0), 8.0) * exp(-ch * 14.0) * 0.5;
+            { float u = clamp(-h * 6.0, 0.0, 1.0); dusk = mix(dusk, mix(horC, nightZ * 0.6, u / sqrt(u + px * 18.0) * sqrt(1.0 + px * 18.0)), smoothstep(px * 1.5, -px * 1.5, h)); } // under the horizon, quickly dark (not at once: a cut that sharp came out in steps)
             c = dusk * dim;
             float starK = smoothstep(0.02, 0.2, h); // the stars, as over Nox, all over the sky, the sun's side too
             c += galaxy(n, vec3(0.45, 0.55, 0.95), starK) + galaxyAx(n, vec3(0.6, 0.45, 0.9), starK * 0.6, normalize(vec3(-0.62, 0.48, 0.2))) + farGalaxies(n, starK);
@@ -1609,7 +1609,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
             vec3 sunD = normalize(vec3(SUN_AZ.x, sin(SUN_R / 3.0), SUN_AZ.z));
             float ang = acos(clamp(dot(n, sunD), -1.0, 1.0)), q = ang / SUN_R;
             c += vec3(1.0, 0.55, 0.25) * (exp(-ang * 14.0) * 0.55 + exp(-ang * 4.0) * 0.18 + exp(-max(q - 1.0, 0.0) * 6.0) * 0.35) * dim * smoothstep(-0.02 - px * 2.0, -0.02 + px * 2.0, h);
-            c = mix(c, vec3(1.0, 0.86, 0.55) * 1.3, smoothstep(1.0, 0.97, q) * smoothstep(-px * 1.5, px * 1.5, h)); // one even, glowing disc
+            c = mix(c, vec3(1.0, 0.86, 0.55) * 1.3, smoothstep(1.0 + px * 1.5 / SUN_R, 0.97 - px * 1.5 / SUN_R, q) * smoothstep(-px * 1.5, px * 1.5, h)); // one even, glowing disc (its rim eased over a pixel and a half)
           }
         } else if (m == 10.0) { // Initium: a clear day, stars faint in the blue, the sun white-hot and its rays running out across the sky
           c += vec3(0.92, 0.96, 1.0) * (starAt(n, 90.0, 0.985) * 0.45 + starAt(n, 210.0, 0.992) * 0.3) * amt * smoothstep(0.02, 0.35, h);
@@ -1709,9 +1709,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const bufSize = new THREE.Vector2();
   function renderSky() {
     renderer.getDrawingBufferSize(bufSize);
-    // Rubinus's facets want their seams sharper: two thirds of the screen's size; the others half. On a phone, whose pixels are small,
+    // Rubinus's facets want their seams sharper: two thirds of the screen's size; the others half. (Tao's yin-yang and Vitrum's sunset
+    // too: their sharp shapes, the disc, the sign, the horizon, had come out in steps on a phone) On a phone, whose pixels are small,
     // Rubinus's at its CSS size and the soft skies at two thirds of it, however many pixels it draws the rest with
-    const div = skyUni.mode.value === 6 ? (PHONE ? Math.max(1.5, renderer.getPixelRatio()) : 1.5) : PHONE ? Math.max(2, renderer.getPixelRatio() * 1.5) : 2;
+    const div = skyUni.mode.value === 6 || skyUni.mode.value === 7 || skyUni.mode.value === 8 ? (PHONE ? Math.max(1.5, renderer.getPixelRatio()) : 1.5) : PHONE ? Math.max(2, renderer.getPixelRatio() * 1.5) : 2;
     const w = Math.max(2, Math.round(bufSize.x / div)), h = Math.max(2, Math.round(bufSize.y / div));
     if (skyRT.width !== w || skyRT.height !== h) skyRT.setSize(w, h);
     FADE.res.value.copy(bufSize); const fadeOn = !STYLE.closed && !LEVEL.halls; const kv = knotView(); FADE.a.value = fadeOn ? lerp(108, 250, kv) : 1e6; FADE.fogSky.value = STYLE.bridge || STYLE.bare || STYLE.air ? 1 : 0; FADE.b.value = fadeOn ? lerp(146, 330, kv) : 1e6 + 1;
@@ -3599,7 +3600,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const q = [[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]]; band.push(q[0], q[1], q[2], q[0], q[2], q[3]); ln.push(P[i], P[i + 1]); }
     return engraveFrom(ln, band, [], lo, 0.1); };
   // Vitrum's: a pane and its glint hatched across it, two long strokes and two short ones off them, finer than the frame (the scheme's glyph); Carcer's: its bars
-  const ENGRAVE_VIT = engraveStrokes([[[-5.8, -5.8], [5.8, -5.8], [5.8, 5.8], [-5.8, 5.8], [-5.8, -5.8]], ...[[[-4.04, -0.36], [-0.13, -4.27]], [[-3.78, 1.98], [2.34, -4.14]], [[-1.31, 3.91], [1.88, 0.72]], [[1.05, 3.75], [2.25, 2.55]]].map(P => Object.assign(P, { hb: 0.24 }))]);
+  const ENGRAVE_VIT = engraveStrokes([[[-5.8, -5.8], [5.8, -5.8], [5.8, 5.8], [-5.8, 5.8], [-5.8, -5.8]], ...[[[-4.04, -0.36], [-0.13, -4.27]], [[-3.78, 1.98], [2.34, -4.14]], [[-1.31, 3.91], [1.88, 0.72]], [[1.05, 3.75], [2.25, 2.55]]].map(P => Object.assign(P, { hb: 0.24 }))].map(P => Object.assign(P.map(([x, y]) => [x * 5.5 / 5.8, y * 5.5 / 5.8]), { hb: P.hb }))); // (11 × 11, to the frame's middle, as the ruby's width)
   const ENGRAVE_CAR = (engraveStrokes([[[-7.5, -7], [7.5, -7]], [[-7.5, 7], [7.5, 7]], ...[-6, -2, 2, 6].map(x => [[x, -6.16], [x, 6.16]])])); // (the bars stop at the rails' bands)
   // Initium's: the start, a ring and an arrow on from it, up the glass: forward, the same on every pane; frosted white as Thesaurus's
   const ENGRAVE_INI = engraveStrokes([arcPts(0, 4.5, 1.8, 0, Math.PI * 2, 20), [[0, 1.5], [0, -6.5]], [[-3.5, -3], [0, -6.5], [3.5, -3]]]);

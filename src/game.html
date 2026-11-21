@@ -916,16 +916,16 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   function planSpans() {
     SPANS = [];
     if (!LEVEL.spans) return;
-    const mk = (a, turns, len, r, dir, spiral, leadIn) => {
+    const mk = (a, turns, len, r, dir, spiral, leadIn, leadOut) => {
       const kn = spiral && KNOTS[spiral], lead = kn ? kn.lead : SPAN_LEAD; // (the knot: its hill straight from its gate, its gate straight after it)
-      const tw0 = a + (leadIn || lead), tw1 = tw0 + len, sp = { a, b: tw1 + lead, tw0, tw1, turns, dir, r, piers: [], k: 0, ft: -1 }; // k: how far formed (straight till the cart is near); leadIn: a longer way on from its gate (Speculum's double loop on it)
+      const tw0 = a + (leadIn || lead), tw1 = tw0 + len, sp = { a, b: tw1 + (leadOut || lead), tw0, tw1, turns, dir, r, piers: [], k: 0, ft: -1 }; // k: how far formed (straight till the cart is near); leadIn: a longer way on from its gate (Speculum's double loop on it)
       if (kn) { Object.assign(sp, { knot: true, kn, turns: 0, r: 0, piers: [], k: 1 }); SPANS.push(sp); return; } // (always formed: half a knot reshaping before the eyes would pass through itself)
       if (spiral) { Object.assign(sp, { spiral: true, turns: 0, r: 0, piers: [tw0, tw1] }); SPANS.push(sp); return; } // a spiral bridge (Rubinus): it does not turn over, it coils round (an LTW spiral over its stretch, planLux); piers at its two ends only, the coils pass over each other
       for (let k = 0; k <= turns; k++) { let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (spanPhase(m) * turns < k) lo = m; else hi = m; } sp.piers.push(tw0 + (lo + hi) / 2 * len); }
       SPANS.push(sp);
     };
     for (const o of LEVEL.spans) { const kn = o.knot ? KNOTS[o.knot === true ? "knot" : o.knot] : null;
-      mk(Math.round(o.a !== undefined ? MAIN_LEN * o.a : MAIN_LEN * o.c - (kn ? kn.lead : SPAN_LEAD) - (kn ? kn.len : o.len) / 2), o.turns, kn ? kn.len : o.len, o.r, o.dir || (Math.random() < 0.5 ? -1 : 1), kn ? (o.knot === true ? "knot" : o.knot) : o.spiral, o.leadIn); }
+      mk(Math.round(o.a !== undefined ? MAIN_LEN * o.a : MAIN_LEN * o.c - (kn ? kn.lead : SPAN_LEAD) - (kn ? kn.len : o.len) / 2), o.turns, kn ? kn.len : o.len, o.r, o.dir || (Math.random() < 0.5 ? -1 : 1), kn ? (o.knot === true ? "knot" : o.knot) : o.spiral, o.leadIn, o.leadOut); }
   }
   // how far through its turns a bridge is, x the way along its turning stretch: it eases into turning over the first fifth, turns
   // evenly, and eases out over the last fifth (an even turn reads as the track's own; the middle turn had come round twice as fast)
@@ -1014,7 +1014,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (LEVEL.id === "speculum" && SPANS[0] && SPANS[0].tw0 - SPANS[0].a > 200) { // Speculum: a double loop on its first bridge, just past its gate, the corkscrew after it
       const sp = SPANS[0], side = Math.random() < 0.5 ? -1 : 1, a = sp.a + 25; // (both edging the same way, 13 m each, rings side by side as a chain's links: turned
       // back, the second's top had stood in the first's, on Speculum's wide deck; the deck narrowed on them besides)
-      LOOPS.push({ kind: "v", s0: a, side, len: LOOP_LEN, w: 13 }, { kind: "v", s0: a + LOOP_LEN + 10, side, len: LOOP_LEN, w: 13 }); }
+      LOOPS.push({ kind: "v", s0: a, side, len: LOOP_LEN, w: 13 }, { kind: "v", s0: a + LOOP_LEN, side, len: LOOP_LEN, w: 13 }); } // (end to end, the corkscrew straight after them)
     if (LEVEL.id === "initium") { add("drill", L / 3); // Initium: its drill a third of the way, two loops two thirds of the way, the first to the side the drill did not turn
       const first = LTW[0].dir < 0 ? 1 : -1, a = Math.round(L * 2 / 3) - LOOP_LEN - 5;
       LOOPS.push({ kind: "v", s0: a, side: first, len: LOOP_LEN, w: LOOP_SIDE }, { kind: "v", s0: a + LOOP_LEN + 10, side: -first, len: LOOP_LEN, w: LOOP_SIDE }); }
@@ -2120,7 +2120,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     PU[k] = ux; PU[k + 1] = uy; PU[k + 2] = uz;
   }
   function computePath() {
-    sBase = sC - BACK * DS;
+    sBase = sC - BACK * DS; FA_s = NaN;
     for (let j = 0; j < NS; j++) basisInto(sBase + j * DS, j);
     let k = BACK * 3;
     PP[k] = cartPos.x; PP[k + 1] = cartPos.y; PP[k + 2] = cartPos.z;
@@ -2155,7 +2155,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   const towerMat = new THREE.MeshLambertMaterial({ color: 0xeef3f7 }), TOWER_TINT = new THREE.Color();
   const _P = new THREE.Vector3(), _R = new THREE.Vector3(), _U = new THREE.Vector3(), _T = new THREE.Vector3(), _nT = new THREE.Vector3(), _C = new THREE.Vector3();
+  let FA_s = NaN; // (the last frame asked for: the same s again, as most pieces of a stretch ask, not worked out twice; forgotten when the path is)
   function frameAt(s) {
+    if (s === FA_s) return; FA_s = s;
     let f = (s - sBase) / DS;
     f = clamp(f, 0, NS - 1.0001);
     const i = f | 0, t = f - i, a = i * 3, b = a + 3;
@@ -2200,7 +2202,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   }
   function frameAtG(s) {
     const f = clamp(s - ghost.s, 0, GHOST_N - 1.0001), i = f | 0, t = f - i, a = i * 3, b = a + 3;
-    const L = (A, c) => A[a + c] + (A[b + c] - A[a + c]) * t;
+    const L = (A, c) => A[a + c] + (A[b + c] - A[a + c]) * t; FA_s = NaN;
     _P.set(L(GP, 0), L(GP, 1), L(GP, 2)); _R.set(L(GR, 0), L(GR, 1), L(GR, 2)).normalize(); _U.set(L(GU, 0), L(GU, 1), L(GU, 2)).normalize(); _T.set(L(GT, 0), L(GT, 1), L(GT, 2)).normalize();
   }
   function placeG(m, s, u, v) {
@@ -2632,12 +2634,24 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     for (const [b, s] of bl) { b.fm = m; b.fo = out.has(b); b.fc = !fin.has(b); b.f0 = b.vis === undefined ? 1 : b.vis;
       if (s > m.sw - 10 && s < m.sw + 150 && (b.fo || !(b.f0 > 0))) { b.fc = false; b.hold = true; } }
   }
+  // a knot's far turns (45 m and more off the cart) laid out only every third frame, into meshes of their own: they stand still
+  // in the world, and the knot drawn whole had been most of a frame's work
+  let layF = 0; const nF = { railF: 0, kerbF: 0, ssleeperF: 0 };
   function layoutCorridor() {
+    if (!I.railF) for (const k of ["rail", "kerb", "ssleeper"]) { I[k + "F"] = inst(I[k].geometry, I[k].material, 1500); }
+    I.kerbF.material = I.kerb.material;
+    const farNow = layF++ % 3 === 0;
     const n = {}; for (const key in I) n[key] = 0; nKept = 0;
     for (const m of LTW) if (m.late && m.ft >= 0 && m.ft < FORM_T && !m.fplan) planFade(m);
     camera.getWorldDirection(CAM_FWD); // (for leaving out what is behind the eye)
     const tubeR = LTW.length || LOOPS.length || SPANS.length ? tubeFill() : 0, dtv = clamp(time - decorT, 0, 0.1); decorT = time;
-    const put = (key, s, u, v) => { I[key].setMatrixAt(n[key]++, placeM(M, s, u, v)); };
+    // a piece set straight into its mesh's matrices, scaled along its own axes: three's setMatrixAt (a Matrix4 made, then copied
+    // out) had been near half of the laying out, with the knot's thousands of pieces
+    const putS = (key, s, u, v, sx, sy, sz) => { frameAt(s); const a = I[key].instanceMatrix.array, o = n[key]++ * 16; if (o >= a.length) return;
+      a[o] = _R.x * sx; a[o + 1] = _R.y * sx; a[o + 2] = _R.z * sx; a[o + 3] = 0; a[o + 4] = _U.x * sy; a[o + 5] = _U.y * sy; a[o + 6] = _U.z * sy; a[o + 7] = 0;
+      a[o + 8] = -_T.x * sz; a[o + 9] = -_T.y * sz; a[o + 10] = -_T.z * sz; a[o + 11] = 0;
+      a[o + 12] = _P.x + _R.x * u + _U.x * v; a[o + 13] = _P.y + _R.y * u + _U.y * v; a[o + 14] = _P.z + _R.z * u + _U.z * v; a[o + 15] = 1; };
+    const put = (key, s, u, v) => putS(key, s, u, v, 1, 1, 1);
     // a wall block as long as its outer face's stretch, and a little over: on a bend the blocks had parted on the outside
     const wallLen = (sa, sb, u) => { frameAt(sa); const x = _P.x + _R.x * u, y = _P.y + _R.y * u, z = _P.z + _R.z * u; frameAt(sb); return Math.max(sb - sa, Math.hypot(_P.x + _R.x * u - x, _P.y + _R.y * u - y, _P.z + _R.z * u - z)) + 0.03; };
     const putWall = (key, s, u, hh = SH, sa = s - SL / 2, sb = s + SL / 2) => { // as tall as the shell (or the hall); the glass ones in a sheet
@@ -2674,10 +2688,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const dec = getDecor(k), s = k * SL + SL / 2;
       // under an up-down gate the track is cut by a slot that takes the lower leaf: no sleeper there, the rails broken
       const slot = gates.find(g => g.kind === "v" && Math.abs(g.s - s) < SL / 2 + 0.3);
+      let far = false, fd = 0, lod = false; if (dec.span && dec.span.knot) { frameAt(s); fd = _P.distanceToSquared(cartPos); far = fd > 45 * 45; } // (the knot's far turns: half the sleepers, rails and kerbs in whole pieces; there they are a few pixels)
+      const nearToo = fd < 55 * 55; lod = fd > 80 * 80; // (the near and the far overlap by 10 m: nothing goes missing between two of the far turns' layings; past 80 m, fewer pieces)
+      if (far) for (const sk of farNow ? (nearToo ? ["ssleeperF", "ssleeper"] : ["ssleeperF"]) : nearToo ? ["ssleeper"] : []) { if (lod) put(sk, s, 0, 0.06); else { put(sk, s - 0.5, 0, 0.06); put(sk, s + 0.5, 0, 0.06); } } else
       for (const ss of [s - 0.5, s + 0.5]) if (!slot || Math.abs(ss - slot.s) > SLOT_W / 2 + 0.18) put(dec.span ? "ssleeper" : "sleeper", ss, 0, 0.06);
       if (!slot && (SPANS.length || LTW.length) && (twistAt(s - SL) || twistAt(s + SL))) { // where the track turns over, in short pieces, so they follow it round
-        const nq = dec.span && dec.span.knot ? 2 : 4; // (a knot banks gently: metre pieces follow it; a corkscrew turns over fast: half metres)
-        for (let q = 0; q < nq; q++) for (const u of [-0.72, 0.72]) I.rail.setMatrixAt(n.rail++, placeM(M, s - SL / 2 + (q + 0.5) * SL / nq, u, 0.19).scale(SV.set(1, 1, (SL / nq + 0.04) / (SL + 0.04))));
+        const nq = lod ? 1 : dec.span && dec.span.knot ? 2 : 4; // (a knot banks gently: metre pieces follow it; a corkscrew turns over fast: half metres)
+        for (const rk of far ? (farNow ? (nearToo ? ["railF", "rail"] : ["railF"]) : nearToo ? ["rail"] : []) : ["rail"])
+        for (let q = 0; q < nq; q++) for (const u of [-0.72, 0.72]) putS(rk, s - SL / 2 + (q + 0.5) * SL / nq, u, 0.19, 1, 1, (SL / nq + 0.04) / (SL + 0.04));
       }
       else if (!slot) { put("rail", s, -0.72, 0.19); put("rail", s, 0.72, 0.19); }
       else { // the two pieces of rail either side of the slot
@@ -2737,7 +2755,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       if (dec.span) { // Speculum's bridges: the deck a slab (it shows as one hanging overhead), kerbs, the approaches on plain piers
         const sp = dec.span;
         const ku = (SW + 0.2) * deckK(s) - 0.07, kn = sp.knot ? 2 : 1; // kerbs on the slab's edge, flush with its side (on the knot they hug the slab, never stand over it)
-        if (sp.knot || twistAt(s - SL) || twistAt(s + SL)) { const q4 = sp.knot ? 2 : twistAt(s - SL) || twistAt(s + SL) ? 4 : kn; for (let q = 0; q < q4; q++) for (const u of [-ku, ku]) I.kerb.setMatrixAt(n.kerb++, placeM(M, s - SL / 2 + (q + 0.5) * SL / q4, u, sp.knot ? -0.24 : 0.1).scale(SV.set(1, sp.knot ? 2.8 : 1, (SL / q4 + 0.03) / (SL + 0.03)))); }
+        if (sp.knot || twistAt(s - SL) || twistAt(s + SL)) { const q4 = sp.knot ? (lod ? 1 : 2) : twistAt(s - SL) || twistAt(s + SL) ? 4 : kn; for (const rk of far ? (farNow ? (nearToo ? ["kerbF", "kerb"] : ["kerbF"]) : nearToo ? ["kerb"] : []) : ["kerb"]) for (let q = 0; q < q4; q++) for (const u of [-ku, ku]) putS(rk, s - SL / 2 + (q + 0.5) * SL / q4, u, sp.knot ? -0.24 : 0.1, 1, sp.knot ? 2.8 : 1, (SL / q4 + 0.03) / (SL + 0.03)); }
         else { const k0 = deckK(s - SL / 2), k1 = deckK(s + SL / 2);
           if (k0 === k1) { put("kerb", s, -SW * k0, 0.1); put("kerb", s, SW * k0, 0.1); }
           else for (const sd of [-1, 1]) { const du = sd * SW * (k1 - k0); // (where the deck narrows, each piece slanted along its edge: set square they had stepped)
@@ -2874,9 +2892,13 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     }
     // never more than an instanced mesh holds (past its end a phone's GPU refuses the whole draw: all of Speculum's walls went missing);
     // one that ran short is swapped for one twice as large, full again from the next frame
+    if (farNow) Object.assign(nF, { railF: n.railF, kerbF: n.kerbF, ssleeperF: n.ssleeperF }); // (between layings the far turns keep what they had)
     for (const key in I) {
+      if (key in nF && !farNow) continue;
       if (n[key] > I[key].instanceMatrix.count) growInst(key, n[key]);
-      I[key].count = Math.min(n[key], I[key].instanceMatrix.count); I[key].instanceMatrix.needsUpdate = true; if (I[key].instanceColor) I[key].instanceColor.needsUpdate = true;
+      const c = Math.min(n[key], I[key].instanceMatrix.count); if (!c && !I[key].count) continue; // (nothing now nor before: nothing to send)
+      I[key].count = c; const im = I[key].instanceMatrix; im.updateRange.offset = 0; im.updateRange.count = c * 16; im.needsUpdate = true; // only the used part sent: the whole of each (4000 rails, 4000 kerbs) had gone up every frame
+      if (I[key].instanceColor) { I[key].instanceColor.updateRange.offset = 0; I[key].instanceColor.updateRange.count = c * 3; I[key].instanceColor.needsUpdate = true; }
     }
     SHEETS.forEach(sheetDone);
     for (const k of decor.keys()) if (k < k0 - 2) decor.delete(k);
@@ -3736,7 +3758,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       } else if (spn.spiral) { if (pat === "doors" || pat === "gate") pat = Math.random() < 0.5 ? "center" : "slider"; if (Math.random() < 0.22) pat = "rbeam"; } // and now and then a ruby's beam // a spiral bridge: the level's own mix, all but its gates
       else if (loopAt(s) || loopAt(s - 12) || loopAt(s + 12)) { const opts = ["center", "center", "twins", "rotor", "prisms"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)]; } // a loop (Speculum's double): little room in it, glass in the middle, a pair closing like doors, a turning cross
       else { const opts = LEVEL.spanPats || ["center", "center", "slider", "twins", "double", "rotor"]; if (!opts.includes(pat)) pat = opts[Math.floor(Math.random() * opts.length)];
-        if (pat === "pendulum" && [-12, 0, 12].some(o => twistAt(s + o))) pat = "center"; } // (a block on a chain only where the deck lies flat, on its Г frame)
+        if (pat === "pendulum" && [-12, 0, 12].some(o => Math.cos(finalTwist(s + o)) < 0.99)) { // (a block on a chain only where the deck lies flat, on its Г frame; in the corkscrew, over a pier, where the deck comes round upright)
+          const pr = spn.piers.find(q => Math.abs(q - s) < 20 && q > spn.tw0 + 1 && q < spn.tw1 - 1 && q - lastHangerS > 70 && !LOOPS.some(l => q > l.s0 - 30 && q < loopEnd(l) + 30));
+          if (pr) { addHanger(pr, "pendulum"); lastHangerS = pr; return; }
+          pat = "center"; } } // (a block on a chain only where the deck lies flat, on its Г frame)
     }
     if (!spawnGroupKind && LEVEL.id === "lux") { // Lux: its big obstacles evenly spread, never two within 55 m (they had heaped up: two pairs of gears and a
       // catapult, none to be shot down in time, and then hundreds of metres with none); past 150 m without one, the next group is one
@@ -4453,7 +4478,10 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   // opt (Carcer's grates): look "medieval" (heavy black iron, spiked) or "modern" (thin steel bars in a plain frame; all of Carcer's grates are modern now);
   // wide: a grate across the whole track on two chains
   const CHAINED = ["gate", "pendulum", "lhang", "bars", "rams", "grams", "grate1", "grate2", "grate3"];
-  const upright = s => [-8, -4, 0, 4, 8].every(o => { frameAt(s + o); return _U.y > 0.9; }); // the track's up within 25° of the world's along a chain's swing
+  // a turning-over stretch's twist as it will be once formed (a corkscrew is straight till the cart is near, when things are set down on it)
+  const finalTwist = s => { for (const sp of SPANS) if (!sp.knot && s > sp.tw0 && s < sp.tw1) return sp.turns * TAU * spanPhase((s - sp.tw0) / (sp.tw1 - sp.tw0));
+    for (const m of LTW) if (m.r && s > m.tw0 && s < m.tw1) return m.turns * TAU * spanPhase((s - m.tw0) / m.len); return 0; };
+  const upright = s => [-8, -4, 0, 4, 8].every(o => { frameAt(s + o); return _U.y > 0.9 && Math.cos(finalTwist(s + o)) > 0.9; }); // the track's up within 25° of the world's along a chain's swing
   function addHanger(s, kind, laser = false, bars = false, opt = {}) {
     if (inCurve(s) && !opt.wide) kind = "pendulum"; // two chains are too much to hit while the track bends
     // a monolith: a square block on one chain (pendulum) or an oblong slab on two (gate)
@@ -7116,7 +7144,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       feats: ["Ворота инь-ян: кнопки раздвигают половины", "Мосты инь и ян: штопор в одну сторону, потом в другую", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1750, pal: PAL_SPECULUM, finale: "reflexio",
-      spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 320 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
+      spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 25 + 240, leadOut: 10 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
       spanPats: ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "prisms"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
       knotPats: ["center", "twins", "slider", "double", "triple", "sides", "lift", "rotor", "rotor", "reinf", "imps", "prisms", "pgear"], // on the clover, drawn as from a bag: much glass, crosses, imps, one set of prisms, one prism gear (two of each had made it all prisms, and slow)
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300 }, // prisms are sure to come: about half as many sets as at first, each a pair
@@ -8430,7 +8458,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     for (const sp of SPANS) { if (sp.ft < 0 && sC > sp.tw0 - 32) sp.ft = 0; if (sp.ft >= 0) sp.ft += dt; sp.k = sp.ft < 0 ? 0 : smooth5(Math.min(1, sp.ft / 1.2)); } // Speculum's corkscrews: straight till the cart is near, then formed before its eyes
     const onKnot = SPANS.some(sp => sp.knot && sC > sp.a - 380 && sC < sp.b + 20); // the knot: drawn whole, and everything on it set down, while the cart is still far back in the tunnel (out of sight, so nothing is seen to come)
     const kSp = onKnot ? SPANS.find(sp => sp.knot) : null; // (on the knot itself, only as far as it and a little past: the tunnel 800 m on had been drawn for nothing)
-    const kIn = kSp && sC > kSp.a - 80 && sC < kSp.b - 60; // (on the knot's loops: the way past its far gate not drawn yet, the level's end had shown from up there; back in the tunnel,
+    const kIn = kSp && sC > kSp.a - 150 && sC < kSp.b - 60; // (on the knot's loops: the way past its far gate not drawn yet, the level's end had shown from up there; back in the tunnel,
     // till 80 m short of its gate, the tunnel drawn as anywhere: all 800 m drawn from 380 m back had made the run up to it slow)
     SPAWN_TO = kSp && sC < kSp.b - 60 ? Math.min(AHEAD_MAX, kSp.b + 25 - sC) : 0;
     const aheadTo = kIn ? clamp(kSp.b + 25 - sC, 85, AHEAD_MAX) : kSp && sC < kSp.a ? 150 : onKnot || LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150;

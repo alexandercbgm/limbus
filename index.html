@@ -771,7 +771,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.560</div>
+      <div class="credit version">v1.0.561</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -972,7 +972,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.560`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.561`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -3569,6 +3569,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // Vitrum's: a pane and its glints (the scheme's glyph); Carcer's: its bars
   const ENGRAVE_VIT = engraveStrokes([[[-5.8, -5.8], [5.8, -5.8], [5.8, 5.8], [-5.8, 5.8], [-5.8, -5.8]], [[0, -2], [3.8, -5.8]], [[2.3, -0.7], [5.8, -4.2]], [[-5.8, 4.2], [-2.3, 0.7]], [[-3.8, 5.8], [0, 2]]]);
   const ENGRAVE_CAR = Object.assign(engraveStrokes([[[-7.5, -7], [7.5, -7]], [[-7.5, 7], [7.5, 7]], ...[-6, -2, 2, 6].map(x => [[x, -6.16], [x, 6.16]])]), { inkLines: true }); // (the bars stop at the rails' bands; their middle lines in ink: Carcer starts out white, and goes dark)
+  // Initium's: the start, a ring and an arrow on from it (on glass right of the rails it is turned round, to point at them)
+  const ENGRAVE_INI = Object.assign(engraveStrokes([arcPts(-4.5, 0, 1.8, 0, Math.PI * 2, 20), [[-1.5, 0], [6.5, 0]], [[3, -3.5], [6.5, 0], [3, 3.5]]]), { inkLines: true }); // (its middle lines in ink: Initium's sky is white)
   const ENGRAVE_LAB = (() => {
     const P = [[-7, -7], [7, -7], [7, 7], [-4, 7], [-4, -4], [4, -4], [4, 4], [-1, 4]], hb = 0.42, ln = [], band = [];
     for (let i = 0; i + 1 < P.length; i++) { const [x0, y0] = P[i], [x1, y1] = P[i + 1], l = Math.hypot(x1 - x0, y1 - y0), dx = (x1 - x0) / l, dy = (y1 - y0) / l, nx = -dy * hb, ny = dx * hb;
@@ -3576,7 +3578,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       const q = [[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]]; band.push(q[0], q[1], q[2], q[0], q[2], q[3]); ln.push(P[i], P[i + 1]); }
     return engraveFrom(ln, band, [], 0.3, 0.1);
   })();
-  const ENGRAVED = ["thesaurus", "rubinus", "abyssus", "lux", "speculum", "tao", "labyrinthus", "vitrum", "carcer"];
+  const ENGRAVED = ["thesaurus", "rubinus", "abyssus", "lux", "speculum", "tao", "labyrinthus", "vitrum", "carcer", "initium"];
   // an engraving's frosted faces, its lighter and its darker, as one mesh (two draws had been two per pane): each vertex carries the
   // opacity its face had (aA), so it looks just as before
   const engraveMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, side: THREE.DoubleSide });
@@ -3593,7 +3595,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // just the same
     const ch = (o.h < 4 ? Math.min(0.9, o.h * 0.42) * (LEVEL.id === "thesaurus" ? 1 : 0.85) : 1.15), e = new THREE.Group(); // (Rubinus's ruby, wider than the crystal, 15% smaller on its lower glass)
     e.scale.setScalar(ch); e.position.z = 0.004;
-    const E = LEVEL.id === "rubinus" ? ENGRAVE_RUBY : LEVEL.id === "speculum" ? ENGRAVE_SPEC : LEVEL.id === "tao" ? ENGRAVE_TAO : LEVEL.id === "labyrinthus" ? ENGRAVE_LAB : LEVEL.id === "vitrum" ? ENGRAVE_VIT : LEVEL.id === "carcer" ? ENGRAVE_CAR : LEVEL.id === "abyssus" ? ENGRAVE_KUN : LEVEL.id === "lux" ? ENGRAVE_QIAN : ENGRAVE;
+    if (LEVEL.id === "initium" && o.u > 0.5) e.scale.x = -ch; // (Initium's arrow, on glass right of the rails, turned to point at them)
+    const E = LEVEL.id === "rubinus" ? ENGRAVE_RUBY : LEVEL.id === "speculum" ? ENGRAVE_SPEC : LEVEL.id === "tao" ? ENGRAVE_TAO : LEVEL.id === "labyrinthus" ? ENGRAVE_LAB : LEVEL.id === "vitrum" ? ENGRAVE_VIT : LEVEL.id === "carcer" ? ENGRAVE_CAR : LEVEL.id === "initium" ? ENGRAVE_INI : LEVEL.id === "abyssus" ? ENGRAVE_KUN : LEVEL.id === "lux" ? ENGRAVE_QIAN : ENGRAVE;
     e.add(new THREE.LineSegments(E.lines, E.ink || E.inkLines ? inkLineMat : edgeMat), new THREE.Mesh(engraveFill(E), E.ink ? inkEngraveMat : engraveMat)); g.add(e);
   }
   function addPane(o) {
@@ -3828,7 +3831,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "triple": [-2.75, 0, 2.75].forEach(u => addPane({ s, u, v: CAM_V + 0.2, w: 2.5, h: 3 })); break;
       case "sides":
         [-1, 1].forEach(k => addPane({ s, u: k * 2.95, v: 2.2, w: 1.8, h: 3.6 }));
-        if (d < 0.5 && !["thesaurus", "speculum", "tao", "labyrinthus", "vitrum", "carcer"].includes(LEVEL.id) && !LEVEL.paneStd) addPane({ s: s - 4, u: 0, v: 4.7, w: 1.7, h: 1.1 }); // (Thesaurus, Rubinus and Speculum: no small glass)
+        if (d < 0.5 && !["thesaurus", "speculum", "tao", "labyrinthus", "vitrum", "carcer", "initium"].includes(LEVEL.id) && !LEVEL.paneStd) addPane({ s: s - 4, u: 0, v: 4.7, w: 1.7, h: 1.1 }); // (Thesaurus, Rubinus and Speculum: no small glass)
         break;
       case "bonus":
         for (let i = 0; i < 4; i++) { const k = i % 2 ? 1 : -1; addPane({ s: s - i * 3.5, u: k * rand(2.4, 3.2), v: rand(1.6, 4.8), w: rand(1.1, 1.6), h: rand(1.1, 1.6) }); }
@@ -7087,7 +7090,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   // a transfer skips one station and costs banked crystals.
   const LEVELS = [
     { id: "initium", num: "I", latin: "Initium", ru: "Начало", playable: true, music: "glass_perspective", len: 1500, pal: PAL_INITIUM, finale: "iudicium",
-      style: { arch: "square", blocks: "cube", glassWalls: true },
+      style: { arch: "square", blocks: "cube", glassWalls: true }, pats: { bonus: [0, 0, 0] }, // (no small glass)
       turns: [[105, 60, 50], [225, 70, -80], [350, 50, 40], [455, 80, -65], [585, 60, 70], [700, 50, -45], [775, 50, 45],
         [880, 90, -100], [1040, 60, 60], [1150, 50, -40], [1240, 60, 55], [1350, 55, -35]],
       desc: "Знакомство с рельсами. Белые залы с квадратными арками, первые стёкла и первый спуск во Тьму.",
@@ -9080,7 +9083,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   // one glyph per station, drawn in a 16-unit box around the station center
   const LOCK_GLYPH = "M-5.5 -1.5H5.5V6H-5.5ZM-3.5 -1.5V-4.5A3.5 3.5 0 0 1 3.5 -4.5V-1.5M0 1.6V3.4"; // a padlock: a level not yet bought
   const GLYPHS = {
-    initium: "M-4.5 7.5V-7.5M-4.5 -7H6.5L3.5 -3.5L6.5 0H-4.5",      // a start flag: the beginning
+    initium: "M-6.3 0a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0M-1.5 0H6.5M3 -3.5L6.5 0L3 3.5", // the start: a point, and an arrow on from it
     thesaurus: "M0 -8L3.5 -4.75V4.75L0 8L-3.5 4.75V-4.75ZM0 -8V8M-3.5 -4.75L0 -2.96L3.5 -4.75M-3.5 4.75L0 2.96L3.5 4.75", // the crystal Emptio had (the bot's picture): the treasury's
     vitrum: "M-5.8 -5.8H5.8V5.8H-5.8ZM0 -2L3.8 -5.8M2.3 -0.7L5.8 -4.2M-5.8 4.2L-2.3 0.7M-3.8 5.8L0 2", // a pane of glass and its glints
     rubinus: "M-3.5 -7.5H3.5L5.5 -5.5V5.5L3.5 7.5H-3.5L-5.5 5.5V-5.5ZM-2 -4.5H2L3 -3.5V3.5L2 4.5H-2L-3 3.5V-3.5ZM-3.5 -7.5L-2 -4.5M3.5 -7.5L2 -4.5M5.5 -5.5L3 -3.5M5.5 5.5L3 3.5M3.5 7.5L2 4.5M-3.5 7.5L-2 4.5M-5.5 5.5L-3 3.5M-5.5 -5.5L-3 -3.5", // a step-cut ruby

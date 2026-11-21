@@ -772,7 +772,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           </button>
         </div>
       </div>
-      <div class="credit version">v1.0.568</div>
+      <div class="credit version">v1.0.569</div>
       <div class="credit">Claude Game Studio</div>
       <div class="map-scroll"><svg class="map-under" id="mapUnder" aria-hidden="true"></svg><div class="map-rings" id="mapRings" aria-hidden="true"></div><svg id="map" role="group" aria-label="Схема уровней" data-en-aria="The scheme of levels"></svg></div>
     </div>
@@ -973,7 +973,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       return (musicCache[id] = Promise.resolve(out));
     }
     return (musicCache[id] = new Promise(done => { // XHR, since fetch() refuses file:// pages
-      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.568`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
+      const x = new XMLHttpRequest(); x.open("GET", `music/${id}.mp3?v=1.0.569`); x.responseType = "arraybuffer"; // a new build, the tracks fetched afresh
       x.onload = () => done(x.response && (x.status === 200 || x.status === 0) ? new Uint8Array(x.response) : null);
       x.onerror = () => done(null); x.send();
     }));
@@ -1042,7 +1042,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // 250–330 m, so the whole knot stands clear in front of the cart as it comes out; back again just past its far gate
   const knotView = () => { for (const sp of SPANS) if (sp.knot) return smooth5((sC - (sp.a - 130)) / 130) * smooth5((sp.b + 70 - sC) / 70); return 0; };
   const knotEdgeMat = new THREE.MeshBasicMaterial({ color: 0xffe2e8 });
-  const deckK = s => { const sp = spanAt(s); if (sp && sp.knot) return sp.kn.w; if (sp && LOOPS.length) { let e1 = -1; for (const l of LOOPS) if (l.s0 > sp.a && l.s0 < sp.b) e1 = Math.max(e1, loopEnd(l));
+  const deckK = s => { const sp = spanAt(s); if (sp && sp.knot) return sp.kn.w; if (sp && LEVEL.id === "speculum") return 0.6; if (sp && LOOPS.length) { let e1 = -1; for (const l of LOOPS) if (l.s0 > sp.a && l.s0 < sp.b) e1 = Math.max(e1, loopEnd(l));
     if (e1 > 0 && s < e1 + 12) return lerp(1, 0.6, smooth5(Math.min(clamp((s - sp.a) / 8, 0, 1), clamp(1 - (s - e1) / 12, 0, 1)))); } return 1; }; // (a bridge's loops: its deck narrowed from just past the gate, over 8 m, kept so through both (it had widened between them), widened again over 12 m after)
   // Lux: an open bridge over the void as Nox's, broken by short glazed halls (an iris at the way in), and on it three great
   // manoeuvres, in a new order each run: the drill (the track turning over four times round a line high over the rails), the
@@ -2745,7 +2745,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (i > 0 && i < sp.piers.length - 1 && sp.k > 0 && sp.k < 1) return; // (the middle ones away while the deck turns over into its corkscrew: they would swing round under it)
         const end = i === 0 || i === sp.piers.length - 1, top = -0.52 - archDepth(sp, ps) - 1.1;
         for (const u of [-1.7, 1.7]) I.spier.setMatrixAt(n.spier++, placeM(M, ps, u, top - PYLON_H / 2).scale(SV.set(1.7, 1, 1.7))); // two columns under the arch's springing
-        I.scap.setMatrixAt(n.scap++, placeM(M, ps, 0, top + 0.4).scale(SV.set(6, 1.2, 4.5)));
+        I.scap.setMatrixAt(n.scap++, placeM(M, ps, 0, top + 0.4).scale(SV.set(Math.min(6, 2 * SW * deckK(ps) + 0.6), 1.2, 4.5))); // (no wider than the deck over it)
         if (end) { // the platform: the deck widened, on four heavy columns
           const pc = ps + (i === 0 ? -8 : 8);
           I.scap.setMatrixAt(n.scap++, placeM(M, pc, 0, -0.62).scale(SV.set(2 * SW + 6, 0.7, 18)));
@@ -2828,7 +2828,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
           if (k0 === k1) { put("kerb", s, -SW * k0, 0.1); put("kerb", s, SW * k0, 0.1); }
           else for (const sd of [-1, 1]) { const du = sd * SW * (k1 - k0); // (where the deck narrows, each piece slanted along its edge: set square they had stepped)
             I.kerb.setMatrixAt(n.kerb++, placeM(M, s, sd * SW * (k0 + k1) / 2, 0.1).multiply(M2.makeRotationY(-Math.atan2(du, SL))).scale(SV.set(1, 1, Math.hypot(SL, du) / SL))); } }
-        if (!sp.knot && k % 4 === 0 && (s < sp.tw0 - 18 || s > sp.tw1 + 18) && !loopAt(s) && !loopAt(s - 8) && !loopAt(s + 8)) for (const sd of [-1, 1]) put("spier", s, sd * (SW - 0.9), -0.5 - PYLON_H / 2);
+        if (!sp.knot && k % 4 === 0 && (s < sp.tw0 - 18 || s > sp.tw1 + 18) && !loopAt(s) && !loopAt(s - 8) && !loopAt(s + 8)) for (const sd of [-1, 1]) put("spier", s, sd * (SW * deckK(s) - 0.9), -0.5 - PYLON_H / 2);
         if (!sp.knot) spanArch(sp, k, s); // (the knot hangs free: an arch or piers under it would pass through its other turns)
       }
       if (dec.pyr && dec.pyr.side !== open) put(dec.pyr.side < 0 ? "pyrL" : "pyrR", s, dec.pyr.side * (SW - 0.25), dec.pyr.v);
@@ -3845,7 +3845,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // just past a gate (once the empty run is behind) only plain glass for a while: nothing that takes aim or time to bring down
     // straight after the gate has taken both (prisms with their mirrors, another gate, things on chains, crosses)
     if (!spawnGroupKind && GATE_CALM_PATS.includes(pat) && [...gates, ...doors].some(g => s > g.s && s < g.s + GATE_CALM)) pat = Math.random() < 0.6 ? "center" : "slider";
-    if (CHAINED.includes(pat) && !upright(s)) pat = Math.random() < 0.5 ? "center" : "twins"; // anything hung on chains only where the track lies upright: on its side or upside down the chains would hang against gravity
+    if (CHAINED.includes(pat) && (!upright(s) || LOOPS.some(l => s > l.s0 - 30 && s < loopEnd(l) + 30))) pat = Math.random() < 0.5 ? "center" : "twins"; // anything hung on chains only where the track lies upright (on its side or upside down the chains would hang against gravity), and none on or by a loop at all
     lastPat[pat] = s; patCount[pat] = (patCount[pat] || 0) + 1; // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
@@ -3859,7 +3859,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
       case "bonus":
         for (let i = 0; i < 4; i++) { const k = i % 2 ? 1 : -1; addPane({ s: s - i * 3.5, u: k * rand(2.4, 3.2), v: rand(1.6, 4.8), w: rand(1.1, 1.6), h: rand(1.1, 1.6) }); }
         break;
-      case "slider": { const w = 2.6; addPane({ s, u: 0, v: CAM_V + 0.2, w, h: 2.9, move: { axis: "u", amp: SW - w / 2 - 0.2, freq: rand(1, 1.6) * (1 + 0.3 * d), phase: rand(0, TAU) } }); break; }
+      case "slider": { const w = 2.6; addPane({ s, u: 0, v: CAM_V + 0.2, w, h: 2.9, move: { axis: "u", amp: Math.max(0.8, SW * (spanAt(s) ? deckK(s) : 1) - w / 2 - 0.2), freq: rand(1, 1.6) * (1 + 0.3 * d), phase: rand(0, TAU) } }); break; }
       case "bars":
         if (s - lastHangerS > 70) { addHanger(s, "gate", false, true); lastHangerS = s; }
         else addPane({ s, u: 0, v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0), hp: 2 + (LEVEL.armor || 0) }); // (reinforced glass: always over the middle of the rails)

@@ -949,6 +949,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const KNOTS = { knot: { tab: KNOT_TAB, w: 0.6, lead: 6 }, clover: { tab: CLOVER_TAB, w: 0.55, lead: 40 } };
   // Rubinus's knot's tables eased in from nothing over their first 12 m: they began a little banked and pitched (−0.33°), a jolt on the
   // first metre past the gate every time
+  // the clover's: its first and last 20 m bent in from straight (Hermite, from nothing and level to the table's own value and slope): it had
+  // turned, climbed and banked at once off its straight lead, the view swinging round as a robot's
+  for (const key of ["yaw", "pitch", "bank"]) { const arr = CLOVER_TAB[key], n = arr.length, N = 20;
+    for (const [i0, i1, sg] of [[0, N, 1], [n - 1, n - 1 - N, -1]]) { const v0 = sg > 0 && key !== "yaw" ? 0 : arr[i0], v1 = arr[i1], m1 = (arr[i1 + sg] - arr[i1 - sg]) / 2 * N;
+      for (let i = 1; i < N; i++) { const x = i / N, h01 = x * x * (3 - 2 * x), h11 = x * x * (x - 1); arr[i0 + sg * i] = v0 + (v1 - v0) * h01 + m1 * h11; } } }
   for (const k of ["knot"]) for (const key of ["pitch", "bank"]) { const arr = KNOTS[k].tab[key]; for (let i = 0; i < 12 && i < arr.length; i++) arr[i] *= smooth5(i / 12); }
   for (const k in KNOTS) KNOTS[k].len = KNOTS[k].tab.yaw.length - 1;
   const KNOT_LEN = KNOT_TAB.yaw.length - 1, KNOT_W = 0.6, KNOT_LEAD = 6; // (its straight ends trimmed off the table too: from its gate into its first climb, and out of it to the far gate, about 11 m) // its deck 20% narrower than a bridge's
@@ -2047,11 +2052,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // gate, so nothing of it shows (through the tunnel's frosted walls, in its mirrors through the opening door); then it draws back
     { const ks = LEVEL.id === "speculum" && SPANS.find(x => x.knot); if (ks && sC > ks.a - 175 && sC < ks.a + 5) {
       const g = doors.find(d => Math.abs(d.s - ks.a) < 1), open = sC > ks.a - 3 || (g && (g.open || g.passed || g.leaves.some(l => l.opening)));
-      kVeil = open ? Math.min(1, kVeil + 0.025) : 0; const lim = Math.max(20, ks.a - sC + 14), k = smooth5(kVeil);
+      kVeil = open ? Math.min(1, kVeil + 0.009) : 0; const lim = Math.max(20, ks.a - sC + 14), k = smooth5(kVeil);
       scene.fog.far = lerp(Math.min(scene.fog.far, lim), scene.fog.far, k); scene.fog.near = lerp(Math.min(scene.fog.near, lim * 0.55), scene.fog.near, k); } else kVeil = 0; }
     // the haze no farther than the drawn track's far end: things come into being there, and melt in out of the haze (where it had
     // reached past it, they had appeared all at once, in sight)
-    { frameAt(sC + AHEAD - 4); const dEnd = _P.distanceTo(cartPos) - 4; if (dEnd < scene.fog.far) { scene.fog.far = Math.max(40, dEnd); scene.fog.near = Math.min(scene.fog.near, scene.fog.far * 0.7); } }
+    { frameAt(sC + AHEAD - 4); const dEnd = _P.distanceTo(cartPos) - 4; if (dEnd < scene.fog.far) { scene.fog.far = Math.max(40, dEnd); scene.fog.near = Math.min(scene.fog.near, scene.fog.far * 0.3); } } // (a wide melt, as Lux's: things fade in over the last two thirds of the way to them)
     surfMat.color.copy(cur.surf); surfMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     wallMat.color.copy(cur.wall); wallMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     blockMat.color.copy(cur.block); blockMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.8);
@@ -3843,8 +3848,10 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // just past a gate (once the empty run is behind) only plain glass for a while: nothing that takes aim or time to bring down
     // straight after the gate has taken both (prisms with their mirrors, another gate, things on chains, crosses)
     if (!spawnGroupKind && GATE_CALM_PATS.includes(pat) && [...gates, ...doors].some(g => s > g.s && s < g.s + GATE_CALM)) pat = Math.random() < 0.6 ? "center" : "slider";
-    if (CHAINED.includes(pat) && !upright(s, true)) pat = Math.random() < 0.5 ? "center" : "twins"; // anything hung on chains only where the track lies upright (on its side or upside down the chains would hang against gravity), and none on or by a loop at all
-    lastPat[pat] = s; patCount[pat] = (patCount[pat] || 0) + 1; // an open hall is where the glass blocks swing
+    if (pat === "tallgate" && s < 150) pat = "center"; // (no tall gate right at the start, in front of the cart's nose)
+    if (pat === "prisms" && prevPat === "prisms") pat = Math.random() < 0.5 ? "center" : "twins"; // (never two sets of prisms running)
+    if (CHAINED.includes(pat) && !upright(s, !(spn && spn.knot))) pat = Math.random() < 0.5 ? "center" : "twins"; // anything hung on chains only where the track lies upright (on its side or upside down the chains would hang against gravity), and none on or by a loop at all
+    prevPat = pat; lastPat[pat] = s; patCount[pat] = (patCount[pat] || 0) + 1; // an open hall is where the glass blocks swing
     const glassV = CAM_V + rand(-0.2, 0.3);
     switch (pat) {
       case "center": addPane({ s, u: rand(-0.4, 0.4), v: glassV, w: rand(2.4, 3.2), h: rand(2.4, 3.0) }); break;
@@ -4536,6 +4543,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
   const frameBarGeo = new THREE.BoxGeometry(1, 0.14, 0.18), spikeTipGeo = new THREE.ConeGeometry(0.08, 0.28, 6).rotateZ(Math.PI);
   // opt (Carcer's grates): look "medieval" (heavy black iron, spiked) or "modern" (thin steel bars in a plain frame; all of Carcer's grates are modern now);
   // wide: a grate across the whole track on two chains
+  let prevPat = "";
   const CHAINED = ["gate", "pendulum", "lhang", "bars", "rams", "grams", "grate1", "grate2", "grate3"];
   // a turning-over stretch's twist as it will be once formed (a corkscrew is straight till the cart is near, when things are set down on it)
   const finalTwist = s => { for (const sp of SPANS) if (!sp.knot && s > sp.tw0 && s < sp.tw1) return sp.turns * TAU * spanPhase((s - sp.tw0) / (sp.tw1 - sp.tw0));
@@ -7207,11 +7215,11 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1750, pal: PAL_SPECULUM, finale: "reflexio",
       spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 25 + (179.67 + 10.26 + 192) * 28 / 53.8 + 35, leadOut: 10 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
-      spanPats: ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "prisms"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
-      knotPats: ["center", "twins", "slider", "double", "triple", "sides", "lift", "rotor", "rotor", "reinf", "imps", "prisms", "pgear"], // on the clover, drawn as from a bag: much glass, crosses, imps, one set of prisms, one prism gear (two of each had made it all prisms, and slow)
+      spanPats: ["center", "slider", "twins", "double", "rotor", "rotor2", "lift", "triple", "pendulum", "prisms"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
+      knotPats: ["center", "twins", "slider", "double", "triple", "sides", "lift", "rotor", "rotor2", "reinf", "imps", "prisms", "pgear", "pendulum", "pendulum"], // on the clover, drawn as from a bag: much glass, crosses, imps, one set of prisms, one prism gear (two of each had made it all prisms, and slow)
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300 }, // prisms are sure to come: about half as many sets as at first, each a pair
       pats: { twins: [1.3, 1.7, 1.7], slider: [1, 1.3, 1.3], center: [1.7, 1.7, 1.3], double: [0.3, 1, 1.5], rotor: [0.5, 1, 1.2], wall: [0.5, 0.5, 0.5], sides: [2, 0.8, 0], bonus: [0, 0, 0], prisms: [0.52, 0.75, 0.92],
-        tallgate: [0.6, 0.9, 1.1], gate: [0, 0, 0], pendulum: [0.4, 0.6, 0.8] }, // and tall gates, and square blocks on one chain (no slabs on two)
+        tallgate: [0.6, 0.9, 1.1], gate: [0, 0, 0], pendulum: [0.4, 0.6, 0.8], lift: [0.3, 0.6, 0.7], triple: [0.3, 0.6, 0.6], rotor2: [0.2, 0.5, 0.8], reinf: [0, 0.4, 0.8] }, // and tall gates, and square blocks on one chain (no slabs on two)
       turns: [[100, 50, 40], [210, 60, -55], [330, 50, 45], [450, 70, -70], [590, 50, 50], [700, 60, -45], [820, 50, 40],
         [930, 70, -70], [1070, 50, 55], [1180, 60, -50], [1300, 50, 40], [1390, 50, -40]],
       desc: "Зеркальные залы. За стеклянными стенами коридор повторяется, а рядом с каждым настоящим кристаллом может висеть его отражение. Отражение не даёт шаров, а выстрел по нему стоит шар. Поперёк пути призмы собирают свет в лучи, а парящие зеркала отражают их в сетку: разбейте призму или зеркало, чтобы проехать. Высокие ворота в клубах пара открываются попаданием в бегущие по створкам мишени; висят и монолиты на цепях.",
@@ -9026,6 +9034,10 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     // had been compiled then, mid-ride (a stutter at the first pane the cart went through)
     for (const m of [glassMat, reinfMat, monoMat, edgeMat, reinfEdgeMat, slabGlass, glassEdge]) { const b = burstMatOf(m); g.add(m.isLineBasicMaterial ? new THREE.LineSegments(box, b) : new THREE.Mesh(box, b)); }
     scene.add(g); renderer.compile(scene, camera); scene.remove(g); box.dispose();
+    // and their textures sent to the GPU now: each had gone up the first time something wearing it came into sight, a stall of up to a
+    // second on a phone, early in a ride (the same place every time)
+    const seen = new Set(), up = m => { for (const k of ["map", "emissiveMap", "alphaMap", "normalMap", "bumpMap", "envMap", "lightMap", "roughnessMap", "metalnessMap"]) { const tx = m && m[k]; if (tx && tx.isTexture && !seen.has(tx)) { seen.add(tx); try { renderer.initTexture(tx); } catch (e) { /* not that kind */ } } } };
+    for (const m of WARM) up(m); scene.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(up); });
   }
   // resolution follows the frame rate: up to 3× pixels (2× on a phone); under 45 fps it drops to 2×, under 30 fps to 1×
   // (each after two slow stretches running), and climbs back a step on a fast screen with frames to spare

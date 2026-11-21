@@ -975,7 +975,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   // loops: "v" a loop-the-loop, edging sideways by side·w as it goes round so it comes out beside where it went in (Initium's
   // two, Vitrum's first); "h" a ring lying flat, turning th (a whole turn unless said) to the side and climbing dh as it goes,
   // then down again over dl if it has one; it may climb hc over cl from pre before it starts (Vitrum's second, hung on the loop)
-  let LOOPS = []; const LOOP_LEN = 120, LOOP_SIDE = 9;
+  let LOOPS = []; const LOOP_LEN = 120, LOOP_SIDE = 9, SPEC_LOOP = 95;
   // a turn eased in and out over r of its length and even between: the share of it made by x (0..1), from a table per r
   const PLAT = new Map();
   function plat(x, r) {
@@ -990,11 +990,11 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (l.kind === "h" || l.kind === "r") { const a = l.s0 + (l.c0 || 0), L = l.len * (l.cf || 1), x = (s - a) / L; if (x > 0 && x < 1) p += Math.asin(clamp(l.dh / L * 2 * Math.sin(Math.PI * x) ** 2, -0.9, 0.9)); continue; } // (its climb eased in and out: its slope grows from nothing and dies away to nothing, so no bump and no kink where it meets the loop)
     if (x <= 0) continue;
     else p += TAU * (l.r ? plat(x, l.r) : smooth5(Math.min(1, x))); } return p; };
-  const loopShift = s => { let d = 0; for (const l of LOOPS) { const x = (s - l.s0) / l.len; if (x > 0 && l.kind === "v") d += l.side * l.w * smooth5(Math.min(1, x)); } return d; };
+  const loopShift = s => { let d = 0; for (const l of LOOPS) { const x = (s - l.s0) / l.len; if (x > 0 && l.kind === "v") d += l.side * l.w * smooth5(Math.min(1, x / (l.fr || 1))); } return d; }; // (fr: its edging aside done within that share of it)
   const LO0 = { x: 0, z: 0 };
   function loopOff(s, o) { // a loop's sideways edging so far, in the world: across the heading the loop itself has
     o.x = 0; o.z = 0;
-    for (const l of LOOPS) { if (l.kind !== "v" || s <= l.s0) continue; const d = l.side * l.w * smooth5(Math.min(1, (s - l.s0) / l.len)), y = yawAt(Math.min(s, l.s0 + l.len)); o.x += Math.cos(y) * d; o.z -= Math.sin(y) * d; }
+    for (const l of LOOPS) { if (l.kind !== "v" || s <= l.s0) continue; const d = l.side * l.w * smooth5(Math.min(1, (s - l.s0) / l.len / (l.fr || 1))), y = yawAt(Math.min(s, l.s0 + l.len)); o.x += Math.cos(y) * d; o.z -= Math.sin(y) * d; }
     return o;
   }
   const loopYaw = s => { let y = 0; for (const l of LOOPS) if (l.kind === "h" && s > l.s0) y += l.side * (l.th || TAU) * plat((s - l.s0) / l.len, l.r); return y; };
@@ -1014,7 +1014,12 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (LEVEL.id === "speculum" && SPANS[0] && SPANS[0].tw0 - SPANS[0].a > 200) { // Speculum: a double loop on its first bridge, just past its gate, the corkscrew after it
       const sp = SPANS[0], side = Math.random() < 0.5 ? -1 : 1, a = sp.a + 25; // (both edging the same way, 13 m each, rings side by side as a chain's links: turned
       // back, the second's top had stood in the first's, on Speculum's wide deck; the deck narrowed on them besides)
-      LOOPS.push({ kind: "v", s0: a, side, len: LOOP_LEN, w: 13 }, { kind: "v", s0: a + LOOP_LEN, side, len: LOOP_LEN, w: 13 }); } // (end to end, the corkscrew straight after them)
+      // the two linked as a chain's links: rounder than others (they turn evenly, eased in and out over a tenth), so each comes round
+      // over nearly the same ground and the second's ring passes through the first's; the first edging 23 m aside over its first half,
+      // the second 10.4 m back over its first half: at the top the first's ring passes behind the second's, low down in front of it,
+      // 10 m apart, nowhere nearer than 8.8 m (end to end, the corkscrew straight after them)
+      // (95 m each, round as they are, the 27 m height of the 120 m loops they replace)
+      LOOPS.push({ kind: "v", s0: a, side, len: SPEC_LOOP, w: 23, r: 0.1, fr: 0.5 }, { kind: "v", s0: a + SPEC_LOOP, side: -side, len: SPEC_LOOP, w: 10.4, r: 0.1, fr: 0.5 }); }
     if (LEVEL.id === "initium") { add("drill", L / 3); // Initium: its drill a third of the way, two loops two thirds of the way, the first to the side the drill did not turn
       const first = LTW[0].dir < 0 ? 1 : -1, a = Math.round(L * 2 / 3) - LOOP_LEN - 5;
       LOOPS.push({ kind: "v", s0: a, side: first, len: LOOP_LEN, w: LOOP_SIDE }, { kind: "v", s0: a + LOOP_LEN + 10, side: -first, len: LOOP_LEN, w: LOOP_SIDE }); }
@@ -7157,7 +7162,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       feats: ["Ворота инь-ян: кнопки раздвигают половины", "Мосты инь и ян: штопор в одну сторону, потом в другую", "Тараны на цепях по бокам пути и мельницы с молотами", "Финал Taiji: инь и ян по очереди"],
       req: { after: "labyrinthus" }, map: { x: 590, y: 190, label: "t" } },
     { id: "speculum", num: "IV", latin: "Speculum", ru: "Зеркало", playable: true, music: "measured_descent", len: 1750, pal: PAL_SPECULUM, finale: "reflexio",
-      spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 25 + 240, leadOut: 10 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
+      spans: [{ a: 316 / 1750, turns: 3, len: 180, r: 7.5, dir: 1, leadIn: 25 + 2 * 95, leadOut: 10 }, { a: 970 / 1750, knot: "clover", dir: 1 }], // its two bridges (planSpans): a third of the way a double loop, then the corkscrew; then the clover
       spanPats: ["center", "center", "slider", "twins", "double", "rotor", "pendulum", "prisms"], // its bridges: glass, crosses, a block on a chain (on its Г frame), prisms
       knotPats: ["center", "twins", "slider", "double", "triple", "sides", "lift", "rotor", "rotor", "reinf", "imps", "prisms", "pgear"], // on the clover, drawn as from a bag: much glass, crosses, imps, one set of prisms, one prism gear (two of each had made it all prisms, and slow)
       style: { arch: "square", blocks: "prism", glassWalls: true, closed: true, mirror: true }, crystalMul: 1.3, mirages: 0.45, every: { prisms: 300 }, // prisms are sure to come: about half as many sets as at first, each a pair

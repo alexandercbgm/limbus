@@ -919,7 +919,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (!LEVEL.spans) return;
     const mk = (a, turns, len, r, dir, spiral, leadIn, leadOut) => {
       const kn = spiral && KNOTS[spiral], lead = kn ? kn.lead : SPAN_LEAD; // (the knot: its hill straight from its gate, its gate straight after it)
-      const tw0 = a + (leadIn || lead), tw1 = tw0 + len, sp = { a, b: tw1 + (leadOut || lead), tw0, tw1, turns, dir, r, piers: [], k: 0, ft: -1 }; // k: how far formed (straight till the cart is near); leadIn: a longer way on from its gate (Speculum's double loop on it)
+      const tw0 = a + (leadIn || lead), tw1 = tw0 + len, sp = { a, b: leadOut ? Math.ceil((tw1 + leadOut) / SL) * SL : tw1 + lead, tw0, tw1, turns, dir, r, piers: [], k: 0, ft: -1 }; // k: how far formed (straight till the cart is near); leadIn: a longer way on from its gate (Speculum's double loop on it)
       if (kn) { Object.assign(sp, { knot: true, kn, turns: 0, r: 0, piers: [], k: 1 }); SPANS.push(sp); return; } // (always formed: half a knot reshaping before the eyes would pass through itself)
       if (spiral) { Object.assign(sp, { spiral: true, turns: 0, r: 0, piers: [tw0, tw1] }); SPANS.push(sp); return; } // a spiral bridge (Rubinus): it does not turn over, it coils round (an LTW spiral over its stretch, planLux); piers at its two ends only, the coils pass over each other
       for (let k = 0; k <= turns; k++) { let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (spanPhase(m) * turns < k) lo = m; else hi = m; } sp.piers.push(tw0 + (lo + hi) / 2 * len); }
@@ -958,6 +958,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   const knotPitch = s => { const sp = knotSpan(s); return sp ? knotTab(sp.kn.tab.pitch, sp, s) : 0; };
   // how far the knot's view has opened: from its gate's approach (300 m to 130 m before it) the haze draws back from 108–146 m to
   // 250–330 m, so the whole knot stands clear in front of the cart as it comes out; back again just past its far gate
+  let kVeil = 0;
   const knotView = () => { for (const sp of SPANS) if (sp.knot) return smooth5((sC - (sp.a - 130)) / 130) * smooth5((sp.b + 70 - sC) / 70); return 0; };
   const knotEdgeMat = new THREE.MeshBasicMaterial({ color: 0xffe2e8 });
   const deckK = s => { const sp = spanAt(s); if (sp && sp.knot) return sp.kn.w; if (sp && LEVEL.id === "speculum") return 0.6; if (sp && LOOPS.length) { let e1 = -1; for (const l of LOOPS) if (l.s0 > sp.a && l.s0 < sp.b) e1 = Math.max(e1, loopEnd(l));
@@ -2042,6 +2043,15 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     if (STYLE.rebar) lampMat.emissiveIntensity = lampFlicker();
     scene.fog.color.copy(cur.hor); scene.fog.near = cur.fogN; scene.fog.far = cur.fogF;
     { const kv = knotView(); if (kv > 0) { scene.fog.near = lerp(cur.fogN, Math.max(cur.fogN, 170), kv); scene.fog.far = lerp(cur.fogF, Math.max(cur.fogF, 330), kv); } } // the knot: the haze drawn back with the melting, the whole figure in clear sight
+    // Speculum's clover: drawn from 150 m short of its gate, but till a leaf of the gate begins to open a haze closes in just past the
+    // gate, so nothing of it shows (through the tunnel's frosted walls, in its mirrors through the opening door); then it draws back
+    { const ks = LEVEL.id === "speculum" && SPANS.find(x => x.knot); if (ks && sC > ks.a - 175 && sC < ks.a + 5) {
+      const g = doors.find(d => Math.abs(d.s - ks.a) < 1), open = sC > ks.a - 3 || (g && (g.open || g.passed || g.leaves.some(l => l.opening)));
+      kVeil = open ? Math.min(1, kVeil + 0.025) : 0; const lim = Math.max(20, ks.a - sC + 14), k = smooth5(kVeil);
+      scene.fog.far = lerp(Math.min(scene.fog.far, lim), scene.fog.far, k); scene.fog.near = lerp(Math.min(scene.fog.near, lim * 0.55), scene.fog.near, k); } else kVeil = 0; }
+    // the haze no farther than the drawn track's far end: things come into being there, and melt in out of the haze (where it had
+    // reached past it, they had appeared all at once, in sight)
+    { frameAt(sC + AHEAD - 4); const dEnd = _P.distanceTo(cartPos) - 4; if (dEnd < scene.fog.far) { scene.fog.far = Math.max(40, dEnd); scene.fog.near = Math.min(scene.fog.near, scene.fog.far * 0.7); } }
     surfMat.color.copy(cur.surf); surfMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     wallMat.color.copy(cur.wall); wallMat.emissive.copy(cur.line).multiplyScalar(cur.lineI);
     blockMat.color.copy(cur.block); blockMat.emissive.copy(cur.line).multiplyScalar(cur.lineI * 0.8);
@@ -6125,7 +6135,8 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     const targets = ways.map(([x, y]) => {
       // each hung like a door from the post beside it: a small hinge on the post's inner face, a short arm out from it, the disc on the
       // arm, whole, inside the opening
-      const hx = GX - 0.17 - 0.06, ARM = SW_ARM, ty = y ? SW_MID4 + y * SW_ROW : MID; // (four: the rows' room to the beam above half that between them)
+      const hx = (m.span ? BRIDGE_W + 0.45 : GX) - 0.17 - 0.06, ARM = SW_ARM, ty = y ? SW_MID4 + y * SW_ROW : MID; // (on Speculum's wider bridge the targets where Vitrum's and Lux's hang, on a bracket from the post)
+      if (m.span) box(GX - hx, 0.12, 0.12, x * (GX + hx) / 2, ty); // (four: the rows' room to the beam above half that between them)
       const knuckle = new THREE.Mesh(swHingeGeo, frameMat); knuckle.position.set(x * hx, ty, 0); root.add(knuckle);
       const pv = new THREE.Group(); pv.position.set(x * hx, ty, 0); root.add(pv);
       const arm = new THREE.Mesh(swArmGeo, frameMat); arm.position.set(-x * ARM / 2, 0, 0); pv.add(arm);
@@ -6211,7 +6222,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       const beam = lightBeam(); beam.position.y = PG_R + PG_L; beam.traverse(o => { o.userData.noMirror = true; }); g.add(beam); // no beams in the mirrors
       return { i, g, beam, alive: true, wp: new THREE.Vector3(), du: 0, dv: 1, len: 0 };
     });
-    const pg = { s, reach, root, rotor, teeth, a: rand(0, TAU), spin: PG_SPIN * (Math.random() < 0.5 ? -1 : 1), hit: false, wp: new THREE.Vector3() };
+    const pg = { s, reach, born: time, root, rotor, teeth, a: rand(0, TAU), spin: PG_SPIN * (Math.random() < 0.5 ? -1 : 1), hit: false, wp: new THREE.Vector3() };
     pgears.push(pg); mirrorReg(root, () => pg.s);
     clearZone(s - 4, s + 4);
     for (let k = Math.floor((s - 5) / SL); k <= Math.floor((s + 5) / SL); k++) getDecor(k).arch = false; // no frame through its prisms
@@ -6228,7 +6239,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
       const r0 = PG_R + PG_L;
       for (const t of pg.teeth) {
         const an = pg.a + t.i * TAU / PG_N + Math.PI / 2; t.du = Math.cos(an); t.dv = Math.sin(an); // the prism's line, out from the hub
-        const far = t.alive ? beamReach(t.du * r0, PG_V + t.dv * r0, t.du, t.dv, pg.reach, pg.s) : 0; t.len = Math.min(far, pg.reach); setBeamLen(t.beam, t.len);
+        const far = t.alive ? beamReach(t.du * r0, PG_V + t.dv * r0, t.du, t.dv, pg.reach, pg.s) : 0; t.len = Math.min(far, pg.reach) * smooth5((time - pg.born) / 1.2); setBeamLen(t.beam, t.len); // (its beams grow out over a second as it comes into being: they had shone at once from round a bend, the gear itself out of sight)
         if (far >= pg.reach) t.beam.userData.spot.visible = false; // (cut short before another tier: it fades out there, no spot)
         t.wp.set(0, PG_R + PG_L * 0.45, 0); t.g.localToWorld(t.wp);
       }
@@ -8514,7 +8525,7 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     const onKnot = SPANS.some(sp => sp.knot && sC > sp.a - 380 && sC < sp.b + 20); // the knot: drawn whole, and everything on it set down, while the cart is still far back in the tunnel (out of sight, so nothing is seen to come)
     const kSp = onKnot ? SPANS.find(sp => sp.knot) : null; // (on the knot itself, only as far as it and a little past: the tunnel 800 m on had been drawn for nothing)
     const kGate = kSp && doors.find(d => Math.abs(d.s - kSp.a) < 1), kOpen = kSp && (LEVEL.id !== "speculum" || (kGate ? kGate.open || kGate.passed || kGate.leaves.some(l => l.opening) : sC > kSp.a - 5)); // (Rubinus's knot as before: drawn from 150 m short of its gate) // (the knot drawn once its gate is open: through the tunnel's frosted walls its turns had shown beside it long before)
-    const kIn = kSp && sC < kSp.b - 60 && (sC > kSp.a || (sC > kSp.a - 150 && kOpen) || (LEVEL.id === "speculum" && kOpen && sC > kSp.a - 380)), kPre = kSp && !kIn && sC < kSp.a && sC > kSp.a - 150; // (on the knot's loops: the way past its far gate not drawn yet, the level's end had shown from up there; back in the tunnel,
+    const kIn = kSp && sC < kSp.b - 60 && sC > kSp.a - 150, kPre = kSp && !kIn && sC < kSp.a && sC > kSp.a - 150; // (on the knot's loops: the way past its far gate not drawn yet, the level's end had shown from up there; back in the tunnel,
     // till 80 m short of its gate, the tunnel drawn as anywhere: all 800 m drawn from 380 m back had made the run up to it slow)
     SPAWN_TO = kSp && sC < kSp.b - 60 ? Math.min(AHEAD_MAX, kSp.b + 25 - sC) : 0;
     const aheadTo = kIn ? clamp(kSp.b + 25 - sC, 85, AHEAD_MAX) : kPre ? clamp(kSp.a + 3 - sC, 20, 150) : onKnot || LTW.some(m => m.kind === "spiral" && sC > m.sw - 220 && sC < m.tw1 + 10) ? AHEAD_MAX : 150;

@@ -2360,8 +2360,8 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         // (set true, as a monolith's roof is, the whole bay gets it, frame to frame)
         const set = v => { if (v) { bayForce.add(key + m); bayCut.delete(key + bayStart(m)); } else bayCut.add(key + bayStart(m)); }; // (a monolith's roof wins over one cleared away before it)
         const set0 = v => { if (v) { bayForce.add(key + (m - 1)); bayCut.delete(key + bayStart(m - 1)); } else bayCut.add(key + bayStart(m - 1)); };
-        Object.defineProperty(d, key, { get: () => !bayCut.has(key + bayStart(m)) && !station && (bayState(m)[key] || bayForce.has(key + m)), set, enumerable: true, configurable: true });
-        if (k % 4 === 0) Object.defineProperty(d, key + "0", { get: () => !bayCut.has(key + bayStart(m - 1)) && !st0 && (bayState(m - 1)[key] || bayForce.has(key + (m - 1))), set: set0, enumerable: true, configurable: true }); // (the half before the frame)
+        Object.defineProperty(d, key, { get: () => !spn && !bayCut.has(key + bayStart(m)) && !station && (bayState(m)[key] || bayForce.has(key + m)), set, enumerable: true, configurable: true });
+        if (k % 4 === 0) Object.defineProperty(d, key + "0", { get: () => !spn && !bayCut.has(key + bayStart(m - 1)) && !st0 && (bayState(m - 1)[key] || bayForce.has(key + (m - 1))), set: set0, enumerable: true, configurable: true }); // (the half before the frame)
       }
     }
     // Vitrum (bare): no flat walls or roof; where they'd stand, panes of glass close the hexagon's sides and top instead
@@ -2809,7 +2809,9 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
         if (dec.span) continue;
         put("sleeper", s - 0.5, m.o, 0.06); put("sleeper", s + 0.5, m.o, 0.06);
         put("rail", s, m.o - 0.72, 0.19); put("rail", s, m.o + 0.72, 0.19);
-        if (dec.ceil && !STYLE.closed && !STYLE.bare) I.ceil.setMatrixAt(n.ceil++, placeM(M, s, m.o, dec.hh || SH).scale(SV.set((dec.hw || SW) / W, 1, 1))); // the pieces of roof there are, mirrored
+        if (!STYLE.closed && !STYLE.bare) { const ww = dec.hw || SW, wh = dec.hh || SH, rx = STYLE.glassWalls ? 0.12 : 0; // the pieces of roof there are, mirrored: in one sheet as the real roof
+          // is, as wide (out to the mirror's plane, where it meets its own), no gaps between its tiles on a bend
+          for (const [a, b, on] of dec.ceil0 === undefined ? [[s - SL / 2, s + SL / 2, dec.ceil]] : [[s - SL / 2, s, dec.ceil0], [s, s + SL / 2, dec.ceil]]) if (on) sheetQuad(roofSheet, a, b, m.o - ww - rx, wh, m.o + ww + rx, wh, 0, -1); }
         putWall(wallKey, s, far); // the far wall as the real ones: mirror glass, the sky through it (opaque, it read as a roof)
         if (dec.arch && STYLE.arch !== "hex") { { put("post", s, m.o - W + 0.1, H / 2); put("post", s, m.o + W - 0.1, H / 2); put("beam", s, m.o, H - 0.18); put("sill", s, m.o, 0.025); } }
       }

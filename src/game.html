@@ -154,6 +154,14 @@ body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none
 .m-head { -webkit-user-select: none; user-select: none; display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
 .logo { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 7vw, 48px); letter-spacing: 0.22em; line-height: 1; margin: 0; }
 .logo span { color: #1287b5; }
+/* the loading screen before a ride: the game's logo, a word and a bar, over everything, opaque (the last level's frame not seen through) */
+#loading { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 40%, #13243a 0%, #08111d 60%, #050a12 100%); color: #e8f1fa; }
+#loading[hidden] { display: none; }
+#loading .logo { color: #f4f8fc; text-shadow: 0 0 18px rgba(120, 200, 255, 0.55), 0 0 2px rgba(255, 255, 255, 0.8); text-align: center; }
+#loading .logo span { color: #3ecbe8; }
+#loading .ld-t { margin-top: 22px; text-align: center; font: 600 13px var(--display); letter-spacing: 0.3em; text-transform: uppercase; color: #9fb4c8; }
+#loading .ld-bar { margin: 14px auto 0; width: min(260px, 70vw); height: 4px; border-radius: 2px; background: rgba(160, 200, 240, 0.16); overflow: hidden; }
+#loading .ld-bar i { display: block; height: 100%; width: 0; background: #3ecbe8; box-shadow: 0 0 10px rgba(62, 203, 232, 0.7); transition: width 0.25s ease-out; }
 /* the bank is a readout, not a button: a pale plate with dark text */
 .bank { font-family: var(--mono); font-size: 13px; padding: 10px 14px; border-radius: 4px; background: rgba(255, 255, 255, 0.55); box-shadow: inset 0 0 0 1px rgba(16, 36, 46, 0.1); color: #10242e; display: flex; gap: 8px; align-items: center; }
 .star { display: inline-block; width: 1.1em; height: 1.1em; margin-left: 0.35em; vertical-align: -0.17em; fill: currentColor; }
@@ -793,6 +801,7 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
   </div>
 </section>
 
+<div id="loading" hidden><div><h1 class="logo">LIMB<span>U</span>S</h1><div class="ld-t" id="ldText">Загрузка</div><div class="ld-bar"><i id="ldBar"></i></div></div></div>
 <section class="overlay" id="gift" hidden>
   <div class="panel">
     <p class="eyebrow" id="giftEyebrow"></p>
@@ -7567,15 +7576,17 @@ vec3 bNor(vec3 n) { vec3 P; float tz, tr, st, sh; bAt(P, tz, tr, st, sh); return
     if (!progress.rode) { progress.rode = true; saveProgress(); } // the first ride: Initium's rings on the scheme are done with
     setLevel(lv);
     hidePanels(); state = "loading"; const tok = ++loadTok;
-    showOverlay("titlecard", `<div><span class="tc-num">STATIO</span><span class="tc-name">${lv.latin.toUpperCase()}</span><span class="tc-ru">${T("загрузка…", "loading…")}</span></div>`, 60000);
+    clearTimeout($("titlecard")._t); $("titlecard").hidden = true; $("ldText").textContent = T("Загрузка", "Loading"); $("loading").hidden = false; // (the last title gone: it had shown over the new one)
+    const bar = v => { $("ldBar").style.width = Math.round(v * 100) + "%"; };
     const frame = () => new Promise(r => requestAnimationFrame(() => r()));
     (async () => {
-      await frame(); await frame(); if (tok !== loadTok) return;
+      bar(0.05); await frame(); await frame(); if (tok !== loadTok) return; bar(0.25); await frame();
       try { prepLevel(); } catch (e) { /* a sample that would not build: the ride goes on without it */ }
-      await frame(); if (tok !== loadTok) return;
+      bar(0.7); await frame(); if (tok !== loadTok) return;
       try { const bytes = await Promise.race([musicBytes(lv.music), new Promise(r => setTimeout(r, 2500))]);
         if (bytes && Sound.ctx && !Sound.buffers[lv.music]) Sound.buffers[lv.music] = await Promise.race([Sound.ctx.decodeAudioData(bytes.buffer.slice(0)), new Promise(r => setTimeout(r, 2500))]) || undefined; } catch (e) { /* played as it comes */ }
       if (tok !== loadTok) return;
+      bar(1); await frame(); await frame(); $("loading").hidden = true;
       beginRide(lv);
     })();
   }

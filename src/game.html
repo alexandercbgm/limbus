@@ -2855,7 +2855,14 @@ html:not(.night) .map-card { background: linear-gradient(180deg, rgba(255, 255, 
     // overlapped a metre either side, flickering through each other, the floor's last metre narrowing in white corners past the gate);
     // where the floor strip narrows to nothing, the metre before the gate, a plain piece of floor over it
     const spanIn = s => SPANS.find(sp => s >= sp.a - 0.01 && s <= sp.b + 0.01);
-    fillStrip(floorStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length || LTW.length ? s => (spanIn(s) || fineAll(s) ? 0 : fw(s)) : floorW); // over a bridge, its deck instead
+    // Rubinus: past a gate onto the knot (and before the one off it) the corridor's floor narrows to the deck in a wedge, 6 m, its edges
+    // kerbed as the knot's (there had been a sheer drop either side of the deck at the gate)
+    const WEDGE = 6, wedge = s => { if (LEVEL.id !== "rubinus") return 0; for (const sp of SPANS) { const d = s < sp.a + WEDGE + 1 ? s - sp.a : sp.b - s; if (d >= 0 && d <= WEDGE) return lerp(fw(s), SW * deckK(clamp(s, sp.a + 0.01, sp.b - 0.01)), d / WEDGE); } return 0; };
+    fillStrip(floorStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, 0, 0, SPANS.length || LTW.length ? s => (spanIn(s) ? wedge(s) : fineAll(s) ? 0 : fw(s)) : floorW); // over a bridge, its deck instead
+    if (LEVEL.id === "rubinus") for (const sp of SPANS) for (const [s0, dir] of [[sp.a, 1], [sp.b, -1]]) for (let q = 0; q < 3; q++) { // the wedge's kerbs, 2 m pieces
+      const sa = s0 + dir * q * 2, sb = sa + dir * 2; if (Math.max(sa, sb) < sC - BEHIND || Math.min(sa, sb) > sC + AHEAD - 4) continue;
+      for (const sd of [-1, 1]) { const ua = sd * wedge(sa + dir * 0.001), ub = sd * wedge(sb - dir * 0.001), du = (ub - ua) * dir, sm = (sa + sb) / 2;
+        I.kerb.setMatrixAt(n.kerb++, placeM(M, sm, (ua + ub) / 2, 0.1).multiply(M2.makeRotationY(-Math.atan2(du, 2))).scale(SV.set(1, 1, Math.hypot(2, du) / SL))); } }
     for (const sp of SPANS) for (const e of [sp.a - 0.5, sp.b + 0.5]) if (e > sC - BEHIND && e < sC + AHEAD - 4) putS("fcap", e, 0, 0.004, 2 * fw(e), 1, 1);
     const under = !STYLE.bridge && LEVEL.id !== "initium" && (LOOPS.length > 0 || LTW.length > 0); underStrip.visible = under; // (Initium's loops have their slab)
     if (under) fillStrip(underStrip, Math.floor(sC) - BEHIND, Math.floor(sC) + AHEAD - 4, frameAt, -0.06, 0, s => !spanIn(s) && (loopAt(s) || LTW.some(m => s > m.tw0 - 4 && s < m.tw1 + 4)) ? fw(s) : 0); // (not on a bridge: its deck has its own underside; the tunnel floor's, wider, had hung in the air beside it)
